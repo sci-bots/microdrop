@@ -1,0 +1,23 @@
+TODO:
+
+Next:
+*connect to Arduino
+*change electrodes
+*set voltage/frequency
+*fix bussing
+
+Soon:
+*switch to mvc architecture
+*edit protocol
+*run protcol
+*save/load protocol
+*save feedback
+*run frequency sweep
+
+Future:
+*save/load devices
+*refactor code into client/daemon
+*make installer
+*generate documentation
+*unit tests
+*build tests
