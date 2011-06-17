@@ -1,13 +1,10 @@
 import gtk
 import os
 from controllers.dmf_controller import DmfController
-from controllers.agilent_33220a import Agilent33220A
 from device_view import DeviceView
+from protocol_editor import ProtocolEditor
 
 class MainWindow:
-    def on_destroy(self, widget, data=None):
-        gtk.main_quit()
-
     def __init__(self, app):
         self.app = app
         self.builder = gtk.Builder()
@@ -17,23 +14,53 @@ class MainWindow:
 
         self.window = self.builder.get_object("window")
         self.label_connection_status = self.builder.get_object("label_connection_status")
+        self.checkbutton_realtime_mode = self.builder.get_object("checkbutton_realtime_mode")
+
         self.device_view = DeviceView(app, self.builder)
+
+
+        self.protocol_editor = ProtocolEditor(app, self.builder)
 
         signals = { "on_menu_quit_activate" :
                     self.on_destroy,
                     "on_window_destroy" :
                     self.on_destroy,
+                    "on_checkbutton_realtime_mode_toggled" :
+                    self.on_realtime_mode_toggled,
                     "on_device_view_button_press_event" :
                     self.device_view.on_button_press,
                     "on_device_view_key_press_event" :
                     self.device_view.on_key_press,
                     "on_device_view_expose_event" :
-                    self.device_view.on_expose }
+                    self.device_view.on_expose,
+                    "on_button_insert_step_clicked" :
+                    self.protocol_editor.on_insert_step,
+                    "on_button_delete_step_clicked" :
+                    self.protocol_editor.on_delete_step,
+                    "on_button_first_step_clicked" :
+                    self.protocol_editor.on_first_step,
+                    "on_button_prev_step_clicked" :
+                    self.protocol_editor.on_prev_step,
+                    "on_button_next_step_clicked" :
+                    self.protocol_editor.on_next_step,
+                    "on_button_last_step_clicked" :
+                    self.protocol_editor.on_last_step,
+                  }
+
         self.builder.connect_signals(signals)
 
-        #app.func_gen = Agilent33220A()
-        app.controller = DmfController()
-        if app.controller.Connect("COM3") == DmfController.RETURN_OK:
-            self.label_connection_status.set_text(app.controller.name() +
-                                                  " v" + app.controller.version())
+        for i in range(0,31):
+            if app.controller.Connect("COM%d" % i) == DmfController.RETURN_OK:
+                #TODO check protocol name/version
+                self.label_connection_status.set_text(app.controller.name() +
+                                                      " v" + app.controller.version())
+                #app.controller.set_debug(True)
+                self.device_view.update()
+                break
         gtk.main()
+
+    def on_destroy(self, widget, data=None):
+        gtk.main_quit()
+
+    def on_realtime_mode_toggled(self, widget, data=None):
+        self.app.toggle_realtime_mode()

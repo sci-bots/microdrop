@@ -4,7 +4,6 @@ import math
 class DeviceView:
     def __init__(self, app, builder):
         self.app = app
-
         self.widget = builder.get_object("device_view")
         x, y, width, height = self.widget.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
@@ -57,9 +56,6 @@ class DeviceView:
             self.electrodes[i].x += 5 # x offset
             self.electrodes[i].y += 5 # y offset
 
-        self.state_of_electrodes = [0]*len(self.electrodes)
-        self.update()
-
     # device view events
     def on_expose(self, widget, event):
         x , y, width, height = event.area
@@ -69,30 +65,33 @@ class DeviceView:
 
     def on_button_press(self, widget, event):
         self.widget.grab_focus()
+        state = self.app.state_of_all_electrodes()
         for i in range(0,len(self.electrodes)):
             if self.electrodes[i].contains(event.x, event.y, self.scale):
                 if event.button == 1:
-                    if self.state_of_electrodes[i]>0:
-                        self.state_of_electrodes[i] = 0
+                    if state[i]>0:
+                        state[i] = 0
                     else:
-                        self.state_of_electrodes[i] = 1
-                    self.update()
+                        state[i] = 1
+        self.app.set_state_of_all_electrodes(state)
+        self.update()
         return True
 
-    def on_key_press(self, widget, event):
-        return True
+    def on_key_press(self):
+        pass
 
     def update(self):
+        state = self.app.state_of_all_electrodes()
         cr = self.pixmap.cairo_create()
         for i in range(0,len(self.electrodes)):
-            if self.state_of_electrodes[i]==0:
+            if state[i]==0:
                 self.draw_electrode(self.electrodes[i], cr)
         cr.set_source_rgb(0, 0, 1)
         cr.fill()
 
         cr = self.pixmap.cairo_create()
         for i in range(0,len(self.electrodes)):
-            if self.state_of_electrodes[i]>0:
+            if state[i]>0:
                 self.draw_electrode(self.electrodes[i], cr)
         cr.set_source_rgb(1, 1, 1)
         cr.fill()
