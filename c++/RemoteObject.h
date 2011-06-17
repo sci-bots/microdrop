@@ -94,6 +94,8 @@ public:
   // these methods query the remote device for protocol name/version
   virtual std::string protocol_name() = 0;
   virtual std::string protocol_version() = 0;
+
+  bool connected() { return Serial.isOpen(); }  
   uint8_t Connect(const char* port);
 #endif
 
