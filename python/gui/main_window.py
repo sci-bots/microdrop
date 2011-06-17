@@ -10,14 +10,13 @@ class MainWindow:
 
     def __init__(self, app):
         self.app = app
-        #app.func_gen = Agilent33220A()
-        app.controller = DmfController()
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui",
                                                 "glade",
                                                 "main_window.glade"))
 
         self.window = self.builder.get_object("window")
+        self.label_connection_status = self.builder.get_object("label_connection_status")
         self.device_view = DeviceView(app, self.builder)
 
         signals = { "on_menu_quit_activate" :
@@ -31,4 +30,10 @@ class MainWindow:
                     "on_device_view_expose_event" :
                     self.device_view.on_expose }
         self.builder.connect_signals(signals)
+
+        #app.func_gen = Agilent33220A()
+        app.controller = DmfController()
+        if app.controller.Connect("COM3") == DmfController.RETURN_OK:
+            self.label_connection_status.set_text(app.controller.name() +
+                                                  " v" + app.controller.version())
         gtk.main()

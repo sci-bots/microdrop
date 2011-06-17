@@ -4,6 +4,15 @@
 
 using namespace boost::python;
 
+const uint8_t RemoteObject::RETURN_OK;
+const uint8_t RemoteObject::RETURN_GENERAL_ERROR;
+const uint8_t RemoteObject::RETURN_UNKNOWN_COMMAND;
+const uint8_t RemoteObject::RETURN_TIMEOUT;
+const uint8_t RemoteObject::RETURN_NOT_CONNECTED;
+const uint8_t RemoteObject::RETURN_BAD_INDEX;
+const uint8_t RemoteObject::RETURN_BAD_PACKET_SIZE;
+const uint8_t RemoteObject::RETURN_BAD_CRC;
+
 BOOST_PYTHON_MODULE(dmf_controller)
 {
   class_<std::vector<uint8_t> >("uint8_tVector")
@@ -18,7 +27,8 @@ BOOST_PYTHON_MODULE(dmf_controller)
     .def(vector_indexing_suite<std::vector<float> >())
   ;
 
-  class_<DmfController,boost::noncopyable>("DmfController")
+object DmfController_class 
+  = class_<DmfController,boost::noncopyable>("DmfController")
     .def("Connect",&DmfController::Connect)
     .def("return_code",&DmfController::return_code)
     .def("set_debug",&DmfController::set_debug)
@@ -43,4 +53,12 @@ BOOST_PYTHON_MODULE(dmf_controller)
     .def("LogExperiment",&DmfController::SetExperimentLogFile)
     .def("MeasureImpedance",&DmfController::MeasureImpedance)
   ;
+DmfController_class.attr("RETURN_OK") = DmfController::RETURN_OK;
+DmfController_class.attr("RETURN_GENERAL_ERROR") = DmfController::RETURN_GENERAL_ERROR;
+DmfController_class.attr("RETURN_UNKNOWN_COMMAND") = DmfController::RETURN_UNKNOWN_COMMAND;
+DmfController_class.attr("RETURN_TIMEOUT") = DmfController::RETURN_TIMEOUT;
+DmfController_class.attr("RETURN_NOT_CONNECTED") = DmfController::RETURN_NOT_CONNECTED;
+DmfController_class.attr("RETURN_BAD_INDEX") = DmfController::RETURN_BAD_INDEX;
+DmfController_class.attr("RETURN_BAD_PACKET_SIZE") = DmfController::RETURN_BAD_PACKET_SIZE;
+DmfController_class.attr("RETURN_BAD_CRC") = DmfController::RETURN_BAD_CRC;
 }
