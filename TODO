@@ -1,20 +1,18 @@
 TODO:
 
 Next:
-*wrap STL containers
-*change electrodes
-*set voltage/frequency
-*fix bussing
+*edit protocol
+*save/load protocol
+*run protcol
 
 Soon:
-*switch to mvc architecture
-*edit protocol
-*run protcol
-*save/load protocol
+*set voltage/frequency
+*fix bussing
 *save feedback
 *run frequency sweep
 
 Future:
+*implement mvc architecture
 *save/load devices
 *refactor code into client/daemon
 *make installer

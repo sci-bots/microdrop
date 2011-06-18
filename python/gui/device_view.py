@@ -55,6 +55,7 @@ class DeviceView:
         for i in range(0,len(self.electrodes)):
             self.electrodes[i].x += 5 # x offset
             self.electrodes[i].y += 5 # y offset
+        self.update()
 
     # device view events
     def on_expose(self, widget, event):
