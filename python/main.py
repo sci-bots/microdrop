@@ -11,7 +11,6 @@ class App:
         self.main_window = MainWindow(self)
         self.main_window.main()
 
-
     def state_of_all_electrodes(self):
         if self.realtime_mode:
             state = self.controller.state_of_all_electrodes()
@@ -21,7 +20,7 @@ class App:
 
     def set_state_of_electrode(self, index, state):
         if self.realtime_mode:
-            self.controller.set_state_of_electrode(index, state)
+            self.controller.set_state_of_channel(index, state)
         else:
             self.protocol.set_state_of_electrode(index, state)
 

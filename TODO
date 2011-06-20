@@ -1,14 +1,13 @@
 TODO:
 
 Next:
-*check time when textbox loses focus/enter is pressed/step number changes
-*enable bussing (many to many relationship between electrodes/channels)
 *set voltage/frequency
 *save feedback
 *run frequency sweep
 *extract droplet velocity
 
 Later:
+*check time when textbox loses focus/enter is pressed/step number changes
 *config file
 *save state (window location, current device, current protocol, etc.)
 *implement mvc architecture
