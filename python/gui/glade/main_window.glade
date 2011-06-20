@@ -97,6 +97,7 @@
                                 <property name="use_underline">True</property>
                                 <property name="image">image8</property>
                                 <property name="use_stock">False</property>
+                                <signal name="activate" handler="on_menu_new_protocol_activate" swapped="no"/>
                               </object>
                             </child>
                             <child>
@@ -146,6 +147,7 @@
                                 <property name="use_underline">True</property>
                                 <property name="image">image6</property>
                                 <property name="use_stock">False</property>
+                                <signal name="activate" handler="on_menu_run_protocol_activate" swapped="no"/>
                               </object>
                             </child>
                             <child>

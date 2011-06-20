@@ -8,7 +8,7 @@ class Step():
         if time:
             self.time = time
         else:
-            self.time = 50
+            self.time = 100
         self.n_electrodes = n_electrodes
         self.state_of_electrodes = np.zeros(n_electrodes)
 
@@ -22,7 +22,7 @@ class Protocol():
         self.steps = [Step(self.n_electrodes)]
 
     def __len__(self):
-        len(steps)
+        return len(self.steps)
 
     def set_state_of_electrode(self, index, state):
         self.current_step().state_of_electrodes[index] = state

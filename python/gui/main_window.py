@@ -43,12 +43,16 @@ class MainWindow:
                     self.protocol_editor.on_next_step,
                     "on_button_last_step_clicked" :
                     self.protocol_editor.on_last_step,
+                    "on_menu_new_protocol_activate" :
+                    self.protocol_editor.on_new_protocol,
                     "on_menu_save_protocol_activate" :
                     self.protocol_editor.on_save_protocol,
                     "on_menu_save_protocol_as_activate" :
                     self.protocol_editor.on_save_protocol_as,
                     "on_menu_load_protocol_activate" :
                     self.protocol_editor.on_load_protocol,
+                    "on_menu_run_protocol_activate" :
+                    self.protocol_editor.on_run_protocol,
                   }
 
         self.builder.connect_signals(signals)
@@ -65,6 +69,9 @@ class MainWindow:
     def main(self):
         self.update()
         gtk.main()
+
+    def set_realtime_mode(self, is_active):
+        self.checkbutton_realtime_mode.set_active(is_active)
 
     def on_destroy(self, widget, data=None):
         gtk.main_quit()

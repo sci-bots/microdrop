@@ -1,6 +1,7 @@
-from protocol import Protocol, Step
+from protocol import Protocol
 import gtk
 import pickle
+import gobject
 
 class ProtocolEditor():
     def __init__(self, app, builder):
@@ -15,6 +16,7 @@ class ProtocolEditor():
         self.label_step_number = builder.get_object("label_step_number")
         self.menu_save_protocol = builder.get_object("menu_save_protocol")
         self.menu_load_protocol = builder.get_object("menu_load_protocol")
+        self.timer_id = None
 
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()
@@ -40,8 +42,13 @@ class ProtocolEditor():
         self.app.protocol.last_step()
         self.update()
 
+    def on_new_protocol(self, widget, data=None):
+        self.app.protocol = Protocol()
+        self.update()
+
     def on_save_protocol(self, widget, data=None):
         print "save protcol"
+        #TODO
 
     def on_save_protocol_as(self, widget, data=None):
         dialog = gtk.FileChooserDialog(title=None,
@@ -78,6 +85,18 @@ class ProtocolEditor():
             f.close()
         dialog.destroy()
         self.app.main_window.update()
+
+    def on_run_protocol(self, widget, data=None):
+        self.timer_id = gobject.timeout_add(self.app.protocol.current_step().time,
+                                            self.run_next_step)
+
+    def run_next_step(self):
+        if self.app.protocol.current_step_number < len(self.app.protocol)-1:
+            self.app.protocol.next_step()
+            self.timer_id = gobject.timeout_add(self.app.protocol.current_step().time,
+                                                self.run_next_step)
+            self.app.main_window.update()
+        return False
 
     def update(self):
         self.textbox_step_time.set_text(str(self.app.protocol.current_step().time))

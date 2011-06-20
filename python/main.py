@@ -11,6 +11,7 @@ class App:
         self.main_window = MainWindow(self)
         self.main_window.main()
 
+
     def state_of_all_electrodes(self):
         if self.realtime_mode:
             state = self.controller.state_of_all_electrodes()
