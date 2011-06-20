@@ -55,7 +55,6 @@ class DeviceView:
         for i in range(0,len(self.electrodes)):
             self.electrodes[i].x += 5 # x offset
             self.electrodes[i].y += 5 # y offset
-        self.update()
 
     # device view events
     def on_expose(self, widget, event):
@@ -68,14 +67,14 @@ class DeviceView:
         self.widget.grab_focus()
         state = self.app.state_of_all_electrodes()
         for i in range(0,len(self.electrodes)):
-            if self.electrodes[i].contains(event.x, event.y, self.scale):
-                if event.button == 1:
+            if event.button == 1:
+                if self.electrodes[i].contains(event.x, event.y, self.scale):
                     if state[i]>0:
-                        state[i] = 0
+                        self.app.set_state_of_electrode(i, 0)
                     else:
-                        state[i] = 1
-        self.app.set_state_of_all_electrodes(state)
-        self.update()
+                        self.app.set_state_of_electrode(i, 1)
+                    self.update()
+                    break
         return True
 
     def on_key_press(self):

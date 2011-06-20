@@ -1,21 +1,30 @@
 TODO:
 
 Next:
-*edit protocol
-*save/load protocol
 *run protcol
-
-Soon:
 *set voltage/frequency
-*fix bussing
+*enable bussing (many to many relationship between electrodes/channels)
 *save feedback
 *run frequency sweep
+*extract droplet velocity
+*check time when textbox loses focus/enter is pressed/step number changes
 
-Future:
+Later:
 *implement mvc architecture
 *save/load devices
+*group steps
+*list view for protocol
+*cut and paste steps
+*repeat for steps/groups
+
+Future:
+*video capture
 *refactor code into client/daemon
 *make installer
+*auto update over internet
 *generate documentation
 *unit tests
+*check types in functions
 *build tests
+*online device database
+*store performance data in online repository

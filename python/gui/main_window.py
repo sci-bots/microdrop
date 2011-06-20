@@ -17,8 +17,6 @@ class MainWindow:
         self.checkbutton_realtime_mode = self.builder.get_object("checkbutton_realtime_mode")
 
         self.device_view = DeviceView(app, self.builder)
-
-
         self.protocol_editor = ProtocolEditor(app, self.builder)
 
         signals = { "on_menu_quit_activate" :
@@ -45,6 +43,12 @@ class MainWindow:
                     self.protocol_editor.on_next_step,
                     "on_button_last_step_clicked" :
                     self.protocol_editor.on_last_step,
+                    "on_menu_save_protocol_activate" :
+                    self.protocol_editor.on_save_protocol,
+                    "on_menu_save_protocol_as_activate" :
+                    self.protocol_editor.on_save_protocol_as,
+                    "on_menu_load_protocol_activate" :
+                    self.protocol_editor.on_load_protocol,
                   }
 
         self.builder.connect_signals(signals)
@@ -57,6 +61,9 @@ class MainWindow:
                 #app.controller.set_debug(True)
                 self.device_view.update()
                 break
+
+    def main(self):
+        self.update()
         gtk.main()
 
     def on_destroy(self, widget, data=None):
@@ -64,3 +71,7 @@ class MainWindow:
 
     def on_realtime_mode_toggled(self, widget, data=None):
         self.app.toggle_realtime_mode()
+
+    def update(self):
+        self.device_view.update()
+        self.protocol_editor.update()
