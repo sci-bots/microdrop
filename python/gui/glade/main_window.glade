@@ -202,6 +202,32 @@
                 <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Tools</property>
                 <property name="use_underline">True</property>
+                <child type="submenu">
+                  <object class="GtkMenu" id="menu2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkMenuItem" id="menu_add_frequency_sweep">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="label" translatable="yes">Add _Frequency Sweep</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_menu_add_frequency_sweep_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menu_add_electrode_sweep">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="label" translatable="yes">Add _Electrode Sweep</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_menu_add_electrode_sweep_activate" swapped="no"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
               </object>
             </child>
             <child>
@@ -354,10 +380,10 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="entry2">
+                      <object class="GtkEntry" id="textentry_voltage">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                        <property name="events">GDK_KEY_PRESS_MASK | GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
                         <property name="invisible_char">●</property>
                         <property name="width_chars">4</property>
                         <property name="text" translatable="yes">4</property>
@@ -367,6 +393,8 @@
                         <property name="secondary_icon_activatable">False</property>
                         <property name="primary_icon_sensitive">True</property>
                         <property name="secondary_icon_sensitive">True</property>
+                        <signal name="key-press-event" handler="on_textentry_voltage_key_press_event" swapped="no"/>
+                        <signal name="focus-out-event" handler="on_textentry_voltage_focus_out_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -381,7 +409,6 @@
                         <property name="xalign">0</property>
                         <property name="label" translatable="yes">V&lt;span rise="-5000" font_size="smaller"&gt;rms&lt;/span&gt;</property>
                         <property name="use_markup">True</property>
-                        <property name="width_chars">7</property>
                         <property name="single_line_mode">True</property>
                       </object>
                       <packing>
@@ -420,10 +447,10 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="entry1">
+                      <object class="GtkEntry" id="textentry_frequency">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="events">GDK_ENTER_NOTIFY_MASK | GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                        <property name="events">GDK_KEY_PRESS_MASK | GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
                         <property name="invisible_char">●</property>
                         <property name="width_chars">4</property>
                         <property name="text" translatable="yes">10</property>
@@ -433,6 +460,8 @@
                         <property name="secondary_icon_activatable">False</property>
                         <property name="primary_icon_sensitive">True</property>
                         <property name="secondary_icon_sensitive">True</property>
+                        <signal name="key-press-event" handler="on_textentry_frequency_key_press_event" swapped="no"/>
+                        <signal name="focus-out-event" handler="on_textentry_frequency_focus_out_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -525,9 +554,10 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="textbox_step_time">
+                      <object class="GtkEntry" id="textentry_step_time">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="events">GDK_KEY_PRESS_MASK | GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
                         <property name="invisible_char">●</property>
                         <property name="width_chars">5</property>
                         <property name="text" translatable="yes">100</property>
@@ -536,6 +566,8 @@
                         <property name="secondary_icon_activatable">False</property>
                         <property name="primary_icon_sensitive">True</property>
                         <property name="secondary_icon_sensitive">True</property>
+                        <signal name="key-press-event" handler="on_textentry_step_time_key_press_event" swapped="no"/>
+                        <signal name="focus-out-event" handler="on_textentry_step_time_focus_out_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -708,83 +740,20 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkCheckButton" id="checkbutton2">
-                    <property name="label" translatable="yes">Measure Feedback</property>
+                  <object class="GtkCheckButton" id="checkbutton_measure_impedance">
+                    <property name="label" translatable="yes">Measure Impedance</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="use_action_appearance">False</property>
                     <property name="draw_indicator">True</property>
+                    <signal name="toggled" handler="on_checkbutton_measure_impedance_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">3</property>
                     <property name="position">15</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkHBox" id="hbox7">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkLabel" id="label9">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Frequency:</property>
-                        <property name="justify">right</property>
-                        <property name="single_line_mode">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="padding">3</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry5">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="invisible_char">●</property>
-                        <property name="width_chars">4</property>
-                        <property name="text" translatable="yes">10</property>
-                        <property name="xalign">0.5</property>
-                        <property name="invisible_char_set">True</property>
-                        <property name="primary_icon_activatable">False</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="primary_icon_sensitive">True</property>
-                        <property name="secondary_icon_sensitive">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label10">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
-                        <property name="label" translatable="yes">kHz</property>
-                        <property name="width_chars">7</property>
-                        <property name="single_line_mode">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="padding">3</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="padding">3</property>
-                    <property name="position">16</property>
                   </packing>
                 </child>
                 <child>
@@ -795,7 +764,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">17</property>
+                    <property name="position">16</property>
                   </packing>
                 </child>
                 <child>
@@ -809,8 +778,11 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">3</property>
-                    <property name="position">18</property>
+                    <property name="position">17</property>
                   </packing>
+                </child>
+                <child>
+                  <placeholder/>
                 </child>
               </object>
               <packing>

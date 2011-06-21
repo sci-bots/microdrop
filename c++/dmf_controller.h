@@ -113,8 +113,7 @@ public:
                           uint16_t delay_between_sets_ms,
                           const std::vector<uint8_t> state);
   std::vector<uint16_t> MeasureImpedance(
-                          uint16_t sample_time_ms,
-                          uint16_t n_samples,
+                          uint16_t sampling_time_ms,
                           uint16_t n_sets,
                           uint16_t delay_between_sets_ms,
                           const std::vector<uint8_t> state);

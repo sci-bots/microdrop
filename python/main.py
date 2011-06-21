@@ -20,15 +20,21 @@ class App:
 
     def set_state_of_electrode(self, index, state):
         if self.realtime_mode:
-            self.controller.set_state_of_channel(index, state)
+            self.controller.set_state_of_electrode(int(index), state)
         else:
             self.protocol.set_state_of_electrode(index, state)
 
-    def toggle_realtime_mode(self):
+    def set_voltage(self, voltage):
         if self.realtime_mode:
-            self.realtime_mode = False
+            self.controller.set_voltage(voltage)
         else:
-            self.realtime_mode = True
+            self.protocol.current_step().voltage = voltage
+
+    def set_frequency(self, frequency):
+        if self.realtime_mode:
+            self.controller.set_freuqency(frequency)
+        else:
+            self.protocol.current_step().frequency = frequency
 
 if __name__ == '__main__':
     app = App()

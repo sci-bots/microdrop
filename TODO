@@ -1,13 +1,11 @@
 TODO:
 
 Next:
-*set voltage/frequency
 *save feedback
-*run frequency sweep
 *extract droplet velocity
+*run protocol in another thread (screen doesn't update when MeasureImpedance is blocking)
 
 Later:
-*check time when textbox loses focus/enter is pressed/step number changes
 *config file
 *save state (window location, current device, current protocol, etc.)
 *implement mvc architecture

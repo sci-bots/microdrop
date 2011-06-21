@@ -1,10 +1,19 @@
+import os
 import gtk
 import numpy as np
 
 class DeviceView:
-    def __init__(self, app, builder):
+    def __init__(self, app, builder, signals):
         self.app = app
+        builder.add_from_file(os.path.join("gui",
+                                           "glade",
+                                           "right_click_popup.glade"))
         self.widget = builder.get_object("device_view")
+        self.popup = builder.get_object("popup")
+        signals["on_device_view_button_press_event"] = self.on_button_press
+        signals["on_device_view_key_press_event"] = self.on_key_press
+        signals["on_device_view_expose_event"] = self.on_expose
+
         x, y, width, height = self.widget.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
         self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
@@ -40,6 +49,7 @@ class DeviceView:
                            Electrode(14.5,24.25,1.4), # 6
                            Electrode(16,24,1.9), # 5
                            Electrode(18,24.25,1.4), # 4
+
                            Electrode(13,24.25,1.4), # 3
                            Electrode(19.5,24.25,1.4), # 3
                            Electrode(21,22,5.9), # 2
@@ -52,6 +62,7 @@ class DeviceView:
         k = 29
         for i in range(0, k):
             self.map_electrode_id_to_channels[i] = i
+
         self.map_electrode_id_to_channels[k] = k
         self.map_electrode_id_to_channels[k+1] = k
         self.map_electrode_id_to_channels[k+2] = k+1
@@ -72,37 +83,40 @@ class DeviceView:
 
     def on_button_press(self, widget, event):
         self.widget.grab_focus()
-        state = self.app.state_of_all_electrodes()
         for i in range(0,len(self.electrodes)):
-            if event.button == 1:
-                if self.electrodes[i].contains(event.x, event.y, self.scale):
-                    if state[i]>0:
+            if self.electrodes[i].contains(event.x, event.y, self.scale):
+                if event.button == 1:
+                    state = self.app.state_of_all_electrodes()
+                    channel = self.map_electrode_id_to_channels[i]
+                    if state[channel]>0:
                         channel = self.map_electrode_id_to_channels[i]
-                        for index in np.nonzero(self.map_electrode_id_to_channels==channel)[0]:
-                            self.app.set_state_of_electrode(index, 0)
+                        self.app.set_state_of_electrode(channel, 0)
                     else:
                         channel = self.map_electrode_id_to_channels[i]
-                        for index in np.nonzero(self.map_electrode_id_to_channels==channel)[0]:
-                            self.app.set_state_of_electrode(index, 1)
+                        self.app.set_state_of_electrode(channel, 1)
                     self.update()
                     break
+                elif event.button == 3:
+                    self.popup.popup(None, None, None, event.button, event.time, data=None)
         return True
 
-    def on_key_press(self):
+    def on_key_press(self, widget, data=None):
         pass
 
     def update(self):
         state = self.app.state_of_all_electrodes()
         cr = self.pixmap.cairo_create()
         for i in range(0,len(self.electrodes)):
-            if state[i]==0:
+            channel = self.map_electrode_id_to_channels[i]
+            if state[channel]==0:
                 self.draw_electrode(self.electrodes[i], cr)
         cr.set_source_rgb(0, 0, 1)
         cr.fill()
 
         cr = self.pixmap.cairo_create()
         for i in range(0,len(self.electrodes)):
-            if state[i]>0:
+            channel = self.map_electrode_id_to_channels[i]
+            if state[channel]>0:
                 self.draw_electrode(self.electrodes[i], cr)
         cr.set_source_rgb(1, 1, 1)
         cr.fill()
