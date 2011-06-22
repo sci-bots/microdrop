@@ -1,7 +1,6 @@
 TODO:
 
 Next:
-*rename electrodes to channels (many to many relationship)
 *add play/pause button (remove from protocol menu)
 *replace realtime mode with connect/disconnect button
 *enable selection of COM port

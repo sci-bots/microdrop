@@ -18,7 +18,7 @@ class MeasureImpedance():
             self.delay_between_sets_ms = 10
 
 class Step():
-    def __init__(self, n_electrodes, time=None, voltage=None,
+    def __init__(self, n_channels, time=None, voltage=None,
                  frequency=None, measure_impedance=None):
         if time:
             self.time = time
@@ -36,33 +36,33 @@ class Step():
             self.measure_impedance = measure_impedance
         else:
             self.measure_impedance = None
-        self.n_electrodes = n_electrodes
-        self.state_of_electrodes = np.zeros(n_electrodes)
+        self.n_channels = n_channels
+        self.state_of_channels = np.zeros(n_channels)
 
 class Protocol():
-    def __init__(self, n_electrodes=None):
-        if n_electrodes:
-            self.n_electrodes = n_electrodes
+    def __init__(self, n_channels=None):
+        if n_channels:
+            self.n_channels = n_channels
         else:
-            self.n_electrodes = 40
+            self.n_channels = 40
         self.current_step_number = 0
-        self.steps = [Step(self.n_electrodes)]
+        self.steps = [Step(self.n_channels)]
 
     def __len__(self):
         return len(self.steps)
 
-    def set_state_of_electrode(self, index, state):
-        self.current_step().state_of_electrodes[index] = state
+    def set_state_of_channel(self, index, state):
+        self.current_step().state_of_channels[index] = state
 
-    def state_of_all_electrodes(self):
-        return self.current_step().state_of_electrodes
+    def state_of_all_channels(self):
+        return self.current_step().state_of_channels
 
     def current_step(self):
         return self.steps[self.current_step_number]
 
     def insert_step(self):
         self.steps.insert(self.current_step_number,
-                          Step(self.n_electrodes,
+                          Step(self.n_channels,
                                self.current_step().time,
                                self.current_step().voltage,
                                self.current_step().frequency,
@@ -74,11 +74,11 @@ class Protocol():
             if self.current_step_number == len(self.steps):
                 self.current_step_number -= 1
         else: # reset first step
-            self.steps = [Step(self.n_electrodes)]
+            self.steps = [Step(self.n_channels)]
 
     def next_step(self):
         if self.current_step_number == len(self.steps)-1:
-            self.steps.append(Step(self.n_electrodes,
+            self.steps.append(Step(self.n_channels,
                                    self.current_step().time,
                                    self.current_step().voltage,
                                    self.current_step().frequency,

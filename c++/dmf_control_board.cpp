@@ -16,8 +16,8 @@ extern "C" {
   void PeakExceededWrapper();
 }
 
-const float DmfControlBoard::CH0_SERIES_RESISTORS_[] = {1e5, 1e6};
-const float DmfControlBoard::CH1_SERIES_RESISTORS_[] = {1e3, 1e4, 1e5, 1e6};
+const float DmfControlBoard::A0_SERIES_RESISTORS_[] = {1e5, 1e6};
+const float DmfControlBoard::A1_SERIES_RESISTORS_[] = {1e3, 1e4, 1e5, 1e6};
 const float DmfControlBoard::SAMPLING_RATES_[] = { 8908, 16611, 29253, 47458,
                                                  68191, 90293, 105263 };
 const char DmfControlBoard::PROTOCOL_NAME_[] = "DMF Control Protocol";
@@ -81,54 +81,54 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
         return_code = RETURN_BAD_PACKET_SIZE;
       }
       break;
-    case CMD_GET_NUMBER_OF_ELECTRODES:
+    case CMD_GET_NUMBER_OF_CHANNELS:
       if(payload_length()==0) {
-        uint16_t n = NUMBER_OF_ELECTRODES_;
+        uint16_t n = NUMBER_OF_CHANNELS_;
         Serialize(&n,sizeof(n));
         return_code = RETURN_OK;
       } else {
         return_code = RETURN_BAD_PACKET_SIZE;
       }
       break;
-    case CMD_GET_STATE_OF_ALL_ELECTRODES:
+    case CMD_GET_STATE_OF_ALL_CHANNELS:
       if(payload_length()==0) {
-        Serialize(state_of_electrodes_,NUMBER_OF_ELECTRODES_*sizeof(uint8_t));
+        Serialize(state_of_channels_,NUMBER_OF_CHANNELS_*sizeof(uint8_t));
         return_code = RETURN_OK;
       } else {
         return_code = RETURN_BAD_PACKET_SIZE;
       }
       break;
-    case CMD_SET_STATE_OF_ALL_ELECTRODES:
-      if(payload_length()==NUMBER_OF_ELECTRODES_*sizeof(uint8_t)) {
-        ReadArray(state_of_electrodes_,
-                  NUMBER_OF_ELECTRODES_*sizeof(uint8_t));
-        UpdateAllElectrodes();
+    case CMD_SET_STATE_OF_ALL_CHANNELS:
+      if(payload_length()==NUMBER_OF_CHANNELS_*sizeof(uint8_t)) {
+        ReadArray(state_of_channels_,
+                  NUMBER_OF_CHANNELS_*sizeof(uint8_t));
+        UpdateAllChannels();
         return_code = RETURN_OK;
       } else {
         return_code = RETURN_BAD_PACKET_SIZE;
       }
       break;
-    case CMD_GET_STATE_OF_ELECTRODE:
+    case CMD_GET_STATE_OF_CHANNEL:
       if(payload_length()==sizeof(uint16_t)) {
-        uint16_t electrode = ReadUint16();
-        if(electrode>=NUMBER_OF_ELECTRODES_||electrode<0) {
+        uint16_t channel = ReadUint16();
+        if(channel>=NUMBER_OF_CHANNELS_||channel<0) {
           return_code = RETURN_BAD_INDEX;
         } else {
-          Serialize(&electrode,sizeof(electrode));
-          Serialize(&state_of_electrodes_[electrode],
-                    sizeof(state_of_electrodes_[electrode]));
+          Serialize(&channel,sizeof(channel));
+          Serialize(&state_of_channels_[channel],
+                    sizeof(state_of_channels_[channel]));
           return_code = RETURN_OK;
         }
       } else {
         return_code = RETURN_BAD_PACKET_SIZE;
       }
       break;
-    case CMD_SET_STATE_OF_ELECTRODE:
+    case CMD_SET_STATE_OF_CHANNEL:
       if(payload_length()==sizeof(uint16_t)+sizeof(uint8_t)) {
-        uint16_t electrode = ReadUint16();
-        if(electrode<NUMBER_OF_ELECTRODES_) {
-          state_of_electrodes_[electrode] = ReadUint8();
-          UpdateElectrode(electrode);
+        uint16_t channel = ReadUint16();
+        if(channel<NUMBER_OF_CHANNELS_) {
+          state_of_channels_[channel] = ReadUint8();
+          UpdateChannel(channel);
           return_code = RETURN_OK;
         } else {
           return_code = RETURN_BAD_INDEX;
@@ -203,11 +203,11 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
         return_code = RETURN_OK;
         switch(channel) {
           case 0:
-            Serialize(&CH0_SERIES_RESISTORS_[ch0_series_resistor_index_],
+            Serialize(&A0_SERIES_RESISTORS_[A0_series_resistor_index_],
                       sizeof(float));
             break;
           case 1:
-            Serialize(&CH1_SERIES_RESISTORS_[ch1_series_resistor_index_],
+            Serialize(&A1_SERIES_RESISTORS_[A1_series_resistor_index_],
                       sizeof(float));
             break;
           default:
@@ -249,7 +249,7 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
              +n_channels*sizeof(uint8_t))
              || (payload_length()==sizeof(uint8_t)+3*sizeof(uint16_t)
              +n_channels*sizeof(uint8_t)
-             +NUMBER_OF_ELECTRODES_*sizeof(uint8_t))) {
+             +NUMBER_OF_CHANNELS_*sizeof(uint8_t))) {
             return_code = RETURN_OK;
 
             // point the voltage_buffer_ to the payload_buffer_
@@ -261,13 +261,13 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
             for(uint8_t i=0; i<n_channels; i++) {
               channel[i] = ReadUint8();
             }
-            // update the electrodes (if they were included in the packet)
+            // update the channels (if they were included in the packet)
             if(payload_length()==sizeof(uint8_t)+3*sizeof(uint16_t)
                +n_channels*sizeof(uint8_t)
-               +NUMBER_OF_ELECTRODES_*sizeof(uint8_t)){
-              ReadArray(state_of_electrodes_,
-                        NUMBER_OF_ELECTRODES_*sizeof(uint8_t));
-              UpdateAllElectrodes();
+               +NUMBER_OF_CHANNELS_*sizeof(uint8_t)){
+              ReadArray(state_of_channels_,
+                        NUMBER_OF_CHANNELS_*sizeof(uint8_t));
+              UpdateAllChannels();
             }
             // sample the voltages
             for(uint16_t i=0; i<n_sets; i++) {
@@ -302,7 +302,7 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
         } else {
           if(payload_length()==3*sizeof(uint16_t) ||
              (payload_length()==3*sizeof(uint16_t)
-             +NUMBER_OF_ELECTRODES_*sizeof(uint8_t))) {
+             +NUMBER_OF_CHANNELS_*sizeof(uint8_t))) {
             return_code = RETURN_OK;
 
             // point the impedance_buffer_ to the payload_buffer_
@@ -311,12 +311,12 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
             // update the number of bytes written
             bytes_written(n_sets*2*sizeof(uint16_t));
 
-            // update the electrodes (if they were included in the packet)
+            // update the channels (if they were included in the packet)
             if(payload_length()==3*sizeof(uint16_t)
-               +NUMBER_OF_ELECTRODES_*sizeof(uint8_t)){
-              ReadArray(state_of_electrodes_,
-                        NUMBER_OF_ELECTRODES_*sizeof(uint8_t));
-              UpdateAllElectrodes();
+               +NUMBER_OF_CHANNELS_*sizeof(uint8_t)){
+              ReadArray(state_of_channels_,
+                        NUMBER_OF_CHANNELS_*sizeof(uint8_t));
+              UpdateAllChannels();
             }
 
             // sample the impedance
@@ -407,53 +407,53 @@ void DmfControlBoard::ProcessReply(uint8_t cmd) {
                 version_.c_str());
         LogMessage(log_message_string_, function_name);
         break;
-      case CMD_GET_NUMBER_OF_ELECTRODES:
+      case CMD_GET_NUMBER_OF_CHANNELS:
         LogMessage("CMD_GET_DEVICE_VERSION", function_name);
         if(payload_length()==sizeof(uint16_t)) {
-          state_of_electrodes_.resize(ReadUint16());
+          state_of_channels_.resize(ReadUint16());
           sprintf(log_message_string_,
-                  "state_of_electrodes_.size()=%d",
-                  state_of_electrodes_.size());
+                  "state_of_channels_.size()=%d",
+                  state_of_channels_.size());
           LogMessage(log_message_string_, function_name);
         } else {
-          LogMessage("CMD_GET_NUMBER_OF_ELECTRODES, Bad packet size",
+          LogMessage("CMD_GET_NUMBER_OF_CHANNELS, Bad packet size",
                      function_name);
         }
         break;
-      case CMD_GET_STATE_OF_ALL_ELECTRODES:
-        LogMessage("CMD_GET_STATE_OF_ALL_ELECTRODES", function_name);
-        state_of_electrodes_.clear();
+      case CMD_GET_STATE_OF_ALL_CHANNELS:
+        LogMessage("CMD_GET_STATE_OF_ALL_CHANNELS", function_name);
+        state_of_channels_.clear();
         for(int i=0; i<payload_length(); i++) {
-          state_of_electrodes_.push_back(ReadUint8());
+          state_of_channels_.push_back(ReadUint8());
           sprintf(log_message_string_,
-                  "state_of_electrodes_[%d]=%d",
-                  i,state_of_electrodes_[i]);
+                  "state_of_channels_[%d]=%d",
+                  i,state_of_channels_[i]);
           LogMessage(log_message_string_, function_name);
         }
         break;
-      case CMD_SET_STATE_OF_ALL_ELECTRODES:
-        LogMessage("CMD_SET_STATE_OF_ALL_ELECTRODES", function_name);
-        LogMessage("all electrodes set successfully", function_name);
+      case CMD_SET_STATE_OF_ALL_CHANNELS:
+        LogMessage("CMD_SET_STATE_OF_ALL_CHANNELS", function_name);
+        LogMessage("all channels set successfully", function_name);
         break;
-      case CMD_GET_STATE_OF_ELECTRODE:
-        LogMessage("CMD_GET_STATE_OF_ELECTRODE", function_name);
+      case CMD_GET_STATE_OF_CHANNEL:
+        LogMessage("CMD_GET_STATE_OF_CHANNEL", function_name);
         if(payload_length()==sizeof(uint16_t)+sizeof(uint8_t)) {
-          uint16_t electrode = ReadUint16();
-          if(electrode+1>state_of_electrodes_.size()) {
-            state_of_electrodes_.resize(electrode+1);
+          uint16_t channel = ReadUint16();
+          if(channel+1>state_of_channels_.size()) {
+            state_of_channels_.resize(channel+1);
           }
-          state_of_electrodes_[electrode]=ReadUint8();
+          state_of_channels_[channel]=ReadUint8();
           sprintf(log_message_string_,
-                "electrode[%d]=%d",
-                electrode,state_of_electrodes_[electrode]);
+                "channel[%d]=%d",
+                channel,state_of_channels_[channel]);
           LogMessage(log_message_string_, function_name);
         } else {
             LogError("Bad packet size", function_name);
         }
         break;
-      case CMD_SET_STATE_OF_ELECTRODE:
-        LogMessage("CMD_SET_STATE_OF_ELECTRODE", function_name);
-        LogMessage("electrode set successfully", function_name);
+      case CMD_SET_STATE_OF_CHANNEL:
+        LogMessage("CMD_SET_STATE_OF_CHANNEL", function_name);
+        LogMessage("channel set successfully", function_name);
         break;
       case CMD_SET_ACTUATION_VOLTAGE:
       {
@@ -564,23 +564,23 @@ void DmfControlBoard::begin() {
   analogReference(EXTERNAL);
 
   pinMode(AD5204_SLAVE_SELECT_PIN_, OUTPUT);
-  pinMode(CH0_SERIES_RESISTOR_0_, OUTPUT);
-  pinMode(CH1_SERIES_RESISTOR_0_, OUTPUT);
-  pinMode(CH1_SERIES_RESISTOR_1_, OUTPUT);
-  pinMode(CH1_SERIES_RESISTOR_2_, OUTPUT);
+  pinMode(A0_SERIES_RESISTOR_0_, OUTPUT);
+  pinMode(A1_SERIES_RESISTOR_0_, OUTPUT);
+  pinMode(A1_SERIES_RESISTOR_1_, OUTPUT);
+  pinMode(A1_SERIES_RESISTOR_2_, OUTPUT);
 
   Wire.begin();
   SPI.begin();
 
   // set PCA0505 ports in output mode
-  for(uint8_t chip=0; chip<NUMBER_OF_ELECTRODES_/40; chip++) {
+  for(uint8_t chip=0; chip<NUMBER_OF_CHANNELS_/40; chip++) {
     for(uint8_t port=0; port<5; port++) {
       SendI2C(PCA9505_ADDRESS_+chip, PCA9505_CONFIG_IO_REGISTER_+port, 0x00);
     }
   }
 
-  // set all electrodes to ground
-  UpdateAllElectrodes();
+  // set all channels to ground
+  UpdateAllChannels();
 
   // set all potentiometers
   SetPot(POT_AREF,255);
@@ -670,46 +670,46 @@ uint8_t DmfControlBoard::SetSeriesResistor(const uint8_t channel,
   if(channel==0) {
     switch(index) {
       case 0:
-        digitalWrite(CH0_SERIES_RESISTOR_0_, HIGH);
+        digitalWrite(A0_SERIES_RESISTOR_0_, HIGH);
         break;
       case 1:
-        digitalWrite(CH0_SERIES_RESISTOR_0_, LOW);
+        digitalWrite(A0_SERIES_RESISTOR_0_, LOW);
         break;
       default:
         return_code = RETURN_BAD_INDEX;
         break;
     }
     if(return_code==RETURN_OK) {
-      ch0_series_resistor_index_ = index;
+      A0_series_resistor_index_ = index;
     }
   } else if(channel==1) {
     switch(index) {
       case 0:
-        digitalWrite(CH1_SERIES_RESISTOR_0_, HIGH);
-        digitalWrite(CH1_SERIES_RESISTOR_1_, LOW);
-        digitalWrite(CH1_SERIES_RESISTOR_2_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_0_, HIGH);
+        digitalWrite(A1_SERIES_RESISTOR_1_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_2_, LOW);
         break;
       case 1:
-        digitalWrite(CH1_SERIES_RESISTOR_0_, LOW);
-        digitalWrite(CH1_SERIES_RESISTOR_1_, HIGH);
-        digitalWrite(CH1_SERIES_RESISTOR_2_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_0_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_1_, HIGH);
+        digitalWrite(A1_SERIES_RESISTOR_2_, LOW);
         break;
       case 2:
-        digitalWrite(CH1_SERIES_RESISTOR_0_, LOW);
-        digitalWrite(CH1_SERIES_RESISTOR_1_, LOW);
-        digitalWrite(CH1_SERIES_RESISTOR_2_, HIGH);
+        digitalWrite(A1_SERIES_RESISTOR_0_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_1_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_2_, HIGH);
         break;
       case 3:
-        digitalWrite(CH1_SERIES_RESISTOR_0_, LOW);
-        digitalWrite(CH1_SERIES_RESISTOR_1_, LOW);
-        digitalWrite(CH1_SERIES_RESISTOR_2_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_0_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_1_, LOW);
+        digitalWrite(A1_SERIES_RESISTOR_2_, LOW);
         break;
       default:
         return_code = RETURN_BAD_INDEX;
         break;
     }
     if(return_code==RETURN_OK) {
-      ch1_series_resistor_index_ = index;
+      A1_series_resistor_index_ = index;
     }
   } else { // bad channel
     return_code = RETURN_BAD_INDEX;
@@ -728,40 +728,40 @@ uint8_t DmfControlBoard::GetPeak(const uint8_t channel,
   return peak_;
 }
 
-// update the state of all electrodes
-void DmfControlBoard::UpdateAllElectrodes() {
+// update the state of all channels
+void DmfControlBoard::UpdateAllChannels() {
   // Each PCA9505 chip has 5 8-bit output registers for a total of 40 outputs
   // per chip. We can have up to 8 of these chips on an I2C bus, which means
-  // we can control up to 320 electrodes.
-  //   Each register represent 8 electrodes (i.e. the first register on the
-  // first PCA9505 chip stores the state of electrodes 0-7, the second register
-  // represents electrodes 8-15, etc.).
+  // we can control up to 320 channels.
+  //   Each register represent 8 channels (i.e. the first register on the
+  // first PCA9505 chip stores the state of channels 0-7, the second register
+  // represents channels 8-15, etc.).
   uint8_t data = 0;
-  for(uint8_t chip=0; chip<NUMBER_OF_ELECTRODES_/40; chip++) {
+  for(uint8_t chip=0; chip<NUMBER_OF_CHANNELS_/40; chip++) {
     for(uint8_t port=0; port<5; port++) {
       data = 0;
       for(uint8_t i=0; i<8; i++) {
-        data += (state_of_electrodes_[chip*40+port*8+i]==0)<<i;
+        data += (state_of_channels_[chip*40+port*8+i]==0)<<i;
       }
       SendI2C(PCA9505_ADDRESS_+chip, PCA9505_OUTPUT_PORT_REGISTER_+port, data);
     }
   }
 }
 
-// update the state of single electrode
-// Note: Do not use this function in a loop to update all electrodes. If you
-//       want to update all electrodes, use the UpdateAllElectrodes function
+// update the state of single channel
+// Note: Do not use this function in a loop to update all channels. If you
+//       want to update all channels, use the UpdateAllChannels function
 //       instead because it will be 8x more efficient.
-void DmfControlBoard::UpdateElectrode(const uint16_t electrode) {
+void DmfControlBoard::UpdateChannel(const uint16_t channel) {
   uint8_t data = 0;
-  uint16_t chip = electrode/40;
-  uint8_t port = (electrode-40*chip)/8;
+  uint16_t chip = channel/40;
+  uint8_t port = (channel-40*chip)/8;
 
-  // We can't update single electrodes; instead we need to update all 8
-  // electrodes that share a common output port register. See
-  // UpdateAllElectrodes for more details.
+  // We can't update single channels; instead we need to update all 8
+  // channels that share a common output port register. See
+  // UpdateAllChannels for more details.
   for(uint8_t i=0; i<8; i++) {
-    data += (state_of_electrodes_[chip*40+port*8+i]==0)<<i;
+    data += (state_of_channels_[chip*40+port*8+i]==0)<<i;
   }
   SendI2C(PCA9505_ADDRESS_+chip,
           PCA9505_OUTPUT_PORT_REGISTER_+port,
@@ -832,33 +832,33 @@ string DmfControlBoard::version() {
   return "";
 }
 
-uint16_t DmfControlBoard::number_of_electrodes() {
-  const char* function_name = "number_of_electrodes()";
+uint16_t DmfControlBoard::number_of_channels() {
+  const char* function_name = "number_of_channels()";
   LogSeparator();
   LogMessage("send command", function_name);
-  if(SendCommand(CMD_GET_NUMBER_OF_ELECTRODES)==RETURN_OK) {
-    return state_of_electrodes_.size();
+  if(SendCommand(CMD_GET_NUMBER_OF_CHANNELS)==RETURN_OK) {
+    return state_of_channels_.size();
   }
   return 0;
 }
 
-vector<uint8_t> DmfControlBoard::state_of_all_electrodes() {
-  const char* function_name = "state_of_all_electrodes()";
+vector<uint8_t> DmfControlBoard::state_of_all_channels() {
+  const char* function_name = "state_of_all_channels()";
   LogSeparator();
   LogMessage("send command", function_name);
-  if(SendCommand(CMD_GET_STATE_OF_ALL_ELECTRODES)==RETURN_OK) {
-    return state_of_electrodes_;
+  if(SendCommand(CMD_GET_STATE_OF_ALL_CHANNELS)==RETURN_OK) {
+    return state_of_channels_;
   }
   return std::vector<uint8_t>(); // return an empty vector
 };
 
-uint8_t DmfControlBoard::state_of_electrode(const uint16_t electrode) {
-  const char* function_name = "state_of_electrode()";
+uint8_t DmfControlBoard::state_of_channel(const uint16_t channel) {
+  const char* function_name = "state_of_channel()";
   LogSeparator();
   LogMessage("send command", function_name);
-  Serialize(&electrode,sizeof(electrode));
-  if(SendCommand(CMD_GET_STATE_OF_ELECTRODE)==RETURN_OK) {
-    return state_of_electrodes_[electrode];
+  Serialize(&channel,sizeof(channel));
+  if(SendCommand(CMD_GET_STATE_OF_CHANNEL)==RETURN_OK) {
+    return state_of_channels_[channel];
   }
   return 0;
 };
@@ -929,16 +929,16 @@ uint8_t DmfControlBoard::set_pot(const uint8_t index, const uint8_t value) {
 }
 
 
-uint8_t DmfControlBoard::set_state_of_all_electrodes(const vector<uint8_t> state) {
-  const char* function_name = "set_state_of_all_electrodes()";
+uint8_t DmfControlBoard::set_state_of_all_channels(const vector<uint8_t> state) {
+  const char* function_name = "set_state_of_all_channels()";
   LogSeparator();
   LogMessage("send command", function_name);
   Serialize(&state[0],state.size()*sizeof(uint8_t));
-  if(SendCommand(CMD_SET_STATE_OF_ALL_ELECTRODES)==RETURN_OK) {
-    // check which electrodes have changed state
+  if(SendCommand(CMD_SET_STATE_OF_ALL_CHANNELS)==RETURN_OK) {
+    // check which channels have changed state
     vector<uint8_t> on,off;
-    for(int i=0; i<state.size()&&i<state_of_electrodes_.size(); i++) {
-      if(state[i]!=state_of_electrodes_[i]) {
+    for(int i=0; i<state.size()&&i<state_of_channels_.size(); i++) {
+      if(state[i]!=state_of_channels_[i]) {
         if(state[i]==0) {
           off.push_back(i);
         } else {
@@ -947,11 +947,11 @@ uint8_t DmfControlBoard::set_state_of_all_electrodes(const vector<uint8_t> state
       }
     }
     // update state
-    state_of_electrodes_=state;
+    state_of_channels_=state;
 
     // log experiment
     std::ostringstream msg;
-    msg << "set_state_of_all_electrodes,";
+    msg << "set_state_of_all_channels,";
     if(on.size()||off.size()) {
       if(on.size()>0) {
         msg << "Turn on:,";
@@ -972,26 +972,26 @@ uint8_t DmfControlBoard::set_state_of_all_electrodes(const vector<uint8_t> state
   return return_code();
 }
 
-uint8_t DmfControlBoard::set_state_of_electrode(const uint16_t electrode, const uint8_t state) {
-  const char* function_name = "set_state_of_electrode()";
+uint8_t DmfControlBoard::set_state_of_channel(const uint16_t channel, const uint8_t state) {
+  const char* function_name = "set_state_of_channel()";
   LogSeparator();
   LogMessage("send command", function_name);
-  Serialize(&electrode,sizeof(electrode));
+  Serialize(&channel,sizeof(channel));
   Serialize(&state,sizeof(state));
-  if(SendCommand(CMD_SET_STATE_OF_ELECTRODE)==RETURN_OK) {
-    // keep track of the electrode state
-    if(electrode+1>state_of_electrodes_.size()) {
-      state_of_electrodes_.resize(electrode+1);
+  if(SendCommand(CMD_SET_STATE_OF_CHANNEL)==RETURN_OK) {
+    // keep track of the channel state
+    if(channel+1>state_of_channels_.size()) {
+      state_of_channels_.resize(channel+1);
     }
-    state_of_electrodes_[electrode]=state;
+    state_of_channels_[channel]=state;
 
     // log experiment
     std::ostringstream msg;
-    msg << "set_state_of_electrode,";
+    msg << "set_state_of_channel,";
     if(state==0) {
-      msg << "Turn off:," << electrode << endl;
+      msg << "Turn off:," << channel << endl;
     } else {
-      msg << "Turn on:," << electrode << endl;
+      msg << "Turn on:," << channel << endl;
     }
     LogExperiment(msg.str().c_str());
   }
@@ -1048,7 +1048,7 @@ std::vector<uint16_t> DmfControlBoard::SampleVoltage(
   std::ostringstream msg;
   msg << "SampleVoltage,";
 
-  SerializeElectrodeState(state, msg);
+  SerializeChannelState(state, msg);
 
   msg << endl << CSV_INDENT_ << "n_samples,"
       << (int)n_samples << endl << CSV_INDENT_ << "n_sets," << (int)n_sets
@@ -1099,7 +1099,7 @@ std::vector<uint16_t> DmfControlBoard::MeasureImpedance(
   std::ostringstream msg;
   msg << "MeasureImpedance,";
 
-  SerializeElectrodeState(state, msg);
+  SerializeChannelState(state, msg);
 
   msg << endl << CSV_INDENT_ << "sampling_time_ms," << (int)sampling_time_ms
       << "n_sets," << (int)n_sets << endl << CSV_INDENT_
@@ -1166,16 +1166,16 @@ float DmfControlBoard::MillisecondsSinceLastCheck() {
          .total_microseconds()/1000);
 }
 
-void DmfControlBoard::SerializeElectrodeState(const std::vector<uint8_t> state,
+void DmfControlBoard::SerializeChannelState(const std::vector<uint8_t> state,
                                             std::ostringstream& msg) {
-  // if we're updating the electrode state
+  // if we're updating the channel state
   if(state.size()) {
     Serialize(&state[0],state.size()*sizeof(uint8_t));
 
-    // check which electrodes have changed state
+    // check which channels have changed state
     vector<uint8_t> on,off;
-    for(int i=0; i<state.size()&&i<state_of_electrodes_.size(); i++) {
-      if(state[i]!=state_of_electrodes_[i]) {
+    for(int i=0; i<state.size()&&i<state_of_channels_.size(); i++) {
+      if(state[i]!=state_of_channels_[i]) {
         if(state[i]==0) {
           off.push_back(i);
         } else {
@@ -1184,7 +1184,7 @@ void DmfControlBoard::SerializeElectrodeState(const std::vector<uint8_t> state,
       }
     }
     // update state
-    state_of_electrodes_=state;
+    state_of_channels_=state;
 
     if(on.size()||off.size()) {
       if(on.size()>0) {

@@ -41,11 +41,11 @@ public:
   // Accessors and mutators
   static const uint8_t CMD_GET_DEVICE_NAME =                0x83;
   static const uint8_t CMD_GET_DEVICE_VERSION =             0x84;
-  static const uint8_t CMD_GET_NUMBER_OF_ELECTRODES =       0x85;
-  static const uint8_t CMD_GET_STATE_OF_ALL_ELECTRODES =    0x86;
-  static const uint8_t CMD_SET_STATE_OF_ALL_ELECTRODES =    0x87;
-  static const uint8_t CMD_GET_STATE_OF_ELECTRODE =         0x88;
-  static const uint8_t CMD_SET_STATE_OF_ELECTRODE =         0x89;
+  static const uint8_t CMD_GET_NUMBER_OF_CHANNELS =         0x85;
+  static const uint8_t CMD_GET_STATE_OF_ALL_CHANNELS =      0x86;
+  static const uint8_t CMD_SET_STATE_OF_ALL_CHANNELS =      0x87;
+  static const uint8_t CMD_GET_STATE_OF_CHANNEL =           0x88;
+  static const uint8_t CMD_SET_STATE_OF_CHANNEL =           0x89;
   static const uint8_t CMD_GET_ACTUATION_WAVEFORM =         0x8A; //TODO
   static const uint8_t CMD_SET_ACTUATION_WAVEFORM =         0x8B; //TODO
   static const uint8_t CMD_GET_ACTUATION_VOLTAGE =          0x8C; //TODO
@@ -87,17 +87,17 @@ public:
   virtual std::string protocol_version();
   std::string name();
   std::string version();
-  uint16_t number_of_electrodes();
-  std::vector<uint8_t> state_of_all_electrodes();
-  uint8_t state_of_electrode(const uint16_t electrode);
+  uint16_t number_of_channels();
+  std::vector<uint8_t> state_of_all_channels();
+  uint8_t state_of_channel(const uint16_t channel);
   float sampling_rate();
   float series_resistor(const uint8_t channel);
 
   // Remote mutators (return code is from reply packet)
-  uint8_t set_state_of_electrode(const uint16_t electrode, const uint8_t state);
-//  uint8_t set_state_of_electrodes(std::vector<uint16_t> electrodes,
+  uint8_t set_state_of_channel(const uint16_t channel, const uint8_t state);
+//  uint8_t set_state_of_channels(std::vector<uint16_t> channels,
 //                                  std::vector<uint8_t> states);
-  uint8_t set_state_of_all_electrodes(const std::vector<uint8_t> state);
+  uint8_t set_state_of_all_channels(const std::vector<uint8_t> state);
   uint8_t set_actuation_voltage(const float v_rms);
   uint8_t set_actuation_frequency(const float freq_hz);
   uint8_t set_sampling_rate(const uint8_t sampling_rate);
@@ -144,13 +144,13 @@ private:
   static const uint8_t POT_WAVEOUT_GAIN_1 = 2;
   static const uint8_t POT_WAVEOUT_GAIN_2 = 3;
 
-  static const uint8_t CH0_SERIES_RESISTOR_0_ = 13;
-  static const uint8_t CH1_SERIES_RESISTOR_0_ = 12;
-  static const uint8_t CH1_SERIES_RESISTOR_1_ = 11;
-  static const uint8_t CH1_SERIES_RESISTOR_2_ = 10;
+  static const uint8_t A0_SERIES_RESISTOR_0_ = 13;
+  static const uint8_t A1_SERIES_RESISTOR_0_ = 12;
+  static const uint8_t A1_SERIES_RESISTOR_1_ = 11;
+  static const uint8_t A1_SERIES_RESISTOR_2_ = 10;
 
-  static const float CH0_SERIES_RESISTORS_[];
-  static const float CH1_SERIES_RESISTORS_[];
+  static const float A0_SERIES_RESISTORS_[];
+  static const float A1_SERIES_RESISTORS_[];
   static const float SAMPLING_RATES_[];
 
   // I2C bus
@@ -171,7 +171,7 @@ private:
 
   // LTC6904 (programmable oscillator) chip address
   static const uint8_t LTC6904_ = 0x17;
-  static const uint16_t NUMBER_OF_ELECTRODES_ = 40;
+  static const uint16_t NUMBER_OF_CHANNELS_ = 40;
 #else
   static const char CSV_INDENT_[];
 #endif
@@ -181,8 +181,8 @@ private:
   virtual void ProcessReply(uint8_t cmd);
 
 #ifdef AVR
-  void UpdateElectrode(const uint16_t electrode);
-  void UpdateAllElectrodes();
+  void UpdateChannel(const uint16_t channel);
+  void UpdateAllChannels();
   void SendI2C(uint8_t row, uint8_t cmd, uint8_t data);
   void SendSPI(uint8_t pin, uint8_t address, uint8_t data);
   uint8_t SetPot(uint8_t index, uint8_t value);
@@ -193,16 +193,16 @@ private:
 #else
   uint8_t SendCommand(const uint8_t cmd);
   float MillisecondsSinceLastCheck();
-  void SerializeElectrodeState(const std::vector<uint8_t> state,
+  void SerializeChannelState(const std::vector<uint8_t> state,
                                std::ostringstream& msg);
 #endif
 
   //private members
 #ifdef AVR
-  uint8_t state_of_electrodes_[NUMBER_OF_ELECTRODES_];
+  uint8_t state_of_channels_[NUMBER_OF_CHANNELS_];
   uint8_t sampling_rate_index_;
-  uint8_t ch0_series_resistor_index_;
-  uint8_t ch1_series_resistor_index_;
+  uint8_t A0_series_resistor_index_;
+  uint8_t A1_series_resistor_index_;
   uint8_t peak_;
 #else
   uint8_t pot_value_;
@@ -210,7 +210,7 @@ private:
   std::string protocol_version_;
   std::string name_;
   std::string version_;
-  std::vector<uint8_t> state_of_electrodes_;
+  std::vector<uint8_t> state_of_channels_;
   std::vector<uint16_t> voltage_buffer_;
   std::vector<uint16_t> impedance_buffer_;
   float sampling_rate_;

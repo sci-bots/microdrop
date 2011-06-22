@@ -32,12 +32,12 @@ class DeviceController:
         for i in range(0,len(electrodes)):
             if electrodes[i].contains(event.x, event.y, self.view.scale):
                 if event.button == 1:
-                    state = self.app.protocol.state_of_all_electrodes()
+                    state = self.app.protocol.state_of_all_channels()
                     channel = self.map_electrode_id_to_channels[i]
                     if state[channel]>0:
-                        self.app.protocol.set_state_of_electrode(channel, 0)
+                        self.app.protocol.set_state_of_channel(channel, 0)
                     else:
-                        self.app.protocol.set_state_of_electrode(channel, 1)
+                        self.app.protocol.set_state_of_channel(channel, 1)
                     self.update()
                     break
                 elif event.button == 3:
@@ -48,7 +48,7 @@ class DeviceController:
         pass
     
     def update(self):
-        state = self.app.protocol.state_of_all_electrodes()
+        state = self.app.protocol.state_of_all_channels()
         for i in self.view.electrodes:
             channel = self.map_electrode_id_to_channels[i.id]
             if state[channel]>0:
