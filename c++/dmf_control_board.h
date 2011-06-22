@@ -1,5 +1,5 @@
-#ifndef _DMF_CONTROLLER_H_
-#define _DMF_CONTROLLER_H_
+#ifndef _DMF_CONTROL_BOARD_H_
+#define _DMF_CONTROL_BOARD_H_
 
 #ifndef AVR
   #include <iostream>
@@ -9,7 +9,7 @@
 #endif
 #include "RemoteObject.h"
 
-class DmfController : public RemoteObject {
+class DmfControlBoard : public RemoteObject {
 public:
   static const uint32_t BAUD_RATE = 115200;
 
@@ -77,8 +77,8 @@ public:
   //
   //////////////////////////////////////////////////////////////////////////////
 
-  DmfController();
-  ~DmfController();
+  DmfControlBoard();
+  ~DmfControlBoard();
 
 // In our case, the PC is the only one sending commands
 #ifndef AVR
@@ -220,4 +220,4 @@ private:
   boost::posix_time::ptime t_last_check_;
 #endif
 };
-#endif // _DMF_CONTROLLER_H_
+#endif // _DMF_CONTROL_BOARD_H_

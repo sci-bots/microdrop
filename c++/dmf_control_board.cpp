@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "dmf_controller.h"
+#include "dmf_control_board.h"
 
 #ifndef AVR
 using namespace std;
@@ -16,30 +16,30 @@ extern "C" {
   void PeakExceededWrapper();
 }
 
-const float DmfController::CH0_SERIES_RESISTORS_[] = {1e5, 1e6};
-const float DmfController::CH1_SERIES_RESISTORS_[] = {1e3, 1e4, 1e5, 1e6};
-const float DmfController::SAMPLING_RATES_[] = { 8908, 16611, 29253, 47458,
+const float DmfControlBoard::CH0_SERIES_RESISTORS_[] = {1e5, 1e6};
+const float DmfControlBoard::CH1_SERIES_RESISTORS_[] = {1e3, 1e4, 1e5, 1e6};
+const float DmfControlBoard::SAMPLING_RATES_[] = { 8908, 16611, 29253, 47458,
                                                  68191, 90293, 105263 };
-const char DmfController::PROTOCOL_NAME_[] = "DMF Control Protocol";
-const char DmfController::PROTOCOL_VERSION_[] = "0.1";
-const char DmfController::NAME_[] = "Arduino DMF Controller";
-const char DmfController::VERSION_[] = "1.1";
+const char DmfControlBoard::PROTOCOL_NAME_[] = "DMF Control Protocol";
+const char DmfControlBoard::PROTOCOL_VERSION_[] = "0.1";
+const char DmfControlBoard::NAME_[] = "Arduino DMF Controller";
+const char DmfControlBoard::VERSION_[] = "1.1";
 #else
-const char DmfController::CSV_INDENT_[] = ",,,,,,,,";
+const char DmfControlBoard::CSV_INDENT_[] = ",,,,,,,,";
 #endif
 
-DmfController::DmfController()
+DmfControlBoard::DmfControlBoard()
   : RemoteObject(BAUD_RATE,true
 #ifndef AVR
-                   ,"DmfController" //used for logging
+                   ,"DmfControlBoard" //used for logging
 #endif
                    ) {
 }
 
-DmfController::~DmfController() {
+DmfControlBoard::~DmfControlBoard() {
 }
 
-void DmfController::ProcessCommand(uint8_t cmd) {
+void DmfControlBoard::ProcessCommand(uint8_t cmd) {
 #ifndef AVR
   const char* function_name = "ProcessCommand()";
   sprintf(log_message_string_,"command=0x%0X (%d)",
@@ -359,7 +359,7 @@ void DmfController::ProcessCommand(uint8_t cmd) {
   SendReply(return_code);
 }
 
-void DmfController::ProcessReply(uint8_t cmd) {
+void DmfControlBoard::ProcessReply(uint8_t cmd) {
   uint8_t reply_to = cmd^0x80;
 #ifndef AVR
   const char* function_name = "ProcessReply()";
@@ -560,7 +560,7 @@ void DmfController::ProcessReply(uint8_t cmd) {
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-void DmfController::begin() {
+void DmfControlBoard::begin() {
   analogReference(EXTERNAL);
 
   pinMode(AD5204_SLAVE_SELECT_PIN_, OUTPUT);
@@ -588,34 +588,34 @@ void DmfController::begin() {
   SetPot(POT_WAVEOUT_GAIN_1,128);
   SetPot(POT_WAVEOUT_GAIN_2,128);
 
-  Serial.begin(DmfController::BAUD_RATE);
+  Serial.begin(DmfControlBoard::BAUD_RATE);
   SetSeriesResistor(0,0);
   SetSeriesResistor(1,0);
   SetAdcPrescaler(4);
 }
 
-void DmfController::PeakExceeded() {
+void DmfControlBoard::PeakExceeded() {
   peak_++;
   SetPot(POT_AREF,peak_);
 }
 
 // send a command and some data to one of the I2C chips
 // (code based on http://gdallaire.net/blog/?p=18)
-void DmfController::SendI2C(uint8_t row, uint8_t cmd, uint8_t data) {
+void DmfControlBoard::SendI2C(uint8_t row, uint8_t cmd, uint8_t data) {
   Wire.beginTransmission(row);
   Wire.send(cmd);
   Wire.send(data);
   Wire.endTransmission();
 }
 
-void DmfController::SendSPI(uint8_t pin, uint8_t address, uint8_t data) {
+void DmfControlBoard::SendSPI(uint8_t pin, uint8_t address, uint8_t data) {
   digitalWrite(pin,LOW);
   SPI.transfer(address);
   SPI.transfer(data);
   digitalWrite(pin,HIGH);
 }
 
-uint8_t DmfController::SetPot(uint8_t index, uint8_t value) {
+uint8_t DmfControlBoard::SetPot(uint8_t index, uint8_t value) {
   if(index>=0 && index<4) {
     SendSPI(AD5204_SLAVE_SELECT_PIN_, index, 255-value);
     return RETURN_OK;
@@ -623,7 +623,7 @@ uint8_t DmfController::SetPot(uint8_t index, uint8_t value) {
   return RETURN_BAD_INDEX;
 }
 
-uint8_t DmfController::SetAdcPrescaler(const uint8_t index) {
+uint8_t DmfControlBoard::SetAdcPrescaler(const uint8_t index) {
   uint8_t return_code = RETURN_OK;
   switch(128>>index) {
     case 128:
@@ -664,7 +664,7 @@ uint8_t DmfController::SetAdcPrescaler(const uint8_t index) {
 }
 
 
-uint8_t DmfController::SetSeriesResistor(const uint8_t channel,
+uint8_t DmfControlBoard::SetSeriesResistor(const uint8_t channel,
                                          const uint8_t index) {
   uint8_t return_code = RETURN_OK;
   if(channel==0) {
@@ -717,7 +717,7 @@ uint8_t DmfController::SetSeriesResistor(const uint8_t channel,
   return return_code;
 }
 
-uint8_t DmfController::GetPeak(const uint8_t channel,
+uint8_t DmfControlBoard::GetPeak(const uint8_t channel,
                                const uint16_t sample_time_ms) {
   peak_ = 128;
   SetPot(POT_AREF,peak_);
@@ -729,7 +729,7 @@ uint8_t DmfController::GetPeak(const uint8_t channel,
 }
 
 // update the state of all electrodes
-void DmfController::UpdateAllElectrodes() {
+void DmfControlBoard::UpdateAllElectrodes() {
   // Each PCA9505 chip has 5 8-bit output registers for a total of 40 outputs
   // per chip. We can have up to 8 of these chips on an I2C bus, which means
   // we can control up to 320 electrodes.
@@ -752,7 +752,7 @@ void DmfController::UpdateAllElectrodes() {
 // Note: Do not use this function in a loop to update all electrodes. If you
 //       want to update all electrodes, use the UpdateAllElectrodes function
 //       instead because it will be 8x more efficient.
-void DmfController::UpdateElectrode(const uint16_t electrode) {
+void DmfControlBoard::UpdateElectrode(const uint16_t electrode) {
   uint8_t data = 0;
   uint16_t chip = electrode/40;
   uint8_t port = (electrode-40*chip)/8;
@@ -775,7 +775,7 @@ void DmfController::UpdateElectrode(const uint16_t electrode) {
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-uint8_t DmfController::SendCommand(const uint8_t cmd) {
+uint8_t DmfControlBoard::SendCommand(const uint8_t cmd) {
   const char* function_name = "SendCommand()";
   std::ostringstream msg;
   msg << "time since last," << MillisecondsSinceLastCheck();
@@ -792,7 +792,7 @@ uint8_t DmfController::SendCommand(const uint8_t cmd) {
   return return_code();
 }
 
-string DmfController::protocol_name() {
+string DmfControlBoard::protocol_name() {
   const char* function_name = "protocol_name()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -802,7 +802,7 @@ string DmfController::protocol_name() {
   return "";
 }
 
-string DmfController::protocol_version() {
+string DmfControlBoard::protocol_version() {
   const char* function_name = "protocol_version()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -812,7 +812,7 @@ string DmfController::protocol_version() {
   return "";
 }
 
-string DmfController::name() {
+string DmfControlBoard::name() {
   const char* function_name = "name()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -822,7 +822,7 @@ string DmfController::name() {
   return "";
 }
 
-string DmfController::version() {
+string DmfControlBoard::version() {
   const char* function_name = "version()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -832,7 +832,7 @@ string DmfController::version() {
   return "";
 }
 
-uint16_t DmfController::number_of_electrodes() {
+uint16_t DmfControlBoard::number_of_electrodes() {
   const char* function_name = "number_of_electrodes()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -842,7 +842,7 @@ uint16_t DmfController::number_of_electrodes() {
   return 0;
 }
 
-vector<uint8_t> DmfController::state_of_all_electrodes() {
+vector<uint8_t> DmfControlBoard::state_of_all_electrodes() {
   const char* function_name = "state_of_all_electrodes()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -852,7 +852,7 @@ vector<uint8_t> DmfController::state_of_all_electrodes() {
   return std::vector<uint8_t>(); // return an empty vector
 };
 
-uint8_t DmfController::state_of_electrode(const uint16_t electrode) {
+uint8_t DmfControlBoard::state_of_electrode(const uint16_t electrode) {
   const char* function_name = "state_of_electrode()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -863,7 +863,7 @@ uint8_t DmfController::state_of_electrode(const uint16_t electrode) {
   return 0;
 };
 
-float DmfController::sampling_rate() {
+float DmfControlBoard::sampling_rate() {
   const char* function_name = "sampling_rate()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -873,7 +873,7 @@ float DmfController::sampling_rate() {
   return 0;
 }
 
-uint8_t DmfController::set_sampling_rate(const uint8_t sampling_rate) {
+uint8_t DmfControlBoard::set_sampling_rate(const uint8_t sampling_rate) {
   const char* function_name = "set_sampling_rate()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -886,7 +886,7 @@ uint8_t DmfController::set_sampling_rate(const uint8_t sampling_rate) {
   return return_code();
 }
 
-float DmfController::series_resistor(const uint8_t channel) {
+float DmfControlBoard::series_resistor(const uint8_t channel) {
   const char* function_name = "series_resistor()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -897,7 +897,7 @@ float DmfController::series_resistor(const uint8_t channel) {
   return 0;
 }
 
-uint8_t DmfController::set_series_resistor(const uint8_t channel,
+uint8_t DmfControlBoard::set_series_resistor(const uint8_t channel,
                                            const uint8_t series_resistor) {
   const char* function_name = "set_series_resistor()";
   LogSeparator();
@@ -913,7 +913,7 @@ uint8_t DmfController::set_series_resistor(const uint8_t channel,
   return return_code();
 }
 
-uint8_t DmfController::set_pot(const uint8_t index, const uint8_t value) {
+uint8_t DmfControlBoard::set_pot(const uint8_t index, const uint8_t value) {
   const char* function_name = "set_pot()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -929,7 +929,7 @@ uint8_t DmfController::set_pot(const uint8_t index, const uint8_t value) {
 }
 
 
-uint8_t DmfController::set_state_of_all_electrodes(const vector<uint8_t> state) {
+uint8_t DmfControlBoard::set_state_of_all_electrodes(const vector<uint8_t> state) {
   const char* function_name = "set_state_of_all_electrodes()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -972,7 +972,7 @@ uint8_t DmfController::set_state_of_all_electrodes(const vector<uint8_t> state) 
   return return_code();
 }
 
-uint8_t DmfController::set_state_of_electrode(const uint16_t electrode, const uint8_t state) {
+uint8_t DmfControlBoard::set_state_of_electrode(const uint16_t electrode, const uint8_t state) {
   const char* function_name = "set_state_of_electrode()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -998,7 +998,7 @@ uint8_t DmfController::set_state_of_electrode(const uint16_t electrode, const ui
   return return_code();
 }
 
-uint8_t DmfController::set_actuation_voltage(const float v_rms){
+uint8_t DmfControlBoard::set_actuation_voltage(const float v_rms){
   const char* function_name = "set_actuation_voltage()";
   LogSeparator();
   LogMessage("send command", function_name);
@@ -1012,7 +1012,7 @@ uint8_t DmfController::set_actuation_voltage(const float v_rms){
   return return_code();
 }
 
-uint8_t DmfController::set_actuation_frequency(const float freq_hz) {
+uint8_t DmfControlBoard::set_actuation_frequency(const float freq_hz) {
   const char* function_name = "set_actuation_frequency()";
   LogSeparator();
   sprintf(log_message_string_,"freq_hz=%.1f",freq_hz);
@@ -1027,7 +1027,7 @@ uint8_t DmfController::set_actuation_frequency(const float freq_hz) {
   return return_code();
 }
 
-std::vector<uint16_t> DmfController::SampleVoltage(
+std::vector<uint16_t> DmfControlBoard::SampleVoltage(
                                         std::vector<uint8_t> ad_channel,
                                         uint16_t n_samples,
                                         uint16_t n_sets,
@@ -1084,7 +1084,7 @@ std::vector<uint16_t> DmfController::SampleVoltage(
   return std::vector<uint16_t>(); // return an empty vector
 }
 
-std::vector<uint16_t> DmfController::MeasureImpedance(
+std::vector<uint16_t> DmfControlBoard::MeasureImpedance(
                                           uint16_t sampling_time_ms,
                                           uint16_t n_sets,
                                           uint16_t delay_between_sets_ms,
@@ -1134,7 +1134,7 @@ std::vector<uint16_t> DmfController::MeasureImpedance(
   return std::vector<uint16_t>(); // return an empty vector
 }
 
-uint8_t DmfController::SetExperimentLogFile(const char* file_name) {
+uint8_t DmfControlBoard::SetExperimentLogFile(const char* file_name) {
   const char* function_name = "SetExperimentLogFile()";
   if(experiment_log_file_.is_open()) {
     experiment_log_file_.close();
@@ -1152,21 +1152,21 @@ uint8_t DmfController::SetExperimentLogFile(const char* file_name) {
   }
 }
 
-void DmfController::LogExperiment(const char* msg) {
+void DmfControlBoard::LogExperiment(const char* msg) {
   if(experiment_log_file_.is_open()) {
     experiment_log_file_ << msg;
     experiment_log_file_.flush();
   }
 }
 
-float DmfController::MillisecondsSinceLastCheck() {
+float DmfControlBoard::MillisecondsSinceLastCheck() {
   boost::posix_time::ptime t = t_last_check_;
   t_last_check_ = boost::posix_time::microsec_clock::universal_time();
   return floor(0.5+(float)(boost::posix_time::microsec_clock::universal_time()-t)
          .total_microseconds()/1000);
 }
 
-void DmfController::SerializeElectrodeState(const std::vector<uint8_t> state,
+void DmfControlBoard::SerializeElectrodeState(const std::vector<uint8_t> state,
                                             std::ostringstream& msg) {
   // if we're updating the electrode state
   if(state.size()) {

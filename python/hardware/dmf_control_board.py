@@ -1,9 +1,9 @@
-from dmf_controller_base import DmfController as Base
-from dmf_controller_base import uint8_tVector
+from dmf_control_board_base import DmfControlBoard as Base
+from dmf_control_board_base import uint8_tVector
 
 import numpy
 
-class DmfController(Base):
+class DmfControlBoard(Base):
     def state_of_all_electrodes(self):
         return numpy.array(Base.state_of_all_electrodes(self))
 

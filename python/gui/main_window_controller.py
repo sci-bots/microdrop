@@ -1,13 +1,11 @@
-import gtk
 import os
-from controllers.dmf_controller import DmfController
-from device_view import DeviceView
-from protocol_editor import ProtocolEditor
+import gtk
+from hardware.dmf_control_board import DmfControlBoard
 
-class MainWindow:
-    def __init__(self, app):
+class MainWindowController:
+    def __init__(self, app, builder, signals):
         self.app = app
-        builder = gtk.Builder()
+
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "main_window.glade"))
@@ -15,23 +13,17 @@ class MainWindow:
         self.label_connection_status = builder.get_object("label_connection_status")
         self.checkbutton_realtime_mode = builder.get_object("checkbutton_realtime_mode")
 
-        signals = {}
         signals["on_menu_quit_activate"] = self.on_destroy
         signals["on_window_destroy"] = self.on_destroy
         signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
 
-        self.device_view = DeviceView(app, builder, signals)
-        self.protocol_editor = ProtocolEditor(app, builder, signals)
-        builder.connect_signals(signals)
-
         for i in range(0,31):
-            if app.controller.Connect("COM%d" % i) == DmfController.RETURN_OK:
+            if app.control_board.Connect("COM%d" % i) == DmfControlBoard.RETURN_OK:
                 #TODO check protocol name/version
-                self.label_connection_status.set_text(app.controller.name() +
-                                                      " v" + app.controller.version())
-                #app.controller.set_debug(True)
-                self.device_view.update()
+                self.label_connection_status.set_text(app.control_board.name() +
+                                                      " v" + app.control_board.version())
+                #app.control_board.set_debug(True)
                 break
 
     def main(self):
@@ -45,6 +37,6 @@ class MainWindow:
         self.update()
 
     def update(self):
-        self.device_view.update()
-        self.protocol_editor.update()
+        self.app.device_controller.update()
+        self.app.protocol_controller.update()
         self.app.realtime_mode = self.checkbutton_realtime_mode.get_active()

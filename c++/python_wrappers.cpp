@@ -1,10 +1,8 @@
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-#include "dmf_controller.h"
+#include "dmf_control_board.h"
 
 using namespace boost::python;
-
-//TODO wrap std containers
 
 const uint8_t RemoteObject::RETURN_OK;
 const uint8_t RemoteObject::RETURN_GENERAL_ERROR;
@@ -15,7 +13,7 @@ const uint8_t RemoteObject::RETURN_BAD_INDEX;
 const uint8_t RemoteObject::RETURN_BAD_PACKET_SIZE;
 const uint8_t RemoteObject::RETURN_BAD_CRC;
 
-BOOST_PYTHON_MODULE(dmf_controller_base)
+BOOST_PYTHON_MODULE(dmf_control_board_base)
 {
   class_<std::vector<uint8_t> >("uint8_tVector")
     .def(vector_indexing_suite<std::vector<uint8_t> >())
@@ -29,39 +27,39 @@ BOOST_PYTHON_MODULE(dmf_controller_base)
     .def(vector_indexing_suite<std::vector<float> >())
   ;
 
-object DmfController_class 
-  = class_<DmfController,boost::noncopyable>("DmfController")
-    .def("Connect",&DmfController::Connect)
-    .def("connected",&DmfController::connected)
-    .def("return_code",&DmfController::return_code)
-    .def("set_debug",&DmfController::set_debug)
-    .def("protocol_name",&DmfController::protocol_name)
-    .def("protocol_version",&DmfController::protocol_version)
-    .def("name",&DmfController::name)
-    .def("version",&DmfController::version)
-    .def("number_of_electrodes",&DmfController::number_of_electrodes)
-    .def("state_of_all_electrodes",&DmfController::state_of_all_electrodes)
-    .def("state_of_electrode",&DmfController::state_of_electrode)
-    .def("sampling_rate",&DmfController::sampling_rate)
-    .def("series_resistor",&DmfController::series_resistor)
-    .def("set_state_of_electrode",&DmfController::set_state_of_electrode)
-    .def("set_state_of_all_electrodes",&DmfController::set_state_of_all_electrodes)
-    .def("set_actuation_voltage",&DmfController::set_actuation_voltage)
-    .def("set_actuation_frequency",&DmfController::set_actuation_frequency)
-    .def("set_sampling_rate",&DmfController::set_sampling_rate)
-    .def("set_series_resistor",&DmfController::set_series_resistor)
-    .def("set_pot",&DmfController::set_pot)
-    .def("SampleVoltage",&DmfController::SampleVoltage)
-    .def("SetExperimentLogFile",&DmfController::SetExperimentLogFile)
-    .def("LogExperiment",&DmfController::SetExperimentLogFile)
-    .def("MeasureImpedance",&DmfController::MeasureImpedance)
+object DmfControlBoard_class
+  = class_<DmfControlBoard,boost::noncopyable>("DmfControlBoard")
+    .def("Connect",&DmfControlBoard::Connect)
+    .def("connected",&DmfControlBoard::connected)
+    .def("return_code",&DmfControlBoard::return_code)
+    .def("set_debug",&DmfControlBoard::set_debug)
+    .def("protocol_name",&DmfControlBoard::protocol_name)
+    .def("protocol_version",&DmfControlBoard::protocol_version)
+    .def("name",&DmfControlBoard::name)
+    .def("version",&DmfControlBoard::version)
+    .def("number_of_electrodes",&DmfControlBoard::number_of_electrodes)
+    .def("state_of_all_electrodes",&DmfControlBoard::state_of_all_electrodes)
+    .def("state_of_electrode",&DmfControlBoard::state_of_electrode)
+    .def("sampling_rate",&DmfControlBoard::sampling_rate)
+    .def("series_resistor",&DmfControlBoard::series_resistor)
+    .def("set_state_of_electrode",&DmfControlBoard::set_state_of_electrode)
+    .def("set_state_of_all_electrodes",&DmfControlBoard::set_state_of_all_electrodes)
+    .def("set_actuation_voltage",&DmfControlBoard::set_actuation_voltage)
+    .def("set_actuation_frequency",&DmfControlBoard::set_actuation_frequency)
+    .def("set_sampling_rate",&DmfControlBoard::set_sampling_rate)
+    .def("set_series_resistor",&DmfControlBoard::set_series_resistor)
+    .def("set_pot",&DmfControlBoard::set_pot)
+    .def("SampleVoltage",&DmfControlBoard::SampleVoltage)
+    .def("SetExperimentLogFile",&DmfControlBoard::SetExperimentLogFile)
+    .def("LogExperiment",&DmfControlBoard::SetExperimentLogFile)
+    .def("MeasureImpedance",&DmfControlBoard::MeasureImpedance)
   ;
-DmfController_class.attr("RETURN_OK") = DmfController::RETURN_OK;
-DmfController_class.attr("RETURN_GENERAL_ERROR") = DmfController::RETURN_GENERAL_ERROR;
-DmfController_class.attr("RETURN_UNKNOWN_COMMAND") = DmfController::RETURN_UNKNOWN_COMMAND;
-DmfController_class.attr("RETURN_TIMEOUT") = DmfController::RETURN_TIMEOUT;
-DmfController_class.attr("RETURN_NOT_CONNECTED") = DmfController::RETURN_NOT_CONNECTED;
-DmfController_class.attr("RETURN_BAD_INDEX") = DmfController::RETURN_BAD_INDEX;
-DmfController_class.attr("RETURN_BAD_PACKET_SIZE") = DmfController::RETURN_BAD_PACKET_SIZE;
-DmfController_class.attr("RETURN_BAD_CRC") = DmfController::RETURN_BAD_CRC;
+DmfControlBoard_class.attr("RETURN_OK") = DmfControlBoard::RETURN_OK;
+DmfControlBoard_class.attr("RETURN_GENERAL_ERROR") = DmfControlBoard::RETURN_GENERAL_ERROR;
+DmfControlBoard_class.attr("RETURN_UNKNOWN_COMMAND") = DmfControlBoard::RETURN_UNKNOWN_COMMAND;
+DmfControlBoard_class.attr("RETURN_TIMEOUT") = DmfControlBoard::RETURN_TIMEOUT;
+DmfControlBoard_class.attr("RETURN_NOT_CONNECTED") = DmfControlBoard::RETURN_NOT_CONNECTED;
+DmfControlBoard_class.attr("RETURN_BAD_INDEX") = DmfControlBoard::RETURN_BAD_INDEX;
+DmfControlBoard_class.attr("RETURN_BAD_PACKET_SIZE") = DmfControlBoard::RETURN_BAD_PACKET_SIZE;
+DmfControlBoard_class.attr("RETURN_BAD_CRC") = DmfControlBoard::RETURN_BAD_CRC;
 }

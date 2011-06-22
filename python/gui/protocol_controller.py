@@ -12,7 +12,7 @@ def isint(s):
     try: return (int(s), True)[1]
     except (ValueError, TypeError), e: return False
 
-class ProtocolEditor():
+class ProtocolController():
     def __init__(self, app, builder, signals):
         self.data = []
         self.app = app
@@ -73,31 +73,31 @@ class ProtocolEditor():
 
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
 
     def on_delete_step(self, widget, data=None):
         self.app.protocol.delete_step()
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
 
     def on_first_step(self, widget=None, data=None):
         self.app.protocol.first_step()
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
 
     def on_prev_step(self, widget=None, data=None):
         self.app.protocol.prev_step()
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
 
     def on_next_step(self, widget=None, data=None):
         self.app.protocol.next_step()
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
 
     def on_last_step(self, widget=None, data=None):
         self.app.protocol.last_step()
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
 
     def on_new_protocol(self, widget, data=None):
         self.app.protocol = Protocol()
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
 
     def on_save_protocol(self, widget, data=None):
         print "save protcol"
@@ -137,7 +137,7 @@ class ProtocolEditor():
             self.app.protocol = pickle.load(f)
             f.close()
         dialog.destroy()
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
 
     def on_add_frequency_sweep(self, widget, data=None):
         print "add frequency sweep"
@@ -206,7 +206,7 @@ class ProtocolEditor():
         self.run_step()
 
     def run_step(self):
-        self.app.main_window.update()
+        self.app.main_window_controller.update()
         if self.app.protocol.current_step_number < len(self.app.protocol)-1:
             measure_impedance = self.app.protocol.current_step().measure_impedance
             state = self.app.protocol.current_step().state_of_electrodes

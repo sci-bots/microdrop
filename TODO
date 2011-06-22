@@ -1,24 +1,26 @@
 TODO:
 
 Next:
-*save feedback
-*extract droplet velocity
-*run protocol in another thread (screen doesn't update when MeasureImpedance is blocking)
+*rename electrodes to channels (many to many relationship)
+*add play/pause button (remove from protocol menu)
+*replace realtime mode with connect/disconnect button
+*enable selection of COM port
+*config file (current device, current protocol, dirs, etc.)
 
 Later:
-*config file
-*save state (window location, current device, current protocol, etc.)
-*implement mvc architecture
+*run protocol in another thread (screen doesn't update when MeasureImpedance is blocking)
 *save/load devices
 *group steps
 *list view for protocol
 *cut and paste steps
 *repeat for steps/groups
+*log experiment (save feedback data)
+*extract droplet velocity
 
 Future:
+*make installer
 *video capture
 *refactor code into client/daemon
-*make installer
 *auto update over internet
 *generate documentation
 *unit tests

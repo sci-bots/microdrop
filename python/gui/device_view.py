@@ -1,19 +1,8 @@
-import os
 import gtk
-import numpy as np
 
 class DeviceView:
-    def __init__(self, app, builder, signals):
-        self.app = app
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "right_click_popup.glade"))
-        self.widget = builder.get_object("device_view")
-        self.popup = builder.get_object("popup")
-        signals["on_device_view_button_press_event"] = self.on_button_press
-        signals["on_device_view_key_press_event"] = self.on_key_press
-        signals["on_device_view_expose_event"] = self.on_expose
-
+    def __init__(self, widget):
+        self.widget = widget
         x, y, width, height = self.widget.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
         self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
@@ -49,7 +38,6 @@ class DeviceView:
                            Electrode(14.5,24.25,1.4), # 6
                            Electrode(16,24,1.9), # 5
                            Electrode(18,24.25,1.4), # 4
-
                            Electrode(13,24.25,1.4), # 3
                            Electrode(19.5,24.25,1.4), # 3
                            Electrode(21,22,5.9), # 2
@@ -57,18 +45,6 @@ class DeviceView:
                            Electrode(1,22,5.9), # 1
                            Electrode(27,22,5.9), # 1
                           ]
-        self.map_electrode_id_to_channels = np.zeros(len(self.electrodes), int)
-
-        k = 29
-        for i in range(0, k):
-            self.map_electrode_id_to_channels[i] = i
-
-        self.map_electrode_id_to_channels[k] = k
-        self.map_electrode_id_to_channels[k+1] = k
-        self.map_electrode_id_to_channels[k+2] = k+1
-        self.map_electrode_id_to_channels[k+3] = k+1
-        self.map_electrode_id_to_channels[k+4] = k+2
-        self.map_electrode_id_to_channels[k+5] = k+2
 
         for i in self.electrodes:
             i.x += 5 # x offset
@@ -81,58 +57,24 @@ class DeviceView:
                                     self.pixmap, x, y, x, y, width, height)
         return False
 
-    def on_button_press(self, widget, event):
-        self.widget.grab_focus()
-        for i in range(0,len(self.electrodes)):
-            if self.electrodes[i].contains(event.x, event.y, self.scale):
-                if event.button == 1:
-                    state = self.app.state_of_all_electrodes()
-                    channel = self.map_electrode_id_to_channels[i]
-                    if state[channel]>0:
-                        channel = self.map_electrode_id_to_channels[i]
-                        self.app.set_state_of_electrode(channel, 0)
-                    else:
-                        channel = self.map_electrode_id_to_channels[i]
-                        self.app.set_state_of_electrode(channel, 1)
-                    self.update()
-                    break
-                elif event.button == 3:
-                    self.popup.popup(None, None, None, event.button, event.time, data=None)
-        return True
-
-    def on_key_press(self, widget, data=None):
-        pass
-
     def update(self):
-        state = self.app.state_of_all_electrodes()
-        cr = self.pixmap.cairo_create()
         for i in range(0,len(self.electrodes)):
-            channel = self.map_electrode_id_to_channels[i]
-            if state[channel]==0:
-                self.draw_electrode(self.electrodes[i], cr)
-        cr.set_source_rgb(0, 0, 1)
-        cr.fill()
-
-        cr = self.pixmap.cairo_create()
-        for i in range(0,len(self.electrodes)):
-            channel = self.map_electrode_id_to_channels[i]
-            if state[channel]>0:
-                self.draw_electrode(self.electrodes[i], cr)
-        cr.set_source_rgb(1, 1, 1)
-        cr.fill()
+            cr = self.pixmap.cairo_create()
+            self.draw_electrode(self.electrodes[i], cr)
+            r, g, b = self.electrodes[i].color
+            cr.set_source_rgb(r, g, b)
+            cr.fill()
         self.widget.queue_draw()
 
     def draw_electrode(self, e, cr):
-        x, y, w, h = e.get_x_y_w_h()
-        cr.rectangle(self.scale*x, self.scale*y,
-                     self.scale*w, self.scale*h)
+        cr.rectangle(self.scale*e.x, self.scale*e.y,
+                     self.scale*e.width, self.scale*e.height)
 
 class Electrode:
     next_id = 0
     def __init__(self, x, y, width, height=None):
         self.id = Electrode.next_id
         Electrode.next_id += 1
-
         self.x = x
         self.y = y
         self.width = width
@@ -140,9 +82,7 @@ class Electrode:
             self.height = width
         else:
             self.height = height
-
-    def get_x_y_w_h(self):
-        return (self.x, self.y, self.width, self.height)
+        self.color = (0, 0, 1)
 
     def contains(self, x, y, scale):
         if x>scale*self.x and x<scale*(self.x+self.width) and \

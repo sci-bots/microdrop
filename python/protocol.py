@@ -1,7 +1,4 @@
-import sys
 import numpy as np
-from controllers.dmf_controller import DmfController
-from controllers.agilent_33220a import Agilent33220A
 
 class MeasureImpedance():
     def __init__(self, sampling_time_ms=None,
