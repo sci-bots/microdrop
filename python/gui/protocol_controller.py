@@ -24,18 +24,20 @@ class ProtocolController():
         self.button_last_step = builder.get_object("button_last_step")
         self.button_insert_step = builder.get_object("button_insert_step")
         self.button_delete_step = builder.get_object("button_delete_step")
+        self.button_run_protocol = builder.get_object("button_run_protocol")
         self.label_step_number = builder.get_object("label_step_number")
         self.menu_save_protocol = builder.get_object("menu_save_protocol")
         self.menu_save_protocol_as = builder.get_object("menu_save_protocol_as")
         self.menu_load_protocol = builder.get_object("menu_load_protocol")
         self.menu_add_frequency_sweep = builder.get_object("menu_add_frequency_sweep")
         self.menu_add_electrode_sweep = builder.get_object("menu_add_electrode_sweep")
-        self.menu_run_protocol = builder.get_object("menu_run_protocol")
         self.textentry_voltage = builder.get_object("textentry_voltage")
         self.textentry_frequency = builder.get_object("textentry_frequency")
         self.textentry_step_time = builder.get_object("textentry_step_time")
         self.checkbutton_measure_impedance = \
             builder.get_object("checkbutton_measure_impedance")
+        self.image_play = builder.get_object("image_play")
+        self.image_pause = builder.get_object("image_pause")
 
         signals["on_button_insert_step_clicked"] = self.on_insert_step
         signals["on_button_delete_step_clicked"] = self.on_delete_step
@@ -43,11 +45,11 @@ class ProtocolController():
         signals["on_button_prev_step_clicked"] = self.on_prev_step
         signals["on_button_next_step_clicked"] = self.on_next_step
         signals["on_button_last_step_clicked"] = self.on_last_step
+        signals["on_button_run_protocol_clicked"] = self.on_run_protocol
         signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         signals["on_menu_save_protocol_activate"] = self.on_save_protocol
         signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
         signals["on_menu_load_protocol_activate"] = self.on_load_protocol
-        signals["on_menu_run_protocol_activate"] = self.on_run_protocol
         signals["on_menu_add_frequency_sweep_activate"] = self.on_add_frequency_sweep
         signals["on_menu_add_electrode_sweep_activate"] = self.on_add_electrode_sweep
         signals["on_textentry_voltage_focus_out_event"] = \
@@ -198,18 +200,18 @@ class ProtocolController():
             self.app.protocol.current_step().measure_impedance = None
 
     def on_run_protocol(self, widget, data=None):
-        self.on_first_step()
-        self.data = []
-        for i in range(0, 4):
-            self.data.append(range(i+10,i+0,-1))
-        plt.figure()
-        self.run_step()
+        if self.is_running():
+            #TODO kill running protocol
+            self.button_run_protocol.set_image(self.image_play)
+        else:
+            self.button_run_protocol.set_image(self.image_pause)
+            self.run_step()
 
     def run_step(self):
         self.app.main_window_controller.update()
         if self.app.protocol.current_step_number < len(self.app.protocol)-1:
             measure_impedance = self.app.protocol.current_step().measure_impedance
-            state = self.app.protocol.current_step().state_of_electrodes
+            state = self.app.protocol.current_step().state_of_channels
             if measure_impedance:
                 impedance = self.app.controller.MeasureImpedance(
                                                 measure_impedance.sampling_time_ms,
@@ -220,21 +222,14 @@ class ProtocolController():
                 self.app.protocol.next_step()
                 self.run_step()
             else:
-                self.app.controller.set_state_of_all_electrodes(state)
+                #self.app.controller.set_state_of_all_channels(state)
                 self.app.protocol.next_step()
                 self.timer_id = gobject.timeout_add(self.app.protocol.current_step().time,
                                                     self.run_step)
         else:
-            legend_str = []
-            i = 0
-            for d in self.data:
-                plt.plot(d)
-                legend_str.append("electrode %d" % i)
-                i+=1
-            plt.xlabel("time (ms)")
-            plt.ylabel("Impedance ($\Omega$)")
-            plt.legend(legend_str)
-            plt.show()
+            self.timer_id = None
+            self.button_run_protocol.set_image(self.image_play)
+            
         return False
 
     def update(self):

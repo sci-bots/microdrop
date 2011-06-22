@@ -2,55 +2,65 @@
 <interface>
   <requires lib="gtk+" version="2.24"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkImage" id="image1">
+  <object class="GtkImage" id="image_go_back">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-go-back</property>
   </object>
-  <object class="GtkImage" id="image10">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-goto-first</property>
-  </object>
-  <object class="GtkImage" id="image2">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-open</property>
-  </object>
-  <object class="GtkImage" id="image3">
+  <object class="GtkImage" id="image_go_forward">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-go-forward</property>
   </object>
-  <object class="GtkImage" id="image4">
+  <object class="GtkImage" id="image_goto_first">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-goto-first</property>
+  </object>
+  <object class="GtkImage" id="image_goto_last">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-goto-last</property>
   </object>
-  <object class="GtkImage" id="image5">
+  <object class="GtkImage" id="image_load_device">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">gtk-save</property>
+    <property name="stock">gtk-open</property>
   </object>
-  <object class="GtkImage" id="image6">
+  <object class="GtkImage" id="image_load_protocol">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">gtk-media-play</property>
+    <property name="stock">gtk-open</property>
   </object>
-  <object class="GtkImage" id="image7">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-stop</property>
-  </object>
-  <object class="GtkImage" id="image8">
+  <object class="GtkImage" id="image_new">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-new</property>
   </object>
-  <object class="GtkImage" id="image9">
+  <object class="GtkImage" id="image_pause">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-media-pause</property>
+  </object>
+  <object class="GtkImage" id="image_play">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-media-play</property>
+  </object>
+  <object class="GtkImage" id="image_save">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-save</property>
+  </object>
+  <object class="GtkImage" id="image_save_as">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-save-as</property>
+  </object>
+  <object class="GtkImage" id="image_stop">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-stop</property>
   </object>
   <object class="GtkWindow" id="window">
     <property name="visible">True</property>
@@ -95,7 +105,7 @@
                                 <property name="can_focus">False</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="image">image8</property>
+                                <property name="image">image_new</property>
                                 <property name="use_stock">False</property>
                                 <signal name="activate" handler="on_menu_new_protocol_activate" swapped="no"/>
                               </object>
@@ -108,7 +118,7 @@
                                 <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="image">image2</property>
+                                <property name="image">image_load_protocol</property>
                                 <property name="use_stock">False</property>
                                 <signal name="activate" handler="on_menu_load_protocol_activate" swapped="no"/>
                               </object>
@@ -121,7 +131,7 @@
                                 <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="image">image5</property>
+                                <property name="image">image_save</property>
                                 <property name="use_stock">False</property>
                                 <signal name="activate" handler="on_menu_save_protocol_activate" swapped="no"/>
                               </object>
@@ -133,30 +143,34 @@
                                 <property name="can_focus">False</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="image">image9</property>
+                                <property name="image">image_save_as</property>
                                 <property name="use_stock">False</property>
                                 <signal name="activate" handler="on_menu_save_protocol_as_activate" swapped="no"/>
                               </object>
                             </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menu_device">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="label" translatable="yes">menuitem1</property>
+                        <property name="use_underline">True</property>
+                        <child type="submenu">
+                          <object class="GtkMenu" id="menu3">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                             <child>
-                              <object class="GtkImageMenuItem" id="menu_run_protocol">
-                                <property name="label" translatable="yes">_Run</property>
+                              <object class="GtkImageMenuItem" id="menu_load_device">
+                                <property name="label" translatable="yes">_Load</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="image">image6</property>
-                                <property name="use_stock">False</property>
-                                <signal name="activate" handler="on_menu_run_protocol_activate" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkImageMenuItem" id="menu_stop_protocol">
-                                <property name="label" translatable="yes">Stop</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="use_action_appearance">False</property>
-                                <property name="image">image7</property>
+                                <property name="image">image_load_device</property>
                                 <property name="use_stock">False</property>
                               </object>
                             </child>
@@ -649,7 +663,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image10</property>
+                        <property name="image">image_goto_first</property>
                         <signal name="clicked" handler="on_button_first_step_clicked" swapped="no"/>
                       </object>
                       <packing>
@@ -664,7 +678,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image1</property>
+                        <property name="image">image_go_back</property>
                         <signal name="clicked" handler="on_button_prev_step_clicked" swapped="no"/>
                       </object>
                       <packing>
@@ -674,13 +688,13 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_next_step">
+                      <object class="GtkButton" id="button_run_protocol">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image3</property>
-                        <signal name="clicked" handler="on_button_next_step_clicked" swapped="no"/>
+                        <property name="image">image_play</property>
+                        <signal name="clicked" handler="on_button_run_protocol_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -689,18 +703,33 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_last_step">
+                      <object class="GtkButton" id="button_next_step">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image4</property>
-                        <signal name="clicked" handler="on_button_last_step_clicked" swapped="no"/>
+                        <property name="image">image_go_forward</property>
+                        <signal name="clicked" handler="on_button_next_step_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">True</property>
                         <property name="fill">True</property>
                         <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button_last_step">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="image">image_goto_last</property>
+                        <signal name="clicked" handler="on_button_last_step_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>

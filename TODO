@@ -1,7 +1,7 @@
 TODO:
 
 Next:
-*add play/pause button (remove from protocol menu)
+*pause protocol when button pressed
 *replace realtime mode with connect/disconnect button
 *enable selection of COM port
 *config file (current device, current protocol, dirs, etc.)
