@@ -536,7 +536,15 @@
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="label5">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">8</property>
+                  </packing>
                 </child>
                 <child>
                   <object class="GtkHSeparator" id="hseparator2">
@@ -770,7 +778,7 @@
                 </child>
                 <child>
                   <object class="GtkCheckButton" id="checkbutton_measure_impedance">
-                    <property name="label" translatable="yes">Measure Impedance</property>
+                    <property name="label" translatable="yes">Measure impedance</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -786,6 +794,21 @@
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkButton" id="button_impedance_options">
+                    <property name="label" translatable="yes">Options</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
+                    <signal name="clicked" handler="on_button_impedance_options_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">16</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkHSeparator" id="hseparator5">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -793,7 +816,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">16</property>
+                    <property name="position">17</property>
                   </packing>
                 </child>
                 <child>
@@ -807,11 +830,8 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">3</property>
-                    <property name="position">17</property>
+                    <property name="position">18</property>
                   </packing>
-                </child>
-                <child>
-                  <placeholder/>
                 </child>
               </object>
               <packing>

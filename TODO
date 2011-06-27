@@ -1,15 +1,16 @@
 TODO:
 
 Next:
+*create dialog for impedance options
+*add handlers for set voltage/frequency
+*log experiment (save feedback data)
+
+Later:
 *group steps
 *list view for protocol
 *cut and paste steps
 *repeat for steps/groups
-*log experiment (save feedback data)
-
-Later:
 *save/load devices
-*replace realtime mode with connect/disconnect button
 *extract droplet velocity
 *enable selection of COM port
 *config file (current device, current protocol, dirs, etc.)

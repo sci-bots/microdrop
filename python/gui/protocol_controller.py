@@ -18,7 +18,9 @@ class ProtocolController():
         self.app = app
         self.is_running = False
         self.file_name = None
-        
+        self.previous_voltage = None
+        self.previous_frequency = None
+                
         self.button_first_step = builder.get_object("button_first_step")
         self.button_prev_step = builder.get_object("button_prev_step")
         self.button_next_step = builder.get_object("button_next_step")
@@ -26,6 +28,7 @@ class ProtocolController():
         self.button_insert_step = builder.get_object("button_insert_step")
         self.button_delete_step = builder.get_object("button_delete_step")
         self.button_run_protocol = builder.get_object("button_run_protocol")
+        self.button_impedance_options = builder.get_object("button_impedance_options")
         self.label_step_number = builder.get_object("label_step_number")
         self.menu_save_protocol = builder.get_object("menu_save_protocol")
         self.menu_save_protocol_as = builder.get_object("menu_save_protocol_as")
@@ -47,6 +50,7 @@ class ProtocolController():
         signals["on_button_next_step_clicked"] = self.on_next_step
         signals["on_button_last_step_clicked"] = self.on_last_step
         signals["on_button_run_protocol_clicked"] = self.on_run_protocol
+        signals["on_button_impedance_options_clicked"] = self.on_impedance_options
         signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         signals["on_menu_save_protocol_activate"] = self.on_save_protocol
         signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
@@ -172,7 +176,8 @@ class ProtocolController():
     def on_voltage_changed(self):
         voltage = self.textentry_voltage.get_text()
         if isint(voltage):
-            self.app.set_voltage(int(voltage))
+            self.app.protocol.current_step().voltage = voltage
+            self.update()
         else:
             print "error" # TODO dialog error
             self.textentry_voltage.set_text(str(self.app.protocol.current_step().voltage))
@@ -187,7 +192,8 @@ class ProtocolController():
     def on_frequency_changed(self):
         frequency = self.textentry_frequency.get_text()
         if isfloat(frequency):
-            self.app.set_frequency(float(frequency)*1e3)
+            self.app.protocol.current_step().frequency = float(frequency)*1e3
+            self.update()
         else:
             print "error" # TODO dialog error
             self.textentry_frequency.set_text(str(self.app.protocol.current_step().frequency/1e3))
@@ -201,7 +207,6 @@ class ProtocolController():
 
     def on_run_protocol(self, widget, data=None):
         if self.is_running:
-            #TODO kill running protocol
             self.is_running = False
             self.button_run_protocol.set_image(self.image_play)
         else:
@@ -209,34 +214,36 @@ class ProtocolController():
             self.button_run_protocol.set_image(self.image_pause)
             self.run_step()
 
+    def on_impedance_options(self, widget, data=None):
+        pass
+
     def run_step(self):
         self.app.main_window_controller.update()
         while gtk.events_pending():
             gtk.main_iteration()
-        if self.app.protocol.current_step_number < len(self.app.protocol)-1:
+        if self.app.control_board.connected():
             measure_impedance_params = \
                 self.app.protocol.current_step().measure_impedance_params
             state = self.app.protocol.current_step().state_of_channels
-            if self.app.control_board.connected():
-                if measure_impedance_params:
-                    impedance = self.app.control_board.MeasureImpedance(
-                               measure_impedance_params.sampling_time_ms,
-                               measure_impedance_params.n_sets,
-                               measure_impedance_params.delay_between_sets_ms,
-                               state)
-                    self.data.append(impedance)
-                else:
-                    self.app.control_board.set_state_of_all_channels(state)
-                    time.sleep(self.app.protocol.current_step().time/1000.0)
+            if measure_impedance_params:
+                impedance = self.app.control_board.MeasureImpedance(
+                           measure_impedance_params.sampling_time_ms,
+                           measure_impedance_params.n_sets,
+                           measure_impedance_params.delay_between_sets_ms,
+                           state)
+                self.data.append(impedance)
             else:
-                    time.sleep(self.app.protocol.current_step().time/1000.0)
-            if self.is_running:
-                self.app.protocol.next_step()
-                self.run_step()
+                self.app.control_board.set_state_of_all_channels(state)
+                time.sleep(self.app.protocol.current_step().time/1000.0)
+        else:
+                time.sleep(self.app.protocol.current_step().time/1000.0)
+
+        if self.app.protocol.current_step_number < len(self.app.protocol)-1 and self.is_running:
+            self.app.protocol.next_step()
+            self.run_step()
         else:
             self.is_running = False
             self.button_run_protocol.set_image(self.image_play)
-            
         return False
 
     def update(self):
@@ -249,3 +256,15 @@ class ProtocolController():
             self.checkbutton_measure_impedance.set_active(True)
         else:
             self.checkbutton_measure_impedance.set_active(False)
+        if self.app.control_board.connected() and \
+            (self.app.realtime_mode or self.is_running):
+            if self.app.func_gen:
+                self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage)
+                self.app.func_gen.set_frequency(self.app.protocol.current_step().frequency)
+            else:
+                self.app.control_board.set_actuation_voltage(float(self.app.protocol.current_step().voltage))
+                self.app.control_board.set_actuation_frequency(float(self.app.protocol.current_step().frequency))
+            if self.is_running is False:
+                state = self.app.protocol.state_of_all_channels()
+                self.app.control_board.set_state_of_all_channels(state)
+                
