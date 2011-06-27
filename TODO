@@ -1,20 +1,18 @@
 TODO:
 
 Next:
-*pause protocol when button pressed
-*replace realtime mode with connect/disconnect button
-*enable selection of COM port
-*config file (current device, current protocol, dirs, etc.)
-
-Later:
-*run protocol in another thread (screen doesn't update when MeasureImpedance is blocking)
-*save/load devices
 *group steps
 *list view for protocol
 *cut and paste steps
 *repeat for steps/groups
 *log experiment (save feedback data)
+
+Later:
+*save/load devices
+*replace realtime mode with connect/disconnect button
 *extract droplet velocity
+*enable selection of COM port
+*config file (current device, current protocol, dirs, etc.)
 
 Future:
 *make installer

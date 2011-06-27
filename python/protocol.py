@@ -1,6 +1,6 @@
 import numpy as np
 
-class MeasureImpedance():
+class MeasureImpedanceParams():
     def __init__(self, sampling_time_ms=None,
                  n_sets=None,
                  delay_between_sets_ms=None):
@@ -11,7 +11,7 @@ class MeasureImpedance():
         if n_sets:
             self.n_sets = n_sets
         else:
-            self.n_sets = 10
+            self.n_sets = 100
         if delay_between_sets_ms:
             self.delay_between_sets_ms = delay_between_sets_ms
         else:
@@ -19,7 +19,7 @@ class MeasureImpedance():
 
 class Step():
     def __init__(self, n_channels, time=None, voltage=None,
-                 frequency=None, measure_impedance=None):
+                 frequency=None, measure_impedance_params=None):
         if time:
             self.time = time
         else:
@@ -32,10 +32,10 @@ class Step():
             self.frequency = frequency
         else:
             self.frequency = 1e3
-        if measure_impedance:
-            self.measure_impedance = measure_impedance
+        if measure_impedance_params:
+            self.measure_impedance_params = measure_impedance_params
         else:
-            self.measure_impedance = None
+            self.measure_impedance_params = None
         self.n_channels = n_channels
         self.state_of_channels = np.zeros(n_channels)
 
@@ -66,7 +66,7 @@ class Protocol():
                                self.current_step().time,
                                self.current_step().voltage,
                                self.current_step().frequency,
-                               self.current_step().measure_impedance))
+                               self.current_step().measure_impedance_params))
 
     def delete_step(self):
         if len(self.steps) > 1:
@@ -82,7 +82,7 @@ class Protocol():
                                    self.current_step().time,
                                    self.current_step().voltage,
                                    self.current_step().frequency,
-                                   self.current_step().measure_impedance))
+                                   self.current_step().measure_impedance_params))
         self.goto_step(self.current_step_number+1)
             
     def prev_step(self):

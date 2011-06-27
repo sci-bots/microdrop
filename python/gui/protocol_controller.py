@@ -1,8 +1,8 @@
 import gtk
 import pickle
-import gobject
+import time
 import matplotlib.pyplot as plt
-from protocol import Protocol, MeasureImpedance
+from protocol import Protocol, MeasureImpedanceParams
 
 def isfloat(s):
     try: return (float(s), True)[1]
@@ -16,8 +16,9 @@ class ProtocolController():
     def __init__(self, app, builder, signals):
         self.data = []
         self.app = app
-        self.timer_id = None
-
+        self.is_running = False
+        self.file_name = None
+        
         self.button_first_step = builder.get_object("button_first_step")
         self.button_prev_step = builder.get_object("button_prev_step")
         self.button_next_step = builder.get_object("button_next_step")
@@ -67,12 +68,6 @@ class ProtocolController():
         signals["on_checkbutton_measure_impedance_toggled"] = \
                 self.on_measure_impedance_toggled
 
-    def is_running(self):
-        if self.timer_id:
-            return True
-        else:
-            return False
-
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()
         self.app.main_window_controller.update()
@@ -98,12 +93,17 @@ class ProtocolController():
         self.app.main_window_controller.update()
 
     def on_new_protocol(self, widget, data=None):
+        self.file_name = None
         self.app.protocol = Protocol()
         self.app.main_window_controller.update()
 
     def on_save_protocol(self, widget, data=None):
-        print "save protcol"
-        #TODO
+        if self.file_name:
+            output = open(self.file_name, 'wb')
+            pickle.dump(self.app.protocol, output, -1)
+            output.close()
+        else:
+            self.on_save_protocol_as(widget, data)
 
     def on_save_protocol_as(self, widget, data=None):
         dialog = gtk.FileChooserDialog(title=None,
@@ -117,8 +117,8 @@ class ProtocolController():
         dialog.set_current_name("new")
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
-            file_name = dialog.get_filename()
-            output = open(file_name, 'wb')
+            self.file_name = dialog.get_filename()
+            output = open(self.file_name, 'wb')
             pickle.dump(self.app.protocol, output, -1)
             output.close()
         dialog.destroy()
@@ -134,8 +134,8 @@ class ProtocolController():
         dialog.set_current_folder("protocols")
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
-            file_name = dialog.get_filename()
-            f = open(file_name, 'rb')
+            self.file_name = dialog.get_filename()
+            f = open(self.file_name, 'rb')
             self.app.protocol = pickle.load(f)
             f.close()
         dialog.destroy()
@@ -194,40 +194,47 @@ class ProtocolController():
 
     def on_measure_impedance_toggled(self, widget, data=None):
         if self.checkbutton_measure_impedance.get_active():
-            self.app.protocol.current_step().measure_impedance = \
-                MeasureImpedance()
+            self.app.protocol.current_step().measure_impedance_params = \
+                MeasureImpedanceParams()
         else:
-            self.app.protocol.current_step().measure_impedance = None
+            self.app.protocol.current_step().measure_impedance_params = None
 
     def on_run_protocol(self, widget, data=None):
-        if self.is_running():
+        if self.is_running:
             #TODO kill running protocol
+            self.is_running = False
             self.button_run_protocol.set_image(self.image_play)
         else:
+            self.is_running = True
             self.button_run_protocol.set_image(self.image_pause)
             self.run_step()
 
     def run_step(self):
         self.app.main_window_controller.update()
+        while gtk.events_pending():
+            gtk.main_iteration()
         if self.app.protocol.current_step_number < len(self.app.protocol)-1:
-            measure_impedance = self.app.protocol.current_step().measure_impedance
+            measure_impedance_params = \
+                self.app.protocol.current_step().measure_impedance_params
             state = self.app.protocol.current_step().state_of_channels
-            if measure_impedance:
-                impedance = self.app.controller.MeasureImpedance(
-                                                measure_impedance.sampling_time_ms,
-                                                measure_impedance.n_sets,
-                                                measure_impedance.delay_between_sets_ms,
-                                                state)
-                #self.data.append(impedance)
+            if self.app.control_board.connected():
+                if measure_impedance_params:
+                    impedance = self.app.control_board.MeasureImpedance(
+                               measure_impedance_params.sampling_time_ms,
+                               measure_impedance_params.n_sets,
+                               measure_impedance_params.delay_between_sets_ms,
+                               state)
+                    self.data.append(impedance)
+                else:
+                    self.app.control_board.set_state_of_all_channels(state)
+                    time.sleep(self.app.protocol.current_step().time/1000.0)
+            else:
+                    time.sleep(self.app.protocol.current_step().time/1000.0)
+            if self.is_running:
                 self.app.protocol.next_step()
                 self.run_step()
-            else:
-                #self.app.controller.set_state_of_all_channels(state)
-                self.app.protocol.next_step()
-                self.timer_id = gobject.timeout_add(self.app.protocol.current_step().time,
-                                                    self.run_step)
         else:
-            self.timer_id = None
+            self.is_running = False
             self.button_run_protocol.set_image(self.image_play)
             
         return False
@@ -238,7 +245,7 @@ class ProtocolController():
         self.textentry_frequency.set_text(str(self.app.protocol.current_step().frequency/1e3))
         self.label_step_number.set_text("Step: %d/%d" % 
             (self.app.protocol.current_step_number+1, len(self.app.protocol.steps)))
-        if self.app.protocol.current_step().measure_impedance:
+        if self.app.protocol.current_step().measure_impedance_params:
             self.checkbutton_measure_impedance.set_active(True)
         else:
             self.checkbutton_measure_impedance.set_active(False)
