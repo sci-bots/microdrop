@@ -37,10 +37,10 @@ class DeviceController:
                         self.app.protocol.set_state_of_channel(channel, 0)
                     else:
                         self.app.protocol.set_state_of_channel(channel, 1)
-                    self.update()
                     break
                 elif event.button == 3:
                     self.popup.popup(None, None, None, event.button, event.time, data=None)
+        self.app.main_window_controller.update()
         return True
 
     def on_key_press(self, widget, data=None):

@@ -98,3 +98,6 @@ class Protocol():
 
     def goto_step(self, step):
         self.current_step_number = step
+        
+    def run_step(self):
+        pass

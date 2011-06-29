@@ -10,6 +10,7 @@ class MainWindowController:
                                            "main_window.glade"))
         self.window = builder.get_object("window")
         self.label_connection_status = builder.get_object("label_connection_status")
+        self.label_experiment_id = builder.get_object("label_experiment_id")
         self.checkbutton_realtime_mode = builder.get_object("checkbutton_realtime_mode")
 
         signals["on_menu_quit_activate"] = self.on_destroy
@@ -22,7 +23,6 @@ class MainWindowController:
                 #TODO check protocol name/version
                 self.label_connection_status.set_text(app.control_board.name() +
                                                       " v" + app.control_board.version())
-                #app.control_board.set_debug(True)
                 break
 
     def main(self):
@@ -39,3 +39,8 @@ class MainWindowController:
         self.app.realtime_mode = self.checkbutton_realtime_mode.get_active()
         self.app.device_controller.update()
         self.app.protocol_controller.update()
+        self.label_experiment_id.set_text("Experiment: %d" % self.app.experiment_log.get_id())
+        
+        # process all gtk events
+        while gtk.events_pending():
+            gtk.main_iteration()        

@@ -1,31 +1,17 @@
 import gtk
-import pickle
-import time
 import os
 import matplotlib.pyplot as plt
 from protocol import Protocol, FeedbackOptions
+from utility import is_int, is_float
 
-def is_float(s):
-    try: return (float(s), True)[1]
-    except (ValueError, TypeError), e: return False
-
-def check_float(textentry, prev_value):
+def check_textentry(textentry, prev_value, type):
     val = textentry.get_text()
-    if is_float(val):
-        return float(val)
-    else:
-        print "error" # TODO dialog error
-        textentry.set_text(str(prev_value))
-        return prev_value
-
-def is_int(s):
-    try: return (int(s), True)[1]
-    except (ValueError, TypeError), e: return False
-
-def check_int(textentry, prev_value):
-    val = textentry.get_text()
-    if is_int(val):
-        return int(val)
+    if(type is float):
+        if is_float(val):
+            return float(val)
+    elif(type is int):
+        if is_int(val):
+            return int(val)
     else:
         print "error" # TODO dialog error
         textentry.set_text(str(prev_value))
@@ -55,22 +41,24 @@ class FeedbackOptionsDialog:
         response = self.dialog.run()
         if response == gtk.RESPONSE_OK:
             self.options.sampling_time_ms = \
-                check_int(self.textentry_sampling_time_ms,
-                          self.options.sampling_time_ms)
+                check_textentry(self.textentry_sampling_time_ms,
+                                self.options.sampling_time_ms,
+                                int)
             self.options.n_samples = \
-                check_int(self.textentry_n_samples,
-                          self.options.n_samples)
+                check_textentry(self.textentry_n_samples,
+                                self.options.n_samples,
+                                int)
             self.options.delay_between_samples_ms = \
-                check_int(self.textentry_delay_between_samples_ms,
-                          self.options.delay_between_samples_ms)
+                check_textentry(self.textentry_delay_between_samples_ms,
+                                self.options.delay_between_samples_ms,
+                                int)
         self.dialog.hide()
         return response
 
 class ProtocolController():
     def __init__(self, app, builder, signals):
         self.app = app
-        self.is_running = False
-        self.file_name = None
+        self.filename = None
         self.previous_voltage = None
         self.previous_frequency = None
         self.button_first_step = builder.get_object("button_first_step")
@@ -148,15 +136,13 @@ class ProtocolController():
         self.app.main_window_controller.update()
 
     def on_new_protocol(self, widget, data=None):
-        self.file_name = None
+        self.filename = None
         self.app.protocol = Protocol()
         self.app.main_window_controller.update()
 
     def on_save_protocol(self, widget, data=None):
-        if self.file_name:
-            output = open(self.file_name, 'wb')
-            pickle.dump(self.app.protocol, output, -1)
-            output.close()
+        if self.filename:
+            self.app._protocol(self.filename)
         else:
             self.on_save_protocol_as(widget, data)
 
@@ -172,10 +158,8 @@ class ProtocolController():
         dialog.set_current_name("new")
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
-            self.file_name = dialog.get_filename()
-            output = open(self.file_name, 'wb')
-            pickle.dump(self.app.protocol, output, -1)
-            output.close()
+            self.filename = dialog.get_filename()
+            self.app._protocol(self.filename)
         dialog.destroy()
 
     def on_load_protocol(self, widget, data=None):
@@ -189,10 +173,8 @@ class ProtocolController():
         dialog.set_current_folder("protocols")
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
-            self.file_name = dialog.get_filename()
-            f = open(self.file_name, 'rb')
-            self.app.protocol = pickle.load(f)
-            f.close()
+            self.filename = dialog.get_filename()
+            self.app.load_protocol(self.filename)
         dialog.destroy()
         self.app.main_window_controller.update()
 
@@ -211,8 +193,9 @@ class ProtocolController():
 
     def on_step_time_changed(self):        
         self.app.protocol.current_step().time = \
-            check_int(self.textentry_step_time,
-                      self.app.protocol.current_step().time)
+            check_textentry(self.textentry_step_time,
+                            self.app.protocol.current_step().time,
+                            int)
 
     def on_textentry_voltage_focus_out(self, widget, data=None):
         self.on_voltage_changed()
@@ -223,8 +206,9 @@ class ProtocolController():
 
     def on_voltage_changed(self):
         self.app.protocol.current_step().voltage = \
-            check_int(self.textentry_voltage,
-                      self.app.protocol.current_step().voltage)
+            check_textentry(self.textentry_voltage,
+                            self.app.protocol.current_step().voltage,
+                            int)
         self.update()
         
     def on_textentry_frequency_focus_out(self, widget, data=None):
@@ -236,8 +220,9 @@ class ProtocolController():
 
     def on_frequency_changed(self):
         self.app.protocol.current_step().frequency = \
-            check_float(self.textentry_frequency,
-                        self.app.protocol.current_step().frequency/1e3)*1e3
+            check_textentry(self.textentry_frequency,
+                            self.app.protocol.current_step().frequency/1e3,
+                            float)*1e3
         self.update()
 
     def on_feedback_toggled(self, widget, data=None):
@@ -253,45 +238,14 @@ class ProtocolController():
             self.textentry_step_time.set_sensitive(True)
             
     def on_run_protocol(self, widget, data=None):
-        if self.is_running:
-            self.is_running = False
-            self.button_run_protocol.set_image(self.image_play)
+        if self.app.is_running:
+            self.app.pause_protocol()
         else:
-            self.is_running = True
-            self.button_run_protocol.set_image(self.image_pause)
-            self.run_step()
+            self.app.run_protocol()
 
     def on_feedback_options(self, widget, data=None):
         FeedbackOptionsDialog(self.app.protocol.current_step().feedback_options).run()
         self.app.main_window_controller.update()
-
-    def run_step(self):
-        self.app.main_window_controller.update()
-        while gtk.events_pending():
-            gtk.main_iteration()
-        if self.app.control_board.connected():
-            feedback_options = \
-                self.app.protocol.current_step().feedback_options
-            state = self.app.protocol.current_step().state_of_channels
-            if feedback_options:
-                impedance = self.app.control_board.MeasureImpedance(
-                           feedback_options.sampling_time_ms,
-                           feedback_options.n_samples,
-                           feedback_options.delay_between_samples_ms,
-                           state)
-            else:
-                self.app.control_board.set_state_of_all_channels(state)
-                time.sleep(self.app.protocol.current_step().time/1000.0)
-        else:
-                time.sleep(self.app.protocol.current_step().time/1000.0)
-
-        if self.app.protocol.current_step_number < len(self.app.protocol)-1 and self.is_running:
-            self.app.protocol.next_step()
-            self.run_step()
-        else:
-            self.is_running = False
-            self.button_run_protocol.set_image(self.image_play)
-        return False
 
     def update(self):
         self.textentry_step_time.set_text(str(self.app.protocol.current_step().time))
@@ -300,20 +254,25 @@ class ProtocolController():
         self.label_step_number.set_text("Step: %d/%d" % 
             (self.app.protocol.current_step_number+1, len(self.app.protocol.steps)))
 
+        if self.app.is_running:
+            self.button_run_protocol.set_image(self.image_pause)
+        else:
+            self.button_run_protocol.set_image(self.image_play)
+
         # if this step has feedback enabled
         if self.app.protocol.current_step().feedback_options:
             self.checkbutton_feedback.set_active(True)
         else:
             self.checkbutton_feedback.set_active(False)
-
+        
         if self.app.control_board.connected() and \
-            (self.app.realtime_mode or self.is_running):
+            (self.app.realtime_mode or self.app.is_running):
             if self.app.func_gen:
                 self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage)
                 self.app.func_gen.set_frequency(self.app.protocol.current_step().frequency)
             else:
                 self.app.control_board.set_actuation_voltage(float(self.app.protocol.current_step().voltage))
                 self.app.control_board.set_actuation_frequency(float(self.app.protocol.current_step().frequency))
-            if self.is_running is False:
+            if self.app.is_running is False:
                 state = self.app.protocol.state_of_all_channels()
                 self.app.control_board.set_state_of_all_channels(state)
