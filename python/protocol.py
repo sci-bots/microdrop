@@ -1,25 +1,26 @@
+from copy import deepcopy
 import numpy as np
 
-class MeasureImpedanceParams():
+class FeedbackOptions():
     def __init__(self, sampling_time_ms=None,
-                 n_sets=None,
-                 delay_between_sets_ms=None):
+                 n_samples=None,
+                 delay_between_samples_ms=None):
         if sampling_time_ms:
             self.sampling_time_ms = sampling_time_ms
         else:
-            self.sampling_time_ms = 1
-        if n_sets:
-            self.n_sets = n_sets
+            self.sampling_time_ms = 10
+        if n_samples:
+            self.n_samples = n_samples
         else:
-            self.n_sets = 100
-        if delay_between_sets_ms:
-            self.delay_between_sets_ms = delay_between_sets_ms
+            self.n_samples = 10
+        if delay_between_samples_ms:
+            self.delay_between_samples_ms = delay_between_samples_ms
         else:
-            self.delay_between_sets_ms = 10
-
+            self.delay_between_samples_ms = 0
+             
 class Step():
     def __init__(self, n_channels, time=None, voltage=None,
-                 frequency=None, measure_impedance_params=None):
+                 frequency=None, feedback_options=None):
         if time:
             self.time = time
         else:
@@ -32,10 +33,10 @@ class Step():
             self.frequency = frequency
         else:
             self.frequency = 1e3
-        if measure_impedance_params:
-            self.measure_impedance_params = measure_impedance_params
+        if feedback_options:
+            self.feedback_options = deepcopy(feedback_options)
         else:
-            self.measure_impedance_params = None
+            self.feedback_options = None
         self.n_channels = n_channels
         self.state_of_channels = np.zeros(n_channels)
 
@@ -66,7 +67,7 @@ class Protocol():
                                self.current_step().time,
                                self.current_step().voltage,
                                self.current_step().frequency,
-                               self.current_step().measure_impedance_params))
+                               self.current_step().feedback_options))
 
     def delete_step(self):
         if len(self.steps) > 1:
@@ -82,7 +83,7 @@ class Protocol():
                                    self.current_step().time,
                                    self.current_step().voltage,
                                    self.current_step().frequency,
-                                   self.current_step().measure_impedance_params))
+                                   self.current_step().feedback_options))
         self.goto_step(self.current_step_number+1)
             
     def prev_step(self):

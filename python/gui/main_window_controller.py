@@ -5,7 +5,6 @@ from hardware.dmf_control_board import DmfControlBoard
 class MainWindowController:
     def __init__(self, app, builder, signals):
         self.app = app
-
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "main_window.glade"))

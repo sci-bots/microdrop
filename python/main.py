@@ -13,12 +13,12 @@ class App:
         self.func_gen = None
         #self.func_gen = Agilent33220A()
         self.protocol = Protocol()
-        builder = gtk.Builder()
+        self.builder = gtk.Builder()
         signals = {}
-        self.main_window_controller = MainWindowController(self, builder, signals)
-        self.device_controller = DeviceController(self, builder, signals)
-        self.protocol_controller = ProtocolController(self, builder, signals)
-        builder.connect_signals(signals)
+        self.main_window_controller = MainWindowController(self, self.builder, signals)
+        self.device_controller = DeviceController(self, self.builder, signals)
+        self.protocol_controller = ProtocolController(self, self.builder, signals)
+        self.builder.connect_signals(signals)
         self.main_window_controller.main()
 
 if __name__ == '__main__':

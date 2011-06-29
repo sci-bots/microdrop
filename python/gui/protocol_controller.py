@@ -1,26 +1,78 @@
 import gtk
 import pickle
 import time
+import os
 import matplotlib.pyplot as plt
-from protocol import Protocol, MeasureImpedanceParams
+from protocol import Protocol, FeedbackOptions
 
-def isfloat(s):
+def is_float(s):
     try: return (float(s), True)[1]
     except (ValueError, TypeError), e: return False
 
-def isint(s):
+def check_float(textentry, prev_value):
+    val = textentry.get_text()
+    if is_float(val):
+        return float(val)
+    else:
+        print "error" # TODO dialog error
+        textentry.set_text(str(prev_value))
+        return prev_value
+
+def is_int(s):
     try: return (int(s), True)[1]
     except (ValueError, TypeError), e: return False
 
+def check_int(textentry, prev_value):
+    val = textentry.get_text()
+    if is_int(val):
+        return int(val)
+    else:
+        print "error" # TODO dialog error
+        textentry.set_text(str(prev_value))
+        return prev_value
+
+class FeedbackOptionsDialog:
+    def __init__(self, options):
+        builder = gtk.Builder()
+        builder.add_from_file(os.path.join("gui",
+                                           "glade",
+                                           "feedback_options_dialog.glade"))
+        self.dialog = builder.get_object("feedback_options_dialog")
+        self.options = options
+        self.textentry_sampling_time_ms = \
+            builder.get_object("textentry_sampling_time_ms")
+        self.textentry_n_samples = \
+            builder.get_object("textentry_n_samples")
+        self.textentry_delay_between_samples_ms = \
+            builder.get_object("textentry_delay_between_samples_ms")
+
+        self.textentry_sampling_time_ms.set_text(str(options.sampling_time_ms))
+        self.textentry_n_samples.set_text(str(options.n_samples))
+        self.textentry_delay_between_samples_ms.set_text(
+                                         str(options.delay_between_samples_ms))
+        
+    def run(self):
+        response = self.dialog.run()
+        if response == gtk.RESPONSE_OK:
+            self.options.sampling_time_ms = \
+                check_int(self.textentry_sampling_time_ms,
+                          self.options.sampling_time_ms)
+            self.options.n_samples = \
+                check_int(self.textentry_n_samples,
+                          self.options.n_samples)
+            self.options.delay_between_samples_ms = \
+                check_int(self.textentry_delay_between_samples_ms,
+                          self.options.delay_between_samples_ms)
+        self.dialog.hide()
+        return response
+
 class ProtocolController():
     def __init__(self, app, builder, signals):
-        self.data = []
         self.app = app
         self.is_running = False
         self.file_name = None
         self.previous_voltage = None
         self.previous_frequency = None
-                
         self.button_first_step = builder.get_object("button_first_step")
         self.button_prev_step = builder.get_object("button_prev_step")
         self.button_next_step = builder.get_object("button_next_step")
@@ -28,7 +80,7 @@ class ProtocolController():
         self.button_insert_step = builder.get_object("button_insert_step")
         self.button_delete_step = builder.get_object("button_delete_step")
         self.button_run_protocol = builder.get_object("button_run_protocol")
-        self.button_impedance_options = builder.get_object("button_impedance_options")
+        self.button_feedback_options = builder.get_object("button_feedback_options")
         self.label_step_number = builder.get_object("label_step_number")
         self.menu_save_protocol = builder.get_object("menu_save_protocol")
         self.menu_save_protocol_as = builder.get_object("menu_save_protocol_as")
@@ -38,8 +90,7 @@ class ProtocolController():
         self.textentry_voltage = builder.get_object("textentry_voltage")
         self.textentry_frequency = builder.get_object("textentry_frequency")
         self.textentry_step_time = builder.get_object("textentry_step_time")
-        self.checkbutton_measure_impedance = \
-            builder.get_object("checkbutton_measure_impedance")
+        self.checkbutton_feedback = builder.get_object("checkbutton_feedback")
         self.image_play = builder.get_object("image_play")
         self.image_pause = builder.get_object("image_pause")
 
@@ -50,7 +101,7 @@ class ProtocolController():
         signals["on_button_next_step_clicked"] = self.on_next_step
         signals["on_button_last_step_clicked"] = self.on_last_step
         signals["on_button_run_protocol_clicked"] = self.on_run_protocol
-        signals["on_button_impedance_options_clicked"] = self.on_impedance_options
+        signals["on_button_feedback_options_clicked"] = self.on_feedback_options
         signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         signals["on_menu_save_protocol_activate"] = self.on_save_protocol
         signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
@@ -69,8 +120,8 @@ class ProtocolController():
                 self.on_textentry_step_time_focus_out
         signals["on_textentry_step_time_key_press_event"] = \
                 self.on_textentry_step_time_key_press
-        signals["on_checkbutton_measure_impedance_toggled"] = \
-                self.on_measure_impedance_toggled
+        signals["on_checkbutton_feedback_toggled"] = \
+                self.on_feedback_toggled
 
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()
@@ -158,13 +209,10 @@ class ProtocolController():
         if event.keyval == 65293: # user pressed enter
             self.on_step_time_changed()
 
-    def on_step_time_changed(self):
-        step_time = self.textentry_step_time.get_text()
-        if isint(step_time):
-            self.app.protocol.current_step().time = int(step_time)
-        else:
-            print "error" # TODO dialog error
-            self.textentry_step_time.set_text(str(self.app.protocol.current_step().time))
+    def on_step_time_changed(self):        
+        self.app.protocol.current_step().time = \
+            check_int(self.textentry_step_time,
+                      self.app.protocol.current_step().time)
 
     def on_textentry_voltage_focus_out(self, widget, data=None):
         self.on_voltage_changed()
@@ -174,14 +222,11 @@ class ProtocolController():
             self.on_voltage_changed()
 
     def on_voltage_changed(self):
-        voltage = self.textentry_voltage.get_text()
-        if isint(voltage):
-            self.app.protocol.current_step().voltage = voltage
-            self.update()
-        else:
-            print "error" # TODO dialog error
-            self.textentry_voltage.set_text(str(self.app.protocol.current_step().voltage))
-
+        self.app.protocol.current_step().voltage = \
+            check_int(self.textentry_voltage,
+                      self.app.protocol.current_step().voltage)
+        self.update()
+        
     def on_textentry_frequency_focus_out(self, widget, data=None):
         self.on_frequency_changed()
 
@@ -190,21 +235,23 @@ class ProtocolController():
             self.on_frequency_changed()
 
     def on_frequency_changed(self):
-        frequency = self.textentry_frequency.get_text()
-        if isfloat(frequency):
-            self.app.protocol.current_step().frequency = float(frequency)*1e3
-            self.update()
-        else:
-            print "error" # TODO dialog error
-            self.textentry_frequency.set_text(str(self.app.protocol.current_step().frequency/1e3))
+        self.app.protocol.current_step().frequency = \
+            check_float(self.textentry_frequency,
+                        self.app.protocol.current_step().frequency/1e3)*1e3
+        self.update()
 
-    def on_measure_impedance_toggled(self, widget, data=None):
-        if self.checkbutton_measure_impedance.get_active():
-            self.app.protocol.current_step().measure_impedance_params = \
-                MeasureImpedanceParams()
+    def on_feedback_toggled(self, widget, data=None):
+        if self.checkbutton_feedback.get_active():
+            if self.app.protocol.current_step().feedback_options is None:
+                self.app.protocol.current_step().feedback_options = \
+                    FeedbackOptions()
+            self.button_feedback_options.set_sensitive(True)
+            self.textentry_step_time.set_sensitive(False)
         else:
-            self.app.protocol.current_step().measure_impedance_params = None
-
+            self.app.protocol.current_step().feedback_options = None
+            self.button_feedback_options.set_sensitive(False)
+            self.textentry_step_time.set_sensitive(True)
+            
     def on_run_protocol(self, widget, data=None):
         if self.is_running:
             self.is_running = False
@@ -214,24 +261,24 @@ class ProtocolController():
             self.button_run_protocol.set_image(self.image_pause)
             self.run_step()
 
-    def on_impedance_options(self, widget, data=None):
-        pass
+    def on_feedback_options(self, widget, data=None):
+        FeedbackOptionsDialog(self.app.protocol.current_step().feedback_options).run()
+        self.app.main_window_controller.update()
 
     def run_step(self):
         self.app.main_window_controller.update()
         while gtk.events_pending():
             gtk.main_iteration()
         if self.app.control_board.connected():
-            measure_impedance_params = \
-                self.app.protocol.current_step().measure_impedance_params
+            feedback_options = \
+                self.app.protocol.current_step().feedback_options
             state = self.app.protocol.current_step().state_of_channels
-            if measure_impedance_params:
+            if feedback_options:
                 impedance = self.app.control_board.MeasureImpedance(
-                           measure_impedance_params.sampling_time_ms,
-                           measure_impedance_params.n_sets,
-                           measure_impedance_params.delay_between_sets_ms,
+                           feedback_options.sampling_time_ms,
+                           feedback_options.n_samples,
+                           feedback_options.delay_between_samples_ms,
                            state)
-                self.data.append(impedance)
             else:
                 self.app.control_board.set_state_of_all_channels(state)
                 time.sleep(self.app.protocol.current_step().time/1000.0)
@@ -252,10 +299,13 @@ class ProtocolController():
         self.textentry_frequency.set_text(str(self.app.protocol.current_step().frequency/1e3))
         self.label_step_number.set_text("Step: %d/%d" % 
             (self.app.protocol.current_step_number+1, len(self.app.protocol.steps)))
-        if self.app.protocol.current_step().measure_impedance_params:
-            self.checkbutton_measure_impedance.set_active(True)
+
+        # if this step has feedback enabled
+        if self.app.protocol.current_step().feedback_options:
+            self.checkbutton_feedback.set_active(True)
         else:
-            self.checkbutton_measure_impedance.set_active(False)
+            self.checkbutton_feedback.set_active(False)
+
         if self.app.control_board.connected() and \
             (self.app.realtime_mode or self.is_running):
             if self.app.func_gen:
@@ -267,4 +317,3 @@ class ProtocolController():
             if self.is_running is False:
                 state = self.app.protocol.state_of_all_channels()
                 self.app.control_board.set_state_of_all_channels(state)
-                

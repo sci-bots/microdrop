@@ -8,7 +8,6 @@ class DeviceController:
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "right_click_popup.glade"))
-
         self.view = DeviceView(builder.get_object("device_view"))
         self.popup = builder.get_object("popup")
         signals["on_device_view_button_press_event"] = self.on_button_press

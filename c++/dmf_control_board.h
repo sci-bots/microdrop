@@ -114,8 +114,8 @@ public:
                           const std::vector<uint8_t> state);
   std::vector<uint16_t> MeasureImpedance(
                           uint16_t sampling_time_ms,
-                          uint16_t n_sets,
-                          uint16_t delay_between_sets_ms,
+                          uint16_t n_samples,
+                          uint16_t delay_between_samples_ms,
                           const std::vector<uint8_t> state);
   uint8_t SetExperimentLogFile(const char* file_name);
   void LogExperiment(const char* message);

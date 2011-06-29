@@ -11,7 +11,7 @@ class DmfControlBoard(Base):
         state_ = uint8_tVector()
         for i in range(0, len(state)):
             state_.append(int(state[i]))
-        Base.set_state_of_all_channels(self, state_)
+        return Base.set_state_of_all_channels(self, state_)
 
     def MeasureImpedance(self, sampling_time_ms, n_sets,
                          delay_between_sets_ms, state):

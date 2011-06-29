@@ -255,7 +255,7 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
             // point the voltage_buffer_ to the payload_buffer_
             uint16_t* voltage_buffer_ = (uint16_t*)payload();
             // update the number of bytes written
-            bytes_written(n_sets*n_samples*n_channels*sizeof(uint16_t));
+            bytes_written(n_samples*n_sets*n_channels*sizeof(uint16_t));
 
             uint8_t channel[NUMBER_OF_AD_CHANNELS];
             for(uint8_t i=0; i<n_channels; i++) {
@@ -294,10 +294,10 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
         return_code = RETURN_BAD_PACKET_SIZE;
       } else {
         uint16_t sampling_time_ms = ReadUint16();
-        uint16_t n_sets = ReadUint16();
-        uint16_t delay_between_sets_ms = ReadUint16();
+        uint16_t n_samples = ReadUint16();
+        uint16_t delay_between_samples_ms = ReadUint16();
 
-        if(n_sets*2>MAX_SAMPLES) {
+        if(n_samples*2>MAX_SAMPLES) {
           return_code = RETURN_GENERAL_ERROR;
         } else {
           if(payload_length()==3*sizeof(uint16_t) ||
@@ -309,7 +309,7 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
             uint16_t* impedance_buffer_ = (uint16_t*)payload();
 
             // update the number of bytes written
-            bytes_written(n_sets*2*sizeof(uint16_t));
+            bytes_written(n_samples*2*sizeof(uint16_t));
 
             // update the channels (if they were included in the packet)
             if(payload_length()==3*sizeof(uint16_t)
@@ -320,7 +320,7 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
             }
 
             // sample the impedance
-            for(uint16_t i=0; i<n_sets; i++) {
+            for(uint16_t i=0; i<n_samples; i++) {
               uint16_t hv_peak = 0;
               uint16_t hv = 0;
               uint16_t fb_peak = 0;
@@ -340,7 +340,7 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
               impedance_buffer_[2*i] = hv_peak;
               impedance_buffer_[2*i+1] = fb_peak;
 
-              while(millis()-t<delay_between_sets_ms) {
+              while(millis()-t<delay_between_samples_ms) {
               }
             }
           } else {
@@ -1086,27 +1086,27 @@ std::vector<uint16_t> DmfControlBoard::SampleVoltage(
 
 std::vector<uint16_t> DmfControlBoard::MeasureImpedance(
                                           uint16_t sampling_time_ms,
-                                          uint16_t n_sets,
-                                          uint16_t delay_between_sets_ms,
+                                          uint16_t n_samples,
+                                          uint16_t delay_between_samples_ms,
                                           const std::vector<uint8_t> state) {
   const char* function_name = "MeasureImpedance()";
   LogSeparator();
   LogMessage("send command", function_name);
   // if we get this far, everything is ok
   Serialize(&sampling_time_ms,sizeof(sampling_time_ms));
-  Serialize(&n_sets,sizeof(n_sets));
-  Serialize(&delay_between_sets_ms,sizeof(delay_between_sets_ms));
+  Serialize(&n_samples,sizeof(n_samples));
+  Serialize(&delay_between_samples_ms,sizeof(delay_between_samples_ms));
   std::ostringstream msg;
   msg << "MeasureImpedance,";
 
   SerializeChannelState(state, msg);
 
   msg << endl << CSV_INDENT_ << "sampling_time_ms," << (int)sampling_time_ms
-      << "n_sets," << (int)n_sets << endl << CSV_INDENT_
-      << "delay_between_sets_ms," << (int)delay_between_sets_ms << endl;
+      << "n_samples," << (int)n_samples << endl << CSV_INDENT_
+      << "delay_between_samples_ms," << (int)delay_between_samples_ms << endl;
   if(SendCommand(CMD_MEASURE_IMPEDANCE)==RETURN_OK) {
 /*
-      for(int j=0; j<n_sets; j++) {
+      for(int j=0; j<n_samples; j++) {
         msg << CSV_INDENT_ << "voltage_buffer_[" << i << "][" << j << "],";
         // calculate the DC bias
         double dc_bias = 0;
