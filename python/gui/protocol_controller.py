@@ -1,15 +1,14 @@
-import gtk
-import os
+import gtk, os
 import matplotlib.pyplot as plt
 from protocol import Protocol, FeedbackOptions
 from utility import is_int, is_float
 
 def check_textentry(textentry, prev_value, type):
     val = textentry.get_text()
-    if(type is float):
+    if val and type is float:
         if is_float(val):
             return float(val)
-    elif(type is int):
+    elif val and type is int:
         if is_int(val):
             return int(val)
     else:
