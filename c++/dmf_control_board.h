@@ -64,7 +64,7 @@ public:
   static const uint8_t CMD_DEBUG_MESSAGE =                  0xB1; //TODO
   static const uint8_t CMD_DEBUG_ON =                       0xB2; //TODO
   static const uint8_t CMD_SAMPLE_VOLTAGE =                 0xB3;
-  static const uint8_t CMD_MEASURE_IMPEDANCE =              0xB4; //TODO
+  static const uint8_t CMD_MEASURE_IMPEDANCE =              0xB4;
 
 
   //////////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ public:
                           uint16_t n_sets,
                           uint16_t delay_between_sets_ms,
                           const std::vector<uint8_t> state);
-  std::vector<uint16_t> MeasureImpedance(
+  std::vector<float> MeasureImpedance(
                           uint16_t sampling_time_ms,
                           uint16_t n_samples,
                           uint16_t delay_between_samples_ms,
@@ -212,7 +212,7 @@ private:
   std::string version_;
   std::vector<uint8_t> state_of_channels_;
   std::vector<uint16_t> voltage_buffer_;
-  std::vector<uint16_t> impedance_buffer_;
+  std::vector<float> impedance_buffer_;
   float sampling_rate_;
   float series_resistor_;
   std::string experiment_log_file_name_;

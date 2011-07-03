@@ -1,4 +1,4 @@
-import visa
+import visa, time
 
 class Agilent33220A():
     def __init__(self):
@@ -14,9 +14,11 @@ class Agilent33220A():
         return self.instrument.ask("*IDN?")
     def set_voltage(self, voltage):
         self.instrument.write("VOLT %f" % voltage)
+        time.sleep(.01) # need to allow ~10 ms for instrument to update
     def voltage(self):
         return float(self.instrument.ask("VOLT?"))
     def set_frequency(self, frequency):
         self.instrument.write("FREQ %f" % frequency)
+        time.sleep(.01) # need to allow ~10 ms for instrument to update
     def frequency(self):
         return float(self.instrument.ask("FREQ?"))

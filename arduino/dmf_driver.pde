@@ -10,21 +10,21 @@
 #include <RemoteObject.h>
 #include <Wire.h>
 #include <SPI.h>
-#include "dmf_controller.h"
+#include "dmf_control_board.h"
 
-DmfController dmf_controller;
+DmfControlBoard dmf_control_board;
 
 extern "C" {
   void PeakExceededWrapper() {
-    dmf_controller.PeakExceeded();
+    dmf_control_board.PeakExceeded();
   }
 }
 
 void setup() {
-  dmf_controller.begin();
-  Serial.print(dmf_controller.name());
+  dmf_control_board.begin();
+  Serial.print(dmf_control_board.name());
   Serial.print(" v");
-  Serial.println(dmf_controller.version());
+  Serial.println(dmf_control_board.version());
   Serial.print("ram="); Serial.println(ram_size(), DEC);
   Serial.print(".data="); Serial.println(data_size(), DEC);
   Serial.print(".bss="); Serial.println(bss_size(), DEC);
@@ -34,5 +34,5 @@ void setup() {
 }
 
 void loop() {
-  dmf_controller.Listen();
+  dmf_control_board.Listen();
 }

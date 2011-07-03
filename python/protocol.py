@@ -1,44 +1,12 @@
 from copy import deepcopy
+import pickle
 import numpy as np
 
-class FeedbackOptions():
-    def __init__(self, sampling_time_ms=None,
-                 n_samples=None,
-                 delay_between_samples_ms=None):
-        if sampling_time_ms:
-            self.sampling_time_ms = sampling_time_ms
-        else:
-            self.sampling_time_ms = 10
-        if n_samples:
-            self.n_samples = n_samples
-        else:
-            self.n_samples = 10
-        if delay_between_samples_ms:
-            self.delay_between_samples_ms = delay_between_samples_ms
-        else:
-            self.delay_between_samples_ms = 0
-             
-class Step():
-    def __init__(self, n_channels, time=None, voltage=None,
-                 frequency=None, feedback_options=None):
-        if time:
-            self.time = time
-        else:
-            self.time = 100
-        if voltage:
-            self.voltage = voltage
-        else:
-            self.voltage = 100
-        if frequency:
-            self.frequency = frequency
-        else:
-            self.frequency = 1e3
-        if feedback_options:
-            self.feedback_options = deepcopy(feedback_options)
-        else:
-            self.feedback_options = None
-        self.n_channels = n_channels
-        self.state_of_channels = np.zeros(n_channels)
+def load(filename):
+    f = open(filename, 'rb')
+    protocol = pickle.load(f)
+    f.close()
+    return protocol
 
 class Protocol():
     def __init__(self, n_channels=None):
@@ -51,6 +19,11 @@ class Protocol():
 
     def __len__(self):
         return len(self.steps)
+
+    def save(self, filename):
+        f = open(filename, 'wb')
+        pickle.dump(self, f, -1)
+        f.close()
 
     def set_state_of_channel(self, index, state):
         self.current_step().state_of_channels[index] = state
@@ -101,3 +74,42 @@ class Protocol():
         
     def run_step(self):
         pass
+    
+class FeedbackOptions():
+    def __init__(self, sampling_time_ms=None,
+                 n_samples=None,
+                 delay_between_samples_ms=None):
+        if sampling_time_ms:
+            self.sampling_time_ms = sampling_time_ms
+        else:
+            self.sampling_time_ms = 10
+        if n_samples:
+            self.n_samples = n_samples
+        else:
+            self.n_samples = 10
+        if delay_between_samples_ms:
+            self.delay_between_samples_ms = delay_between_samples_ms
+        else:
+            self.delay_between_samples_ms = 0
+             
+class Step():
+    def __init__(self, n_channels, time=None, voltage=None,
+                 frequency=None, feedback_options=None):
+        if time:
+            self.time = time
+        else:
+            self.time = 100
+        if voltage:
+            self.voltage = voltage
+        else:
+            self.voltage = 100
+        if frequency:
+            self.frequency = frequency
+        else:
+            self.frequency = 1e3
+        if feedback_options:
+            self.feedback_options = deepcopy(feedback_options)
+        else:
+            self.feedback_options = None
+        self.n_channels = n_channels
+        self.state_of_channels = np.zeros(n_channels)

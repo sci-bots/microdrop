@@ -23,6 +23,8 @@ class MainWindowController:
                 #TODO check protocol name/version
                 self.label_connection_status.set_text(app.control_board.name() +
                                                       " v" + app.control_board.version())
+                app.control_board.set_series_resistor(1,3)
+                app.control_board.set_series_resistor(0,0)
                 break
 
     def main(self):
@@ -43,4 +45,4 @@ class MainWindowController:
         
         # process all gtk events
         while gtk.events_pending():
-            gtk.main_iteration()        
+            gtk.main_iteration()

@@ -1,10 +1,10 @@
 TODO:
 
 Next:
+*update MAX_SAMPLES on arduino to be max bytes
 *save/load devices
 
 Later:
-*move program logic to model classes (e.g. run_step, save/load protocol should be in protocol class)
 *check_int/float should also enforce ranges
 *error boxes when communication w/ device fails
 *group steps

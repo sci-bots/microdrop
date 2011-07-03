@@ -1,6 +1,12 @@
 import time, os, pickle
-from utility import is_int, is_float
+from utility import is_int
 from matplotlib import pyplot as plt
+
+def load(filename):
+    f = open(filename,"rb")
+    log = pickle.load(f)
+    f.close()
+    return log
 
 class ExperimentLog():
     def __init__(self):
@@ -34,17 +40,16 @@ class ExperimentLog():
         data["time"] = time.time()
         self.data.append(data)
         
-    def write(self):
+    def save(self):
         log_path = self.get_path()
         output = open(os.path.join(log_path,"data"), 'wb')
         pickle.dump(self, output, -1)
         output.close()
 
+    def plot(self):
         # plot the impedance
-        impedance = []
         for i in self.data:
-            impedance.append(i["impedance"])
-        plt.plot(impedance)
+            plt.plot(i["impedance"][0::2])
         plt.show()
 
     def clear(self):

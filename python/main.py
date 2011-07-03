@@ -1,10 +1,10 @@
-import os, gtk, time, pickle
+import os, gtk, time
 from hardware.dmf_control_board import DmfControlBoard
 from hardware.agilent_33220a import Agilent33220A
 from gui.main_window_controller import MainWindowController
 from gui.device_controller import DeviceController
 from gui.protocol_controller import ProtocolController
-from protocol import Protocol
+import protocol
 from experiment_log import ExperimentLog
 
 class App:
@@ -14,9 +14,9 @@ class App:
         
         self.control_board = DmfControlBoard()
         #self.control_board.set_debug(True)
-        self.func_gen = None
         #self.func_gen = Agilent33220A()
-        self.protocol = Protocol()
+        self.func_gen = None
+        self.protocol = protocol.Protocol()
         self.experiment_log = ExperimentLog()
         self.builder = gtk.Builder()
 
@@ -27,6 +27,9 @@ class App:
         self.builder.connect_signals(signals)
         self.main_window_controller.main()
 
+    def load_protocol(self, filename):
+        self.protocol = protocol.load(filename)
+
     def run_protocol(self):
         self.is_running = True
         self.run_step()
@@ -35,12 +38,16 @@ class App:
         self.is_running = False
         
     def run_step(self):
+        self.main_window_controller.update()
         if self.control_board.connected():
             feedback_options = \
                 self.protocol.current_step().feedback_options
             state = self.protocol.current_step().state_of_channels
-        
             if feedback_options: # run this step with feedback
+                #ad_channel = [1]
+                #impedance = self.control_board.SampleVoltage(ad_channel,
+                #            feedback_options.n_samples, 1, 0, state)
+                
                 impedance = self.control_board.MeasureImpedance(
                            feedback_options.sampling_time_ms,
                            feedback_options.n_samples,
@@ -61,23 +68,14 @@ class App:
             self.is_running = False
             # save the experiment protocol and log
             log_path = self.experiment_log.get_path()
-            self.save_protocol(os.path.join(log_path,"protocol"))
-            self.experiment_log.write()
+            self.protocol.save(os.path.join(log_path,"protocol"))
+            self.experiment_log.save()
+            self.experiment_log.plot()
             self.experiment_log.clear()
+            self.main_window_controller.update()
 
-        self.main_window_controller.update()
         if self.is_running:
             self.run_step()
-        
-    def save_protocol(self, filename):
-        output = open(filename, 'wb')
-        pickle.dump(self.protocol, output, -1)
-        output.close()
-    
-    def load_protocol(self, filename):
-        f = open(filename, 'rb')
-        self.protocol = pickle.load(f)
-        f.close()
         
 if __name__ == '__main__':
     app = App()

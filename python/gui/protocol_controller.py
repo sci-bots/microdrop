@@ -1,6 +1,6 @@
-import gtk, os
+import gtk, os, math
 import matplotlib.pyplot as plt
-from protocol import Protocol, FeedbackOptions
+import protocol
 from utility import is_int, is_float
 
 def check_textentry(textentry, prev_value, type):
@@ -71,7 +71,7 @@ class ProtocolController():
         self.label_step_number = builder.get_object("label_step_number")
         self.menu_save_protocol = builder.get_object("menu_save_protocol")
         self.menu_save_protocol_as = builder.get_object("menu_save_protocol_as")
-        self.menu_load_protocol = builder.get_object("menu_load_protocol")
+        self.menu__protocol = builder.get_object("menu__protocol")
         self.menu_add_frequency_sweep = builder.get_object("menu_add_frequency_sweep")
         self.menu_add_electrode_sweep = builder.get_object("menu_add_electrode_sweep")
         self.textentry_voltage = builder.get_object("textentry_voltage")
@@ -136,12 +136,12 @@ class ProtocolController():
 
     def on_new_protocol(self, widget, data=None):
         self.filename = None
-        self.app.protocol = Protocol()
+        self.app.protocol = protocol.Protocol()
         self.app.main_window_controller.update()
 
     def on_save_protocol(self, widget, data=None):
         if self.filename:
-            self.app._protocol(self.filename)
+            self.app.protocol.save(self.filename)
         else:
             self.on_save_protocol_as(widget, data)
 
@@ -158,7 +158,7 @@ class ProtocolController():
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             self.filename = dialog.get_filename()
-            self.app._protocol(self.filename)
+            self.app.protocol.save(self.filename)
         dialog.destroy()
 
     def on_load_protocol(self, widget, data=None):
@@ -267,7 +267,7 @@ class ProtocolController():
         if self.app.control_board.connected() and \
             (self.app.realtime_mode or self.app.is_running):
             if self.app.func_gen:
-                self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage)
+                self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage*math.sqrt(2)/200)
                 self.app.func_gen.set_frequency(self.app.protocol.current_step().frequency)
             else:
                 self.app.control_board.set_actuation_voltage(float(self.app.protocol.current_step().voltage))
