@@ -228,7 +228,7 @@ class ProtocolController():
         if self.checkbutton_feedback.get_active():
             if self.app.protocol.current_step().feedback_options is None:
                 self.app.protocol.current_step().feedback_options = \
-                    FeedbackOptions()
+                    protocol.FeedbackOptions()
             self.button_feedback_options.set_sensitive(True)
             self.textentry_step_time.set_sensitive(False)
         else:
