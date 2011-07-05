@@ -34,30 +34,32 @@ public:
   //
   // 0x80 -> CMD_GET_PROTOCOL_NAME
   // 0x81 -> CMD_GET_PROTOCOL_VERSION
-  // 0x82 -> CMD_ENABLE_CRC
+  // 0x82 -> CMD_GET_DEVICE_NAME
+  // 0x83 -> CMD_GET_MANUFACTURER
+  // 0x84 -> CMD_GET_SOFTWARE_VERSION
+  // 0x85 -> CMD_GET_HARDWARE_VERSION
+  // 0x86 -> CMD_GET_URL
   //
   //////////////////////////////////////////////////////////////////////////////
 
   // Accessors and mutators
-  static const uint8_t CMD_GET_DEVICE_NAME =                0x83;
-  static const uint8_t CMD_GET_DEVICE_VERSION =             0x84;
-  static const uint8_t CMD_GET_NUMBER_OF_CHANNELS =         0x85;
-  static const uint8_t CMD_GET_STATE_OF_ALL_CHANNELS =      0x86;
-  static const uint8_t CMD_SET_STATE_OF_ALL_CHANNELS =      0x87;
-  static const uint8_t CMD_GET_STATE_OF_CHANNEL =           0x88;
-  static const uint8_t CMD_SET_STATE_OF_CHANNEL =           0x89;
-  static const uint8_t CMD_GET_ACTUATION_WAVEFORM =         0x8A; //TODO
-  static const uint8_t CMD_SET_ACTUATION_WAVEFORM =         0x8B; //TODO
-  static const uint8_t CMD_GET_ACTUATION_VOLTAGE =          0x8C; //TODO
-  static const uint8_t CMD_SET_ACTUATION_VOLTAGE =          0x8D; //TODO
-  static const uint8_t CMD_GET_ACTUATION_FREQUENCY =        0x8E; //TODO
-  static const uint8_t CMD_SET_ACTUATION_FREQUENCY =        0x8F; //TODO
-  static const uint8_t CMD_GET_SAMPLING_RATE =              0x90;
-  static const uint8_t CMD_SET_SAMPLING_RATE =              0x91;
-  static const uint8_t CMD_GET_SERIES_RESISTOR =            0x92;
-  static const uint8_t CMD_SET_SERIES_RESISTOR =            0x93;
-  static const uint8_t CMD_GET_POT =                        0x94;
-  static const uint8_t CMD_SET_POT =                        0x95;
+  static const uint8_t CMD_GET_NUMBER_OF_CHANNELS =         0x87;
+  static const uint8_t CMD_GET_STATE_OF_ALL_CHANNELS =      0x88;
+  static const uint8_t CMD_SET_STATE_OF_ALL_CHANNELS =      0x89;
+  static const uint8_t CMD_GET_STATE_OF_CHANNEL =           0x8A;
+  static const uint8_t CMD_SET_STATE_OF_CHANNEL =           0x8B;
+  static const uint8_t CMD_GET_ACTUATION_WAVEFORM =         0x8C; //TODO
+  static const uint8_t CMD_SET_ACTUATION_WAVEFORM =         0x8D; //TODO
+  static const uint8_t CMD_GET_ACTUATION_VOLTAGE =          0x8E;
+  static const uint8_t CMD_SET_ACTUATION_VOLTAGE =          0x8F;
+  static const uint8_t CMD_GET_ACTUATION_FREQUENCY =        0x90;
+  static const uint8_t CMD_SET_ACTUATION_FREQUENCY =        0x91;
+  static const uint8_t CMD_GET_SAMPLING_RATE =              0x92;
+  static const uint8_t CMD_SET_SAMPLING_RATE =              0x93;
+  static const uint8_t CMD_GET_SERIES_RESISTOR =            0x94;
+  static const uint8_t CMD_SET_SERIES_RESISTOR =            0x95;
+  static const uint8_t CMD_GET_POT =                        0x96;
+  static const uint8_t CMD_SET_POT =                        0x97;
 
   // Other commands
   static const uint8_t CMD_SYSTEM_RESET =                   0xB0; //TODO
@@ -82,11 +84,15 @@ public:
 
 // In our case, the PC is the only one sending commands
 #ifndef AVR
-  // Remote accessors (return code is from reply packet)
+  // Remote accessors
   virtual std::string protocol_name();
   virtual std::string protocol_version();
-  std::string name();
-  std::string version();
+  virtual std::string name();
+  virtual std::string manufacturer();
+  virtual std::string software_version();
+  virtual std::string hardware_version();
+  virtual std::string url();
+
   uint16_t number_of_channels();
   std::vector<uint8_t> state_of_all_channels();
   uint8_t state_of_channel(const uint16_t channel);
@@ -95,8 +101,6 @@ public:
 
   // Remote mutators (return code is from reply packet)
   uint8_t set_state_of_channel(const uint16_t channel, const uint8_t state);
-//  uint8_t set_state_of_channels(std::vector<uint16_t> channels,
-//                                  std::vector<uint8_t> states);
   uint8_t set_state_of_all_channels(const std::vector<uint8_t> state);
   uint8_t set_actuation_voltage(const float v_rms);
   uint8_t set_actuation_frequency(const float freq_hz);
@@ -127,7 +131,10 @@ public:
   const char* protocol_name() { return PROTOCOL_NAME_; }
   const char* protocol_version() { return PROTOCOL_VERSION_; }
   const char* name() { return NAME_; } //device name
-  const char* version() { return VERSION_; }// device version
+  const char* manufacturer() { return MANUFACTURER_; }
+  const char* software_version() { return SOFTWARE_VERSION_; }
+  const char* hardware_version() { return HARDWARE_VERSION_; }
+  const char* url() { return URL_; }
 #endif
 
 private:
@@ -135,7 +142,10 @@ private:
   static const char PROTOCOL_NAME_[];
   static const char PROTOCOL_VERSION_[];
   static const char NAME_[];
-  static const char VERSION_[];
+  static const char MANUFACTURER_[];
+  static const char SOFTWARE_VERSION_[];
+  static const char HARDWARE_VERSION_[];
+  static const char URL_[];
 #ifdef AVR
   static const uint8_t AD5204_SLAVE_SELECT_PIN_ = 53; // digital pot
 
@@ -209,7 +219,10 @@ private:
   std::string protocol_name_;
   std::string protocol_version_;
   std::string name_;
-  std::string version_;
+  std::string manufacturer_;
+  std::string software_version_;
+  std::string hardware_version_;
+  std::string url_;
   std::vector<uint8_t> state_of_channels_;
   std::vector<uint16_t> voltage_buffer_;
   std::vector<float> impedance_buffer_;

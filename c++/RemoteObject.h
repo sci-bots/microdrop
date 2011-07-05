@@ -62,6 +62,11 @@ public:
   // reserved commands
   static const uint8_t CMD_GET_PROTOCOL_NAME =    0x80;
   static const uint8_t CMD_GET_PROTOCOL_VERSION = 0x81;
+  static const uint8_t CMD_GET_DEVICE_NAME =      0x82;
+  static const uint8_t CMD_GET_MANUFACTURER =     0x83;
+  static const uint8_t CMD_GET_HARDWARE_VERSION = 0x84;
+  static const uint8_t CMD_GET_SOFTWARE_VERSION = 0x85;
+  static const uint8_t CMD_GET_URL =              0x86;
 
   // reserved return codes
   static const uint8_t RETURN_OK =                0x00;
@@ -87,13 +92,24 @@ public:
 
 #ifdef AVR
   void Listen();
-  // these methods force the derived class to define a protocol name and version
+  // these methods force the derived class to define functions that
+  // return the following attributes
   virtual const char* protocol_name() = 0;
   virtual const char* protocol_version() = 0;
+  virtual const char* name() = 0;
+  virtual const char* manufacturer() = 0;
+  virtual const char* software_version() = 0;
+  virtual const char* hardware_version() = 0;
+  virtual const char* url() = 0;
 #else
   // these methods query the remote device for protocol name/version
   virtual std::string protocol_name() = 0;
   virtual std::string protocol_version() = 0;
+  virtual std::string name() = 0;
+  virtual std::string manufacturer() = 0;
+  virtual std::string software_version() = 0;
+  virtual std::string hardware_version() = 0;
+  virtual std::string url() = 0;
 
   bool connected() { return Serial.isOpen(); }  
   uint8_t Connect(const char* port);

@@ -23,7 +23,10 @@ const float DmfControlBoard::SAMPLING_RATES_[] = { 8908, 16611, 29253, 47458,
 const char DmfControlBoard::PROTOCOL_NAME_[] = "DMF Control Protocol";
 const char DmfControlBoard::PROTOCOL_VERSION_[] = "0.1";
 const char DmfControlBoard::NAME_[] = "Arduino DMF Controller";
-const char DmfControlBoard::VERSION_[] = "1.1";
+const char DmfControlBoard::MANUFACTURER_[] = "Wheeler Microfluidics Lab";
+const char DmfControlBoard::SOFTWARE_VERSION_[] = "0.1";
+const char DmfControlBoard::HARDWARE_VERSION_[] = "1.1";
+const char DmfControlBoard::URL_[] = "http://microfluidics.utoronto.ca";
 #else
 const char DmfControlBoard::CSV_INDENT_[] = ",,,,,,,,";
 #endif
@@ -73,9 +76,33 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
         return_code = RETURN_BAD_PACKET_SIZE;
       }
       break;
-    case CMD_GET_DEVICE_VERSION:
+    case CMD_GET_MANUFACTURER:
       if(payload_length()==0) {
-        Serialize(VERSION_,sizeof(VERSION_));
+        Serialize(MANUFACTURER_,sizeof(MANUFACTURER_));
+        return_code = RETURN_OK;
+      } else {
+        return_code = RETURN_BAD_PACKET_SIZE;
+      }
+      break;
+    case CMD_GET_SOFTWARE_VERSION:
+      if(payload_length()==0) {
+        Serialize(SOFTWARE_VERSION_,sizeof(SOFTWARE_VERSION_));
+        return_code = RETURN_OK;
+      } else {
+        return_code = RETURN_BAD_PACKET_SIZE;
+      }
+      break;
+    case CMD_GET_HARDWARE_VERSION:
+      if(payload_length()==0) {
+        Serialize(HARDWARE_VERSION_,sizeof(HARDWARE_VERSION_));
+        return_code = RETURN_OK;
+      } else {
+        return_code = RETURN_BAD_PACKET_SIZE;
+      }
+      break;
+    case CMD_GET_URL:
+      if(payload_length()==0) {
+        Serialize(URL_,sizeof(URL_));
         return_code = RETURN_OK;
       } else {
         return_code = RETURN_BAD_PACKET_SIZE;
@@ -416,12 +443,36 @@ void DmfControlBoard::ProcessReply(uint8_t cmd) {
                 name_.c_str());
         LogMessage(log_message_string_, function_name);
         break;
-      case CMD_GET_DEVICE_VERSION:
-        LogMessage("CMD_GET_DEVICE_VERSION", function_name);
-        version_ = ReadString();
+      case CMD_GET_MANUFACTURER:
+        LogMessage("CMD_GET_MANUFACTURER", function_name);
+        manufacturer_ = ReadString();
         sprintf(log_message_string_,
-                "version_=%s",
-                version_.c_str());
+                "manufacturer_=%s",
+                manufacturer_.c_str());
+        LogMessage(log_message_string_, function_name);
+        break;
+      case CMD_GET_SOFTWARE_VERSION:
+        LogMessage("CMD_GET_SOFTWARE_VERSION", function_name);
+        software_version_ = ReadString();
+        sprintf(log_message_string_,
+                "software_version_=%s",
+                software_version_.c_str());
+        LogMessage(log_message_string_, function_name);
+        break;
+      case CMD_GET_HARDWARE_VERSION:
+        LogMessage("CMD_GET_HARDWARE_VERSION", function_name);
+        hardware_version_ = ReadString();
+        sprintf(log_message_string_,
+                "hardware_version_=%s",
+                hardware_version_.c_str());
+        LogMessage(log_message_string_, function_name);
+        break;
+      case CMD_GET_URL:
+        LogMessage("CMD_GET_URL", function_name);
+        url_ = ReadString();
+        sprintf(log_message_string_,
+                "url_=%s",
+                url_.c_str());
         LogMessage(log_message_string_, function_name);
         break;
       case CMD_GET_NUMBER_OF_CHANNELS:
@@ -839,12 +890,42 @@ string DmfControlBoard::name() {
   return "";
 }
 
-string DmfControlBoard::version() {
-  const char* function_name = "version()";
+string DmfControlBoard::manufacturer() {
+  const char* function_name = "manufacturer()";
   LogSeparator();
   LogMessage("send command", function_name);
-  if(SendCommand(CMD_GET_DEVICE_VERSION)==RETURN_OK) {
-    return version_;
+  if(SendCommand(CMD_GET_MANUFACTURER)==RETURN_OK) {
+    return manufacturer_;
+  }
+  return "";
+}
+
+string DmfControlBoard::software_version() {
+  const char* function_name = "software_version()";
+  LogSeparator();
+  LogMessage("send command", function_name);
+  if(SendCommand(CMD_GET_SOFTWARE_VERSION)==RETURN_OK) {
+    return software_version_;
+  }
+  return "";
+}
+
+string DmfControlBoard::hardware_version() {
+  const char* function_name = "hardware_version()";
+  LogSeparator();
+  LogMessage("send command", function_name);
+  if(SendCommand(CMD_GET_HARDWARE_VERSION)==RETURN_OK) {
+    return hardware_version_;
+  }
+  return "";
+}
+
+string DmfControlBoard::url() {
+  const char* function_name = "url()";
+  LogSeparator();
+  LogMessage("send command", function_name);
+  if(SendCommand(CMD_GET_URL)==RETURN_OK) {
+    return url_;
   }
   return "";
 }
