@@ -1,7 +1,6 @@
 TODO:
 
 Next:
-*save a voltage sample for each series resistor
 *on arduino:
 **autorange series resistor
 **convert voltage to impedance

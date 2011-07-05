@@ -1,4 +1,4 @@
-import time, os, pickle
+import os, pickle
 from utility import is_int
 from matplotlib import pyplot as plt
 
@@ -37,14 +37,14 @@ class ExperimentLog():
         return log_path
         
     def add_data(self, data):
-        data["time"] = time.time()
         self.data.append(data)
         
     def save(self):
-        log_path = self.get_path()
-        output = open(os.path.join(log_path,"data"), 'wb')
-        pickle.dump(self, output, -1)
-        output.close()
+        if self.data:
+            log_path = self.get_path()
+            output = open(os.path.join(log_path,"data"), 'wb')
+            pickle.dump(self, output, -1)
+            output.close()
 
     def plot(self):
         # plot the impedance
@@ -54,5 +54,6 @@ class ExperimentLog():
 
     def clear(self):
         # reset the log data
-        self.experiment_id = None
-        self.data = []
+        if self.data:
+            self.experiment_id = None
+            self.data = []

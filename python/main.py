@@ -15,6 +15,7 @@ class App:
         self.control_board = DmfControlBoard()
         #self.control_board.set_debug(True)
         self.func_gen = Agilent33220A()
+        self.func_gen = None
         self.protocol = protocol.Protocol()
         self.experiment_log = ExperimentLog()
         self.builder = gtk.Builder()
@@ -43,17 +44,29 @@ class App:
                 self.protocol.current_step().feedback_options
             state = self.protocol.current_step().state_of_channels
             if feedback_options: # run this step with feedback
-                #ad_channel = [1]
-                #impedance = self.control_board.SampleVoltage(ad_channel,
-                #            feedback_options.n_samples, 1, 0, state)
+                ad_channel = [1]
                 
+                data = {"step":self.protocol.current_step_number,
+                        "time":time.time()}
+
+                # measure droplet impedance
+                app.control_board.set_series_resistor(ad_channel, 2)
                 impedance = self.control_board.MeasureImpedance(
                            feedback_options.sampling_time_ms,
                            feedback_options.n_samples,
                            feedback_options.delay_between_samples_ms,
                            state)
-                data = {"step":self.protocol.current_step_number,
-                        "impedance":impedance}
+                data["impedance"] = impedance
+                
+                # measure the voltage waveform for each series resistor
+                for i in range(0,4):
+                    app.control_board.set_series_resistor(ad_channel,i)
+                    voltage_waveform = self.control_board.SampleVoltage(
+                                ad_channel, 1000, ad_channel, 0, state)
+                    data["voltage waveform (SR=%d k)" %
+                         app.control_board.series_resistor(ad_channel)] = \
+                         voltage_waveform
+
                 self.experiment_log.add_data(data)
             else:   # run without feedback
                 self.control_board.set_state_of_all_channels(state)
