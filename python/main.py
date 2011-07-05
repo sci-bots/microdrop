@@ -14,8 +14,7 @@ class App:
         
         self.control_board = DmfControlBoard()
         #self.control_board.set_debug(True)
-        #self.func_gen = Agilent33220A()
-        self.func_gen = None
+        self.func_gen = Agilent33220A()
         self.protocol = protocol.Protocol()
         self.experiment_log = ExperimentLog()
         self.builder = gtk.Builder()

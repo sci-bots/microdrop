@@ -266,7 +266,7 @@ class ProtocolController():
         
         if self.app.control_board.connected() and \
             (self.app.realtime_mode or self.app.is_running):
-            if self.app.func_gen:
+            if self.app.func_gen.is_connected():
                 self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage*math.sqrt(2)/200)
                 self.app.func_gen.set_frequency(self.app.protocol.current_step().frequency)
             else:
