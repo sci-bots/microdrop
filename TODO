@@ -7,7 +7,6 @@ Next:
 **update MAX_SAMPLES to be max bytes
 
 Later:
-*update protocol to differentiate between HW/SW version
 *save/load devices
 *check_int/float should also enforce ranges
 *error boxes when communication w/ device fails
