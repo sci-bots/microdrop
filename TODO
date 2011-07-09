@@ -1,31 +1,57 @@
-TODO:
-
-Next:
-*on arduino:
-**autorange series resistor
-**convert voltage to impedance
-**update MAX_SAMPLES to be max bytes
-
-Later:
+0.1:
+*add *.svg filter on import svg filechooser
+*add about box
+*auto zoom device
 *save/load devices
+*guess channel numbers
+*break ProtocolController into Controller and View
+*experiment log should save info about software and
+ hardware versions
+
+0.2:
+*Arduino: autorange series resistor
+*Arduino: convert voltages to impedance
+*Arduino: update MAX_SAMPLES to be max bytes
+*extract droplet velocity
+*calibration functions
+*config file (current device, current protocol, dirs, etc.)
+
+0.3
+*Arduino: don't block on function calls (e.g. SampleVoltage
+ and MeasureImpedance).  Instead, have device notify
+ once the command has finished
+*Arduino: add commands to RemoteObject for AnalogRead/Write,
+ DigitalRead/Write, I2C, SPI (Replace SampleVoltageOB
+ with AnalogRead)
+
+0.4
+*Redesign protocol class to allow for arbitrary
+ step types (check with ResourceManager to dispatch
+ functions to the right object)
+*ResourceManager class to abstract the use of
+ different hardware
 *check_int/float should also enforce ranges
 *error boxes when communication w/ device fails
+*documentation
+
+0.5
 *group steps
 *list view for protocol
 *cut and paste steps
-*repeat for steps/groups
-*extract droplet velocity
-*enable selection of COM port
-*config file (current device, current protocol, dirs, etc.)
+*repeat for steps/groupsa
+*subprotocols (e.g. dispense) that can be assigned to the
+ right-click menu of an electrode
 
-Future:
-*make installer
+0.6
 *video capture
+
+0.7
 *refactor code into client/daemon
+
+1.0
+*make installer
 *auto update over internet
-*generate documentation
 *unit tests
-*check types in functions
 *build tests
 *online device database
 *store performance data in online repository

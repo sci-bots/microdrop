@@ -1,33 +1,45 @@
-import os, gtk, time
+import os, gtk, time, subprocess
 from hardware.dmf_control_board import DmfControlBoard
 from hardware.agilent_33220a import Agilent33220A
 from gui.main_window_controller import MainWindowController
-from gui.device_controller import DeviceController
+from gui.dmf_device_controller import DmfDeviceController
 from gui.protocol_controller import ProtocolController
-import protocol
 from experiment_log import ExperimentLog
+from protocol import Protocol, load as load_protocol
+from dmf_device import DmfDevice
 
 class App:
     def __init__(self):
+        # get the version number
+        try:
+            self.version = subprocess.Popen(['git','describe'], stdout=subprocess.PIPE).communicate[0].rstrip()
+        except:
+            self.version = "?"
+
         self.realtime_mode = False
         self.is_running = False
         
+        # models
         self.control_board = DmfControlBoard()
         #self.control_board.set_debug(True)
         self.func_gen = Agilent33220A()
-        self.protocol = protocol.Protocol()
+        self.protocol = Protocol()
         self.experiment_log = ExperimentLog()
-        self.builder = gtk.Builder()
+        self.dmf_device = DmfDevice()
 
+        self.builder = gtk.Builder()
         signals = {}
+
+        # controllers        
         self.main_window_controller = MainWindowController(self, self.builder, signals)
-        self.device_controller = DeviceController(self, self.builder, signals)
+        self.dmf_device_controller = DmfDeviceController(self, self.builder, signals)
         self.protocol_controller = ProtocolController(self, self.builder, signals)
+        
         self.builder.connect_signals(signals)
         self.main_window_controller.main()
 
     def load_protocol(self, filename):
-        self.protocol = protocol.load(filename)
+        self.protocol = load_protocol(filename)
 
     def run_protocol(self):
         self.is_running = True
@@ -62,8 +74,8 @@ class App:
                     self.control_board.set_series_resistor(ad_channel,i)
                     voltage_waveform = self.control_board.SampleVoltage(
                                 [ad_channel], 1000, ad_channel, 0, state)
-                    data["voltage waveform (SR=%d k)" %
-                         self.control_board.series_resistor(ad_channel)] = \
+                    data["voltage waveform (Resistor=%d kOhms)" %
+                         self.control_board.series_resistor(ad_channel)/1000.0] = \
                          voltage_waveform
 
                 self.experiment_log.add_data(data)

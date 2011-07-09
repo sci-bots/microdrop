@@ -40,7 +40,7 @@ class MainWindowController:
 
     def update(self):
         self.app.realtime_mode = self.checkbutton_realtime_mode.get_active()
-        self.app.device_controller.update()
+        self.app.dmf_device_controller.update()
         self.app.protocol_controller.update()
         self.label_experiment_id.set_text("Experiment: %d" % self.app.experiment_log.get_id())
         

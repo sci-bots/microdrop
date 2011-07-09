@@ -2,6 +2,11 @@
 <interface>
   <requires lib="gtk+" version="2.24"/>
   <!-- interface-naming-policy project-wide -->
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-open</property>
+  </object>
   <object class="GtkImage" id="image_go_back">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -102,6 +107,7 @@
                               <object class="GtkImageMenuItem" id="menu_new_protocol">
                                 <property name="label" translatable="yes">_New</property>
                                 <property name="visible">True</property>
+                                <property name="sensitive">False</property>
                                 <property name="can_focus">False</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
@@ -138,7 +144,7 @@
                             </child>
                             <child>
                               <object class="GtkImageMenuItem" id="menu_save_protocol_as">
-                                <property name="label" translatable="yes">Save _As</property>
+                                <property name="label" translatable="yes">Save _as</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="use_action_appearance">False</property>
@@ -164,7 +170,7 @@
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <child>
-                              <object class="GtkImageMenuItem" id="menu_load_device">
+                              <object class="GtkImageMenuItem" id="menu_load_dmf_device">
                                 <property name="label" translatable="yes">_Load</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -172,6 +178,19 @@
                                 <property name="use_underline">True</property>
                                 <property name="image">image_load_device</property>
                                 <property name="use_stock">False</property>
+                                <signal name="activate" handler="on_menu_load_dmf_device_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImageMenuItem" id="menu_import_from_svg_file">
+                                <property name="label" translatable="yes">_Import from svg file</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="use_underline">True</property>
+                                <property name="image">image1</property>
+                                <property name="use_stock">False</property>
+                                <signal name="activate" handler="on_menu_import_from_svg_file_activate" swapped="no"/>
                               </object>
                             </child>
                           </object>
@@ -201,15 +220,6 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menu_view">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
-                <property name="label" translatable="yes">_View</property>
-                <property name="use_underline">True</property>
-              </object>
-            </child>
-            <child>
               <object class="GtkMenuItem" id="menu_tools">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -228,16 +238,6 @@
                         <property name="label" translatable="yes">Add _Frequency Sweep</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_menu_add_frequency_sweep_activate" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="menu_add_electrode_sweep">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
-                        <property name="label" translatable="yes">Add _Electrode Sweep</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_menu_add_electrode_sweep_activate" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -281,15 +281,15 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkDrawingArea" id="device_view">
+              <object class="GtkDrawingArea" id="dmf_device_view">
                 <property name="width_request">500</property>
                 <property name="height_request">500</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="events">GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK</property>
-                <signal name="button-press-event" handler="on_device_view_button_press_event" swapped="no"/>
-                <signal name="expose-event" handler="on_device_view_expose_event" swapped="no"/>
-                <signal name="key-press-event" handler="on_device_view_key_press_event" swapped="no"/>
+                <signal name="button-press-event" handler="on_dmf_device_view_button_press_event" swapped="no"/>
+                <signal name="expose-event" handler="on_dmf_device_view_expose_event" swapped="no"/>
+                <signal name="key-press-event" handler="on_dmf_device_view_key_press_event" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>

@@ -338,55 +338,92 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
             // update the number of bytes written
             bytes_written(n_samples*2*sizeof(float));
 
-            //uint8_t original_A0_index = A0_series_resistor_index_;
-            //uint8_t original_A1_index = A0_series_resistor_index_;
-            // set the series resistors to their highest values
-            //SetSeriesResistor(0,
-            //   sizeof(A0_SERIES_RESISTORS_)/sizeof(float)-1);
-            //SetSeriesResistor(1,
-            //   sizeof(A1_SERIES_RESISTORS_)/sizeof(float)-1);
+            uint8_t original_A0_index = A0_series_resistor_index_;
+            uint8_t original_A1_index = A1_series_resistor_index_;
+            
+            // set the resistors to their highest values
+            SetSeriesResistor(0,
+               sizeof(A0_SERIES_RESISTORS_)/sizeof(float)-1);
+            SetSeriesResistor(1,
+               sizeof(A1_SERIES_RESISTORS_)/sizeof(float)-1);
 
             // sample the actuation voltage
             uint32_t t = millis();
             uint16_t hv_peak = 0;
             uint16_t hv = 0;
             while(millis()-t<sampling_time_ms) {
-                hv = analogRead(0);
-                if(hv>hv_peak) {
-                    hv_peak = hv;
-                }
+              hv = analogRead(0);
+
+              // if the ADC is saturated, use a smaller resistor
+              // and reset the peak
+              if(hv==1024) {
+                if(A0_series_resistor_index_>0) {
+                  SetSeriesResistor(0, \
+                    A0_series_resistor_index_-1);
+                    hv_peak = 0;
+                  } else {
+                    // we should never get here
+                    return_code = RETURN_GENERAL_ERROR;
+                    break;
+                  }
+              } else if(hv>hv_peak) {
+                hv_peak = hv;
+              }
             }
-            
-            float V_hv = (float)hv_peak*5.0/1024.0*
+
+            if(return_code==RETURN_OK) {
+              float V_hv = (float)hv_peak*5.0/1024.0*
                 10e6/A0_SERIES_RESISTORS_[A0_series_resistor_index_];
 
-            // update the channels (if they were included in the packet)
-            if(payload_length()==3*sizeof(uint16_t)
-               +NUMBER_OF_CHANNELS_*sizeof(uint8_t)){
-              ReadArray(state_of_channels_,
-                        NUMBER_OF_CHANNELS_*sizeof(uint8_t));
-              UpdateAllChannels();
-            }
+              // update the channels (if they were included in the packet)
+              if(payload_length()==3*sizeof(uint16_t)
+                  +NUMBER_OF_CHANNELS_*sizeof(uint8_t)){
+                ReadArray(state_of_channels_,
+                          NUMBER_OF_CHANNELS_*sizeof(uint8_t));
+                UpdateAllChannels();
+              }
 
-            // sample the feedback voltage
-            for(uint16_t i=0; i<n_samples; i++) {
-              uint16_t fb_peak = 0;
-              uint16_t fb = 0;
-              t = millis();
-              while(millis()-t<sampling_time_ms) {
-                fb = analogRead(1);
-                if(fb>fb_peak) {
-                    fb_peak = fb;
+              // sample the feedback voltage
+              for(uint16_t i=0; i<n_samples; i++) {
+                  uint16_t fb_peak = 0;
+                  uint16_t fb = 0;
+                t = millis();
+                while(millis()-t<sampling_time_ms) {
+                  fb = analogRead(1);
+
+                  // if the ADC is saturated, use a smaller resistor
+                  // and reset the peak
+                  if(fb==1024) {
+                    if(A1_series_resistor_index_>0) {
+                      SetSeriesResistor(1,
+                        A1_series_resistor_index_-1);
+                        fb_peak = 0;
+                    } else {
+                      // we should never get here
+                      return_code = RETURN_GENERAL_ERROR;
+                      break; // while loop
+                      break; // for loop
+                    }
+                  }
+
+                  float V_fb = (float)fb_peak/1024*5;
+                  float Z_device = A1_SERIES_RESISTORS_[A1_series_resistor_index_]* \
+                                   (V_hv/V_fb-1);
+
+                  impedance_buffer_[2*i] = V_fb;
+                  impedance_buffer_[2*i+1] = V_hv;
+
+                  t = millis();
+                  while(millis()-t<delay_between_samples_ms) {
+                  }
                 }
               }
-
-              impedance_buffer_[2*i] = (float)fb_peak/1024*5;
-              impedance_buffer_[2*i+1] = 0;
-              
-              t = millis();
-              while(millis()-t<delay_between_samples_ms) {
-              }
             }
+
+            // set the resistors back to their original states            
+            SetSeriesResistor(0, original_A0_index);
+            SetSeriesResistor(1, original_A1_index);
+
           } else {
             return_code = RETURN_BAD_PACKET_SIZE;
           }

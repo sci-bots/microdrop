@@ -71,7 +71,7 @@ class ProtocolController():
         self.label_step_number = builder.get_object("label_step_number")
         self.menu_save_protocol = builder.get_object("menu_save_protocol")
         self.menu_save_protocol_as = builder.get_object("menu_save_protocol_as")
-        self.menu__protocol = builder.get_object("menu__protocol")
+        self.menu_load_protocol = builder.get_object("menu_load_protocol")
         self.menu_add_frequency_sweep = builder.get_object("menu_add_frequency_sweep")
         self.menu_add_electrode_sweep = builder.get_object("menu_add_electrode_sweep")
         self.textentry_voltage = builder.get_object("textentry_voltage")
