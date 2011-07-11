@@ -198,8 +198,7 @@ class DmfDeviceController:
                                 else:
                                     print "error"
                             self.model.add_electrode_path(path)
-                            self.view.fit_device()
-
+                self.view.fit_device()
             except:
                 #TODO: error box
                 print "error"

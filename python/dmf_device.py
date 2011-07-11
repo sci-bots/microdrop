@@ -25,13 +25,13 @@ class DmfDevice():
         e = Electrode(path)
         self.electrodes[e.id] = e
         for electrode in self.electrodes.values():
-            if electrode.x_min<self.x_min:
+            if electrode.x_min < self.x_min:
                 self.x_min = electrode.x_min 
-            if electrode.x_max>self.x_max:
+            if electrode.x_max > self.x_max:
                 self.x_max = electrode.x_max 
-            if electrode.y_min<self.y_min:
+            if electrode.y_min < self.y_min:
                 self.y_min = electrode.y_min
-            if electrode.y_max>self.y_max:
+            if electrode.y_max > self.y_max:
                 self.y_max = electrode.y_max
         return e.id
 
@@ -70,13 +70,13 @@ class Electrode:
         self.y_max = 0
         for step in path:
             if step.has_key('x') and step.has_key('y'):
-                if float(step['x'])<self.x_min:
+                if float(step['x']) < self.x_min:
                     self.x_min = float(step['x'])
-                if float(step['x'])>self.x_max:
+                if float(step['x']) > self.x_max:
                     self.x_max = float(step['x'])
-                if float(step['y'])<self.y_min:
+                if float(step['y']) < self.y_min:
                     self.y_min = float(step['y'])
-                if float(step['y'])>self.y_max:
+                if float(step['y']) > self.y_max:
                     self.y_max = float(step['y'])
 
     def contains(self, x, y):

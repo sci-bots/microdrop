@@ -12,13 +12,22 @@ class DmfDeviceView:
         self.offset = (0,0)
         self.electrode_color = {}
 
-    def fit_device(self):
+    def fit_device(self, padding=None):
+        if padding is None:
+            padding = 10
         widget = self.widget.get_allocation()
         device = self.model.geometry()
-        self.offset = (-device[0], -device[1])
-        scale_x = widget[2]/device[2]
-        scale_y = widget[3]/device[3]
-        self.scale = min(scale_x, scale_y) 
+        scale_x = (widget[2]-2*padding)/device[2]
+        scale_y = (widget[3]-2*padding)/device[3]
+        self.scale = min(scale_x, scale_y)
+        if scale_x < scale_y: # center device vertically
+            self.offset = (-device[0]+padding/self.scale,
+                           -device[1]+padding/self.scale+ \
+                           ((widget[3]-2*padding)/self.scale-device[3])/2)
+        else:  # center device horizontally
+            self.offset = (-device[0]+padding/self.scale+ \
+                           ((widget[2]-2*padding)/self.scale-device[2])/2,
+                           -device[1]+padding/self.scale)
 
     # device view events
     def on_expose(self, widget, event):
