@@ -135,12 +135,16 @@ class DmfDeviceController:
         pass
         
     def on_import_from_svg_file(self, widget, data=None):
-        dialog = gtk.FileChooserDialog(title=None,
+        dialog = gtk.FileChooserDialog(title="Import device",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
                                                 gtk.RESPONSE_CANCEL,
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
+        filter = gtk.FileFilter()
+        filter.set_name("*.svg")
+        filter.add_pattern("*.svg")
+        dialog.add_filter(filter)  
         dialog.set_default_response(gtk.RESPONSE_OK)
         response = dialog.run()
 

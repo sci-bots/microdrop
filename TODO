@@ -1,5 +1,4 @@
 0.1:
-*add *.svg filter on import svg filechooser
 *fix about box (why does it move to the top left corner
  after closing and reopening?)
 *save/load devices
