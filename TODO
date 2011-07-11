@@ -1,18 +1,18 @@
 0.1:
 *add *.svg filter on import svg filechooser
-*add about box
-*auto zoom device
+*fix about box (why does it move to the top left corner
+ after closing and reopening?)
 *save/load devices
 *guess channel numbers
-*break ProtocolController into Controller and View
 *experiment log should save info about software and
  hardware versions
 
 0.2:
 *Arduino: autorange series resistor
 *Arduino: convert voltages to impedance
-*Arduino: update MAX_SAMPLES to be max bytes
 *extract droplet velocity
+*break ProtocolController into Controller and View
+*Arduino: update MAX_SAMPLES to be max bytes
 *calibration functions
 *config file (current device, current protocol, dirs, etc.)
 
@@ -28,8 +28,8 @@
 *Redesign protocol class to allow for arbitrary
  step types (check with ResourceManager to dispatch
  functions to the right object)
-*ResourceManager class to abstract the use of
- different hardware
+*PluginManager class to abstract the use of
+ different hardware, add custom functionality
 *check_int/float should also enforce ranges
 *error boxes when communication w/ device fails
 *documentation

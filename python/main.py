@@ -12,10 +12,10 @@ class App:
     def __init__(self):
         # get the version number
         try:
-            self.version = subprocess.Popen(['git','describe'], stdout=subprocess.PIPE).communicate[0].rstrip()
+            self.version = subprocess.Popen(['git','describe'],
+                           stdout=subprocess.PIPE).communicate()[0].rstrip()
         except:
             self.version = "?"
-
         self.realtime_mode = False
         self.is_running = False
         

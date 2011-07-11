@@ -12,6 +12,14 @@ class DmfDeviceView:
         self.offset = (0,0)
         self.electrode_color = {}
 
+    def fit_device(self):
+        widget = self.widget.get_allocation()
+        device = self.model.geometry()
+        self.offset = (-device[0], -device[1])
+        scale_x = widget[2]/device[2]
+        scale_y = widget[3]/device[3]
+        self.scale = min(scale_x, scale_y) 
+
     # device view events
     def on_expose(self, widget, event):
         x , y, width, height = event.area
@@ -27,8 +35,8 @@ class DmfDeviceView:
             if self.electrode_color.keys().count(id):
                 cr = self.pixmap.cairo_create()
                 x,y = self.offset
-                cr.translate(x,y)
                 cr.scale(self.scale, self.scale)
+                cr.translate(x,y)
                 self.draw_electrode(electrode, cr)
                 r, g, b = self.electrode_color[id]
                 cr.set_source_rgb(r, g, b)

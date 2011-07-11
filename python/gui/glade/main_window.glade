@@ -220,14 +220,14 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menu_tools">
+              <object class="GtkMenuItem" id="menu_tool">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Tools</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
-                  <object class="GtkMenu" id="menu2">
+                  <object class="GtkMenu" id="menu_tools">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
@@ -245,24 +245,25 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menu_help">
+              <object class="GtkMenuItem" id="menu_hel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Help</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
-                  <object class="GtkMenu" id="menu_about">
+                  <object class="GtkMenu" id="menu_help">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem10">
+                      <object class="GtkImageMenuItem" id="menu_about">
                         <property name="label">gtk-about</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_menu_about_activate" swapped="no"/>
                       </object>
                     </child>
                   </object>

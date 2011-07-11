@@ -5,15 +5,21 @@ from hardware.dmf_control_board import DmfControlBoard
 class MainWindowController:
     def __init__(self, app, builder, signals):
         self.app = app
+        
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "main_window.glade"))
+        self.builder = builder
         self.window = builder.get_object("window")
         self.label_connection_status = builder.get_object("label_connection_status")
         self.label_experiment_id = builder.get_object("label_experiment_id")
         self.checkbutton_realtime_mode = builder.get_object("checkbutton_realtime_mode")
+        builder.add_from_file(os.path.join("gui",
+                                           "glade",
+                                           "about_dialog.glade"))
 
         signals["on_menu_quit_activate"] = self.on_destroy
+        signals["on_menu_about_activate"] = self.on_about
         signals["on_window_destroy"] = self.on_destroy
         signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
@@ -34,6 +40,12 @@ class MainWindowController:
 
     def on_destroy(self, widget, data=None):
         gtk.main_quit()
+
+    def on_about(self, widget, data=None):
+        dialog = self.builder.get_object("about_dialog")
+        dialog.set_version(self.app.version)
+        dialog.run()
+        dialog.hide()
 
     def on_realtime_mode_toggled(self, widget, data=None):
         self.update()

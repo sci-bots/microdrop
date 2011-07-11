@@ -102,11 +102,13 @@ class DmfDeviceController:
         self.model.connect(k+3, k+1)
         self.model.connect(k+4, k+2)
         self.model.connect(k+5, k+2)
+        self.view.fit_device()
 
     def on_button_press(self, widget, event):
         self.view.widget.grab_focus()
         for electrode in self.model.electrodes.values():
-            if electrode.contains(event.x/self.view.scale, event.y/self.view.scale):
+            if electrode.contains(event.x/self.view.scale-self.view.offset[0],
+                                  event.y/self.view.scale-self.view.offset[1]):
                 self.last_electrode_clicked = electrode
                 if event.button == 1:
                     state = self.app.protocol.state_of_all_channels()
@@ -196,6 +198,7 @@ class DmfDeviceController:
                                 else:
                                     print "error"
                             self.model.add_electrode_path(path)
+                            self.view.fit_device()
 
             except:
                 #TODO: error box

@@ -3,14 +3,36 @@ import numpy as np
 class DmfDevice():
     def __init__(self):
         self.electrodes = {}
+        self.x_min = np.Inf
+        self.x_max = 0
+        self.y_min = np.Inf
+        self.y_max = 0
+
+    def geometry(self):
+        return (self.x_min, self.y_min,
+                self.x_max-self.x_min,
+                self.y_max-self.y_min) 
 
     def clear(self):
         self.electrodes = {}
+        self.x_min = np.Inf
+        self.x_max = 0
+        self.y_min = np.Inf
+        self.y_max = 0
         Electrode.next_id = 0
-    
+
     def add_electrode_path(self, path):
         e = Electrode(path)
         self.electrodes[e.id] = e
+        for electrode in self.electrodes.values():
+            if electrode.x_min<self.x_min:
+                self.x_min = electrode.x_min 
+            if electrode.x_max>self.x_max:
+                self.x_max = electrode.x_max 
+            if electrode.y_min<self.y_min:
+                self.y_min = electrode.y_min
+            if electrode.y_max>self.y_max:
+                self.y_max = electrode.y_max
         return e.id
 
     def add_electrode_rect(self, x, y, width, height=None):
@@ -29,7 +51,7 @@ class DmfDevice():
             pass
         else:
             self.electrodes[id].channels.append(channel)
-
+            
     def disconnect(self, id, channel):
         if self.electrodes[id].channels.count(channel):
             self.electrodes[id].channels.remove(channel)
