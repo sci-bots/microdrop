@@ -1,3 +1,22 @@
+"""
+Copyright 2011 Ryan Fobel
+
+This file is part of Microdrop.
+
+Microdrop is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Microdrop is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import os, pickle
 from utility import is_int
 from matplotlib import pyplot as plt
@@ -9,17 +28,15 @@ def load(filename):
     return log
 
 class ExperimentLog():
-    def __init__(self):
-        self.directory = "logs"
+    def __init__(self, directory=None):
+        self.directory = directory
         self.experiment_id = None
         self.data = []
 
-    def set_dir(self, dir):
-        self.directory = dir
-        self.experiment_id = None
-
     def get_id(self):
-        if self.experiment_id is None:
+        if self.directory is None:
+            raise Exception("No device directory set.")
+        elif self.experiment_id is None:
             if(os.path.isdir(self.directory)==False):
                 os.mkdir(self.directory)
             logs = os.listdir(self.directory)
@@ -30,7 +47,8 @@ class ExperimentLog():
                         self.experiment_id = int(i) + 1
         return self.experiment_id 
 
-    def get_path(self):
+    def get_log_path(self):
+        self.experiment_id = None
         log_path = os.path.join(self.directory,str(self.get_id()))
         if(os.path.isdir(log_path)==False):
             os.mkdir(log_path)
@@ -41,7 +59,7 @@ class ExperimentLog():
         
     def save(self):
         if self.data:
-            log_path = self.get_path()
+            log_path = self.get_log_path()
             output = open(os.path.join(log_path,"data"), 'wb')
             pickle.dump(self, output, -1)
             output.close()
@@ -54,6 +72,5 @@ class ExperimentLog():
 
     def clear(self):
         # reset the log data
-        if self.data:
-            self.experiment_id = None
-            self.data = []
+        self.experiment_id = None
+        self.data = []

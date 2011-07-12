@@ -1,28 +1,48 @@
+"""
+Copyright 2011 Ryan Fobel
+
+This file is part of Microdrop.
+
+Microdrop is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Microdrop is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 from copy import deepcopy
-import pickle
+import cPickle
 import numpy as np
 
 def load(filename):
     f = open(filename, 'rb')
-    protocol = pickle.load(f)
+    protocol = cPickle.load(f)
     f.close()
     return protocol
 
 class Protocol():
-    def __init__(self, n_channels=None):
+    def __init__(self, name=None, n_channels=None):
         if n_channels:
             self.n_channels = n_channels
         else:
             self.n_channels = 40
         self.current_step_number = 0
         self.steps = [Step(self.n_channels)]
+        self.name = None
 
     def __len__(self):
         return len(self.steps)
 
     def save(self, filename):
         f = open(filename, 'wb')
-        pickle.dump(self, f, -1)
+        cPickle.dump(self, f, -1)
         f.close()
 
     def set_state_of_channel(self, index, state):

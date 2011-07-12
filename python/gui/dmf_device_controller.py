@@ -1,8 +1,30 @@
+"""
+Copyright 2011 Ryan Fobel
+
+This file is part of Microdrop.
+
+Microdrop is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Microdrop is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import os, gtk
 import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 from dmf_device_view import DmfDeviceView
+from dmf_device import DmfDevice, load as load_dmf_device
+from protocol import Protocol
+from experiment_log import ExperimentLog
 
 class EditElectrodeDialog:
     def __init__(self, electrode):
@@ -44,8 +66,7 @@ class DmfDeviceController:
                                            "glade",
                                            "right_click_popup.glade"))
         self.view = DmfDeviceView(builder.get_object("dmf_device_view"),
-                                  self.app.dmf_device)
-        self.model = self.app.dmf_device
+                                  self.app)
         self.popup = builder.get_object("popup")
         self.last_electrode_clicked = None
 
@@ -53,60 +74,17 @@ class DmfDeviceController:
         signals["on_dmf_device_view_key_press_event"] = self.on_key_press
         signals["on_dmf_device_view_expose_event"] = self.view.on_expose
         signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
-        signals["on_menu_import_from_svg_file_activate"] = \
-                self.on_import_from_svg_file
+        signals["on_menu_import_dmf_device_activate"] = \
+                self.on_import_dmf_device
+        signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device 
         signals["on_menu_edit_electrode_activate"] = self.on_edit_electrode
-
-        self.model.add_electrode_rect(24,16,1.9) #32
-        self.model.add_electrode_rect(24,14,1.9) # 31
-        self.model.add_electrode_rect(24,12,1.9) # 30
-        self.model.add_electrode_rect(22,6,5.9) # 29
-        self.model.add_electrode_rect(22,0,5.9) # 28
-        self.model.add_electrode_rect(22,16,1.9) # 27
-        self.model.add_electrode_rect(20,16,1.9) # 26
-        self.model.add_electrode_rect(6,0,5.9) # 25
-        self.model.add_electrode_rect(16,9,1.9,0.9) # 24
-        self.model.add_electrode_rect(16,10,1.9,0.9) # 23
-        self.model.add_electrode_rect(16,11,1.9,0.9) # 22
-        self.model.add_electrode_rect(16,12,1.9,0.9) # 21
-        self.model.add_electrode_rect(16,13,1.9,0.9) # 20
-        self.model.add_electrode_rect(6,6,5.9) # 19
-        self.model.add_electrode_rect(8,12,1.9) # 18
-        self.model.add_electrode_rect(8,14,1.9) # 17
-        self.model.add_electrode_rect(12,16,1.9) # 16
-        self.model.add_electrode_rect(10,16,1.9) # 15
-        self.model.add_electrode_rect(8,16,1.9) # 14
-        self.model.add_electrode_rect(14,16,1.9) # 13
-        self.model.add_electrode_rect(16,16,1.9) # 12
-        self.model.add_electrode_rect(16,14,1.9) # 11
-        self.model.add_electrode_rect(18,16,1.9) # 10
-        self.model.add_electrode_rect(16,18,1.9) # 9
-        self.model.add_electrode_rect(16,20,1.9) # 8
-        self.model.add_electrode_rect(16,22,1.9) # 7
-        self.model.add_electrode_rect(14.5,24.25,1.4) # 6
-        self.model.add_electrode_rect(16,24,1.9) # 5
-        self.model.add_electrode_rect(18,24.25,1.4) # 4
-        self.model.add_electrode_rect(13,24.25,1.4) # 3
-        self.model.add_electrode_rect(19.5,24.25,1.4) # 3
-        self.model.add_electrode_rect(21,22,5.9) # 2
-        self.model.add_electrode_rect(7,22,5.9) # 2
-        self.model.add_electrode_rect(1,22,5.9) # 1
-        self.model.add_electrode_rect(27,22,5.9) # 1
-
-        k = 29
-        for i in range(0, k):
-            self.model.connect(i,i)
-        self.model.connect(k, k)
-        self.model.connect(k+1, k)
-        self.model.connect(k+2, k+1)
-        self.model.connect(k+3, k+1)
-        self.model.connect(k+4, k+2)
-        self.model.connect(k+5, k+2)
-        self.view.fit_device()
+        
+        if self.app.dmf_device.name:
+            self.view.fit_device()
 
     def on_button_press(self, widget, event):
         self.view.widget.grab_focus()
-        for electrode in self.model.electrodes.values():
+        for electrode in self.app.dmf_device.electrodes.values():
             if electrode.contains(event.x/self.view.scale-self.view.offset[0],
                                   event.y/self.view.scale-self.view.offset[1]):
                 self.last_electrode_clicked = electrode
@@ -132,9 +110,29 @@ class DmfDeviceController:
         pass
     
     def on_load_dmf_device(self, widget, data=None):
-        pass
+        dialog = gtk.FileChooserDialog(title="Load device",
+                                       action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                       buttons=(gtk.STOCK_CANCEL,
+                                                gtk.RESPONSE_CANCEL,
+                                                gtk.STOCK_OPEN,
+                                                gtk.RESPONSE_OK))
+        dialog.set_default_response(gtk.RESPONSE_OK)
+        dialog.set_current_folder("devices")
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            self.filename = dialog.get_filename()
+            self.app.dmf_device = load_dmf_device(self.filename)
+            device_path = None
+            if self.app.dmf_device.name:
+                device_path = os.path.join(self.app.config.dmf_device_directory,
+                                           self.app.dmf_device.name, "logs")
+            self.app.experiment_log = ExperimentLog(device_path)
+            self.app.protocol = Protocol()
+            self.view.fit_device()
+        dialog.destroy()
+        self.app.main_window_controller.update()
         
-    def on_import_from_svg_file(self, widget, data=None):
+    def on_import_dmf_device(self, widget, data=None):
         dialog = gtk.FileChooserDialog(title="Import device",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
@@ -168,9 +166,10 @@ class DmfDeviceController:
             
             try:
                 tree = et.parse(filename)
-                self.model.clear()
+                self.app.dmf_device = DmfDevice()
+                self.app.protocol = Protocol()
 
-                ns = "http://www.w3.org/2000/svg" #The XML namespace.
+                ns = "http://www.w3.org/2000/svg" # The XML namespace.
                 for group in tree.getiterator('{%s}g' % ns):
                     for e in group.getiterator('{%s}path' % ns):
                         is_closed = False
@@ -201,7 +200,7 @@ class DmfDeviceController:
                                     path.append({'command':step[0]})
                                 else:
                                     print "error"
-                            self.model.add_electrode_path(path)
+                            self.app.dmf_device.add_electrode_path(path)
                 self.view.fit_device()
             except:
                 #TODO: error box
@@ -209,6 +208,9 @@ class DmfDeviceController:
                         
         dialog.destroy()
         self.app.main_window_controller.update()
+
+    def on_save_dmf_device(self, widget, data=None):
+        self.app.config_controller.save_dmf_device()
         
     def on_edit_electrode(self, widget, data=None):
         EditElectrodeDialog(self.last_electrode_clicked).run()
@@ -216,8 +218,8 @@ class DmfDeviceController:
     
     def update(self):
         state_of_all_channels = self.app.protocol.state_of_all_channels()
-        for id, electrode in self.model.electrodes.iteritems():
-            channels = self.model.electrodes[id].channels
+        for id, electrode in self.app.dmf_device.electrodes.iteritems():
+            channels = self.app.dmf_device.electrodes[id].channels
             if channels:
                 # get the state(s) of the channel(s) connected to this electrode
                 states = state_of_all_channels[channels]

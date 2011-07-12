@@ -7,10 +7,8 @@
     <property name="border_width">5</property>
     <property name="type_hint">dialog</property>
     <property name="program_name">μDrop</property>
-    <property name="copyright" translatable="yes">Copyright Ryan Fobel, 2011
+    <property name="copyright" translatable="yes">Copyright 2011 Ryan Fobel
 Wheeler Microfluidics Lab</property>
-    <property name="website">http://microfluidics.utoronto.ca</property>
-    <property name="authors">Ryan Fobel</property>
     <child internal-child="vbox">
       <object class="GtkVBox" id="dialog-vbox1">
         <property name="visible">True</property>

@@ -1,12 +1,31 @@
+"""
+Copyright 2011 Ryan Fobel
+
+This file is part of Microdrop.
+
+Microdrop is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Microdrop is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import os, gtk, time, subprocess
 from hardware.dmf_control_board import DmfControlBoard
 from hardware.agilent_33220a import Agilent33220A
 from gui.main_window_controller import MainWindowController
 from gui.dmf_device_controller import DmfDeviceController
 from gui.protocol_controller import ProtocolController
+from gui.config_controller import ConfigController
+from config import Config, load as load_config
 from experiment_log import ExperimentLog
-from protocol import Protocol, load as load_protocol
-from dmf_device import DmfDevice
 
 class App:
     def __init__(self):
@@ -18,28 +37,30 @@ class App:
             self.version = "?"
         self.realtime_mode = False
         self.is_running = False
+        self.builder = gtk.Builder()
+        signals = {}
         
         # models
+        self.config = load_config()
+        self.dmf_device = self.config.load_dmf_device()
+        self.protocol = self.config.load_protocol()
         self.control_board = DmfControlBoard()
         #self.control_board.set_debug(True)
         self.func_gen = Agilent33220A()
-        self.protocol = Protocol()
-        self.experiment_log = ExperimentLog()
-        self.dmf_device = DmfDevice()
+        device_path = None
+        if self.dmf_device.name:
+            device_path = os.path.join(self.config.dmf_device_directory,
+                                       self.dmf_device.name, "logs")
+        self.experiment_log = ExperimentLog(device_path)
 
-        self.builder = gtk.Builder()
-        signals = {}
-
-        # controllers        
+        # controllers
+        self.config_controller = ConfigController(self)
         self.main_window_controller = MainWindowController(self, self.builder, signals)
         self.dmf_device_controller = DmfDeviceController(self, self.builder, signals)
         self.protocol_controller = ProtocolController(self, self.builder, signals)
         
         self.builder.connect_signals(signals)
         self.main_window_controller.main()
-
-    def load_protocol(self, filename):
-        self.protocol = load_protocol(filename)
 
     def run_protocol(self):
         self.is_running = True
@@ -89,8 +110,8 @@ class App:
             self.protocol.next_step()
         else: # we're on the last step
             self.is_running = False
-            # save the experiment protocol and log
-            log_path = self.experiment_log.get_path()
+            # save the protocol and log
+            log_path = self.experiment_log.get_log_path()
             self.protocol.save(os.path.join(log_path,"protocol"))
             self.experiment_log.save()
             self.experiment_log.plot()

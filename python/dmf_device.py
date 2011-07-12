@@ -1,4 +1,30 @@
+"""
+Copyright 2011 Ryan Fobel
+
+This file is part of Microdrop.
+
+Microdrop is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Microdrop is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+import cPickle
 import numpy as np
+
+def load(filename):
+    f = open(filename, 'rb')
+    dmf_device = cPickle.load(f)
+    f.close()
+    return dmf_device
 
 class DmfDevice():
     def __init__(self):
@@ -7,19 +33,17 @@ class DmfDevice():
         self.x_max = 0
         self.y_min = np.Inf
         self.y_max = 0
+        self.name = None
+
+    def save(self, filename):
+        f = open(filename, 'wb')
+        cPickle.dump(self, f, -1)
+        f.close()
 
     def geometry(self):
         return (self.x_min, self.y_min,
                 self.x_max-self.x_min,
                 self.y_max-self.y_min) 
-
-    def clear(self):
-        self.electrodes = {}
-        self.x_min = np.Inf
-        self.x_max = 0
-        self.y_min = np.Inf
-        self.y_max = 0
-        Electrode.next_id = 0
 
     def add_electrode_path(self, path):
         e = Electrode(path)

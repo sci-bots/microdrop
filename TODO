@@ -1,7 +1,5 @@
 0.1:
-*fix about box (why does it move to the top left corner
- after closing and reopening?)
-*save/load devices
+*disable gui components if no device is loaded
 *guess channel numbers
 *experiment log should save info about software and
  hardware versions
@@ -13,9 +11,10 @@
 *break ProtocolController into Controller and View
 *Arduino: update MAX_SAMPLES to be max bytes
 *calibration functions
-*config file (current device, current protocol, dirs, etc.)
 
 0.3
+*fix about box (why does it move to the top left corner
+ after closing and reopening?)
 *Arduino: don't block on function calls (e.g. SampleVoltage
  and MeasureImpedance).  Instead, have device notify
  once the command has finished

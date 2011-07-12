@@ -52,16 +52,6 @@
     <property name="can_focus">False</property>
     <property name="stock">gtk-media-play</property>
   </object>
-  <object class="GtkImage" id="image_save">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-save</property>
-  </object>
-  <object class="GtkImage" id="image_save_as">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-save-as</property>
-  </object>
   <object class="GtkImage" id="image_stop">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -73,6 +63,7 @@
     <property name="title" translatable="yes">μDrop</property>
     <property name="resizable">False</property>
     <signal name="destroy" handler="on_window_destroy" swapped="no"/>
+    <signal name="delete-event" handler="on_window_delete_event" swapped="no"/>
     <child>
       <object class="GtkVBox" id="vbox1">
         <property name="visible">True</property>
@@ -131,27 +122,14 @@
                             </child>
                             <child>
                               <object class="GtkImageMenuItem" id="menu_save_protocol">
-                                <property name="label" translatable="yes">_Save</property>
+                                <property name="label">gtk-save</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="image">image_save</property>
-                                <property name="use_stock">False</property>
+                                <property name="use_stock">True</property>
                                 <signal name="activate" handler="on_menu_save_protocol_activate" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkImageMenuItem" id="menu_save_protocol_as">
-                                <property name="label" translatable="yes">Save _as</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="use_action_appearance">False</property>
-                                <property name="use_underline">True</property>
-                                <property name="image">image_save_as</property>
-                                <property name="use_stock">False</property>
-                                <signal name="activate" handler="on_menu_save_protocol_as_activate" swapped="no"/>
                               </object>
                             </child>
                           </object>
@@ -182,15 +160,26 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkImageMenuItem" id="menu_import_from_svg_file">
-                                <property name="label" translatable="yes">_Import from svg file</property>
+                              <object class="GtkImageMenuItem" id="menu_import_dmf_device">
+                                <property name="label" translatable="yes">_Import</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="image">image1</property>
                                 <property name="use_stock">False</property>
-                                <signal name="activate" handler="on_menu_import_from_svg_file_activate" swapped="no"/>
+                                <signal name="activate" handler="on_menu_import_dmf_device_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImageMenuItem" id="menu_save_dmf_device">
+                                <property name="label">gtk-save</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="use_underline">True</property>
+                                <property name="use_stock">True</property>
+                                <signal name="activate" handler="on_menu_save_dmf_device_activate" swapped="no"/>
                               </object>
                             </child>
                           </object>

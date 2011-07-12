@@ -1,6 +1,25 @@
+"""
+Copyright 2011 Ryan Fobel
+
+This file is part of Microdrop.
+
+Microdrop is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Microdrop is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import gtk, os, math
 import matplotlib.pyplot as plt
-import protocol
+from protocol import Protocol, FeedbackOptions, load as load_protocol
 from utility import is_int, is_float
 
 def check_textentry(textentry, prev_value, type):
@@ -91,10 +110,8 @@ class ProtocolController():
         signals["on_button_feedback_options_clicked"] = self.on_feedback_options
         signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         signals["on_menu_save_protocol_activate"] = self.on_save_protocol
-        signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
         signals["on_menu_load_protocol_activate"] = self.on_load_protocol
         signals["on_menu_add_frequency_sweep_activate"] = self.on_add_frequency_sweep
-        signals["on_menu_add_electrode_sweep_activate"] = self.on_add_electrode_sweep
         signals["on_textentry_voltage_focus_out_event"] = \
                 self.on_textentry_voltage_focus_out
         signals["on_textentry_voltage_key_press_event"] = \
@@ -136,33 +153,14 @@ class ProtocolController():
 
     def on_new_protocol(self, widget, data=None):
         self.filename = None
-        self.app.protocol = protocol.Protocol()
+        self.app.protocol = Protocol()
         self.app.main_window_controller.update()
 
     def on_save_protocol(self, widget, data=None):
-        if self.filename:
-            self.app.protocol.save(self.filename)
-        else:
-            self.on_save_protocol_as(widget, data)
-
-    def on_save_protocol_as(self, widget, data=None):
-        dialog = gtk.FileChooserDialog(title=None,
-                                       action=gtk.FILE_CHOOSER_ACTION_SAVE,
-                                       buttons=(gtk.STOCK_CANCEL,
-                                                gtk.RESPONSE_CANCEL,
-                                                gtk.STOCK_SAVE_AS,
-                                                gtk.RESPONSE_OK))
-        dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder("protocols")
-        dialog.set_current_name("new")
-        response = dialog.run()
-        if response == gtk.RESPONSE_OK:
-            self.filename = dialog.get_filename()
-            self.app.protocol.save(self.filename)
-        dialog.destroy()
+        self.app.config_controller.save_protocol()
 
     def on_load_protocol(self, widget, data=None):
-        dialog = gtk.FileChooserDialog(title=None,
+        dialog = gtk.FileChooserDialog(title="Load protocol",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
                                                 gtk.RESPONSE_CANCEL,
@@ -173,7 +171,7 @@ class ProtocolController():
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             self.filename = dialog.get_filename()
-            self.app.load_protocol(self.filename)
+            self.app.protocol = load_protocol(self.filename)
         dialog.destroy()
         self.app.main_window_controller.update()
 
@@ -228,7 +226,7 @@ class ProtocolController():
         if self.checkbutton_feedback.get_active():
             if self.app.protocol.current_step().feedback_options is None:
                 self.app.protocol.current_step().feedback_options = \
-                    protocol.FeedbackOptions()
+                    FeedbackOptions()
             self.button_feedback_options.set_sensitive(True)
             self.textentry_step_time.set_sensitive(False)
         else:

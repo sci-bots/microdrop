@@ -1,9 +1,28 @@
+"""
+Copyright 2011 Ryan Fobel
+
+This file is part of Microdrop.
+
+Microdrop is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Microdrop is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import gtk
 
 class DmfDeviceView:
-    def __init__(self, widget, model):
+    def __init__(self, widget, app):
+        self.app = app
         self.widget = widget
-        self.model = model
         x, y, width, height = self.widget.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
         self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
@@ -16,7 +35,7 @@ class DmfDeviceView:
         if padding is None:
             padding = 10
         widget = self.widget.get_allocation()
-        device = self.model.geometry()
+        device = self.app.dmf_device.geometry()
         scale_x = (widget[2]-2*padding)/device[2]
         scale_y = (widget[3]-2*padding)/device[3]
         self.scale = min(scale_x, scale_y)
@@ -40,7 +59,7 @@ class DmfDeviceView:
         x, y, width, height = self.widget.get_allocation()
         self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
                                    True, 0, 0, width, height)
-        for id, electrode in self.model.electrodes.iteritems():
+        for id, electrode in self.app.dmf_device.electrodes.iteritems():
             if self.electrode_color.keys().count(id):
                 cr = self.pixmap.cairo_create()
                 x,y = self.offset
