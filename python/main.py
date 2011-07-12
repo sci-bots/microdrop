@@ -24,7 +24,7 @@ from gui.main_window_controller import MainWindowController
 from gui.dmf_device_controller import DmfDeviceController
 from gui.protocol_controller import ProtocolController
 from gui.config_controller import ConfigController
-from config import Config, load as load_config
+from config import load as load_config
 from experiment_log import ExperimentLog
 
 class App:

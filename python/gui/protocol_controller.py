@@ -18,7 +18,6 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import gtk, os, math
-import matplotlib.pyplot as plt
 from protocol import Protocol, FeedbackOptions, load as load_protocol
 from utility import is_int, is_float
 
@@ -36,13 +35,14 @@ def check_textentry(textentry, prev_value, type):
         return prev_value
 
 class FeedbackOptionsDialog:
-    def __init__(self, options):
+    def __init__(self, app):
         builder = gtk.Builder()
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "feedback_options_dialog.glade"))
         self.dialog = builder.get_object("feedback_options_dialog")
-        self.options = options
+        self.dialog.set_transient_for(app.main_window_controller.view)
+        self.options = app.protocol.current_step().feedback_options
         self.textentry_sampling_time_ms = \
             builder.get_object("textentry_sampling_time_ms")
         self.textentry_n_samples = \
@@ -50,10 +50,10 @@ class FeedbackOptionsDialog:
         self.textentry_delay_between_samples_ms = \
             builder.get_object("textentry_delay_between_samples_ms")
 
-        self.textentry_sampling_time_ms.set_text(str(options.sampling_time_ms))
-        self.textentry_n_samples.set_text(str(options.n_samples))
+        self.textentry_sampling_time_ms.set_text(str(self.options.sampling_time_ms))
+        self.textentry_n_samples.set_text(str(self.options.n_samples))
         self.textentry_delay_between_samples_ms.set_text(
-                                         str(options.delay_between_samples_ms))
+                                         str(self.options.delay_between_samples_ms))
         
     def run(self):
         response = self.dialog.run()
@@ -241,7 +241,7 @@ class ProtocolController():
             self.app.run_protocol()
 
     def on_feedback_options(self, widget, data=None):
-        FeedbackOptionsDialog(self.app.protocol.current_step().feedback_options).run()
+        FeedbackOptionsDialog(self.app).run()
         self.app.main_window_controller.update()
 
     def update(self):

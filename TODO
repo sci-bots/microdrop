@@ -10,11 +10,14 @@
 *extract droplet velocity
 *break ProtocolController into Controller and View
 *Arduino: update MAX_SAMPLES to be max bytes
+*Redesign protocol class to allow for arbitrary
+ step types (check with ResourceManager to dispatch
+ functions to the right object)
 *calibration functions
+*switch serialization to JSON
+*make serialization upgradeable
 
 0.3
-*fix about box (why does it move to the top left corner
- after closing and reopening?)
 *Arduino: don't block on function calls (e.g. SampleVoltage
  and MeasureImpedance).  Instead, have device notify
  once the command has finished
@@ -23,22 +26,19 @@
  with AnalogRead)
 
 0.4
-*Redesign protocol class to allow for arbitrary
- step types (check with ResourceManager to dispatch
- functions to the right object)
+*group steps
+*list view for protocol
+*cut and paste steps
+*repeat for steps/groups
+*subprotocols (e.g. dispense) that can be assigned to the
+ right-click menu of an electrode
+
+0.5
 *PluginManager class to abstract the use of
  different hardware, add custom functionality
 *check_int/float should also enforce ranges
 *error boxes when communication w/ device fails
 *documentation
-
-0.5
-*group steps
-*list view for protocol
-*cut and paste steps
-*repeat for steps/groupsa
-*subprotocols (e.g. dispense) that can be assigned to the
- right-click menu of an electrode
 
 0.6
 *video capture

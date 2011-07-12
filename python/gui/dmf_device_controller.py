@@ -27,12 +27,13 @@ from protocol import Protocol
 from experiment_log import ExperimentLog
 
 class EditElectrodeDialog:
-    def __init__(self, electrode):
+    def __init__(self, app, electrode):
         builder = gtk.Builder()
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "edit_electrode_dialog.glade"))
         self.dialog = builder.get_object("edit_electrode_dialog")
+        self.dialog.set_transient_for(app.main_window_controller.view)
         self.textentry_channels = builder.get_object("textentry_channels")
         self.electrode = electrode
 
@@ -213,7 +214,7 @@ class DmfDeviceController:
         self.app.config_controller.save_dmf_device()
         
     def on_edit_electrode(self, widget, data=None):
-        EditElectrodeDialog(self.last_electrode_clicked).run()
+        EditElectrodeDialog(self.app, self.last_electrode_clicked).run()
         self.app.main_window_controller.update()
     
     def update(self):

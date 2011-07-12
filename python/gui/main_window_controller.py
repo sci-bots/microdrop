@@ -28,7 +28,7 @@ class MainWindowController:
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "main_window.glade"))
-        self.window = builder.get_object("window")
+        self.view = builder.get_object("window")
         self.label_connection_status = builder.get_object("label_connection_status")
         self.label_experiment_id = builder.get_object("label_experiment_id")
         self.checkbutton_realtime_mode = builder.get_object("checkbutton_realtime_mode")
@@ -65,6 +65,7 @@ class MainWindowController:
 
     def on_about(self, widget, data=None):
         dialog = self.app.builder.get_object("about_dialog")
+        dialog.set_transient_for(self.app.main_window_controller.view)
         dialog.set_version(self.app.version)
         dialog.run()
         dialog.hide()
@@ -85,7 +86,7 @@ class MainWindowController:
             title += ": New"
             experiment_id = ""
         self.label_experiment_id.set_text(experiment_id)            
-        self.window.set_title(title)
+        self.view.set_title(title)
         
         # process all gtk events
         while gtk.events_pending():

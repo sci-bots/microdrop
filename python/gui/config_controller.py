@@ -33,6 +33,8 @@ class ConfigController():
     def dmf_device_name_dialog(self):
         self.new_dialog.set_title("Save device?")
         self.new_dialog.label.set_text("Device name:")
+        self.new_dialog.textentry.set_text("")
+        self.new_dialog.set_transient_for(self.app.main_window_controller.view)
         response = self.new_dialog.run()
         if response == gtk.RESPONSE_OK:
             self.app.dmf_device.name = self.new_dialog.textentry.get_text()
@@ -42,6 +44,8 @@ class ConfigController():
     def protocol_name_dialog(self):
         self.new_dialog.set_title("Save protocol?")
         self.new_dialog.label.set_text("Protocol name:")
+        self.new_dialog.textentry.set_text("")
+        self.new_dialog.set_transient_for(self.app.main_window_controller.view)
         response = self.new_dialog.run()
         if response == gtk.RESPONSE_OK:
             self.app.protocol.name = self.new_dialog.textentry.get_text()
