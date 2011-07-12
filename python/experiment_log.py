@@ -63,11 +63,13 @@ class ExperimentLog():
             output = open(os.path.join(log_path,"data"), 'wb')
             pickle.dump(self, output, -1)
             output.close()
+        return log_path
 
     def plot(self):
         # plot the impedance
         for i in self.data:
-            plt.plot(i["impedance"][0::2])
+            if i.keys().count("impedance"):
+                plt.plot(i["impedance"][0::2])
         plt.show()
 
     def clear(self):

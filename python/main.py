@@ -34,7 +34,7 @@ class App:
             self.version = subprocess.Popen(['git','describe'],
                            stdout=subprocess.PIPE).communicate()[0].rstrip()
         except:
-            self.version = "?"
+            self.version = "0.1"
         self.realtime_mode = False
         self.is_running = False
         self.builder = gtk.Builder()
@@ -111,9 +111,14 @@ class App:
         else: # we're on the last step
             self.is_running = False
             # save the protocol and log
-            log_path = self.experiment_log.get_log_path()
+            data = {"software version":self.version}
+            if self.control_board.connected():
+                data["control board name"] = self.app.control_board.hardware_version()
+                data["control board hardware version"] = self.app.control_board.hardware_version()
+                data["control board software version"] = self.app.control_board.hardware_version()
+            self.experiment_log.add_data(data)
+            log_path = self.experiment_log.save()
             self.protocol.save(os.path.join(log_path,"protocol"))
-            self.experiment_log.save()
             self.experiment_log.plot()
             self.experiment_log.clear()
             self.main_window_controller.update()
