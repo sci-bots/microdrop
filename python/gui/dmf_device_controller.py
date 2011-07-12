@@ -50,10 +50,12 @@ class EditElectrodeDialog:
         if response == gtk.RESPONSE_OK:
             channel_list = self.textentry_channels.get_text()
             channels = channel_list.split(',')
-
             try: # convert to integers
-                for i in range(0,len(channels)):
-                    channels[i] = int(channels[i])
+                if len(channels[0]):
+                    for i in range(0,len(channels)):
+                        channels[i] = int(channels[i])
+                else:
+                    channels = []
                 self.electrode.channels = channels
             except:
                 print "error"

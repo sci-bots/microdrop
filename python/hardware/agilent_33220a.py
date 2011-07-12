@@ -16,8 +16,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-import visa, time
+import time
+try:
+    import visa
+except:
+    pass
 
 class Agilent33220A():
     def __init__(self):
@@ -25,19 +28,19 @@ class Agilent33220A():
         self.idn = ""
         try:
             instrument_list = visa.get_instruments_list()[0]
-        except visa.VisaIOError:
+        except:
             return
 
         if instrument_list:
             try:
                 self.instrument = visa.instrument(instrument_list)
-            except visa.VisaIOError:
+            except:
                 return
 
             try:
                 self.idn = self.instrument.ask("*IDN?")
                 self.connected = True
-            except visa.VisaIOError:
+            except:
                 self.idn = ""
                 self.instrument.close()
                 return
