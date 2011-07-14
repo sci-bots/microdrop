@@ -58,6 +58,14 @@ class Agilent33220A():
     
     def is_connected(self):
         return self.connected
+
+    def set_waveform(self, waveform):
+        if waveform == "SINE":
+            self.instrument.write("FUNC SIN")
+        elif waveform == "SQUARE":
+            self.instrument.write("FUNC SIN")
+        else:
+            raise Exception("Unsupported waveform")
         
     def set_voltage(self, voltage):
         self.instrument.write("VOLT %f" % voltage)
