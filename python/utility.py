@@ -35,4 +35,17 @@ def wrap_string(string, line_length=80, wrap_characters="\n"):
         else:
             wrapped_string += word + " "
             chars += len(word) + 1
-    return wrapped_string    
+    return wrapped_string
+
+def check_textentry(textentry, prev_value, type):
+    val = textentry.get_text()
+    if val and type is float:
+        if is_float(val):
+            return float(val)
+    elif val and type is int:
+        if is_int(val):
+            return int(val)
+    else:
+        print "error" # TODO dialog error
+        textentry.set_text(str(prev_value))
+        return prev_value

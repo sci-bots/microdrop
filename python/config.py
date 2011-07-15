@@ -70,7 +70,7 @@ class Config():
                                     self.dmf_device_name,
                                     "protocols",
                                     self.protocol_name)
-                return load_dmf_device(path)
+                return load_protocol(path)
             except:
                 pass
                 #raise Exception("Error loading protocol")

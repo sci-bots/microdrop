@@ -1,10 +1,7 @@
 0.1:
-*change voltage to float
-*group steps
-*repeat for steps/groups
+*save device to log
 *notes textbox (save to experiment log)
-*global voltage/frequency (override per step)
-*don't set voltage/frequency if they haven't changed
+*repeat for steps/groups
 *frequncy sweep
 *Arduino: autorange series resistor
 *Arduino: convert voltages to impedance
@@ -12,6 +9,8 @@
 
 0.2:
 *calibration functions
+*global voltage/frequency (override per step)
+*don't set voltage/frequency if they haven't changed
 *switch serialization to JSON
 *make serialization upgradeable
 *disable gui components if no device is loaded

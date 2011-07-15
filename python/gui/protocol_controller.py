@@ -19,20 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import gtk, os, math
 from protocol import Protocol, FeedbackOptions, load as load_protocol
-from utility import is_int, is_float
-
-def check_textentry(textentry, prev_value, type):
-    val = textentry.get_text()
-    if val and type is float:
-        if is_float(val):
-            return float(val)
-    elif val and type is int:
-        if is_int(val):
-            return int(val)
-    else:
-        print "error" # TODO dialog error
-        textentry.set_text(str(prev_value))
-        return prev_value
+from utility import check_textentry
 
 class FeedbackOptionsDialog:
     def __init__(self, app):
@@ -215,7 +202,7 @@ class ProtocolController():
         self.app.protocol.current_step().voltage = \
             check_textentry(self.textentry_voltage,
                             self.app.protocol.current_step().voltage,
-                            int)
+                            float)
         self.update()
         
     def on_textentry_frequency_focus_out(self, widget, data=None):
