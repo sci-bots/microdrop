@@ -72,6 +72,7 @@ class ProtocolController():
         self.button_next_step = builder.get_object("button_next_step")
         self.button_last_step = builder.get_object("button_last_step")
         self.button_insert_step = builder.get_object("button_insert_step")
+        self.button_copy_step = builder.get_object("button_insert_copy")
         self.button_delete_step = builder.get_object("button_delete_step")
         self.button_run_protocol = builder.get_object("button_run_protocol")
         self.button_feedback_options = builder.get_object("button_feedback_options")
@@ -80,7 +81,6 @@ class ProtocolController():
         self.menu_save_protocol_as = builder.get_object("menu_save_protocol_as")
         self.menu_load_protocol = builder.get_object("menu_load_protocol")
         self.menu_add_frequency_sweep = builder.get_object("menu_add_frequency_sweep")
-        self.menu_add_electrode_sweep = builder.get_object("menu_add_electrode_sweep")
         self.textentry_voltage = builder.get_object("textentry_voltage")
         self.textentry_frequency = builder.get_object("textentry_frequency")
         self.textentry_step_time = builder.get_object("textentry_step_time")
@@ -90,6 +90,7 @@ class ProtocolController():
 
         signals["on_button_insert_step_clicked"] = self.on_insert_step
         signals["on_button_delete_step_clicked"] = self.on_delete_step
+        signals["on_button_copy_step_clicked"] = self.on_copy_step
         signals["on_button_first_step_clicked"] = self.on_first_step
         signals["on_button_prev_step_clicked"] = self.on_prev_step
         signals["on_button_next_step_clicked"] = self.on_next_step
@@ -119,6 +120,10 @@ class ProtocolController():
 
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()
+        self.app.main_window_controller.update()
+
+    def on_copy_step(self, widget, data=None):
+        self.app.protocol.copy_step()
         self.app.main_window_controller.update()
 
     def on_delete_step(self, widget, data=None):

@@ -1,10 +1,8 @@
 0.1:
-*notes textbox (save to experiment log)
-*repeat for steps/groups
-*frequncy sweep
 *Arduino: autorange series resistor
 *Arduino: convert voltages to impedance
 *extract droplet velocity
+*frequncy sweep
 
 0.2:
 *calibration functions
@@ -31,6 +29,7 @@
  step types (check with ResourceManager to dispatch
  functions to the right object)
 *list view for protocol
+*repeat for step/group
 *cut and paste steps
 *subprotocols (e.g. dispense) that can be assigned to the
  right-click menu of an electrode

@@ -62,6 +62,15 @@ class Protocol():
                                self.current_step().frequency,
                                self.current_step().feedback_options))
 
+    def copy_step(self):
+        self.steps.insert(self.current_step_number,
+                          Step(self.n_channels,
+                               self.current_step().time,
+                               self.current_step().voltage,
+                               self.current_step().frequency,
+                               self.current_step().feedback_options,
+                               self.current_step().state_of_channels))
+
     def delete_step(self):
         if len(self.steps) > 1:
             del self.steps[self.current_step_number]
@@ -114,7 +123,9 @@ class FeedbackOptions():
              
 class Step():
     def __init__(self, n_channels, time=None, voltage=None,
-                 frequency=None, feedback_options=None):
+                 frequency=None, feedback_options=None,
+                 state_of_channels=None):
+        self.n_channels = n_channels
         if time:
             self.time = time
         else:
@@ -131,5 +142,7 @@ class Step():
             self.feedback_options = deepcopy(feedback_options)
         else:
             self.feedback_options = None
-        self.n_channels = n_channels
-        self.state_of_channels = np.zeros(n_channels)
+        if state_of_channels is not None:
+            self.state_of_channels = deepcopy(state_of_channels)
+        else:
+            self.state_of_channels = np.zeros(n_channels)
