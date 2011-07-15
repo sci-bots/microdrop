@@ -1,19 +1,22 @@
 0.1:
-*disable gui components if no device is loaded
-*guess channel numbers
-
-0.2:
+*change voltage to float
+*group steps
+*repeat for steps/groups
+*notes textbox (save to experiment log)
+*global voltage/frequency (override per step)
+*don't set voltage/frequency if they haven't changed
+*frequncy sweep
 *Arduino: autorange series resistor
 *Arduino: convert voltages to impedance
 *extract droplet velocity
-*break ProtocolController into Controller and View
-*Arduino: update MAX_SAMPLES to be max bytes
-*Redesign protocol class to allow for arbitrary
- step types (check with ResourceManager to dispatch
- functions to the right object)
+
+0.2:
 *calibration functions
 *switch serialization to JSON
 *make serialization upgradeable
+*disable gui components if no device is loaded
+*disable protocol save/load/rename/etc. unless a device is loaded
+*guess channel numbers
 
 0.3
 *Arduino: don't block on function calls (e.g. SampleVoltage
@@ -24,10 +27,13 @@
  with AnalogRead)
 
 0.4
-*group steps
+*break ProtocolController into Controller and View
+*Arduino: update MAX_SAMPLES to be max bytes
+*Redesign protocol class to allow for arbitrary
+ step types (check with ResourceManager to dispatch
+ functions to the right object)
 *list view for protocol
 *cut and paste steps
-*repeat for steps/groups
 *subprotocols (e.g. dispense) that can be assigned to the
  right-click menu of an electrode
 
@@ -45,7 +51,7 @@
 *refactor code into client/daemon
 
 1.0
-*make installer
+*make installer (Inno or Nullsoft)
 *auto update over internet
 *unit tests
 *build tests

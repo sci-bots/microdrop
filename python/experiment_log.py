@@ -66,10 +66,17 @@ class ExperimentLog():
         return log_path
 
     def plot(self):
-        # plot the impedance
         for i in self.data:
+            """
+            # plot the impedance
             if i.keys().count("impedance"):
                 plt.plot(i["impedance"][0::2])
+            """
+            pk_to_pk = []
+            for resistor in (1e6, 1e5, 1e4, 1e3):
+                if i.keys().count("voltage waveform (Resistor=%.1f kOhms)" % resistor):
+                    voltage = i["voltage waveform (Resistor=%.1f kOhms)" % resistor]*5.0/1024
+                    pk_to_pk.append(max(voltage)-min(voltage))
         plt.show()
 
     def clear(self):

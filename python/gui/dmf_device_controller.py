@@ -79,7 +79,9 @@ class DmfDeviceController:
         signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
         signals["on_menu_import_dmf_device_activate"] = \
                 self.on_import_dmf_device
+        signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device 
         signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device 
+        signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as 
         signals["on_menu_edit_electrode_activate"] = self.on_edit_electrode
         
         if self.app.dmf_device.name:
@@ -212,8 +214,14 @@ class DmfDeviceController:
         dialog.destroy()
         self.app.main_window_controller.update()
 
+    def on_rename_dmf_device(self, widget, data=None):
+        self.app.config_controller.save_dmf_device(rename=True)
+
     def on_save_dmf_device(self, widget, data=None):
         self.app.config_controller.save_dmf_device()
+
+    def on_save_dmf_device_as(self, widget, data=None):
+        self.app.config_controller.save_dmf_device(save_as=True)
         
     def on_edit_electrode(self, widget, data=None):
         EditElectrodeDialog(self.app, self.last_electrode_clicked).run()

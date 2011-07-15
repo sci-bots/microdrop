@@ -18,6 +18,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os, gtk, time, subprocess
+import numpy as np
 from hardware.dmf_control_board import DmfControlBoard
 from hardware.agilent_33220a import Agilent33220A
 from gui.main_window_controller import MainWindowController
@@ -72,40 +73,49 @@ class App:
     def run_step(self):
         self.main_window_controller.update()
         if self.control_board.connected():
+            data = {"step":self.protocol.current_step_number,
+                    "time":time.time()}
             feedback_options = \
                 self.protocol.current_step().feedback_options
             state = self.protocol.current_step().state_of_channels
             if feedback_options: # run this step with feedback
                 ad_channel = 1
-                
-                data = {"step":self.protocol.current_step_number,
-                        "time":time.time()}
 
                 # measure droplet impedance
                 self.control_board.set_series_resistor(ad_channel, 2)
+                """
                 impedance = self.control_board.MeasureImpedance(
                            feedback_options.sampling_time_ms,
                            feedback_options.n_samples,
                            feedback_options.delay_between_samples_ms,
                            state)
                 data["impedance"] = impedance
+                """
                 
                 # measure the voltage waveform for each series resistor
                 for i in range(0,4):
                     self.control_board.set_series_resistor(ad_channel,i)
                     voltage_waveform = self.control_board.SampleVoltage(
-                                [ad_channel], 1000, ad_channel, 0, state)
-                    data["voltage waveform (Resistor=%d kOhms)" %
-                         self.control_board.series_resistor(ad_channel)/1000.0] = \
+                                [ad_channel], 1000, 1, 0, state)
+                    data["voltage waveform (Resistor=%.1f kOhms)" %
+                         (self.control_board.series_resistor(ad_channel)/1000.0)] = \
                          voltage_waveform
-
-                self.experiment_log.add_data(data)
             else:   # run without feedback
                 self.control_board.set_state_of_all_channels(state)
                 time.sleep(self.protocol.current_step().time/1000.0)
+
+            # TODO: temproary hack to measure temperature
+            state = np.zeros(len(state))
+            voltage_waveform = self.control_board.SampleVoltage(
+                        [2], 10, 1, 0, state)
+            temp = np.mean(voltage_waveform/1024.0*5.0/0.01)
+            print temp
+            data["AD595 temp"] = temp
+
+            self.experiment_log.add_data(data)
         else: # run through protocol (even though device is not connected)
                 time.sleep(self.protocol.current_step().time/1000.0)
-
+        
         if self.protocol.current_step_number < len(self.protocol)-1:
             self.protocol.next_step()
         else: # we're on the last step
@@ -113,9 +123,9 @@ class App:
             # save the protocol and log
             data = {"software version":self.version}
             if self.control_board.connected():
-                data["control board name"] = self.app.control_board.hardware_version()
-                data["control board hardware version"] = self.app.control_board.hardware_version()
-                data["control board software version"] = self.app.control_board.hardware_version()
+                data["control board name"] = self.control_board.hardware_version()
+                data["control board hardware version"] = self.control_board.hardware_version()
+                data["control board software version"] = self.control_board.hardware_version()
             self.experiment_log.add_data(data)
             log_path = self.experiment_log.save()
             self.protocol.save(os.path.join(log_path,"protocol"))

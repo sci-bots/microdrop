@@ -24,3 +24,15 @@ def is_float(s):
 def is_int(s):
     try: return (int(s), True)[1]
     except (ValueError, TypeError), e: return False
+
+def wrap_string(string, line_length=80, wrap_characters="\n"):    
+    chars = 0
+    wrapped_string = ""
+    for word in string.split():
+        if chars + len(word) > line_length:
+            wrapped_string += wrap_characters + word + " "
+            chars = len(word + wrap_characters)
+        else:
+            wrapped_string += word + " "
+            chars += len(word) + 1
+    return wrapped_string    

@@ -98,7 +98,6 @@
                               <object class="GtkImageMenuItem" id="menu_new_protocol">
                                 <property name="label" translatable="yes">_New</property>
                                 <property name="visible">True</property>
-                                <property name="sensitive">False</property>
                                 <property name="can_focus">False</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
@@ -121,6 +120,16 @@
                               </object>
                             </child>
                             <child>
+                              <object class="GtkMenuItem" id="menu_rename_protocol">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="label" translatable="yes">_Rename</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="on_menu_rename_protocol_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
                               <object class="GtkImageMenuItem" id="menu_save_protocol">
                                 <property name="label">gtk-save</property>
                                 <property name="visible">True</property>
@@ -130,6 +139,17 @@
                                 <property name="use_underline">True</property>
                                 <property name="use_stock">True</property>
                                 <signal name="activate" handler="on_menu_save_protocol_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImageMenuItem" id="menu_save_protocol_as">
+                                <property name="label">gtk-save-as</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="use_underline">True</property>
+                                <property name="use_stock">True</property>
+                                <signal name="activate" handler="on_menu_save_protocol_as_activate" swapped="no"/>
                               </object>
                             </child>
                           </object>
@@ -172,6 +192,16 @@
                               </object>
                             </child>
                             <child>
+                              <object class="GtkMenuItem" id="menu_rename_dmf_device">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="label" translatable="yes">_Rename</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="on_menu_rename_dmf_device_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
                               <object class="GtkImageMenuItem" id="menu_save_dmf_device">
                                 <property name="label">gtk-save</property>
                                 <property name="visible">True</property>
@@ -180,6 +210,17 @@
                                 <property name="use_underline">True</property>
                                 <property name="use_stock">True</property>
                                 <signal name="activate" handler="on_menu_save_dmf_device_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImageMenuItem" id="menu_save_dmf_device_as">
+                                <property name="label">gtk-save-as</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="use_underline">True</property>
+                                <property name="use_stock">True</property>
+                                <signal name="activate" handler="on_menu_save_dmf_device_as_activate" swapped="no"/>
                               </object>
                             </child>
                           </object>
@@ -319,6 +360,35 @@
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkLabel" id="label_device_name">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">3</property>
+                    <property name="ypad">3</property>
+                    <property name="label" translatable="yes">Device</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label_protocol_name">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">3</property>
+                    <property name="ypad">3</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkLabel" id="label_experiment_id">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -331,7 +401,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
                 <child>
@@ -349,7 +419,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">3</property>
-                    <property name="position">2</property>
+                    <property name="position">4</property>
                   </packing>
                 </child>
                 <child>
@@ -360,7 +430,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">3</property>
+                    <property name="position">5</property>
                   </packing>
                 </child>
                 <child>
@@ -377,7 +447,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">3</property>
-                    <property name="position">4</property>
+                    <property name="position">6</property>
                   </packing>
                 </child>
                 <child>
@@ -445,7 +515,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">5</property>
+                    <property name="position">7</property>
                   </packing>
                 </child>
                 <child>
@@ -513,7 +583,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">6</property>
+                    <property name="position">8</property>
                   </packing>
                 </child>
                 <child>
@@ -524,7 +594,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">7</property>
+                    <property name="position">9</property>
                   </packing>
                 </child>
                 <child>
@@ -535,7 +605,7 @@
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">8</property>
+                    <property name="position">10</property>
                   </packing>
                 </child>
                 <child>
@@ -546,7 +616,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">9</property>
+                    <property name="position">11</property>
                   </packing>
                 </child>
                 <child>
@@ -588,7 +658,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">2</property>
-                    <property name="position">10</property>
+                    <property name="position">12</property>
                   </packing>
                 </child>
                 <child>
@@ -675,7 +745,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">2</property>
-                    <property name="position">11</property>
+                    <property name="position">13</property>
                   </packing>
                 </child>
                 <child>
@@ -739,7 +809,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">2</property>
-                    <property name="position">12</property>
+                    <property name="position">14</property>
                   </packing>
                 </child>
                 <child>
@@ -750,7 +820,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">13</property>
+                    <property name="position">15</property>
                   </packing>
                 </child>
                 <child>
@@ -794,7 +864,7 @@
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="padding">2</property>
-                    <property name="position">14</property>
+                    <property name="position">16</property>
                   </packing>
                 </child>
                 <child>
@@ -805,7 +875,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">15</property>
+                    <property name="position">17</property>
                   </packing>
                 </child>
                 <child>
@@ -819,7 +889,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">3</property>
-                    <property name="position">16</property>
+                    <property name="position">18</property>
                   </packing>
                 </child>
               </object>

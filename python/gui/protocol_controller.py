@@ -109,8 +109,10 @@ class ProtocolController():
         signals["on_button_run_protocol_clicked"] = self.on_run_protocol
         signals["on_button_feedback_options_clicked"] = self.on_feedback_options
         signals["on_menu_new_protocol_activate"] = self.on_new_protocol
-        signals["on_menu_save_protocol_activate"] = self.on_save_protocol
         signals["on_menu_load_protocol_activate"] = self.on_load_protocol
+        signals["on_menu_rename_protocol_activate"] = self.on_rename_protocol
+        signals["on_menu_save_protocol_activate"] = self.on_save_protocol
+        signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
         signals["on_menu_add_frequency_sweep_activate"] = self.on_add_frequency_sweep
         signals["on_textentry_voltage_focus_out_event"] = \
                 self.on_textentry_voltage_focus_out
@@ -156,9 +158,6 @@ class ProtocolController():
         self.app.protocol = Protocol()
         self.app.main_window_controller.update()
 
-    def on_save_protocol(self, widget, data=None):
-        self.app.config_controller.save_protocol()
-
     def on_load_protocol(self, widget, data=None):
         dialog = gtk.FileChooserDialog(title="Load protocol",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -167,7 +166,9 @@ class ProtocolController():
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder("protocols")
+        dialog.set_current_folder(os.path.join("devices",
+                                               self.app.dmf_device.name,
+                                               "protocols"))
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             self.filename = dialog.get_filename()
@@ -175,6 +176,15 @@ class ProtocolController():
         dialog.destroy()
         self.app.main_window_controller.update()
 
+    def on_rename_protocol(self, widget, data=None):
+        self.app.config_controller.save_protocol(rename=True)
+    
+    def on_save_protocol(self, widget, data=None):
+        self.app.config_controller.save_protocol()
+    
+    def on_save_protocol_as(self, widget, data=None):
+        self.app.config_controller.save_protocol(save_as=True)
+    
     def on_add_frequency_sweep(self, widget, data=None):
         print "add frequency sweep"
 
