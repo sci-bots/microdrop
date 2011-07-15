@@ -19,46 +19,8 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import gtk, os, math
 from protocol import Protocol, FeedbackOptions, load as load_protocol
-from utility import check_textentry
-
-class FeedbackOptionsDialog:
-    def __init__(self, app):
-        builder = gtk.Builder()
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "feedback_options_dialog.glade"))
-        self.dialog = builder.get_object("feedback_options_dialog")
-        self.dialog.set_transient_for(app.main_window_controller.view)
-        self.options = app.protocol.current_step().feedback_options
-        self.textentry_sampling_time_ms = \
-            builder.get_object("textentry_sampling_time_ms")
-        self.textentry_n_samples = \
-            builder.get_object("textentry_n_samples")
-        self.textentry_delay_between_samples_ms = \
-            builder.get_object("textentry_delay_between_samples_ms")
-
-        self.textentry_sampling_time_ms.set_text(str(self.options.sampling_time_ms))
-        self.textentry_n_samples.set_text(str(self.options.n_samples))
-        self.textentry_delay_between_samples_ms.set_text(
-                                         str(self.options.delay_between_samples_ms))
-        
-    def run(self):
-        response = self.dialog.run()
-        if response == gtk.RESPONSE_OK:
-            self.options.sampling_time_ms = \
-                check_textentry(self.textentry_sampling_time_ms,
-                                self.options.sampling_time_ms,
-                                int)
-            self.options.n_samples = \
-                check_textentry(self.textentry_n_samples,
-                                self.options.n_samples,
-                                int)
-            self.options.delay_between_samples_ms = \
-                check_textentry(self.textentry_delay_between_samples_ms,
-                                self.options.delay_between_samples_ms,
-                                int)
-        self.dialog.hide()
-        return response
+from utility import check_textentry, is_float, is_int
+import numpy as np
 
 class ProtocolController():
     def __init__(self, app, builder, signals):
@@ -179,10 +141,8 @@ class ProtocolController():
         self.app.config_controller.save_protocol(save_as=True)
     
     def on_add_frequency_sweep(self, widget, data=None):
-        print "add frequency sweep"
-
-    def on_add_electrode_sweep(self, widget, data=None):
-        print "add electrode sweep"
+        AddFrequencySweepDialog(self.app).run()
+        self.app.main_window_controller.update()
 
     def on_textentry_step_time_focus_out(self, widget, data=None):
         self.on_step_time_changed()
@@ -276,3 +236,85 @@ class ProtocolController():
             if self.app.is_running is False:
                 state = self.app.protocol.state_of_all_channels()
                 self.app.control_board.set_state_of_all_channels(state)
+                
+class FeedbackOptionsDialog:
+    def __init__(self, app):
+        builder = gtk.Builder()
+        builder.add_from_file(os.path.join("gui",
+                                           "glade",
+                                           "feedback_options_dialog.glade"))
+        self.dialog = builder.get_object("feedback_options_dialog")
+        self.dialog.set_transient_for(app.main_window_controller.view)
+        self.options = app.protocol.current_step().feedback_options
+        self.textentry_sampling_time_ms = \
+            builder.get_object("textentry_sampling_time_ms")
+        self.textentry_n_samples = \
+            builder.get_object("textentry_n_samples")
+        self.textentry_delay_between_samples_ms = \
+            builder.get_object("textentry_delay_between_samples_ms")
+
+        self.textentry_sampling_time_ms.set_text(str(self.options.sampling_time_ms))
+        self.textentry_n_samples.set_text(str(self.options.n_samples))
+        self.textentry_delay_between_samples_ms.set_text(
+                                         str(self.options.delay_between_samples_ms))
+        
+    def run(self):
+        response = self.dialog.run()
+        if response == gtk.RESPONSE_OK:
+            self.options.sampling_time_ms = \
+                check_textentry(self.textentry_sampling_time_ms,
+                                self.options.sampling_time_ms,
+                                int)
+            self.options.n_samples = \
+                check_textentry(self.textentry_n_samples,
+                                self.options.n_samples,
+                                int)
+            self.options.delay_between_samples_ms = \
+                check_textentry(self.textentry_delay_between_samples_ms,
+                                self.options.delay_between_samples_ms,
+                                int)
+        self.dialog.hide()
+        return response
+
+class AddFrequencySweepDialog:
+    def __init__(self, app):
+        self.app = app
+        builder = gtk.Builder()
+        builder.add_from_file(os.path.join("gui",
+                                           "glade",
+                                           "frequency_sweep_dialog.glade"))
+        self.dialog = builder.get_object("frequency_sweep_dialog")
+        self.dialog.set_transient_for(app.main_window_controller.view)
+        self.textentry_start_freq = \
+            builder.get_object("textentry_start_freq")
+        self.textentry_end_freq = \
+            builder.get_object("textentry_end_freq")
+        self.textentry_n_steps = \
+            builder.get_object("textentry_n_steps")
+        self.textentry_start_freq.set_text("1")
+        self.textentry_end_freq.set_text("1e2")
+        self.textentry_n_steps.set_text("10")
+        
+    def run(self):
+        response = self.dialog.run()
+        if response == gtk.RESPONSE_OK:
+            start_freq = self.textentry_start_freq.get_text() 
+            end_freq = self.textentry_end_freq.get_text() 
+            number_of_steps = self.textentry_n_steps.get_text()
+            if is_float(start_freq) == False:
+                self.app.main_window_controller.error("Invalid start frequency.")
+            elif is_float(end_freq) == False:
+                self.app.main_window_controller.error("Invalid end frequency.")
+            elif is_int(number_of_steps) == False or number_of_steps < 1:
+                self.app.main_window_controller.error("Invalid number of steps.")
+            elif end_freq < start_freq:
+                self.app.main_window_controller.error("End frequency must be greater than the start frequency.")
+            else:
+                frequencies = np.logspace(np.log10(float(start_freq)),
+                                          np.log10(float(end_freq)),
+                                          int(number_of_steps))
+                for frequency in frequencies:
+                    self.app.protocol.current_step().frequency = frequency*1e3
+                    self.app.protocol.copy_step()
+        self.dialog.hide()
+        return response

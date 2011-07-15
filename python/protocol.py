@@ -70,6 +70,7 @@ class Protocol():
                                self.current_step().frequency,
                                self.current_step().feedback_options,
                                self.current_step().state_of_channels))
+        self.next_step()
 
     def delete_step(self):
         if len(self.steps) > 1:

@@ -2,7 +2,6 @@
 *Arduino: autorange series resistor
 *Arduino: convert voltages to impedance
 *extract droplet velocity
-*frequncy sweep
 
 0.2:
 *calibration functions
