@@ -25,6 +25,7 @@ from gui.main_window_controller import MainWindowController
 from gui.dmf_device_controller import DmfDeviceController
 from gui.protocol_controller import ProtocolController
 from gui.config_controller import ConfigController
+from gui.experiment_log_controller import ExperimentLogController
 from config import load as load_config
 from experiment_log import ExperimentLog
 
@@ -59,7 +60,8 @@ class App:
         self.main_window_controller = MainWindowController(self, self.builder, signals)
         self.dmf_device_controller = DmfDeviceController(self, self.builder, signals)
         self.protocol_controller = ProtocolController(self, self.builder, signals)
-        
+        self.experiment_log_controller = ExperimentLogController(device_path)
+
         self.builder.connect_signals(signals)
         self.main_window_controller.main()
 
@@ -120,19 +122,7 @@ class App:
             self.protocol.next_step()
         else: # we're on the last step
             self.is_running = False
-            # save the protocol, device and log
-            data = {"software version":self.version}
-            if self.control_board.connected():
-                data["control board name"] = self.control_board.hardware_version()
-                data["control board hardware version"] = self.control_board.hardware_version()
-                data["control board software version"] = self.control_board.hardware_version()
-            self.experiment_log.add_data(data)
-            log_path = self.experiment_log.save()
-            self.protocol.save(os.path.join(log_path,"protocol"))
-            self.dmf_device.save(os.path.join(log_path,"device"))
-            self.experiment_log.plot()
-            self.experiment_log.clear()
-            self.main_window_controller.update()
+            self.experiment_log_controller.save()
 
         if self.is_running:
             self.run_step()

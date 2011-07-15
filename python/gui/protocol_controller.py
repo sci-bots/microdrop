@@ -66,6 +66,7 @@ class ProtocolController():
         self.filename = None
         self.previous_voltage = None
         self.previous_frequency = None
+        self.textview_notes = builder.get_object("textview_notes")
         self.button_first_step = builder.get_object("button_first_step")
         self.button_prev_step = builder.get_object("button_prev_step")
         self.button_next_step = builder.get_object("button_next_step")

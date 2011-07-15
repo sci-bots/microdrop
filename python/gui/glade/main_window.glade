@@ -168,18 +168,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <child>
-                              <object class="GtkImageMenuItem" id="menu_load_dmf_device">
-                                <property name="label" translatable="yes">_Load</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="use_action_appearance">False</property>
-                                <property name="use_underline">True</property>
-                                <property name="image">image_load_device</property>
-                                <property name="use_stock">False</property>
-                                <signal name="activate" handler="on_menu_load_dmf_device_activate" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
                               <object class="GtkImageMenuItem" id="menu_import_dmf_device">
                                 <property name="label" translatable="yes">_Import</property>
                                 <property name="visible">True</property>
@@ -189,6 +177,18 @@
                                 <property name="image">image1</property>
                                 <property name="use_stock">False</property>
                                 <signal name="activate" handler="on_menu_import_dmf_device_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImageMenuItem" id="menu_load_dmf_device">
+                                <property name="label" translatable="yes">_Load</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="use_underline">True</property>
+                                <property name="image">image_load_device</property>
+                                <property name="use_stock">False</property>
+                                <signal name="activate" handler="on_menu_load_dmf_device_activate" swapped="no"/>
                               </object>
                             </child>
                             <child>
@@ -366,7 +366,7 @@
                     <property name="xalign">0</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
-                    <property name="label" translatable="yes">Device</property>
+                    <property name="label" translatable="yes">Device name</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -381,6 +381,7 @@
                     <property name="xalign">0</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
+                    <property name="label" translatable="yes">Protocol name</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -598,13 +599,49 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label5">
+                  <object class="GtkHBox" id="hbox8">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkLabel" id="label8">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="xalign">0</property>
+                        <property name="yalign">0</property>
+                        <property name="xpad">3</property>
+                        <property name="ypad">3</property>
+                        <property name="label" translatable="yes">Notes:</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scrolledwindow1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="hscrollbar_policy">automatic</property>
+                        <property name="vscrollbar_policy">automatic</property>
+                        <child>
+                          <object class="GtkTextView" id="textview_notes">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
+                    <property name="padding">3</property>
                     <property name="position">10</property>
                   </packing>
                 </child>
