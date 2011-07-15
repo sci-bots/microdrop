@@ -120,7 +120,7 @@ class App:
             self.protocol.next_step()
         else: # we're on the last step
             self.is_running = False
-            # save the protocol and log
+            # save the protocol, device and log
             data = {"software version":self.version}
             if self.control_board.connected():
                 data["control board name"] = self.control_board.hardware_version()
@@ -129,6 +129,7 @@ class App:
             self.experiment_log.add_data(data)
             log_path = self.experiment_log.save()
             self.protocol.save(os.path.join(log_path,"protocol"))
+            self.dmf_device.save(os.path.join(log_path,"device"))
             self.experiment_log.plot()
             self.experiment_log.clear()
             self.main_window_controller.update()
