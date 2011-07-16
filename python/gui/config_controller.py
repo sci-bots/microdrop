@@ -70,13 +70,13 @@ class ConfigController():
 
         if name:
             # current file name
-            src = os.path.join(self.app.config.dmf_device_directory,
-                               self.app.dmf_device.name)
-
+            if self.app.dmf_device.name:
+                src = os.path.join(self.app.config.dmf_device_directory,
+                                   self.app.dmf_device.name)
             dest = os.path.join(self.app.config.dmf_device_directory,name)
 
             # if we're renaming, move the old directory
-            if rename and self.app.dmf_device.name and os.path.isdir(src):
+            if rename and os.path.isdir(src):
                 if src == dest:
                     return
                 if os.path.isdir(dest):
@@ -112,12 +112,13 @@ class ConfigController():
                     os.mkdir(path)
 
                 # current file name
-                src = os.path.join(path,self.app.protocol.name)
+                if self.app.protocol.name:
+                    src = os.path.join(path,self.app.protocol.name)
                 dest = os.path.join(path,name)
                 self.app.protocol.name = name
 
                 # if we're renaming
-                if rename and self.app.protocol.name and os.path.isfile(src):
+                if rename and os.path.isfile(src):
                     shutil.move(src, dest)
                 else: # save the file
                     self.app.protocol.save(dest)
