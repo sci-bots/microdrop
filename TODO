@@ -1,29 +1,31 @@
 0.1:
 *Arduino: autorange series resistor
+*calculate impedance from VRMS vs pk-pk
 *Arduino: convert voltages to impedance
 *extract droplet velocity
 
 0.2:
-*check protocol/version on connect
 *calibration functions
 *global voltage/frequency (override per step)
 *don't set voltage/frequency if they haven't changed
-*switch serialization to JSON
-*make serialization upgradeable
-*disable gui components if no device is loaded
-*disable protocol save/load/rename/etc. unless a device is loaded
 *guess channel numbers
-
-0.3
-*fix case of arduino functions begin() vs. Listen()
-*add find method
-*retransmit packets on timeout or CRC error
-*add packet number*Arduino: don't block on function calls (e.g. SampleVoltage
+*Arduino: don't block on function calls (e.g. SampleVoltage
  and MeasureImpedance).  Instead, have device notify
  once the command has finished
 *Arduino: add commands to RemoteObject for AnalogRead/Write,
  DigitalRead/Write, I2C, SPI (Replace SampleVoltageOB
  with AnalogRead)
+
+0.3
+*check protocol/version on connect
+*switch serialization to JSON
+*make serialization upgradeable
+*disable gui components if no device is loaded
+*disable protocol save/load/rename/etc. unless a device is loaded
+*fix case of arduino functions begin() vs. Listen()
+*add find method
+*retransmit packets on timeout or CRC error
+*add packet number
 *auto set number of channels based on info from device
  (give warning if channel number in protocol exceeds control
  board capability)
@@ -61,4 +63,3 @@
 *build tests
 *online device database
 *store performance data in online repository
-

@@ -291,9 +291,9 @@ class AddFrequencySweepDialog:
             builder.get_object("textentry_end_freq")
         self.textentry_n_steps = \
             builder.get_object("textentry_n_steps")
-        self.textentry_start_freq.set_text("1")
+        self.textentry_start_freq.set_text("0.1")
         self.textentry_end_freq.set_text("1e2")
-        self.textentry_n_steps.set_text("10")
+        self.textentry_n_steps.set_text("30")
         
     def run(self):
         response = self.dialog.run()

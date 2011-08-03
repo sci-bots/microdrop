@@ -89,7 +89,6 @@ class MainWindowController:
         self.app.dmf_device_controller.update()
         self.app.protocol_controller.update()
         
-        self.view.set_title("Microdrop")
         if self.app.dmf_device.name:
             experiment_id = self.app.experiment_log.get_id()
         else:

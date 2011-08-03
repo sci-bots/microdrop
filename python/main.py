@@ -60,7 +60,7 @@ class App:
         self.main_window_controller = MainWindowController(self, self.builder, signals)
         self.dmf_device_controller = DmfDeviceController(self, self.builder, signals)
         self.protocol_controller = ProtocolController(self, self.builder, signals)
-        self.experiment_log_controller = ExperimentLogController(device_path)
+        self.experiment_log_controller = ExperimentLogController(self)
 
         self.builder.connect_signals(signals)
         self.main_window_controller.main()
@@ -85,15 +85,21 @@ class App:
 
                 # measure droplet impedance
                 self.control_board.set_series_resistor(ad_channel, 2)
-                """
+                
                 impedance = self.control_board.MeasureImpedance(
                            feedback_options.sampling_time_ms,
                            feedback_options.n_samples,
                            feedback_options.delay_between_samples_ms,
                            state)
-                data["impedance"] = impedance
+                V_fb = impedance[0::2]
+                Z_fb = impedance[1::2]
+                V_total = self.protocol.current_step().voltage
+                Z_device = Z_fb*(V_total/V_fb-1)
+                data["Z_device"] = Z_device
+                data["V_fb"] = V_fb
+                data["Z_fb"] = Z_fb
+
                 """
-                
                 # measure the voltage waveform for each series resistor
                 for i in range(0,4):
                     self.control_board.set_series_resistor(ad_channel,i)
@@ -102,18 +108,21 @@ class App:
                     data["voltage waveform (Resistor=%.1f kOhms)" %
                          (self.control_board.series_resistor(ad_channel)/1000.0)] = \
                          voltage_waveform
+                """
             else:   # run without feedback
                 self.control_board.set_state_of_all_channels(state)
                 time.sleep(self.protocol.current_step().time/1000.0)
 
+            """
             # TODO: temproary hack to measure temperature
             state = np.zeros(len(state))
             voltage_waveform = self.control_board.SampleVoltage(
-                        [2], 10, 1, 0, state)
+                        [15], 10, 1, 0, state)
             temp = np.mean(voltage_waveform/1024.0*5.0/0.01)
             print temp
             data["AD595 temp"] = temp
-
+            """
+            
             self.experiment_log.add_data(data)
         else: # run through protocol (even though device is not connected)
                 time.sleep(self.protocol.current_step().time/1000.0)

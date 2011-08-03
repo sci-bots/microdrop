@@ -17,7 +17,7 @@ extern "C" {
 }
 
 const float DmfControlBoard::A0_SERIES_RESISTORS_[] = {1e5, 1e6};
-const float DmfControlBoard::A1_SERIES_RESISTORS_[] = {1e3, 1e4, 1e5, 1e6};
+const float DmfControlBoard::A1_SERIES_RESISTORS_[] = {1e3, 1e4}; // 1e5, 1e6};
 const float DmfControlBoard::SAMPLING_RATES_[] = { 8908, 16611, 29253, 47458,
                                                  68191, 90293, 105263 };
 const char DmfControlBoard::PROTOCOL_NAME_[] = "DMF Control Protocol";
@@ -348,31 +348,36 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
                sizeof(A1_SERIES_RESISTORS_)/sizeof(float)-1);
 
             // sample the actuation voltage
-            uint32_t t = millis();
-            uint16_t hv_peak = 0;
+            uint32_t t_sample = millis();
+            uint32_t t_delay;
+            uint16_t hv_max = 0;
+            uint16_t hv_min = 1024;
             uint16_t hv = 0;
-            while(millis()-t<sampling_time_ms) {
+
+            while(millis()-t_sample<sampling_time_ms) {
               hv = analogRead(0);
 
               // if the ADC is saturated, use a smaller resistor
               // and reset the peak
-              if(hv==1024) {
+              if(hv==900) {
                 if(A0_series_resistor_index_>0) {
                   SetSeriesResistor(0, \
                     A0_series_resistor_index_-1);
-                    hv_peak = 0;
-                  } else {
-                    // we should never get here
-                    return_code = RETURN_GENERAL_ERROR;
-                    break;
-                  }
-              } else if(hv>hv_peak) {
-                hv_peak = hv;
+                  hv_max = 0;
+                  hv_min = 1024;
+                  continue;
+                }
+              }
+              if(hv>hv_max) {
+                hv_max = hv;
+              }
+              if(hv<hv_min) {
+                hv_min = hv;
               }
             }
 
             if(return_code==RETURN_OK) {
-              float V_hv = (float)hv_peak*5.0/1024.0*
+              float V_hv = (float)(hv_max-hv_min)*5.0/1024.0*
                 10e6/A0_SERIES_RESISTORS_[A0_series_resistor_index_];
 
               // update the channels (if they were included in the packet)
@@ -385,45 +390,49 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
 
               // sample the feedback voltage
               for(uint16_t i=0; i<n_samples; i++) {
-                  uint16_t fb_peak = 0;
-                  uint16_t fb = 0;
-                t = millis();
-                while(millis()-t<sampling_time_ms) {
+                uint16_t fb_max = 0;
+                uint16_t fb_min = 1024;
+                uint16_t fb = 0;
+                t_sample = millis();
+
+                while(millis()-t_sample<sampling_time_ms) {
                   fb = analogRead(1);
 
                   // if the ADC is saturated, use a smaller resistor
                   // and reset the peak
-                  if(fb==1024) {
+                  if(fb>900) {
                     if(A1_series_resistor_index_>0) {
                       SetSeriesResistor(1,
                         A1_series_resistor_index_-1);
-                        fb_peak = 0;
-                    } else {
-                      // we should never get here
-                      return_code = RETURN_GENERAL_ERROR;
-                      break; // while loop
-                      break; // for loop
+                      fb_max = 0;
+                      fb_min = 1024;
+                      continue;
                     }
                   }
-
-                  float V_fb = (float)fb_peak/1024*5;
-                  float Z_device = A1_SERIES_RESISTORS_[A1_series_resistor_index_]* \
-                                   (V_hv/V_fb-1);
-
-                  impedance_buffer_[2*i] = V_fb;
-                  impedance_buffer_[2*i+1] = V_hv;
-
-                  t = millis();
-                  while(millis()-t<delay_between_samples_ms) {
+                  if(fb>fb_max) {
+                    fb_max = fb;
                   }
+                  if(fb<fb_min) {
+                    fb_min = fb;
+                  }
+                }
+
+                float Z_fb = A1_SERIES_RESISTORS_[
+                                A1_series_resistor_index_];
+                float V_fb = (float)(fb_max-fb_min)*5.0/1024.0;
+
+                impedance_buffer_[2*i] = V_fb;
+                impedance_buffer_[2*i+1] = Z_fb;
+
+                t_delay = millis();
+                while(millis()-t_delay<delay_between_samples_ms) {
                 }
               }
             }
-
+            
             // set the resistors back to their original states            
             SetSeriesResistor(0, original_A0_index);
             SetSeriesResistor(1, original_A1_index);
-
           } else {
             return_code = RETURN_BAD_PACKET_SIZE;
           }
@@ -673,6 +682,7 @@ void DmfControlBoard::begin() {
   pinMode(A1_SERIES_RESISTOR_0_, OUTPUT);
   pinMode(A1_SERIES_RESISTOR_1_, OUTPUT);
   pinMode(A1_SERIES_RESISTOR_2_, OUTPUT);
+  pinMode(WAVEFORM_SELECT_, OUTPUT);
 
   Wire.begin();
   SPI.begin();
@@ -684,24 +694,27 @@ void DmfControlBoard::begin() {
     }
   }
 
+  // set waveform (SINE=LOW, SQUARE=HIGH)
+  digitalWrite(WAVEFORM_SELECT_, LOW);
+
   // set all channels to ground
   UpdateAllChannels();
 
   // set all potentiometers
-  SetPot(POT_AREF,255);
-  SetPot(POT_VGND,124);
-  SetPot(POT_WAVEOUT_GAIN_1,128);
-  SetPot(POT_WAVEOUT_GAIN_2,128);
+  SetPot(POT_AREF_, 255);
+  SetPot(POT_VGND_, 124);
+  SetPot(POT_WAVEOUT_GAIN_1_, 128);
+  SetPot(POT_WAVEOUT_GAIN_2_, 255);
 
   Serial.begin(DmfControlBoard::BAUD_RATE);
-  SetSeriesResistor(0,0);
-  SetSeriesResistor(1,0);
+  SetSeriesResistor(0, 0);
+  SetSeriesResistor(1, 0);
   SetAdcPrescaler(4);
 }
 
 void DmfControlBoard::PeakExceeded() {
   peak_++;
-  SetPot(POT_AREF,peak_);
+  SetPot(POT_AREF_, peak_);
 }
 
 // send a command and some data to one of the I2C chips
@@ -714,10 +727,10 @@ void DmfControlBoard::SendI2C(uint8_t row, uint8_t cmd, uint8_t data) {
 }
 
 void DmfControlBoard::SendSPI(uint8_t pin, uint8_t address, uint8_t data) {
-  digitalWrite(pin,LOW);
+  digitalWrite(pin, LOW);
   SPI.transfer(address);
   SPI.transfer(data);
-  digitalWrite(pin,HIGH);
+  digitalWrite(pin, HIGH);
 }
 
 uint8_t DmfControlBoard::SetPot(uint8_t index, uint8_t value) {
@@ -799,6 +812,7 @@ uint8_t DmfControlBoard::SetSeriesResistor(const uint8_t channel,
         digitalWrite(A1_SERIES_RESISTOR_1_, HIGH);
         digitalWrite(A1_SERIES_RESISTOR_2_, LOW);
         break;
+      /* these 2 resistors are unreliable
       case 2:
         digitalWrite(A1_SERIES_RESISTOR_0_, LOW);
         digitalWrite(A1_SERIES_RESISTOR_1_, LOW);
@@ -809,12 +823,15 @@ uint8_t DmfControlBoard::SetSeriesResistor(const uint8_t channel,
         digitalWrite(A1_SERIES_RESISTOR_1_, LOW);
         digitalWrite(A1_SERIES_RESISTOR_2_, LOW);
         break;
+      */
       default:
         return_code = RETURN_BAD_INDEX;
         break;
     }
     if(return_code==RETURN_OK) {
       A1_series_resistor_index_ = index;
+      // wait for pot to settle
+      delayMicroseconds(200);
     }
   } else { // bad channel
     return_code = RETURN_BAD_INDEX;
@@ -825,11 +842,11 @@ uint8_t DmfControlBoard::SetSeriesResistor(const uint8_t channel,
 uint8_t DmfControlBoard::GetPeak(const uint8_t channel,
                                const uint16_t sample_time_ms) {
   peak_ = 128;
-  SetPot(POT_AREF,peak_);
+  SetPot(POT_AREF_, peak_);
   attachInterrupt(channel, PeakExceededWrapper, RISING);
   delay(sample_time_ms);
   detachInterrupt(channel);
-  SetPot(POT_AREF,255);
+  SetPot(POT_AREF_, 255);
   return peak_;
 }
 
@@ -1339,3 +1356,4 @@ void DmfControlBoard::SerializeChannelState(const std::vector<uint8_t> state,
 }
 
 #endif // AVR
+

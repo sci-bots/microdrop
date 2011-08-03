@@ -18,8 +18,8 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os, pickle
+import numpy as np
 from utility import is_int
-from matplotlib import pyplot as plt
 
 def load(filename):
     f = open(filename,"rb")
@@ -65,19 +65,45 @@ class ExperimentLog():
             output.close()
         return log_path
 
-    def plot(self):
+    def get(self, name):
+        step = []
+        time = []
+        var = []
         for i in self.data:
-            """
-            # plot the impedance
-            if i.keys().count("impedance"):
-                plt.plot(i["impedance"][0::2])
-            """
-            pk_to_pk = []
-            for resistor in (1e6, 1e5, 1e4, 1e3):
-                if i.keys().count("voltage waveform (Resistor=%.1f kOhms)" % resistor):
-                    voltage = i["voltage waveform (Resistor=%.1f kOhms)" % resistor]*5.0/1024
-                    pk_to_pk.append(max(voltage)-min(voltage))
-        plt.show()
+            if i.keys().count(name):
+                var.append(i[name])
+                if i.keys().count('time'):
+                    time.append(i['time'])
+                else:
+                    time.append(None)
+                if i.keys().count('time'):
+                    step.append(i['step'])
+                else:
+                    step.append(None)
+        return step, time, var
+
+    def get_impedance(self):
+        step = []
+        time = []
+        Z_device = []
+        for i in self.data:
+            if i.keys().count('step') and i.keys().count('time') and \
+            i.keys().count('Z_device'):
+                step.append(i['step'])
+                time.append(i['time'])
+                Z_device.append(np.mean(i['Z_device']))
+        return step, time, Z_device
+        
+        #plt.plot(step, Z_device)
+        #plt.xlabel('Step')
+        #plt.ylabel('Device Impedance ($\Rho$)')
+        """
+        pk_to_pk = []
+        for resistor in (1e6, 1e5, 1e4, 1e3):
+            if i.keys().count("voltage waveform (Resistor=%.1f kOhms)" % resistor):
+                voltage = i["voltage waveform (Resistor=%.1f kOhms)" % resistor]*5.0/1024
+                pk_to_pk.append(max(voltage)-min(voltage))
+        """
 
     def clear(self):
         # reset the log data

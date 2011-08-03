@@ -149,10 +149,12 @@ private:
 #ifdef AVR
   static const uint8_t AD5204_SLAVE_SELECT_PIN_ = 53; // digital pot
 
-  static const uint8_t POT_AREF = 0;
-  static const uint8_t POT_VGND = 1;
-  static const uint8_t POT_WAVEOUT_GAIN_1 = 2;
-  static const uint8_t POT_WAVEOUT_GAIN_2 = 3;
+  static const uint8_t POT_AREF_ = 0;
+  static const uint8_t POT_VGND_ = 1;
+  static const uint8_t POT_WAVEOUT_GAIN_1_ = 2;
+  static const uint8_t POT_WAVEOUT_GAIN_2_ = 3;
+
+  static const uint8_t WAVEFORM_SELECT_ = 9;
 
   static const uint8_t A0_SERIES_RESISTOR_0_ = 13;
   static const uint8_t A1_SERIES_RESISTOR_0_ = 12;
@@ -234,3 +236,4 @@ private:
 #endif
 };
 #endif // _DMF_CONTROL_BOARD_H_
+
