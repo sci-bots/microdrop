@@ -1,14 +1,16 @@
 0.1:
-*Arduino: autorange series resistor
-*calculate impedance from VRMS vs pk-pk
-*Arduino: convert voltages to impedance
-*extract droplet velocity
-
-0.2:
-*calibration functions
 *global voltage/frequency (override per step)
 *don't set voltage/frequency if they haven't changed
-*guess channel numbers
+*save frequency sweep params
+*don't add extra step when you freuency sweep
+*repeat protocol
+*break ProtocolController into Controller and View
+*Redesign protocol class to allow for arbitrary
+ step types (check with ResourceManager to dispatch
+ functions to the right object)
+*view/edit/save experiment log
+
+0.2:
 *Arduino: don't block on function calls (e.g. SampleVoltage
  and MeasureImpedance).  Instead, have device notify
  once the command has finished
@@ -17,6 +19,8 @@
  with AnalogRead)
 
 0.3
+*read PCA9505 chip to automaticall get number of channels and state
+*calibration functions
 *check protocol/version on connect
 *switch serialization to JSON
 *make serialization upgradeable
@@ -29,15 +33,10 @@
 *auto set number of channels based on info from device
  (give warning if channel number in protocol exceeds control
  board capability)
-*read PCA9505 chip to automaticall get number of channels and state
 *documentation
 
 0.4
-*break ProtocolController into Controller and View
 *Arduino: update MAX_SAMPLES to be max bytes
-*Redesign protocol class to allow for arbitrary
- step types (check with ResourceManager to dispatch
- functions to the right object)
 *list view for protocol
 *repeat for step/group
 *cut and paste steps

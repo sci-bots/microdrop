@@ -419,7 +419,7 @@ void DmfControlBoard::ProcessCommand(uint8_t cmd) {
 
                 float Z_fb = A1_SERIES_RESISTORS_[
                                 A1_series_resistor_index_];
-                float V_fb = (float)(fb_max-fb_min)*5.0/1024.0;
+                float V_fb = (float)(fb_max-fb_min)*5.0/1024.0/2*sqrt(0.5);
 
                 impedance_buffer_[2*i] = V_fb;
                 impedance_buffer_[2*i+1] = Z_fb;
