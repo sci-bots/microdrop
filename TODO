@@ -4,6 +4,7 @@
 *extract droplet velocity
 
 0.2:
+*check protocol/version on connect
 *calibration functions
 *global voltage/frequency (override per step)
 *don't set voltage/frequency if they haven't changed
@@ -14,12 +15,20 @@
 *guess channel numbers
 
 0.3
-*Arduino: don't block on function calls (e.g. SampleVoltage
+*fix case of arduino functions begin() vs. Listen()
+*add find method
+*retransmit packets on timeout or CRC error
+*add packet number*Arduino: don't block on function calls (e.g. SampleVoltage
  and MeasureImpedance).  Instead, have device notify
  once the command has finished
 *Arduino: add commands to RemoteObject for AnalogRead/Write,
  DigitalRead/Write, I2C, SPI (Replace SampleVoltageOB
  with AnalogRead)
+*auto set number of channels based on info from device
+ (give warning if channel number in protocol exceeds control
+ board capability)
+*read PCA9505 chip to automaticall get number of channels and state
+*documentation
 
 0.4
 *break ProtocolController into Controller and View
@@ -38,7 +47,6 @@
  different hardware, add custom functionality
 *check_int/float should also enforce ranges
 *error boxes when communication w/ device fails
-*documentation
 
 0.6
 *video capture
@@ -53,3 +61,4 @@
 *build tests
 *online device database
 *store performance data in online repository
+

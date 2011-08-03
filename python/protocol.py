@@ -32,7 +32,7 @@ class Protocol():
         if n_channels:
             self.n_channels = n_channels
         else:
-            self.n_channels = 40
+            self.n_channels = 80
         self.current_step_number = 0
         self.steps = [Step(self.n_channels)]
         self.name = None

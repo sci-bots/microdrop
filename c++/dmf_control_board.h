@@ -181,7 +181,7 @@ private:
 
   // LTC6904 (programmable oscillator) chip address
   static const uint8_t LTC6904_ = 0x17;
-  static const uint16_t NUMBER_OF_CHANNELS_ = 40;
+  static const uint16_t NUMBER_OF_CHANNELS_ = 80;
 #else
   static const char CSV_INDENT_[];
 #endif
