@@ -49,6 +49,7 @@ class ProtocolController():
         self.checkbutton_feedback = builder.get_object("checkbutton_feedback")
         self.image_play = builder.get_object("image_play")
         self.image_pause = builder.get_object("image_pause")
+        self.textentry_protocol_repeats = builder.get_object("textentry_protocol_repeats")
 
         signals["on_button_insert_step_clicked"] = self.on_insert_step
         signals["on_button_delete_step_clicked"] = self.on_delete_step
@@ -73,6 +74,10 @@ class ProtocolController():
                 self.on_textentry_frequency_focus_out
         signals["on_textentry_frequency_key_press_event"] = \
                 self.on_textentry_frequency_key_press
+        signals["on_textentry_protocol_repeats_focus_out_event"] = \
+                self.on_textentry_protocol_repeats_focus_out
+        signals["on_textentry_protocol_repeats_key_press_event"] = \
+                self.on_textentry_protocol_repeats_key_press
         signals["on_textentry_step_time_focus_out_event"] = \
                 self.on_textentry_step_time_focus_out
         signals["on_textentry_step_time_key_press_event"] = \
@@ -185,6 +190,20 @@ class ProtocolController():
                             float)*1e3
         self.update()
 
+    def on_textentry_protocol_repeats_focus_out(self, widget, data=None):
+        self.on_protocol_repeats_changed()
+    
+    def on_textentry_protocol_repeats_key_press(self, widget, event):
+        if event.keyval == 65293: # user pressed enter
+            self.on_protocol_repeats_changed()
+    
+    def on_protocol_repeats_changed(self):
+        self.app.protocol.n_repeats = \
+            check_textentry(self.textentry_protocol_repeats,
+                            self.app.protocol.n_repeats,
+                            int)
+        self.update()
+
     def on_feedback_toggled(self, widget, data=None):
         if self.checkbutton_feedback.get_active():
             if self.app.protocol.current_step().feedback_options is None:
@@ -211,8 +230,9 @@ class ProtocolController():
         self.textentry_step_time.set_text(str(self.app.protocol.current_step().time))
         self.textentry_voltage.set_text(str(self.app.protocol.current_step().voltage))
         self.textentry_frequency.set_text(str(self.app.protocol.current_step().frequency/1e3))
-        self.label_step_number.set_text("Step: %d/%d" % 
-            (self.app.protocol.current_step_number+1, len(self.app.protocol.steps)))
+        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
+            (self.app.protocol.current_step_number+1, len(self.app.protocol.steps),
+             self.app.protocol.current_repetition+1, self.app.protocol.n_repeats))
 
         if self.app.is_running:
             self.button_run_protocol.set_image(self.image_pause)

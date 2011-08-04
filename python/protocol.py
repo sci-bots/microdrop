@@ -36,6 +36,8 @@ class Protocol():
         self.current_step_number = 0
         self.steps = [Step(self.n_channels)]
         self.name = None
+        self.n_repeats = 1
+        self.current_repetition = 0
 
     def __len__(self):
         return len(self.steps)
@@ -88,12 +90,18 @@ class Protocol():
                                    self.current_step().frequency,
                                    self.current_step().feedback_options))
         self.goto_step(self.current_step_number+1)
+        
+    def next_repetition(self):
+        if self.current_repetition < self.n_repeats-1:
+            self.current_repetition += 1
+            self.goto_step(0)
             
     def prev_step(self):
         if self.current_step_number > 0:
             self.goto_step(self.current_step_number-1)
 
     def first_step(self):
+        self.current_repetition = 0
         self.goto_step(0)
 
     def last_step(self):

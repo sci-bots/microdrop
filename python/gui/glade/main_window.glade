@@ -865,17 +865,6 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHSeparator" id="hseparator3">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">15</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkHBox" id="hbox7">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -916,7 +905,7 @@
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="padding">2</property>
-                    <property name="position">16</property>
+                    <property name="position">15</property>
                   </packing>
                 </child>
                 <child>
@@ -927,7 +916,79 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
+                    <property name="position">16</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkHBox" id="hbox9">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkLabel" id="label5">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="xalign">0</property>
+                        <property name="label" translatable="yes">Repeat protocol:</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="padding">2</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="textentry_protocol_repeats">
+                        <property name="width_request">50</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="invisible_char">●</property>
+                        <property name="width_chars">5</property>
+                        <property name="text" translatable="yes">1</property>
+                        <property name="xalign">0.5</property>
+                        <property name="primary_icon_activatable">False</property>
+                        <property name="secondary_icon_activatable">False</property>
+                        <property name="primary_icon_sensitive">True</property>
+                        <property name="secondary_icon_sensitive">True</property>
+                        <signal name="key-press-event" handler="on_textentry_protocol_repeats_key_press_event" swapped="no"/>
+                        <signal name="focus-out-event" handler="on_textentry_protocol_repeats_focus_out_event" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label9">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">times</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="padding">2</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="padding">2</property>
                     <property name="position">17</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkHSeparator" id="hseparator3">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">18</property>
                   </packing>
                 </child>
                 <child>
@@ -941,7 +1002,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">3</property>
-                    <property name="position">18</property>
+                    <property name="position">19</property>
                   </packing>
                 </child>
               </object>

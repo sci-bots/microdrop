@@ -129,6 +129,8 @@ class App:
         
         if self.protocol.current_step_number < len(self.protocol)-1:
             self.protocol.next_step()
+        elif self.protocol.current_repetition < self.protocol.n_repeats-1:
+            self.protocol.next_repetition()
         else: # we're on the last step
             self.is_running = False
             self.experiment_log_controller.save()
