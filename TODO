@@ -1,9 +1,13 @@
 0.1:
+*auto update over internet
+*create zip file with python binaries, git, arduino uploading code
+*fix bug in connecting to arduino if there is another COM port
+*save experiment_log data after each repetition
+*implement feedback
 *global voltage/frequency (override per step)
 *don't set voltage/frequency if they haven't changed
 *save frequency sweep params
-*don't add extra step when you freuency sweep
-*repeat protocol
+*don't add extra step when you frequency sweep
 *break ProtocolController into Controller and View
 *Redesign protocol class to allow for arbitrary
  step types (check with ResourceManager to dispatch
@@ -17,6 +21,7 @@
 *Arduino: add commands to RemoteObject for AnalogRead/Write,
  DigitalRead/Write, I2C, SPI (Replace SampleVoltageOB
  with AnalogRead)
+*retransmit packets on timeout or CRC error
 
 0.3
 *read PCA9505 chip to automaticall get number of channels and state
@@ -28,14 +33,13 @@
 *disable protocol save/load/rename/etc. unless a device is loaded
 *fix case of arduino functions begin() vs. Listen()
 *add find method
-*retransmit packets on timeout or CRC error
+
+0.4
 *add packet number
 *auto set number of channels based on info from device
  (give warning if channel number in protocol exceeds control
  board capability)
 *documentation
-
-0.4
 *Arduino: update MAX_SAMPLES to be max bytes
 *list view for protocol
 *repeat for step/group
@@ -57,7 +61,6 @@
 
 1.0
 *make installer (Inno or Nullsoft)
-*auto update over internet
 *unit tests
 *build tests
 *online device database
