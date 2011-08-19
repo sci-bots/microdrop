@@ -76,7 +76,7 @@ class ExperimentLog():
                     time.append(i['time'])
                 else:
                     time.append(None)
-                if i.keys().count('time'):
+                if i.keys().count('step'):
                     step.append(i['step'])
                 else:
                     step.append(None)
