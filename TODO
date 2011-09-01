@@ -2,7 +2,8 @@
 *fix bug in connecting to arduino if there is another COM port
 *fix device renaming
 *fix bug where log directory doesn't exist for new device
-*add voltage and frequency limits
+*add voltage, frequency and current limits
+*store series resistor values in EEPROM (add config function)
 *fix update_and_run.py so that it can run without the console (pytonw) while
  version numbering still works (http://bit.ly/pV2RIX)
 *autoincrement channel number when setting up device (and make OK default so
