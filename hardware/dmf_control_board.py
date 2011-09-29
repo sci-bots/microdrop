@@ -18,7 +18,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from dmf_control_board_base import DmfControlBoard as Base
-from dmf_control_board_base import uint8_tVector
+from dmf_control_board_base import uint8_tVector, INPUT, OUTPUT, HIGH, LOW
 
 import numpy
 
@@ -31,6 +31,40 @@ class DmfControlBoard(Base):
         for i in range(0, len(state)):
             state_.append(int(state[i]))
         return Base.set_state_of_all_channels(self, state_)
+
+    def default_pin_modes(self):
+        pin_modes = []
+        for i in range(0,53/8+1):
+            mode = self.eeprom_read(self.EEPROM_PIN_MODE_ADDRESS+i)
+            for j in range(0,8):
+                if i*8+j<=53:
+                    pin_modes.append(~mode>>j&0x01)
+        return pin_modes
+        
+    def set_default_pin_modes(self, pin_modes):
+        for i in range(0,53/8+1):
+            mode = 0
+            for j in range(0,8):
+                if i*8+j<=53:
+                    mode += pin_modes[i*8+j]<<j
+            self.eeprom_write(self.EEPROM_PIN_MODE_ADDRESS+i,~mode&0xFF)
+            
+    def default_pin_states(self):
+        pin_states = []
+        for i in range(0,53/8+1):
+            state = self.eeprom_read(self.EEPROM_PIN_STATE_ADDRESS+i)
+            for j in range(0,8):
+                if i*8+j<=53:
+                    pin_states.append(~state>>j&0x01)
+        return pin_states
+        
+    def set_default_pin_states(self, pin_states):
+        for i in range(0,53/8+1):
+            state = 0
+            for j in range(0,8):
+                if i*8+j<=53:
+                    state += pin_states[i*8+j]<<j
+            self.eeprom_write(self.EEPROM_PIN_STATE_ADDRESS+i,~state&0xFF)
 
     def SampleVoltage(self, ad_channel, n_samples, n_sets,
                          delay_between_sets_ms, state):
