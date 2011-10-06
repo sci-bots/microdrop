@@ -3,12 +3,18 @@ import py2exe
 import glob
 
 setup(
-    windows=["microdrop.py"],
+    windows= [
+        {
+            "script": "microdrop.py", # Main Python script    
+            "icon_resources": [(0, "microdrop.ico")] # Icon to embed into the PE file.
+        }
+    ],
     # compressed and optimize reduce the size
     options = {"py2exe": {
-        "compressed": 2,
+        "compressed": 1,
         "optimize": 2,
-        "includes": "atk,gtk,gobject,cairo,gio,pango,pangocairo",
+        "includes": ['atk','gtk','gobject','cairo','gio','pango',
+                    'pangocairo'],
         "excludes": ['_gtkagg', '_tkagg', 'bsddb', 'curses', 'email',
             'pywin.debugger','pywin.debugger.dbgcon', 'pywin.dialogs',
             'tcl', 'Tkconstants', 'Tkinter'],
