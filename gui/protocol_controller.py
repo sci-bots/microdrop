@@ -17,12 +17,15 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import gtk, os, math
-from protocol import Protocol, FeedbackOptions, load as load_protocol
-from utility import check_textentry, is_float, is_int
+import gtk, gobject, os, math, time
 import numpy as np
+from protocol import Protocol, load as load_protocol
+from utility import check_textentry, is_float, is_int
+from plugin_manager import ExtensionPoint, IPlugin
 
-class ProtocolController():
+class ProtocolController(object):    
+    observers = ExtensionPoint(IPlugin)
+    
     def __init__(self, app, builder, signals):
         self.app = app
         self.filename = None
@@ -37,7 +40,6 @@ class ProtocolController():
         self.button_copy_step = builder.get_object("button_insert_copy")
         self.button_delete_step = builder.get_object("button_delete_step")
         self.button_run_protocol = builder.get_object("button_run_protocol")
-        self.button_feedback_options = builder.get_object("button_feedback_options")
         self.label_step_number = builder.get_object("label_step_number")
         self.menu_save_protocol = builder.get_object("menu_save_protocol")
         self.menu_save_protocol_as = builder.get_object("menu_save_protocol_as")
@@ -46,7 +48,6 @@ class ProtocolController():
         self.textentry_voltage = builder.get_object("textentry_voltage")
         self.textentry_frequency = builder.get_object("textentry_frequency")
         self.textentry_step_time = builder.get_object("textentry_step_time")
-        self.checkbutton_feedback = builder.get_object("checkbutton_feedback")
         self.image_play = builder.get_object("image_play")
         self.image_pause = builder.get_object("image_pause")
         self.textentry_protocol_repeats = builder.get_object("textentry_protocol_repeats")
@@ -59,7 +60,6 @@ class ProtocolController():
         signals["on_button_next_step_clicked"] = self.on_next_step
         signals["on_button_last_step_clicked"] = self.on_last_step
         signals["on_button_run_protocol_clicked"] = self.on_run_protocol
-        signals["on_button_feedback_options_clicked"] = self.on_feedback_options
         signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         signals["on_menu_load_protocol_activate"] = self.on_load_protocol
         signals["on_menu_rename_protocol_activate"] = self.on_rename_protocol
@@ -82,8 +82,10 @@ class ProtocolController():
                 self.on_textentry_step_time_focus_out
         signals["on_textentry_step_time_key_press_event"] = \
                 self.on_textentry_step_time_key_press
-        signals["on_checkbutton_feedback_toggled"] = \
-                self.on_feedback_toggled
+
+        store = gtk.ListStore(gobject.TYPE_STRING)
+        cell = gtk.CellRendererText()
+        store.append(["Normal"])
 
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()
@@ -115,7 +117,11 @@ class ProtocolController():
 
     def on_new_protocol(self, widget, data=None):
         self.filename = None
-        self.app.protocol = Protocol()
+
+        # delete all steps
+        while len(self.app.protocol.steps) > 1:
+            self.app.protocol.delete_step()
+        self.app.protocol.delete_step() # still need to delete the first step
         self.app.main_window_controller.update()
 
     def on_load_protocol(self, widget, data=None):
@@ -204,27 +210,111 @@ class ProtocolController():
                             int)
         self.update()
 
+    """
     def on_feedback_toggled(self, widget, data=None):
         if self.checkbutton_feedback.get_active():
             if self.app.protocol.current_step().feedback_options is None:
                 self.app.protocol.current_step().feedback_options = \
                     FeedbackOptions()
-            self.button_feedback_options.set_sensitive(True)
+            self.button_step_type_options.set_sensitive(True)
             self.textentry_step_time.set_sensitive(False)
         else:
             self.app.protocol.current_step().feedback_options = None
-            self.button_feedback_options.set_sensitive(False)
+            self.button_step_type_options.set_sensitive(False)
             self.textentry_step_time.set_sensitive(True)
+    """
             
     def on_run_protocol(self, widget, data=None):
-        if self.app.is_running:
-            self.app.pause_protocol()
+        if self.app.running:
+            self.pause_protocol()
+            for observer in self.observers:
+                if hasattr(observer, "on_protocol_pause"):
+                    observer.on_protocol_pause()
         else:
-            self.app.run_protocol()
+            self.run_protocol()
+            for observer in self.observers:
+                if hasattr(observer, "on_protocol_run"):
+                    observer.on_protocol_run()
 
-    def on_feedback_options(self, widget, data=None):
-        FeedbackOptionsDialog(self.app).run()
+    def run_protocol(self):
+        self.app.running = True
+        self.run_step()
+
+    def pause_protocol(self):
+        self.app.running = False
+        
+    def run_step(self):
         self.app.main_window_controller.update()
+        if self.app.control_board.connected():
+            data = {"step":self.app.protocol.current_step_number,
+                    "time":time.time()}
+            
+            """            
+            feedback_options = \
+                self.protocol.current_step().feedback_options
+            """
+            
+            state = self.app.protocol.current_step().state_of_channels
+
+            """
+            if feedback_options: # run this step with feedback
+                ad_channel = 1
+
+                # measure droplet impedance
+                self.control_board.set_series_resistor(ad_channel, 2)
+                
+                impedance = self.control_board.MeasureImpedance(
+                           feedback_options.sampling_time_ms,
+                           feedback_options.n_samples,
+                           feedback_options.delay_between_samples_ms,
+                           state)
+                V_fb = impedance[0::2]
+                Z_fb = impedance[1::2]
+                V_total = self.protocol.current_step().voltage
+                Z_device = Z_fb*(V_total/V_fb-1)
+                data["Z_device"] = Z_device
+                data["V_fb"] = V_fb
+                data["Z_fb"] = Z_fb
+
+                # measure the voltage waveform for each series resistor
+                for i in range(0,4):
+                    self.control_board.set_series_resistor(ad_channel,i)
+                    voltage_waveform = self.control_board.SampleVoltage(
+                                [ad_channel], 1000, 1, 0, state)
+                    data["voltage waveform (Resistor=%.1f kOhms)" %
+                         (self.control_board.series_resistor(ad_channel)/1000.0)] = \
+                         voltage_waveform
+            else:   # run without feedback
+                self.control_board.set_state_of_all_channels(state)
+                time.sleep(self.protocol.current_step().time/1000.0)
+            """
+
+            self.app.control_board.set_state_of_all_channels(state)
+            time.sleep(self.app.protocol.current_step().time/1000.0)
+
+            """
+            # TODO: temproary hack to measure temperature
+            state = np.zeros(len(state))
+            voltage_waveform = self.control_board.SampleVoltage(
+                        [15], 10, 1, 0, state)
+            temp = np.mean(voltage_waveform/1024.0*5.0/0.01)
+            print temp
+            data["AD595 temp"] = temp
+            """
+            self.app.experiment_log.add_data(data)
+        else: # run through protocol (even though device is not connected)
+            time.sleep(self.app.protocol.current_step().time/1000.0)
+                
+        if self.app.protocol.current_step_number < len(self.app.protocol)-1:
+            self.app.protocol.next_step()
+        elif self.app.protocol.current_repetition < self.app.protocol.n_repeats-1:
+            self.app.protocol.next_repetition()
+        else: # we're on the last step
+            self.app.running = False
+            self.app.experiment_log_controller.save()
+
+        if self.app.running:
+            self.run_step()
 
     def update(self):
         self.textentry_step_time.set_text(str(self.app.protocol.current_step().time))
@@ -234,67 +324,26 @@ class ProtocolController():
             (self.app.protocol.current_step_number+1, len(self.app.protocol.steps),
              self.app.protocol.current_repetition+1, self.app.protocol.n_repeats))
 
-        if self.app.is_running:
+        if self.app.running:
             self.button_run_protocol.set_image(self.image_pause)
         else:
             self.button_run_protocol.set_image(self.image_play)
 
-        # if this step has feedback enabled
-        if self.app.protocol.current_step().feedback_options:
-            self.checkbutton_feedback.set_active(True)
-        else:
-            self.checkbutton_feedback.set_active(False)
-        
         if self.app.control_board.connected() and \
-            (self.app.realtime_mode or self.app.is_running):
+            (self.app.realtime_mode or self.app.running):
             if self.app.func_gen.is_connected():
                 self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage*math.sqrt(2)/200)
                 self.app.func_gen.set_frequency(self.app.protocol.current_step().frequency)
             else:
                 self.app.control_board.set_actuation_voltage(float(self.app.protocol.current_step().voltage))
                 self.app.control_board.set_actuation_frequency(float(self.app.protocol.current_step().frequency))
-            if self.app.is_running is False:
+            if self.app.running is False:
                 state = self.app.protocol.state_of_all_channels()
                 self.app.control_board.set_state_of_all_channels(state)
-                
-class FeedbackOptionsDialog:
-    def __init__(self, app):
-        builder = gtk.Builder()
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "feedback_options_dialog.glade"))
-        self.dialog = builder.get_object("feedback_options_dialog")
-        self.dialog.set_transient_for(app.main_window_controller.view)
-        self.options = app.protocol.current_step().feedback_options
-        self.textentry_sampling_time_ms = \
-            builder.get_object("textentry_sampling_time_ms")
-        self.textentry_n_samples = \
-            builder.get_object("textentry_n_samples")
-        self.textentry_delay_between_samples_ms = \
-            builder.get_object("textentry_delay_between_samples_ms")
 
-        self.textentry_sampling_time_ms.set_text(str(self.options.sampling_time_ms))
-        self.textentry_n_samples.set_text(str(self.options.n_samples))
-        self.textentry_delay_between_samples_ms.set_text(
-                                         str(self.options.delay_between_samples_ms))
-        
-    def run(self):
-        response = self.dialog.run()
-        if response == gtk.RESPONSE_OK:
-            self.options.sampling_time_ms = \
-                check_textentry(self.textentry_sampling_time_ms,
-                                self.options.sampling_time_ms,
-                                int)
-            self.options.n_samples = \
-                check_textentry(self.textentry_n_samples,
-                                self.options.n_samples,
-                                int)
-            self.options.delay_between_samples_ms = \
-                check_textentry(self.textentry_delay_between_samples_ms,
-                                self.options.delay_between_samples_ms,
-                                int)
-        self.dialog.hide()
-        return response
+        for observer in self.observers:
+            if hasattr(observer, "on_protocol_update"):
+                observer.on_protocol_update()
 
 class AddFrequencySweepDialog:
     def __init__(self, app):

@@ -21,11 +21,14 @@ import os
 import gtk
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string
+from plugin_manager import ExtensionPoint, IPlugin
+
 
 class MainWindowController:
+    observers = ExtensionPoint(IPlugin)
+
     def __init__(self, app, builder, signals):
         self.app = app
-        
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "main_window.glade"))
@@ -35,6 +38,7 @@ class MainWindowController:
         self.label_device_name = builder.get_object("label_device_name")
         self.label_protocol_name = builder.get_object("label_protocol_name")
         self.checkbutton_realtime_mode = builder.get_object("checkbutton_realtime_mode")
+        self.menu_tools = builder.get_object("menu_tools")
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "about_dialog.glade"))
@@ -62,6 +66,9 @@ class MainWindowController:
 
     def on_delete_event(self, widget, data=None):
         self.app.config_controller.on_quit()
+        for observer in self.observers:
+            if hasattr(observer, "on_app_exit"):
+                observer.on_app_exit()
 
     def on_destroy(self, widget, data=None):
         gtk.main_quit()
