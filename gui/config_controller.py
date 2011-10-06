@@ -18,6 +18,8 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os, gtk, shutil
+from dmf_device import DmfDevice, load as load_dmf_device
+from protocol import Protocol, load as load_protocol
 
 class ConfigController():
     def __init__(self, app):
@@ -132,3 +134,33 @@ class ConfigController():
         self.save_dmf_device()
         self.save_protocol()
         self.app.config.save()
+        
+    def load_dmf_device(self):
+        # try what's specified in config file
+        if self.app.config.dmf_device_name:
+            try:
+                path = os.path.join(self.app.config.dmf_device_directory,
+                                    self.app.config.dmf_device_name,
+                                    "device")
+                return load_dmf_device(path)
+            except:
+                raise Exception("Error loading DMF device")
+
+        # otherwise, return a new object
+        return DmfDevice()
+    
+    def load_protocol(self):
+        # try what's specified in config file
+        if self.app.config.protocol_name:
+            try:
+                path = os.path.join(self.app.config.dmf_device_directory,
+                                    self.app.config.dmf_device_name,
+                                    "protocols",
+                                    self.app.config.protocol_name)
+
+                return load_protocol(path)
+            except:
+                raise Exception("Error loading protocol")
+
+        # otherwise, return a new object
+        return Protocol()        

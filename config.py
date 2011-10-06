@@ -18,8 +18,6 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os, cPickle
-from dmf_device import DmfDevice, load as load_dmf_device
-from protocol import Protocol, load as load_protocol
 
 def load(filename=None):
     if filename is None:
@@ -46,34 +44,3 @@ class Config():
         f = open(filename, 'wb')
         cPickle.dump(self, f, -1)
         f.close()
-        
-    def load_dmf_device(self):
-        # try what's specified in config file
-        if self.dmf_device_name:
-            try:
-                path = os.path.join(self.dmf_device_directory,
-                                    self.dmf_device_name,
-                                    "device")
-                return load_dmf_device(path)
-            except:
-                pass
-                #raise Exception("Error loading DMF device")
-
-        # otherwise, return a new object
-        return DmfDevice()
-    
-    def load_protocol(self):
-        # try what's specified in config file
-        if self.protocol_name:
-            try:
-                path = os.path.join(self.dmf_device_directory,
-                                    self.dmf_device_name,
-                                    "protocols",
-                                    self.protocol_name)
-                return load_protocol(path)
-            except:
-                pass
-                #raise Exception("Error loading protocol")
-
-        # otherwise, return a new object
-        return Protocol()

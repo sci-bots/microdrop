@@ -1,29 +1,30 @@
-0.1:
-*fix bug in connecting to arduino if there is another COM port
+0.2:
+*fix case of arduino functions begin() vs. Listen():
+  *in dmf_control_board module (functions SampleVoltage and MeasureImpedance
+   should not be CamelCase
+  *c++ code should follow Arduino conventions
+*add pinmode, analog_read/write, I2C, SPI, OneWire
+*keyboard shortcuts (left and right arrows for stepping through sequence)
+*save experiment_log data after each repetition
 *fix device renaming
 *fix bug where log directory doesn't exist for new device
-*add voltage, frequency and current limits
-*store series resistor values in EEPROM (add config function)
-*fix update_and_run.py so that it can run without the console (pytonw) while
- version numbering still works (http://bit.ly/pV2RIX)
-*autoincrement channel number when setting up device (and make OK default so
- that the user can just press enter)
-*save experiment_log data after each repetition
 *implement feedback
 *global voltage/frequency (override per step)
 *don't set voltage/frequency if they haven't changed
 *save frequency sweep params
 *don't add extra step when you frequency sweep
+
+0.3:
 *Arduino: don't block on function calls (e.g. SampleVoltage
  and MeasureImpedance).  Instead, have device notify
  once the command has finished
-*Arduino: add commands to RemoteObject for AnalogRead/Write,
- DigitalRead/Write, I2C, SPI (Replace SampleVoltageOB
- with AnalogRead)
 *retransmit packets on timeout or CRC error
-*autoupdate (make separate dev/release repositories)
-
-0.2:
+*autoupdate
+*autofetch binaries (arduino firmware, control board library)
+ over the network
+*store series resistor values in EEPROM (add config function)
+*fix update_and_run.py so that it can run without the console (pytonw) while
+ version numbering still works (http://bit.ly/pV2RIX)
 *switch serialization to JSON
 *make serialization upgradeable
 *break ProtocolController into Controller and View
@@ -33,16 +34,15 @@
 *view/edit/save experiment log
 *list view for protocol
 
-0.3
-*read PCA9505 chip to automaticall get number of channels and state
+0.4
+*read PCA9505 chip to automatically get number of channels and state
 *calibration functions
 *check protocol/version on connect
 *disable gui components if no device is loaded
 *disable protocol save/load/rename/etc. unless a device is loaded
-*fix case of arduino functions begin() vs. Listen()
 *add find method
 
-0.4
+0.5
 *add packet number
 *auto set number of channels based on info from device
  (give warning if channel number in protocol exceeds control
@@ -54,20 +54,17 @@
 *subprotocols (e.g. dispense) that can be assigned to the
  right-click menu of an electrode
 
-0.5
+0.6
 *PluginManager class to abstract the use of
  different hardware, add custom functionality
 *check_int/float should also enforce ranges
 *error boxes when communication w/ device fails
 
-0.6
-*video capture
-
 0.7
+*video capture
 *refactor code into client/daemon
 
 1.0
-*make installer (Inno or Nullsoft)
 *unit tests
 *build tests
 *online device database
