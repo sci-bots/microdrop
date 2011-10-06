@@ -138,7 +138,10 @@ class ProtocolController(object):
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             self.filename = dialog.get_filename()
-            self.app.protocol = load_protocol(self.filename)
+            try:
+                self.app.protocol = load_protocol(self.filename)
+            except:
+                self.app.main_window_controller.error("Could not open %s" % self.filename)
         dialog.destroy()
         self.app.main_window_controller.update()
 

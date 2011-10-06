@@ -144,7 +144,8 @@ class ConfigController():
                                     "device")
                 return load_dmf_device(path)
             except:
-                raise Exception("Error loading DMF device")
+                self.app.config.dmf_device_name = ""
+                self.app.main_window_controller.error("Could not open %s" % path)
 
         # otherwise, return a new object
         return DmfDevice()
@@ -157,10 +158,10 @@ class ConfigController():
                                     self.app.config.dmf_device_name,
                                     "protocols",
                                     self.app.config.protocol_name)
-
                 return load_protocol(path)
             except:
-                raise Exception("Error loading protocol")
+                self.app.config.protocol_name = ""
+                self.app.main_window_controller.error("Could not open %s" % path)
 
         # otherwise, return a new object
         return Protocol()        

@@ -44,33 +44,40 @@ class App:
         self.running = False
         self.builder = gtk.Builder()
         signals = {}
+
+        # function generator
+        self.func_gen = Agilent33220A()
+       
+        # control board
+        self.control_board = DmfControlBoard()
+        #self.control_board.set_debug(True)
         
         # load plugins
         self.plugin_manager = PluginManager()
+
+        # main window
+        self.main_window_controller = MainWindowController(self, self.builder,
+                                                           signals)
 
         # config model and controller
         self.config = load_config()
         self.config_controller = ConfigController(self)
         
-        # models
+        # dmf device
         self.dmf_device = self.config_controller.load_dmf_device()
+        self.dmf_device_controller = DmfDeviceController(self, self.builder,
+                                                         signals)
+        # protocol
         self.protocol = self.config_controller.load_protocol()
-        self.control_board = DmfControlBoard()
-        #self.control_board.set_debug(True)
-        self.func_gen = Agilent33220A()
+        self.protocol_controller = ProtocolController(self, self.builder,
+                                                      signals)
+        
+        # experiment logs
         device_path = None
         if self.dmf_device.name:
             device_path = os.path.join(self.config.dmf_device_directory,
                                        self.dmf_device.name, "logs")
         self.experiment_log = ExperimentLog(device_path)
-
-        # controllers
-        self.main_window_controller = MainWindowController(self, self.builder,
-                                                           signals)
-        self.dmf_device_controller = DmfDeviceController(self, self.builder,
-                                                         signals)
-        self.protocol_controller = ProtocolController(self, self.builder,
-                                                      signals)
         self.experiment_log_controller = ExperimentLogController(self)
         
         for observer in self.observers:
