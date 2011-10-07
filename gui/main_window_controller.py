@@ -17,8 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
-import gtk
+import os, gtk, time
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string
 from plugin_manager import ExtensionPoint, IPlugin
@@ -53,9 +52,9 @@ class MainWindowController:
         for i in range(0,31):
             if app.control_board.Connect("COM%d" % i) == DmfControlBoard.RETURN_OK:
                 name = app.control_board.name()
-                version = app.control_board.hardware_version()
-                if name == "Arduino DMF Controller" and version == "1.1":
-                    self.label_connection_status.set_text(name + " v" + version)
+                version = float(app.control_board.hardware_version())
+                if name == "Arduino DMF Controller" and version >= 1.1:
+                    self.label_connection_status.set_text(name + " v" + str(version))
                     app.control_board.set_series_resistor(1,3)
                     app.control_board.set_series_resistor(0,0)
                     break
