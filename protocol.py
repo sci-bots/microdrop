@@ -35,11 +35,8 @@ def load(filename):
 class Protocol():
     observers = ExtensionPoint(IPlugin)
     
-    def __init__(self, name=None, n_channels=None):
-        if n_channels:
-            self.n_channels = n_channels
-        else:
-            self.n_channels = 80
+    def __init__(self, n_channels=0, name=None):
+        self.n_channels = n_channels
         self.current_step_number = 0
         self.steps = [Step(self.n_channels)]
         self.name = None
@@ -63,6 +60,12 @@ class Protocol():
 
     def state_of_all_channels(self):
         return self.current_step().state_of_channels
+
+    def set_number_of_channels(self, n_channels):
+        self.n_channels = n_channels
+        for step in self.steps:
+            step.state_of_channels = np.resize(step.state_of_channels,
+                                               n_channels)
 
     def current_step(self):
         return self.steps[self.current_step_number]

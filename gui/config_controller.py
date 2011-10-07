@@ -164,4 +164,4 @@ class ConfigController():
                 self.app.main_window_controller.error("Could not open %s" % path)
 
         # otherwise, return a new object
-        return Protocol()        
+        return Protocol(self.app.dmf_device.max_channel()+1)
