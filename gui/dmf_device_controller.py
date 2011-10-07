@@ -57,11 +57,11 @@ class EditElectrodeDialog:
                         channels[i] = int(channels[i])
                 else:
                     channels = []
-                if channels and max(channels) > self.app.protocol.max_channel():
+                if channels and max(channels) >= self.app.protocol.n_channels:
                     self.app.protocol.set_number_of_channels(max(channels)+1)
                 self.electrode.channels = channels
             except:
-                print "error"
+                self.app.main_window_controller.error("Invalid channel.")
         self.dialog.hide()
         return response
 
