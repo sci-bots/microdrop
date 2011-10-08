@@ -35,11 +35,15 @@ class App:
         
     def __init__(self):
         # get the version number
+        self.version = ""
         try:
             self.version = subprocess.Popen(['git','describe'],
                            stdout=subprocess.PIPE).communicate()[0].rstrip()
         except:
-            self.version = "0.1.40"
+            pass
+        if len(self.version) == 0:
+            self.version = "0.1.41"
+            
         self.realtime_mode = False
         self.running = False
         self.builder = gtk.Builder()
