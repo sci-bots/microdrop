@@ -22,6 +22,15 @@ import gtk
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string
 
+
+class MicroDropError(Exception):
+    pass
+
+
+class ConnectionError(MicroDropError):
+    pass
+
+
 class MainWindowController:
     def __init__(self, app, builder, signals):
         self.app = app
@@ -46,16 +55,38 @@ class MainWindowController:
         signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
 
-        for i in range(0,31):
-            if app.control_board.Connect("COM%d" % i) == DmfControlBoard.RETURN_OK:
-                name = app.control_board.name()
-                version = app.control_board.hardware_version()
-                if name == "Arduino DMF Controller" and version == "1.1":
-                    self.label_connection_status.set_text(name + " v" + version)
-                    app.control_board.set_series_resistor(1,3)
-                    app.control_board.set_series_resistor(0,0)
+        if os.name == 'nt':
+            # Windows
+            for i in range(0,31):
+                try:
+                    self._register_serial_device("COM%d" % i)
                     break
+                except MicroDropError:
+                    pass
+        else:
+            # Assume Linux (Ubuntu)...
+            from path import path
+
+            for tty in path('/dev').walk('ttyUSB*'):
+                try:
+                    self._register_serial_device(tty)
+                    break
+                except MicroDropError:
+                    pass
+
+
+    def _register_serial_device(self, port):
+        if self.app.control_board.Connect(port) == DmfControlBoard.RETURN_OK:
+            name = self.app.control_board.name()
+            version = self.app.control_board.hardware_version()
+            if name == "Arduino DMF Controller" and version == "1.1":
+                self.label_connection_status.set_text(name + " v" + version)
+                self.app.control_board.set_series_resistor(1,3)
+                self.app.control_board.set_series_resistor(0,0)
+                return
+        raise ConnectionError('Could not connect to port: %s' % port)
                 
+
     def main(self):
         self.update()
         gtk.main()
