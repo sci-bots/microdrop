@@ -1,0 +1,2 @@
+Documentation can be generated using:
+    sphinx-autopackage-script/generate_modules.py ../microdrop -d . -s rst
