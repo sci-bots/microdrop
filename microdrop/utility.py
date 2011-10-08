@@ -26,6 +26,9 @@ def is_int(s):
     except (ValueError, TypeError), e: return False
 
 def wrap_string(string, line_length=80, wrap_characters="\n"):    
+    '''
+    This is a test docstring for wrap_string.
+    '''
     chars = 0
     wrapped_string = ""
     for word in string.split():

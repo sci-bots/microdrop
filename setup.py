@@ -3,7 +3,7 @@ import py2exe
 import glob
 
 setup(
-    windows=["microdrop.py"],
+    windows=["microdrop/microdrop.py"],
     # compressed and optimize reduce the size
     options = {"py2exe": {
         "compressed": 2,
@@ -12,7 +12,7 @@ setup(
         "excludes": ['_gtkagg', '_tkagg', 'bsddb', 'curses', 'email',
             'pywin.debugger','pywin.debugger.dbgcon', 'pywin.dialogs',
             'tcl', 'Tkconstants', 'Tkinter'],
-        "packages": ["hardware.dmf_control_board", "glib._glib"],
+        "packages": ["microdrop/hardware.dmf_control_board", "glib._glib"],
         "dll_excludes": ["API-MS-Win-Core-Debug-L1-1-0.dll",
             "API-MS-Win-Core-DelayLoad-L1-1-0.dll",
             "API-MS-Win-Core-ErrorHandling-L1-1-0.dll",
@@ -43,6 +43,6 @@ setup(
         "custom_boot_script": "",
         }
     },
-    data_files=[("gui/glade", glob.glob("gui/glade/*.*"))]
+    data_files=[("microdrop/gui/glade", glob.glob("microdrop/gui/glade/*.*"))]
 )
 

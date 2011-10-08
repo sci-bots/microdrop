@@ -1,0 +1,10 @@
+Documentation source files can be generated using:
+    sphinx-autopackage-script/generate_modules.py ../microdrop -d . -s rst
+  or
+    scons genrst="sphinx-autopackage-script/generate_modules.py ../microdrop -d . -s rst"
+
+Documentation can then be generated using:
+    scons <output_type> (default=html)
+
+For usage, type:
+    scons -h
