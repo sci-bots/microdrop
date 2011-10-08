@@ -26,10 +26,8 @@ def load(filename):
     f = open(filename, 'rb')
     protocol = cPickle.load(f)
     f.close()
-    
-    print "The following plugins may be required by this protocol:"
-    for p in protocol.required_plugins:
-        print "\t%s v%s" % (p[0], p[1])
+    for (name, (version, data)) in protocol.plugin_data.items():
+        protocol.observers.service(name).on_protocol_load(version, data)
     return protocol
 
 class Protocol():
@@ -42,15 +40,16 @@ class Protocol():
         self.name = None
         self.n_repeats = 1
         self.current_repetition = 0
-        self.required_plugins = []
+        self.plugin_data = {}
 
     def __len__(self):
         return len(self.steps)
 
     def save(self, filename):
-        self.required_plugins = []
+        self.plugin_data = {}
         for observer in self.observers:
-            self.required_plugins.append((observer.name, observer.version))
+            if hasattr(observer, "on_protocol_save"):
+                observer.on_protocol_save()
         f = open(filename, 'wb')
         cPickle.dump(self, f, -1)
         f.close()

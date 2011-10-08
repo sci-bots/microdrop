@@ -39,7 +39,7 @@ class App:
             self.version = subprocess.Popen(['git','describe'],
                            stdout=subprocess.PIPE).communicate()[0].rstrip()
         except:
-            self.version = "0.1"
+            self.version = "0.1.40"
         self.realtime_mode = False
         self.running = False
         self.builder = gtk.Builder()

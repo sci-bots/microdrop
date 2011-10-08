@@ -66,6 +66,18 @@ class IPlugin(Interface):
         """
         pass
 
+    def on_protocol_save():
+        """
+        Handler called when a protocol is saved.
+        """
+        pass
+    
+    def on_protocol_load():
+        """
+        Handler called when a protocol is loaded.
+        """
+        pass
+
     def on_protocol_run():
         """
         Handler called when a protocol starts running.
