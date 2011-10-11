@@ -50,7 +50,7 @@ class MainWindowController:
                 self.on_realtime_mode_toggled
 
         for i in range(0,31):
-            if app.control_board.Connect("COM%d" % i) == DmfControlBoard.RETURN_OK:
+            if app.control_board.connect("COM%d" % i) == DmfControlBoard.RETURN_OK:
                 time.sleep(10)
                 name = app.control_board.name()
                 version = 0
