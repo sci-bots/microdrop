@@ -51,15 +51,13 @@ class MainWindowController:
 
         for i in range(0,31):
             if app.control_board.connect("COM%d" % i) == DmfControlBoard.RETURN_OK:
-                time.sleep(10)
+                app.control_board.flush()
                 name = app.control_board.name()
                 version = 0
                 if is_float(app.control_board.hardware_version()):
                     version = float(app.control_board.hardware_version())
                 if name == "Arduino DMF Controller" and version >= 1.1:
                     self.label_connection_status.set_text(name + " v" + str(version))
-                    app.control_board.set_series_resistor(1,3)
-                    app.control_board.set_series_resistor(0,0)
                     break
                 
     def main(self):
