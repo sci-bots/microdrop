@@ -117,11 +117,12 @@ class ProtocolController(object):
 
     def on_new_protocol(self, widget, data=None):
         self.filename = None
-
-        # delete all steps
+        # delete all steps (this is necessary so that plugins will also
+        # clear all steps
         while len(self.app.protocol.steps) > 1:
             self.app.protocol.delete_step()
         self.app.protocol.delete_step() # still need to delete the first step
+        self.app.protocol = Protocol(self.app.dmf_device.max_channel()+1)
         self.app.main_window_controller.update()
 
     def on_load_protocol(self, widget, data=None):
