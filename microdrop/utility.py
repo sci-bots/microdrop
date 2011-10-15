@@ -17,6 +17,9 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from path import path
+
+
 def is_float(s):
     try: return (float(s), True)[1]
     except (ValueError, TypeError), e: return False
@@ -52,3 +55,14 @@ def check_textentry(textentry, prev_value, type):
         print "error" # TODO dialog error
         textentry.set_text(str(prev_value))
         return prev_value
+
+
+def script_dir():
+    try:
+        script = path(__file__)
+    except NameError:
+        import sys
+
+        script = path(sys.argv[0])
+
+    return script.parent
