@@ -69,6 +69,7 @@ class FirmwareUpdater(object):
             raise FirmwareError('''Multiple .tgz files found in %s.'''\
                                     % update_path)
         update_file = files[0]
+        updated = False
         
         try:
             self.tar = tarfile.open(update_file)
@@ -85,17 +86,19 @@ class FirmwareUpdater(object):
                 print '''Firmware needs to be updated: "%s" < "%s" '''\
                     % (firmware_version, self.version)
                 self._update_firmware(port)
+                updated = True
             else:
                 print 'Firmware is up-to-date: %s' % firmware_version
             if driver_version < self.version:
                 print '''Driver needs to be updated: "%s" < "%s" '''\
                     % (driver_version, self.version)
                 self.driver.copy(self.hw_path / self.driver.name)
-                raise SystemExit('Driver was updated.  Application must be restarted.')
+                updated = True
             else:
                 print 'Driver is up-to-date: %s' % driver_version
         finally:
             self.clean_up()
+        return updated
     
 
     def _verify_archive(self):

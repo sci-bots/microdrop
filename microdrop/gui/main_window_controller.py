@@ -17,7 +17,10 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, gtk, time
+import os
+import sys
+import gtk
+import time
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin
@@ -85,9 +88,12 @@ class MainWindowController:
 
         try:
             f = FirmwareUpdater()
-            f.update(self.port,
+            updated = f.update(self.port,
                         firmware_version=firmware_version,
                         driver_version=driver_version)
+            if updated:
+                self.error('Driver/Firmware was updated.  Application must be restarted.')
+                sys.exit(0)
         except FirmwareError:
             pass
 
