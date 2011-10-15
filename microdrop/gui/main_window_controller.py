@@ -79,7 +79,7 @@ class MainWindowController:
 
 
     def _register_serial_device(self, port):
-        if self.app.control_board.Connect(port) == DmfControlBoard.RETURN_OK:
+        if self.app.control_board.connect(port) == DmfControlBoard.RETURN_OK:
             self.app.control_board.flush()
             name = self.app.control_board.name()
             version = 0
