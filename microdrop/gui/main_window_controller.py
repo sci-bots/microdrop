@@ -21,7 +21,7 @@ import os, gtk, time
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin
-
+from hardware.update.dmf_control_board.firmware_updater import FirmwareUpdater
 
 
 class MicroDropError(Exception):
@@ -58,6 +58,7 @@ class MainWindowController:
         signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
 
+        self.port = None
         if os.name == 'nt':
             # Windows
             for i in range(0,31):
@@ -77,9 +78,21 @@ class MainWindowController:
                 except MicroDropError:
                     pass
 
+        del self.app.control_board
+
+        try:
+            f = FirmwareUpdater()
+            f.update(self.port)
+        except:
+            pass
+        self.app.control_board = DmfControlBoard()
+
+        self._register_serial_device(self.port)
+
 
     def _register_serial_device(self, port):
         if self.app.control_board.connect(port) == DmfControlBoard.RETURN_OK:
+            self.port = port
             self.app.control_board.flush()
             name = self.app.control_board.name()
             version = 0
