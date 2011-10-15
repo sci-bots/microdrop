@@ -17,11 +17,14 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, gtk, time
+import os
+import sys
+import gtk
+import time
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin
-
+from hardware.update.dmf_control_board.firmware_updater import FirmwareUpdater, FirmwareError
 
 
 class MicroDropError(Exception):
@@ -58,6 +61,7 @@ class MainWindowController:
         signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
 
+        self.port = None
         if os.name == 'nt':
             # Windows
             for i in range(0,31):
@@ -78,8 +82,29 @@ class MainWindowController:
                     pass
 
 
+        firmware_version = self.app.control_board.software_version()
+        driver_version = self.app.control_board.host_software_version()
+        del self.app.control_board
+
+        try:
+            f = FirmwareUpdater()
+            updated = f.update(self.port,
+                        firmware_version=firmware_version,
+                        driver_version=driver_version)
+            if updated:
+                self.error('Driver/Firmware was updated.  Application must be restarted.')
+                sys.exit(0)
+        except FirmwareError:
+            pass
+
+        self.app.control_board = DmfControlBoard()
+
+        self._register_serial_device(self.port)
+
+
     def _register_serial_device(self, port):
         if self.app.control_board.connect(port) == DmfControlBoard.RETURN_OK:
+            self.port = port
             self.app.control_board.flush()
             name = self.app.control_board.name()
             version = 0
