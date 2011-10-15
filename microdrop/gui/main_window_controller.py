@@ -21,7 +21,7 @@ import os, gtk, time
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin
-from hardware.update.dmf_control_board.firmware_updater import FirmwareUpdater
+from hardware.update.dmf_control_board.firmware_updater import FirmwareUpdater, FirmwareError
 
 
 class MicroDropError(Exception):
@@ -78,13 +78,19 @@ class MainWindowController:
                 except MicroDropError:
                     pass
 
+
+        firmware_version = self.app.control_board.software_version()
+        driver_version = self.app.control_board.host_software_version()
         del self.app.control_board
 
         try:
             f = FirmwareUpdater()
-            f.update(self.port)
-        except:
+            f.update(self.port,
+                        firmware_version=firmware_version,
+                        driver_version=driver_version)
+        except FirmwareError:
             pass
+
         self.app.control_board = DmfControlBoard()
 
         self._register_serial_device(self.port)

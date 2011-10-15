@@ -43,7 +43,7 @@ class FirmwareUpdater(object):
         if os.name == 'nt':
             self.avrdude = self.hw_path / path('avr') / path('avrdude.exe')
         else:
-            self.avrdude = self.hw_path / ppath('avr') / ath('avrdude')
+            self.avrdude = self.hw_path / path('avr') / path('avrdude')
         if not self.avrdude.exists():
             raise FirmwareError('avrdude not installed')
 
@@ -57,13 +57,14 @@ class FirmwareUpdater(object):
         return test_dir / path('hardware')
 
 
-    def update(self, port):
+    def update(self, port, firmware_version=None, driver_version=None):
         update_path = self.hw_path / path('update/dmf_control_board')
 
         # Look for update tar file
         files = update_path.files('*.tgz')
         if not files:
-            pass
+            # No update archive - nothing to do.
+            return
         elif len(files) > 1:
             raise FirmwareError('''Multiple .tgz files found in %s.'''\
                                     % update_path)
@@ -77,20 +78,33 @@ class FirmwareUpdater(object):
             # Extract update archive to temporary directory
             self.tar.extractall(self.temp_dir)
             print list(self.temp_dir.walkfiles())
+            
             self._verify_archive()
-            self._update_firmware(port)
-            self.driver.copy(self.hw_path / self.driver.name)
+            if firmware_version < self.version:
+                # Flash new firmware
+                print '''Firmware needs to be updated: "%s" < "%s" '''\
+                    % (firmware_version, self.version)
+                self._update_firmware(port)
+            else:
+                print 'Firmware is up-to-date: %s' % firmware_version
+            if driver_version < self.version:
+                print '''Driver needs to be updated: "%s" < "%s" '''\
+                    % (driver_version, self.version)
+                self.driver.copy(self.hw_path / self.driver.name)
+                raise SystemExit('Driver was updated.  Application must be restarted.')
+            else:
+                print 'Driver is up-to-date: %s' % driver_version
         finally:
             self.clean_up()
     
 
     def _verify_archive(self):
-        firmware = self.temp_dir / path('bin') / path('dmf_driver.hex')
+        firmware = self.temp_dir / path('dmf_driver.hex')
         if os.name == 'nt':
-            driver = self.temp_dir / path('bin') / path('dmf_control_board_base.pyd')
+            driver = self.temp_dir / path('dmf_control_board_base.pyd')
         else:
-            driver = self.temp_dir / path('bin') / path('dmf_control_board_base.so')
-        version = self.temp_dir / path('bin') / path('version.txt')
+            driver = self.temp_dir / path('dmf_control_board_base.so')
+        version = self.temp_dir / path('version.txt')
         if not firmware.isfile():
             raise FirmwareError('%s does not exist in archive' % firmware)
         if not driver.isfile():
@@ -103,8 +117,6 @@ class FirmwareUpdater(object):
 
 
     def clean_up(self):
-        from exceptions import WindowsError
-
         if self.tar:
             self.tar.close()
         if self.temp_dir:
@@ -116,7 +128,7 @@ class FirmwareUpdater(object):
             avrconf=(self.hw_path / path('avr') / path('avrdude.conf')).abspath(),
             firmware=self.firmware.name, port=port)
         cwd = os.getcwd()
-        os.chdir(self.temp_dir / path('bin'))
+        os.chdir(self.temp_dir)
         cmd_fmt = '%(avrdude)s -V -F -c stk500v2 -b 115200 -p atmega2560 -P %(port)s -U flash:w:%(firmware)s -C %(avrconf)s'
         cmd = ['%(avrdude)s', '-V', '-F', '-c', 'stk500v2', '-b', '115200', '-p', 'atmega2560', '-P', '%(port)s', '-U', 'flash:w:%(firmware)s', '-C', '%(avrconf)s']
         cmd = [v % config for v in cmd]
