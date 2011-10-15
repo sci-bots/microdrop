@@ -20,29 +20,36 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 from copy import deepcopy
 import cPickle
 import numpy as np
+from plugin_manager import ExtensionPoint, IPlugin
 
 def load(filename):
     f = open(filename, 'rb')
     protocol = cPickle.load(f)
     f.close()
+    for (name, (version, data)) in protocol.plugin_data.items():
+        protocol.observers.service(name).on_protocol_load(version, data)
     return protocol
 
 class Protocol():
-    def __init__(self, name=None, n_channels=None):
-        if n_channels:
-            self.n_channels = n_channels
-        else:
-            self.n_channels = 80
+    observers = ExtensionPoint(IPlugin)
+    
+    def __init__(self, n_channels=0, name=None):
+        self.n_channels = n_channels
         self.current_step_number = 0
         self.steps = [Step(self.n_channels)]
         self.name = None
         self.n_repeats = 1
         self.current_repetition = 0
+        self.plugin_data = {}
 
     def __len__(self):
         return len(self.steps)
 
     def save(self, filename):
+        self.plugin_data = {}
+        for observer in self.observers:
+            if hasattr(observer, "on_protocol_save"):
+                observer.on_protocol_save()
         f = open(filename, 'wb')
         cPickle.dump(self, f, -1)
         f.close()
@@ -53,16 +60,25 @@ class Protocol():
     def state_of_all_channels(self):
         return self.current_step().state_of_channels
 
+    def set_number_of_channels(self, n_channels):
+        self.n_channels = n_channels
+        for step in self.steps:
+            step.state_of_channels = np.resize(step.state_of_channels,
+                                               n_channels)
+
     def current_step(self):
         return self.steps[self.current_step_number]
 
     def insert_step(self):
+        for observer in self.observers:
+            if hasattr(observer, "on_insert_protocol_step"):
+                observer.on_insert_protocol_step()
         self.steps.insert(self.current_step_number,
                           Step(self.n_channels,
                                self.current_step().time,
                                self.current_step().voltage,
                                self.current_step().frequency,
-                               self.current_step().feedback_options))
+                               self.current_step().plugin))
 
     def copy_step(self):
         self.steps.insert(self.current_step_number,
@@ -70,11 +86,14 @@ class Protocol():
                                self.current_step().time,
                                self.current_step().voltage,
                                self.current_step().frequency,
-                               self.current_step().feedback_options,
+                               self.current_step().plugin,
                                self.current_step().state_of_channels))
         self.next_step()
 
     def delete_step(self):
+        for observer in self.observers:
+            if hasattr(observer, "on_delete_protocol_step"):
+                observer.on_delete_protocol_step()
         if len(self.steps) > 1:
             del self.steps[self.current_step_number]
             if self.current_step_number == len(self.steps):
@@ -88,7 +107,7 @@ class Protocol():
                                    self.current_step().time,
                                    self.current_step().voltage,
                                    self.current_step().frequency,
-                                   self.current_step().feedback_options))
+                                   self.current_step().plugin))
         self.goto_step(self.current_step_number+1)
         
     def next_repetition(self):
@@ -113,27 +132,9 @@ class Protocol():
     def run_step(self):
         pass
     
-class FeedbackOptions():
-    def __init__(self, sampling_time_ms=None,
-                 n_samples=None,
-                 delay_between_samples_ms=None):
-        if sampling_time_ms:
-            self.sampling_time_ms = sampling_time_ms
-        else:
-            self.sampling_time_ms = 10
-        if n_samples:
-            self.n_samples = n_samples
-        else:
-            self.n_samples = 10
-        if delay_between_samples_ms:
-            self.delay_between_samples_ms = delay_between_samples_ms
-        else:
-            self.delay_between_samples_ms = 0
-             
 class Step():
     def __init__(self, n_channels, time=None, voltage=None,
-                 frequency=None, feedback_options=None,
-                 state_of_channels=None):
+                 frequency=None, plugin=None, state_of_channels=None):
         self.n_channels = n_channels
         if time:
             self.time = time
@@ -147,11 +148,11 @@ class Step():
             self.frequency = frequency
         else:
             self.frequency = 1e3
-        if feedback_options:
-            self.feedback_options = deepcopy(feedback_options)
-        else:
-            self.feedback_options = None
         if state_of_channels is not None:
             self.state_of_channels = deepcopy(state_of_channels)
         else:
             self.state_of_channels = np.zeros(n_channels)
+        if plugin:
+            self.plugin = deepcopy(plugin)
+        else:
+            self.plugin = None

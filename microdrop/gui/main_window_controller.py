@@ -17,10 +17,11 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
-import gtk
+import os, gtk, time
 from hardware.dmf_control_board import DmfControlBoard
-from utility import wrap_string
+from utility import wrap_string, is_float
+from plugin_manager import ExtensionPoint, IPlugin
+
 
 
 class MicroDropError(Exception):
@@ -32,9 +33,10 @@ class ConnectionError(MicroDropError):
 
 
 class MainWindowController:
+    observers = ExtensionPoint(IPlugin)
+
     def __init__(self, app, builder, signals):
         self.app = app
-        
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "main_window.glade"))
@@ -44,6 +46,7 @@ class MainWindowController:
         self.label_device_name = builder.get_object("label_device_name")
         self.label_protocol_name = builder.get_object("label_protocol_name")
         self.checkbutton_realtime_mode = builder.get_object("checkbutton_realtime_mode")
+        self.menu_tools = builder.get_object("menu_tools")
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "about_dialog.glade"))
@@ -77,12 +80,13 @@ class MainWindowController:
 
     def _register_serial_device(self, port):
         if self.app.control_board.Connect(port) == DmfControlBoard.RETURN_OK:
+            self.app.control_board.flush()
             name = self.app.control_board.name()
-            version = self.app.control_board.hardware_version()
-            if name == "Arduino DMF Controller" and version == "1.1":
-                self.label_connection_status.set_text(name + " v" + version)
-                self.app.control_board.set_series_resistor(1,3)
-                self.app.control_board.set_series_resistor(0,0)
+            version = 0
+            if is_float(self.app.control_board.hardware_version()):
+                version = float(self.app.control_board.hardware_version())
+            if name == "Arduino DMF Controller" and version >= 1.1:
+                self.label_connection_status.set_text(name + " v" + str(version))
                 return
         raise ConnectionError('Could not connect to port: %s' % port)
                 
@@ -93,6 +97,9 @@ class MainWindowController:
 
     def on_delete_event(self, widget, data=None):
         self.app.config_controller.on_quit()
+        for observer in self.observers:
+            if hasattr(observer, "on_app_exit"):
+                observer.on_app_exit()
 
     def on_destroy(self, widget, data=None):
         gtk.main_quit()

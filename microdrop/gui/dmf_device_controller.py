@@ -28,6 +28,7 @@ from experiment_log import ExperimentLog
 
 class EditElectrodeDialog:
     def __init__(self, app, electrode):
+        self.app = app
         builder = gtk.Builder()
         builder.add_from_file(os.path.join("gui",
                                            "glade",
@@ -56,9 +57,11 @@ class EditElectrodeDialog:
                         channels[i] = int(channels[i])
                 else:
                     channels = []
+                if channels and max(channels) >= self.app.protocol.n_channels:
+                    self.app.protocol.set_number_of_channels(max(channels)+1)
                 self.electrode.channels = channels
             except:
-                print "error"
+                self.app.main_window_controller.error("Invalid channel.")
         self.dialog.hide()
         return response
 
@@ -132,7 +135,7 @@ class DmfDeviceController:
                 device_path = os.path.join(self.app.config.dmf_device_directory,
                                            self.app.dmf_device.name, "logs")
             self.app.experiment_log = ExperimentLog(device_path)
-            self.app.protocol = Protocol()
+            self.app.protocol = Protocol(self.app.dmf_device.max_channel()+1)
             self.view.fit_device()
         dialog.destroy()
         self.app.main_window_controller.update()
@@ -169,10 +172,10 @@ class DmfDeviceController:
             svgcommand = M_command | C_command | L_command | Z_command
             phrase = OneOrMore(Group(svgcommand))
             
+            self.app.dmf_device = DmfDevice()
+            self.app.protocol = Protocol()
             try:
                 tree = et.parse(filename)
-                self.app.dmf_device = DmfDevice()
-                self.app.protocol = Protocol()
 
                 ns = "http://www.w3.org/2000/svg" # The XML namespace.
                 for group in tree.getiterator('{%s}g' % ns):
@@ -247,5 +250,4 @@ class DmfDeviceController:
                     print "error, not supported yet"
             else:
                 self.view.electrode_color[id] = (1,0,0)
-                
         self.view.update()

@@ -79,6 +79,13 @@ class DmfDevice():
     def disconnect(self, id, channel):
         if self.electrodes[id].channels.count(channel):
             self.electrodes[id].channels.remove(channel)
+            
+    def max_channel(self):
+        max_channel = 0
+        for electrode in self.electrodes.values():
+            if electrode.channels and max(electrode.channels) > max_channel:
+                max_channel = max(electrode.channels)
+        return max_channel
         
 class Electrode:
     next_id = 0
