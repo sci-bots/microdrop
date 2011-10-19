@@ -87,3 +87,9 @@ class DmfControlBoard(Base):
         return numpy.array(Base.measure_impedance(self,
                                 sampling_time_ms, n_samples,
                                 delay_between_samples_ms, state_))
+        
+    def i2c_write(self, address, data):
+        data_ = uint8_tVector()
+        for i in range(0, len(data)):
+            data_.append(int(data[i]))
+        Base.i2c_write(self, address, data_)
