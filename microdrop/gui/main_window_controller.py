@@ -68,7 +68,7 @@ class MainWindowController:
                 try:
                     self._register_serial_device("COM%d" % i)
                     break
-                except MicroDropError:
+                except:
                     pass
         else:
             # Assume Linux (Ubuntu)...
@@ -78,7 +78,7 @@ class MainWindowController:
                 try:
                     self._register_serial_device(tty)
                     break
-                except MicroDropError:
+                except:
                     pass
 
 
