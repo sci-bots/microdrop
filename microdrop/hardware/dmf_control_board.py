@@ -18,7 +18,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from dmf_control_board_base import DmfControlBoard as Base
-from dmf_control_board_base import uint8_tVector, INPUT, OUTPUT, HIGH, LOW
+from dmf_control_board_base import uint8_tVector, INPUT, OUTPUT, HIGH, LOW, SINE, SQUARE
 
 import numpy
 
