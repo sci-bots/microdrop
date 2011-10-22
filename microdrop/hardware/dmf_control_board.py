@@ -18,7 +18,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from dmf_control_board_base import DmfControlBoard as Base
-from dmf_control_board_base import uint8_tVector, INPUT, OUTPUT, HIGH, LOW
+from dmf_control_board_base import uint8_tVector, INPUT, OUTPUT, HIGH, LOW, SINE, SQUARE
 
 import numpy
 
@@ -87,3 +87,9 @@ class DmfControlBoard(Base):
         return numpy.array(Base.measure_impedance(self,
                                 sampling_time_ms, n_samples,
                                 delay_between_samples_ms, state_))
+        
+    def i2c_write(self, address, data):
+        data_ = uint8_tVector()
+        for i in range(0, len(data)):
+            data_.append(int(data[i]))
+        Base.i2c_write(self, address, data_)

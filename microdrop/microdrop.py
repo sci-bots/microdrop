@@ -17,8 +17,10 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, gtk, subprocess
-
+import os
+import gtk
+import subprocess
+import re
 import numpy as np
 
 from utility import script_dir
@@ -40,12 +42,12 @@ class App:
         # get the version number
         self.version = ""
         try:
-            self.version = subprocess.Popen(['git','describe'],
-                           stdout=subprocess.PIPE).communicate()[0].rstrip()
+            version = subprocess.Popen(['git','describe'],
+                          stdout=subprocess.PIPE).communicate()[0].rstrip()
+            m = re.match('v(\d+)\.(\d+)-(\d+)', version)
+            self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
         except:
             pass
-        if len(self.version) == 0:
-            self.version = "0.1.41"
             
         self.realtime_mode = False
         self.running = False

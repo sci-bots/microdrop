@@ -68,7 +68,7 @@ class MainWindowController:
                 try:
                     self._register_serial_device("COM%d" % i)
                     break
-                except MicroDropError:
+                except:
                     pass
         else:
             # Assume Linux (Ubuntu)...
@@ -78,29 +78,27 @@ class MainWindowController:
                 try:
                     self._register_serial_device(tty)
                     break
-                except MicroDropError:
+                except:
                     pass
 
-
-        firmware_version = self.app.control_board.software_version()
-        driver_version = self.app.control_board.host_software_version()
-        del self.app.control_board
-
-        try:
-            f = FirmwareUpdater()
-            updated = f.update(self.port,
-                        firmware_version=firmware_version,
-                        driver_version=driver_version)
-            if updated:
-                self.error('Driver/Firmware was updated.  Application must be restarted.')
-                sys.exit(0)
-        except FirmwareError:
-            pass
-
-        self.app.control_board = DmfControlBoard()
-
-        self._register_serial_device(self.port)
-
+        if self.app.control_board.connected():
+            firmware_version = self.app.control_board.software_version()
+            driver_version = self.app.control_board.host_software_version()
+            del self.app.control_board
+    
+            try:
+                f = FirmwareUpdater()
+                updated = f.update(self.port,
+                            firmware_version=firmware_version,
+                            driver_version=driver_version)
+                if updated:
+                    self.error('Driver/Firmware was updated.  Application must be restarted.')
+                    sys.exit(0)
+            except FirmwareError:
+                pass
+    
+            self.app.control_board = DmfControlBoard()
+            self._register_serial_device(self.port)
 
     def _register_serial_device(self, port):
         if self.app.control_board.connect(port) == DmfControlBoard.RETURN_OK:

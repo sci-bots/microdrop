@@ -339,8 +339,8 @@ class ProtocolController(object):
                 self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage*math.sqrt(2)/200)
                 self.app.func_gen.set_frequency(self.app.protocol.current_step().frequency)
             else:
-                self.app.control_board.set_actuation_voltage(float(self.app.protocol.current_step().voltage))
-                self.app.control_board.set_actuation_frequency(float(self.app.protocol.current_step().frequency))
+                self.app.control_board.set_waveform_voltage(float(self.app.protocol.current_step().voltage)*math.sqrt(2)/100)
+                self.app.control_board.set_waveform_frequency(float(self.app.protocol.current_step().frequency))
             if self.app.running is False:
                 state = self.app.protocol.state_of_all_channels()
                 self.app.control_board.set_state_of_all_channels(state)
