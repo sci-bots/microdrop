@@ -186,14 +186,14 @@ class FirmwareUpdater(object):
         update_path = self.hw_path / path('update/dmf_control_board')
 
         # Look for update tar file
-        files = update_path.files('*.tar.gz')
+        files = sorted(update_path.files('*.tar.gz'), key=lambda x: x.name)
         if not files:
             # No update archive - nothing to do.
             return
-        elif len(files) > 1:
-            raise FirmwareError('''Multiple .tgz files found in %s.'''\
-                                    % update_path)
-        update_file = files[0]
+        #elif len(files) > 1:
+            #raise FirmwareError('''Multiple .tgz files found in %s.'''\
+                                    #% update_path)
+        update_file = files[-1]
         updated = False
         
         try:
