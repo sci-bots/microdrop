@@ -4,6 +4,7 @@ import tempfile
 import tarfile
 import os
 import time
+import re
 
 from utility import is_float
 from path import path
@@ -151,6 +152,10 @@ class FirmwareUpdater(object):
         else:
             self.hw_path = path(hw_path)
 
+        self.FILE_PATTERNS = [
+            dict(pattern=r'.*\.dll', destination=self.hw_path),
+        ]
+
         self.tar = None
         self.temp_dir = None
         self.bin_dir = None
@@ -198,7 +203,6 @@ class FirmwareUpdater(object):
 
             # Extract update archive to temporary directory
             self.tar.extractall(self.temp_dir)
-            print list(self.temp_dir.walkfiles())
             bin_dirs = [d for d in self.temp_dir.walkdirs() if d.name == 'bin']
             if not bin_dirs:
                 raise FirmwareError('bin directory does not exist in archive.')
@@ -222,6 +226,17 @@ class FirmwareUpdater(object):
                 updated = True
             else:
                 print 'Driver is up-to-date: %s' % driver_version
+            for f in self.bin_dir.walkfiles():
+                for p in self.FILE_PATTERNS:
+                    if re.match(p['pattern'], f.name):
+                        dest_path = path(p['destination']) / f.name
+                        if not dest_path.isfile() \
+                            or f.mtime > dest_path.mtime \
+                            or not f.size == dest_path.size:
+                            print 'copying %s to %s' % (f, dest_path)
+                            f.copy(dest_path)
+                            updated = True
+                        break
         finally:
             self.clean_up()
         return updated
