@@ -17,14 +17,5 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
-
-from utility import path
-
-def hardware_path():
-    test_dir = path(os.getcwd())
-    while test_dir and not (test_dir / path('hardware')).isdir():
-        test_dir = test_dir.parent
-    if not test_dir:
-        raise Exception('''Could not find 'hardware' directory''')
-    return test_dir / path('hardware')
+from avrdude import AvrDude, FirmwareError
+from firmware_updater import FirmwareUpdater

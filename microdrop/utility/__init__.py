@@ -17,8 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from path import path
-
+from utility.path import path
 
 def is_float(s):
     try: return (float(s), True)[1]
@@ -29,9 +28,6 @@ def is_int(s):
     except (ValueError, TypeError), e: return False
 
 def wrap_string(string, line_length=80, wrap_characters="\n"):    
-    '''
-    This is a test docstring for wrap_string.
-    '''
     chars = 0
     wrapped_string = ""
     for word in string.split():

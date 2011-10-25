@@ -17,48 +17,10 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
-import warnings
-
-from utility import script_dir
-
-
+from app import App
+from update import firmware_needs_update
 
 if __name__ == '__main__':
-    import sys
-    from hardware.update.dmf_control_board.firmware_updater import \
-            FirmwareUpdater, FirmwareError, DmfControlBoardInfo, ConnectionError
-
-    os.chdir(script_dir())
-
-    force_update = False
-    try:
-        d = DmfControlBoardInfo()
-    except (ConnectionError, ImportError):
-        # Could not import DmfControlBoard, force update
-        force_update = True
-
-    updated = False
-    try:
-        f = FirmwareUpdater(hw_path='hardware')
-        print force_update
-        if force_update:
-            print 'forcing update'
-            updated = f.update()
-        else:
-            print 'forcing update'
-            updated = f.update(
-                        firmware_version=d.firmware_version,
-                        driver_version=d.driver_version)
-    except ConnectionError, why:
-        warnings.warn(str(why))
-
-    if updated:
-        from gui.standalone_message_dialog import MessageDialog
-           
-        m = MessageDialog()
-        m.info('Driver/firmware was updated - must restart application.')
-    else:
-        from microdrop_app import App
-
-        app = App()
+    if(firmware_needs_update()):
+        print "Firmware needs update." 
+    app = App()

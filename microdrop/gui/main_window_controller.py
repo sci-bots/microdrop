@@ -26,8 +26,7 @@ import warnings
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin
-from hardware.update.dmf_control_board.firmware_updater import \
-                                DmfControlBoardInfo, ConnectionError
+from hardware.dmf_control_board import DmfControlBoardInfo, ConnectionError
 
 
 class MicroDropError(Exception):

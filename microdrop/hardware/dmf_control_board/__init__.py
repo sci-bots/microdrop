@@ -1,5 +1,5 @@
 """
-Copyright 2011 Ryan Fobel
+Copyright 2011 Ryan Fobel and Christian Fobel
 
 This file is part of Microdrop.
 
@@ -19,10 +19,12 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 from dmf_control_board_base import DmfControlBoard as Base
 from dmf_control_board_base import uint8_tVector, INPUT, OUTPUT, HIGH, LOW, SINE, SQUARE
+from hardware.serial_device import SerialDevice, ConnectionError
+from utility import is_float
 
 import numpy
 
-class DmfControlBoard(Base):
+class DmfControlBoard(Base, SerialDevice):
     def state_of_all_channels(self):
         return numpy.array(Base.state_of_all_channels(self))
 
@@ -93,3 +95,39 @@ class DmfControlBoard(Base):
         for i in range(0, len(data)):
             data_.append(int(data[i]))
         Base.i2c_write(self, address, data_)
+        
+
+class DmfControlBoardInfo(SerialDevice):
+    def __init__(self):
+        self.port = None
+        try:
+            from hardware.dmf_control_board import DmfControlBoard
+        except ImportError:
+            raise
+        else:
+            self.control_board = DmfControlBoard()
+
+        self.port = self.get_port()
+
+        if not self.control_board.connected():
+            del self.control_board
+            raise ConnectionError('Could not connect to device.')
+        else:
+            self.firmware_version = self.control_board.software_version()
+            self.driver_version = self.control_board.host_software_version()
+            del self.control_board
+
+
+    def test_connection(self, port):
+        from hardware.dmf_control_board import DmfControlBoard
+
+        if self.control_board.connect(port) == DmfControlBoard.RETURN_OK:
+            self.port = port
+            self.control_board.flush()
+            name = self.control_board.name()
+            version = 0
+            if is_float(self.control_board.hardware_version()):
+                version = float(self.control_board.hardware_version())
+            if name == "Arduino DMF Controller" and version >= 1.1:
+                return True
+        return False
