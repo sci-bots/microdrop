@@ -21,7 +21,6 @@ import os
 import sys
 import gtk
 import time
-import warnings
 
 from hardware.dmf_control_board import DmfControlBoard
 from utility import wrap_string, is_float
@@ -63,8 +62,7 @@ class MainWindowController:
             info = DmfControlBoardInfo()
             self._register_serial_device(info.port)
         except ConnectionError, why:
-            warnings.warn('Could not connect to DMF Control Board')
-
+            print 'Could not connect to DMF Control Board'
 
     def _register_serial_device(self, port):
         if self.app.control_board.connect(port) == DmfControlBoard.RETURN_OK:
@@ -78,7 +76,6 @@ class MainWindowController:
                 self.label_connection_status.set_text(name + " v" + str(version))
                 return
         raise ConnectionError('Could not connect to port: %s' % port)
-                
 
     def main(self):
         self.update()

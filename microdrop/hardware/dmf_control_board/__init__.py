@@ -121,13 +121,16 @@ class DmfControlBoardInfo(SerialDevice):
     def test_connection(self, port):
         from hardware.dmf_control_board import DmfControlBoard
 
-        if self.control_board.connect(port) == DmfControlBoard.RETURN_OK:
-            self.port = port
-            self.control_board.flush()
-            name = self.control_board.name()
-            version = 0
-            if is_float(self.control_board.hardware_version()):
-                version = float(self.control_board.hardware_version())
-            if name == "Arduino DMF Controller" and version >= 1.1:
-                return True
+        try:
+            if self.control_board.connect(port) == DmfControlBoard.RETURN_OK:
+                self.port = port
+                self.control_board.flush()
+                name = self.control_board.name()
+                version = 0
+                if is_float(self.control_board.hardware_version()):
+                    version = float(self.control_board.hardware_version())
+                if name == "Arduino DMF Controller" and version >= 1.1:
+                    return True
+        except:
+            pass
         return False

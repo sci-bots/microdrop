@@ -19,13 +19,16 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 from utility.path import path
 
+
 def is_float(s):
     try: return (float(s), True)[1]
     except (ValueError, TypeError), e: return False
 
+
 def is_int(s):
     try: return (int(s), True)[1]
     except (ValueError, TypeError), e: return False
+
 
 def wrap_string(string, line_length=80, wrap_characters="\n"):    
     chars = 0
@@ -38,6 +41,7 @@ def wrap_string(string, line_length=80, wrap_characters="\n"):
             wrapped_string += word + " "
             chars += len(word) + 1
     return wrapped_string
+
 
 def check_textentry(textentry, prev_value, type):
     val = textentry.get_text()
@@ -53,7 +57,7 @@ def check_textentry(textentry, prev_value, type):
         return prev_value
 
 
-def script_dir():
+def base_path():
     try:
         script = path(__file__)
     except NameError:
@@ -61,4 +65,4 @@ def script_dir():
 
         script = path(sys.argv[0])
 
-    return script.parent
+    return script.parent.parent

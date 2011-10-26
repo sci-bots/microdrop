@@ -17,10 +17,24 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from app import App
-from update import firmware_needs_update
+import update
 
 if __name__ == '__main__':
-    if(firmware_needs_update()):
-        print "Firmware needs update." 
+    archive_version = update.archive_version()
+    firmware_version = update.firmware_version()
+    driver_version = update.package_version()
+
+    print "archive version=", archive_version
+    print "firmware_version=", firmware_version
+    print "driver_version=", driver_version
+
+    if driver_version != archive_version:
+        print "updating driver..."
+        update.update_package()
+
+    if firmware_version != archive_version:
+        print "updating firmware..."
+        update.update_firmware()
+        
+    from app import App
     app = App()

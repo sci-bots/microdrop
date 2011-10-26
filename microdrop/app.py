@@ -23,7 +23,7 @@ import subprocess
 import re
 import numpy as np
 
-from utility import script_dir
+from utility import base_path
 from hardware.dmf_control_board import DmfControlBoard
 from hardware.agilent_33220a import Agilent33220A
 from gui.main_window_controller import MainWindowController
@@ -97,5 +97,5 @@ class App:
         self.main_window_controller.main()
         
 if __name__ == '__main__':
-    os.chdir(script_dir())
+    os.chdir(base_path())
     app = App()
