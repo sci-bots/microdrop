@@ -31,32 +31,55 @@ from utility import path, base_path
 verbose = False
 
 def archive_version():
+    """Get the version string for the most recent archive file.  If no archive
+    files can be found, this function will return an empty string.
+    """
     version = subprocess.Popen([sys.executable, __file__, '--archive-version'],
                           stdout=subprocess.PIPE).communicate()[0].rstrip()
     return version
 
 def firmware_version():
+    """Get the version string of the firmware currently installed on the
+    Arduino. If no Arduino is connected, or if the connected Arduino does not
+    have the DmfControlBoard firmware installed, this function will return an
+    empty string.
+    """
     version = subprocess.Popen([sys.executable, __file__, '--firmware-version'],
                           stdout=subprocess.PIPE).communicate()[0].rstrip()
     return version
 
 
 def package_version():
+    """Get the version string of the currently installed DmfControlBoard
+    package.
+    """
     version = subprocess.Popen([sys.executable, __file__, '--package-version'],
                           stdout=subprocess.PIPE).communicate()[0].rstrip()
     return version
 
 
 def update_firmware():
-    output =  subprocess.Popen([sys.executable, __file__, '--update-firmware'],
-                               stdout=subprocess.PIPE).communicate()[0].rstrip()
-    print output
+    """Update the Arduino with firmware from the most recent archive.
+    Returns True if successful, False otherwise.
+    """
+    p = subprocess.Popen([sys.executable, __file__, '--update-firmware'],
+                         stdout=subprocess.PIPE)
+    output = p.communicate()[0].rstrip()
+    if output:
+        print output
+    return p.returncode==0
 
 
 def update_package():
-    output =  subprocess.Popen([sys.executable, __file__, '--update-package'],
-                               stdout=subprocess.PIPE).communicate()[0].rstrip()
-    print output
+    """Update the DmfControlBoard package using the most recent archive.
+    Returns True if successful, False otherwise.
+    """
+    p = subprocess.Popen([sys.executable, __file__, '--update-package'],
+                         stdout=subprocess.PIPE)
+    output = p.communicate()[0].rstrip()
+    if output:
+        print output
+    return p.returncode==0
 
 
 def usage():
@@ -71,6 +94,15 @@ def usage():
 
 
 def main():
+    """This funciton is called when the update module is called as a script.
+    It can perform various actions (querying the DmfControlBoard firmware,
+    package, or archive version number, or updating the firmware or package
+    from the archive file). The action is specified by a command line argument.
+    
+    To see the available options run the following in a command terminal:
+    >> update.py --help 
+    """
+    
     try:
         opts, args = getopt.getopt(sys.argv[1:], ":hv",
             ["help", "archive-version", "firmware-version",
@@ -103,7 +135,7 @@ def main():
                 print d.firmware_version
             except (ImportError, ConnectionError):
                 print ""
-                
+            exit(0)
         elif o in ("--package-version"):
             from hardware.dmf_control_board import DmfControlBoard, ConnectionError
             try:
@@ -111,20 +143,24 @@ def main():
                 print d.host_software_version()
             except:
                 print ""
+            exit(0)
         elif o in ("--archive-version"):
             try:
                 u = Updater(base_path() / path("hardware/dmf_control_board"))
                 print u.version
+                exit(0)
             except ArchiveError, why:
                 warnings.warn(str(why))
+                exit(1)
         elif o in ("--update-firmware"):
             try:
                 from hardware.avr import FirmwareUpdater
                 f = FirmwareUpdater(base_path() / path("hardware/dmf_control_board"),
                                     "dmf_driver.hex")
                 f.update()
+                exit(0)
             except:
-                print "update failed"
+                exit(1)
         elif o in ("--update-package"):
             try:
                 if os.name == 'nt':
@@ -134,8 +170,9 @@ def main():
                     file_names = ["*.so", "version.txt"]
                 u = Updater(base_path() / path("hardware/dmf_control_board"))
                 u.update(file_names)
+                exit(0)
             except:
-                print "update failed"
+                exit(1)
         else:
             assert False, "unhandled option"
 
@@ -145,6 +182,7 @@ class ArchiveError(Exception):
 
 
 class Updater(object):
+    """Class for handling component upgrades from an archive file."""
     def __init__(self, module_path):
         self.module_path = module_path
         self.tar = None

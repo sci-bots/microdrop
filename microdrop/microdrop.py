@@ -30,11 +30,13 @@ if __name__ == '__main__':
 
     if driver_version != archive_version:
         print "updating driver..."
-        update.update_package()
+        if update.update_package()==False:
+            print "   failed"
 
     if firmware_version != archive_version:
         print "updating firmware..."
-        update.update_firmware()
+        if update.update_firmware()==False:
+            print "   failed"
         
     from app import App
     app = App()
