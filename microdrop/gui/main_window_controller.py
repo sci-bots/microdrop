@@ -22,10 +22,10 @@ import sys
 import gtk
 import time
 
-from hardware.dmf_control_board import DmfControlBoard
+from hardware.dmf_control_board.device import DmfControlBoard
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin
-from hardware.dmf_control_board import DmfControlBoardInfo, ConnectionError
+from hardware.dmf_control_board.info import DmfControlBoardInfo, ConnectionError
 
 
 class MicroDropError(Exception):

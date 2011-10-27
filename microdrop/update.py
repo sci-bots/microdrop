@@ -54,7 +54,7 @@ def package_version():
     package.
     """
     version = subprocess.Popen([sys.executable, __file__, '--package-version'],
-                          stdout=subprocess.PIPE).communicate()[0].rstrip()
+                        stdout=subprocess.PIPE).communicate()[0].rstrip()
     return version
 
 
@@ -129,7 +129,7 @@ def main():
             usage()
             sys.exit()
         elif o in ("--firmware-version"):
-            from hardware.dmf_control_board import DmfControlBoardInfo, ConnectionError
+            from hardware.dmf_control_board.info import DmfControlBoardInfo, ConnectionError
             try:
                 d = DmfControlBoardInfo()
                 print d.firmware_version
@@ -137,7 +137,7 @@ def main():
                 print ""
             exit(0)
         elif o in ("--package-version"):
-            from hardware.dmf_control_board import DmfControlBoard, ConnectionError
+            from hardware.dmf_control_board.info import DmfControlBoardInfo, ConnectionError
             try:
                 d = DmfControlBoard()
                 print d.host_software_version()
@@ -153,8 +153,8 @@ def main():
                 warnings.warn(str(why))
                 exit(1)
         elif o in ("--update-firmware"):
+            from hardware.dmf_control_board.avr import AvrDude
             try:
-                from hardware.dmf_control_board.avr import AvrDude
                 hex_path = base_path() / path("hardware") \
                            / path("dmf_control_board") / path("dmf_driver.hex")
                 avrdude = AvrDude()
