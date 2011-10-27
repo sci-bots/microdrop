@@ -70,10 +70,12 @@ class MainWindowController:
             self.app.control_board.flush()
             name = self.app.control_board.name()
             version = 0
+            firmware = self.app.control_board.software_version()
             if is_float(self.app.control_board.hardware_version()):
                 version = float(self.app.control_board.hardware_version())
             if name == "Arduino DMF Controller" and version >= 1.1:
-                self.label_connection_status.set_text(name + " v" + str(version))
+                self.label_connection_status.set_text(name + " v" + 
+                    str(version) + "\n\tFirmware: " + str(firmware))
                 return
         raise ConnectionError('Could not connect to port: %s' % port)
 

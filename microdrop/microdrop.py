@@ -21,22 +21,22 @@ import update
 
 if __name__ == '__main__':
     archive_version = update.archive_version()
-    firmware_version = update.firmware_version()
     driver_version = update.package_version()
+    firmware_version = update.firmware_version()
 
     print "archive version=", archive_version
-    print "firmware_version=", firmware_version
     print "driver_version=", driver_version
+    print "firmware_version=", firmware_version
 
     if driver_version != archive_version:
-        print "updating driver..."
+        print "updating driver to version %s..." % archive_version
         if update.update_package():
             print "   success"
         else:
             print "   failed"
     
     if firmware_version != archive_version:
-        print "updating firmware..."
+        print "updating firmware to version %s..." % archive_version
         if update.update_firmware():
             print "   success"
         else:
