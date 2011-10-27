@@ -19,7 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 from dmf_control_board_base import DmfControlBoard as Base
 from dmf_control_board_base import uint8_tVector, INPUT, OUTPUT, HIGH, LOW, SINE, SQUARE
-from hardware.serial_device import SerialDevice, ConnectionError
+from avr.serial_device import SerialDevice, ConnectionError
 from utility import is_float
 
 import numpy

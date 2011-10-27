@@ -17,27 +17,31 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import sys
 import os
-
+import time
+import re
+import warnings
 from subprocess import Popen, PIPE, CalledProcessError
-from hardware.serial_device import SerialDevice, ConnectionError
-from hardware import hardware_path
+
+from serial_device import SerialDevice, ConnectionError
 from utility import path
 
-
+    
 class FirmwareError(Exception):
     pass
 
 
 class AvrDude(SerialDevice):
     def __init__(self):
+        p = path(__file__)
         if os.name == 'nt':
-            self.avrdude = hardware_path() / path('avr') / path('avrdude.exe')
+            self.avrdude = p.parent / path('avrdude.exe')
         else:
-            self.avrdude = hardware_path() / path('avr') / path('avrdude')
+            self.avrdude = p.parent / path('avrdude')
         if not self.avrdude.exists():
             raise FirmwareError('avrdude not installed')
-        self.avrconf = hardware_path() / path('avr') / path('avrdude.conf')
+        self.avrconf = p.parent / path('avrdude.conf')
         self.port = self.get_port()
         print 'avrdude successfully connected on port: ', self.port
 
@@ -77,4 +81,4 @@ class AvrDude(SerialDevice):
             self._run_command(flags)
         except (ConnectionError, CalledProcessError):
             return False
-        return True
+        return True    

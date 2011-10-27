@@ -146,7 +146,7 @@ def main():
             exit(0)
         elif o in ("--archive-version"):
             try:
-                u = Updater(base_path() / path("hardware/dmf_control_board"))
+                u = Updater(base_path() / path("hardware") / path("dmf_control_board"))
                 print u.version
                 exit(0)
             except ArchiveError, why:
@@ -154,11 +154,15 @@ def main():
                 exit(1)
         elif o in ("--update-firmware"):
             try:
-                from hardware.avr import FirmwareUpdater
-                f = FirmwareUpdater(base_path() / path("hardware/dmf_control_board"),
-                                    "dmf_driver.hex")
-                f.update()
-                exit(0)
+                from hardware.dmf_control_board.avr import AvrDude
+                hex_path = base_path() / path("hardware") \
+                           / path("dmf_control_board") / path("dmf_driver.hex")
+                avrdude = AvrDude()
+                stdout, stderr = avrdude.flash(hex_path)
+                if stdout:
+                    print stdout
+                if stderr:
+                    print stderr
             except Exception, why:
                 print why
                 exit(1)
@@ -166,9 +170,11 @@ def main():
             try:
                 if os.name == 'nt':
                     file_names = ["\.pyd$", "\.dll$",
+                                  "dmf_driver.hex",
                                   "version.txt"]
                 else:
-                    file_names = ["*.so", "version.txt"]
+                    file_names = ["*.so", "dmf_driver.hex",
+                                  "version.txt"]
                 u = Updater(base_path() / path("hardware/dmf_control_board"))
                 u.update(file_names)
                 exit(0)
