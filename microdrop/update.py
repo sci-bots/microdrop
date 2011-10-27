@@ -173,7 +173,7 @@ def main():
                                   "dmf_driver.hex",
                                   "version.txt"]
                 else:
-                    file_names = ["*.so", "dmf_driver.hex",
+                    file_names = ["\.so$", "dmf_driver.hex",
                                   "version.txt"]
                 u = Updater(base_path() / path("hardware/dmf_control_board"))
                 u.update(file_names)

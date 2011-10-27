@@ -18,6 +18,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
+from utility import path
 
 class ConnectionError(Exception):
     pass
@@ -39,6 +40,12 @@ class SerialDevice(object):
                 if self.test_connection(tty):
                     port = tty
                     break
+            # or Ubuntu in a VirtualBox
+            if port is None:
+                for tty in path('/dev').walk('ttyACM*'):
+                    if self.test_connection(tty):
+                        port = tty
+                        break
         if port is None:
             raise ConnectionError('could not connect to serial device.')
         return port
