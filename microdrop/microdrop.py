@@ -17,9 +17,16 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import os
+import utility
+
 import update
 
 if __name__ == '__main__':
+    # Change directory to where microdrop.py resides, so this program can be
+    # run from any directory.
+    os.chdir(utility.base_path())
+
     archive_version = update.archive_version()
     driver_version = update.package_version()
     firmware_version = update.firmware_version()
