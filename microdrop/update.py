@@ -65,7 +65,7 @@ def update_firmware():
     p = subprocess.Popen([sys.executable, __file__, '--update-firmware'],
                          stdout=subprocess.PIPE)
     output = p.communicate()[0].rstrip()
-    if output:
+    if output and verbose:
         print output
     return p.returncode==0
 
@@ -77,7 +77,7 @@ def update_package():
     p = subprocess.Popen([sys.executable, __file__, '--update-package'],
                          stdout=subprocess.PIPE)
     output = p.communicate()[0].rstrip()
-    if output:
+    if output and verbose:
         print output
     return p.returncode==0
 
@@ -159,7 +159,8 @@ def main():
                                     "dmf_driver.hex")
                 f.update()
                 exit(0)
-            except:
+            except Exception, why:
+                print why
                 exit(1)
         elif o in ("--update-package"):
             try:
@@ -171,7 +172,8 @@ def main():
                 u = Updater(base_path() / path("hardware/dmf_control_board"))
                 u.update(file_names)
                 exit(0)
-            except:
+            except Exception, why:
+                print why
                 exit(1)
         else:
             assert False, "unhandled option"
