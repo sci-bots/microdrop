@@ -98,4 +98,9 @@ class DmfControlBoard(Base, SerialDevice):
             data_.append(int(data[i]))
         Base.i2c_write(self, address, data_)
         
+    def i2c_read(self, address, send_data, n_bytes_to_read):
+        send_data_ = uint8_tVector()
+        for i in range(0, len(send_data)):
+            send_data_.append(int(send_data[i]))
+        return numpy.array(Base.i2c_read(self, address, send_data_, n_bytes_to_read))
 
