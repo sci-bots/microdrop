@@ -1,0 +1,3 @@
+[submodule "microdrop/plugins/dmf_control_board"]
+	path = microdrop/plugins/dmf_control_board
+	url = http://microfluidics.utoronto.ca/git/dmf_control_board.git
