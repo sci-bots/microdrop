@@ -24,7 +24,7 @@ import re
 import numpy as np
 
 from utility import base_path
-from hardware.dmf_control_board.device import DmfControlBoard
+from plugins.dmf_control_board import DmfControlBoard
 from hardware.agilent_33220a import Agilent33220A
 from gui.main_window_controller import MainWindowController
 from gui.dmf_device_controller import DmfDeviceController

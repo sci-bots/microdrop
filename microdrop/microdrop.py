@@ -27,6 +27,7 @@ if __name__ == '__main__':
     # run from any directory.
     os.chdir(utility.base_path())
 
+    """
     archive_version = update.archive_version()
     driver_version = update.package_version()
     firmware_version = update.firmware_version()
@@ -48,6 +49,7 @@ if __name__ == '__main__':
             print "   success"
         else:
             print "   failed"
+    """
         
     from app import App
     app = App()

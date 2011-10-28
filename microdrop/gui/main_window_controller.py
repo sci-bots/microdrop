@@ -22,11 +22,9 @@ import sys
 import gtk
 import time
 
-from hardware.dmf_control_board.device import DmfControlBoard
+from plugins.dmf_control_board import DmfControlBoard, ConnectionError
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin
-from hardware.dmf_control_board.info import DmfControlBoardInfo, ConnectionError
-
 
 class MicroDropError(Exception):
     pass
@@ -59,8 +57,10 @@ class MainWindowController:
                 self.on_realtime_mode_toggled
 
         try:
-            info = DmfControlBoardInfo()
-            self._register_serial_device(info.port)
+            control_board = DmfControlBoard()
+            port = control_board.get_port()
+            del control_board
+            self._register_serial_device(port)
         except ConnectionError, why:
             print 'Could not connect to DMF Control Board'
 
