@@ -57,27 +57,23 @@ class MainWindowController:
                 self.on_realtime_mode_toggled
 
         try:
-            control_board = DmfControlBoard()
-            port = control_board.get_port()
-            del control_board
-            self._register_serial_device(port)
-        except ConnectionError, why:
-            print 'Could not connect to DMF Control Board'
-
-    def _register_serial_device(self, port):
-        if self.app.control_board.connect(port) == DmfControlBoard.RETURN_OK:
-            self.port = port
-            self.app.control_board.flush()
+            self.app.control_board = DmfControlBoard()
+            self.app.control_board.connect()
             name = self.app.control_board.name()
-            version = 0
+            version = self.app.control_board.hardware_version()
+
+            # reflash the firmware if it is not the right version
+            if self.app.control_board.host_software_version() != \
+                self.app.control_board.software_version():
+                try:
+                    self.app.control_board.flash_firmware()
+                except:
+                    self.error("Problem flashing firmware")
             firmware = self.app.control_board.software_version()
-            if is_float(self.app.control_board.hardware_version()):
-                version = float(self.app.control_board.hardware_version())
-            if name == "Arduino DMF Controller" and version >= 1.1:
-                self.label_connection_status.set_text(name + " v" + 
-                    str(version) + "\n\tFirmware: " + str(firmware))
-                return
-        raise ConnectionError('Could not connect to port: %s' % port)
+            self.label_connection_status.set_text(name + " v" + 
+              version + "\n\tFirmware: " + str(firmware))
+        except ConnectionError, why:
+            print why
 
     def main(self):
         self.update()

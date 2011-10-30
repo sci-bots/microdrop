@@ -20,36 +20,11 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import utility
 
+from app import App
 import update
 
 if __name__ == '__main__':
     # Change directory to where microdrop.py resides, so this program can be
     # run from any directory.
     os.chdir(utility.base_path())
-
-    """
-    archive_version = update.archive_version()
-    driver_version = update.package_version()
-    firmware_version = update.firmware_version()
-
-    print "archive version=", archive_version
-    print "driver_version=", driver_version
-    print "firmware_version=", firmware_version
-
-    if driver_version != archive_version:
-        print "updating driver to version %s..." % archive_version
-        if update.update_package():
-            print "   success"
-        else:
-            print "   failed"
-    
-    if firmware_version != archive_version:
-        print "updating firmware to version %s..." % archive_version
-        if update.update_firmware():
-            print "   success"
-        else:
-            print "   failed"
-    """
-        
-    from app import App
     app = App()
