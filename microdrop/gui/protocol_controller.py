@@ -241,6 +241,11 @@ class ProtocolController(object):
                     observer.on_protocol_run()
 
     def run_protocol(self):
+        if self.app.control_board.number_of_channels() < \
+            self.app.protocol.n_channels:
+            self.app.main_window_controller.warning("Warning: currently "
+                "connected board does not have enough channels for this "
+                "protocol.")
         self.app.running = True
         self.run_step()
 
@@ -259,6 +264,13 @@ class ProtocolController(object):
             """
             
             state = self.app.protocol.current_step().state_of_channels
+            max_channels = self.app.control_board.number_of_channels() 
+            if len(state) >  max_channels:
+                state = state[0:max_channels]
+            elif len(state) < max_channels:
+                state = np.concatenate([state, np.zeros(max_channels-len(state), int)])
+            else:
+                assert(len(state)==max_channels)
 
             """
             if feedback_options: # run this step with feedback
@@ -341,8 +353,18 @@ class ProtocolController(object):
             else:
                 self.app.control_board.set_waveform_voltage(float(self.app.protocol.current_step().voltage)*math.sqrt(2)/100)
                 self.app.control_board.set_waveform_frequency(float(self.app.protocol.current_step().frequency))
-            if self.app.running is False:
+            if self.app.realtime_mode:
                 state = self.app.protocol.state_of_all_channels()
+                max_channels = self.app.control_board.number_of_channels() 
+                if len(state) >  max_channels:
+                    if len(np.nonzero(state[max_channels:]>=1)[0]):
+                        self.app.main_window_controller.warning("One or more "
+                            "channels that are currently on are not available.")
+                    state = state[0:max_channels]
+                elif len(state) < max_channels:
+                    state = np.concatenate([state, np.zeros(max_channels-len(state), int)])
+                else:
+                    assert(len(state)==max_channels)
                 self.app.control_board.set_state_of_all_channels(state)
 
         for observer in self.observers:

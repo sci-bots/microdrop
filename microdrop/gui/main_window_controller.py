@@ -106,6 +106,14 @@ class MainWindowController:
         dialog.run()
         dialog.destroy()                    
 
+    def warning(self, message):
+        dialog = gtk.MessageDialog(self.view,
+                                   gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   gtk.MESSAGE_WARNING, 
+                                   gtk.BUTTONS_CLOSE, message)
+        dialog.run()
+        dialog.destroy()                    
+
     def update(self):
         self.app.realtime_mode = self.checkbutton_realtime_mode.get_active()
         self.app.dmf_device_controller.update()
