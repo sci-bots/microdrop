@@ -21,10 +21,14 @@ from pyutilib.component.core import Interface, ExtensionPoint, \
                                     SingletonPlugin, implements
 import pyutilib.component.loader
 
+from utility import path
+
+
 class PluginManager():
     def __init__(self):
-        pyutilib.component.loader.PluginGlobals.load_services(
-            path="plugins", auto_disable=False)
+        for d in path("plugins").dirs():
+            pyutilib.component.loader.PluginGlobals.load_services(
+                path=(d / path("microdrop")).abspath(), auto_disable=False)
 
 class IPlugin(Interface):
     def edit_options():

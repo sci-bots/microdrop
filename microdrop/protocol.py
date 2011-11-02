@@ -128,10 +128,7 @@ class Protocol():
 
     def goto_step(self, step):
         self.current_step_number = step
-        
-    def run_step(self):
-        pass
-    
+            
 class Step():
     def __init__(self, n_channels, time=None, voltage=None,
                  frequency=None, plugin=None, state_of_channels=None):

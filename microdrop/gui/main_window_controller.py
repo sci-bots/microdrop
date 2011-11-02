@@ -22,7 +22,6 @@ import sys
 import gtk
 import time
 
-from plugins.dmf_control_board import DmfControlBoard, ConnectionError
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin
 
@@ -35,6 +34,7 @@ class MainWindowController:
 
     def __init__(self, app, builder, signals):
         self.app = app
+        gtk.link_button_set_uri_hook(self.on_url_clicked)
         builder.add_from_file(os.path.join("gui",
                                            "glade",
                                            "main_window.glade"))
@@ -55,25 +55,6 @@ class MainWindowController:
         signals["on_window_delete_event"] = self.on_delete_event
         signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
-
-        try:
-            self.app.control_board = DmfControlBoard()
-            self.app.control_board.connect()
-            name = self.app.control_board.name()
-            version = self.app.control_board.hardware_version()
-
-            # reflash the firmware if it is not the right version
-            if self.app.control_board.host_software_version() != \
-                self.app.control_board.software_version():
-                try:
-                    self.app.control_board.flash_firmware()
-                except:
-                    self.error("Problem flashing firmware")
-            firmware = self.app.control_board.software_version()
-            self.label_connection_status.set_text(name + " v" + 
-              version + "\n\tFirmware: " + str(firmware))
-        except ConnectionError, why:
-            print why
 
     def main(self):
         self.update()
@@ -131,3 +112,6 @@ class MainWindowController:
         # process all gtk events
         while gtk.events_pending():
             gtk.main_iteration()
+
+    def on_url_clicked(self, widget, data=None):
+        print "url clicked"

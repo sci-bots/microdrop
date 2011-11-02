@@ -17,41 +17,28 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import gtk, gobject, os, math, time
+import gtk
+import gobject
+import os
+import math
+import time
+
 import numpy as np
+
 from protocol import Protocol, load as load_protocol
 from utility import check_textentry, is_float, is_int
 from plugin_manager import ExtensionPoint, IPlugin
+
 
 class ProtocolController(object):    
     observers = ExtensionPoint(IPlugin)
     
     def __init__(self, app, builder, signals):
         self.app = app
+        self.builder = builder
         self.filename = None
         self.previous_voltage = None
         self.previous_frequency = None
-        self.textview_notes = builder.get_object("textview_notes")
-        self.button_first_step = builder.get_object("button_first_step")
-        self.button_prev_step = builder.get_object("button_prev_step")
-        self.button_next_step = builder.get_object("button_next_step")
-        self.button_last_step = builder.get_object("button_last_step")
-        self.button_insert_step = builder.get_object("button_insert_step")
-        self.button_copy_step = builder.get_object("button_insert_copy")
-        self.button_delete_step = builder.get_object("button_delete_step")
-        self.button_run_protocol = builder.get_object("button_run_protocol")
-        self.label_step_number = builder.get_object("label_step_number")
-        self.menu_save_protocol = builder.get_object("menu_save_protocol")
-        self.menu_save_protocol_as = builder.get_object("menu_save_protocol_as")
-        self.menu_load_protocol = builder.get_object("menu_load_protocol")
-        self.menu_add_frequency_sweep = builder.get_object("menu_add_frequency_sweep")
-        self.textentry_voltage = builder.get_object("textentry_voltage")
-        self.textentry_frequency = builder.get_object("textentry_frequency")
-        self.textentry_step_time = builder.get_object("textentry_step_time")
-        self.image_play = builder.get_object("image_play")
-        self.image_pause = builder.get_object("image_pause")
-        self.textentry_protocol_repeats = builder.get_object("textentry_protocol_repeats")
-
         signals["on_button_insert_step_clicked"] = self.on_insert_step
         signals["on_button_delete_step_clicked"] = self.on_delete_step
         signals["on_button_copy_step_clicked"] = self.on_copy_step
@@ -213,137 +200,68 @@ class ProtocolController(object):
                             self.app.protocol.n_repeats,
                             int)
         self.update()
-
-    """
-    def on_feedback_toggled(self, widget, data=None):
-        if self.checkbutton_feedback.get_active():
-            if self.app.protocol.current_step().feedback_options is None:
-                self.app.protocol.current_step().feedback_options = \
-                    FeedbackOptions()
-            self.button_step_type_options.set_sensitive(True)
-            self.textentry_step_time.set_sensitive(False)
-        else:
-            self.app.protocol.current_step().feedback_options = None
-            self.button_step_type_options.set_sensitive(False)
-            self.textentry_step_time.set_sensitive(True)
-    """
             
     def on_run_protocol(self, widget, data=None):
         if self.app.running:
             self.pause_protocol()
-            for observer in self.observers:
-                if hasattr(observer, "on_protocol_pause"):
-                    observer.on_protocol_pause()
         else:
             self.run_protocol()
-            for observer in self.observers:
-                if hasattr(observer, "on_protocol_run"):
-                    observer.on_protocol_run()
 
     def run_protocol(self):
-        if self.app.control_board.number_of_channels() < \
+        if self.app.control_board.connected() and\
+            self.app.control_board.number_of_channels() < \
             self.app.protocol.n_channels:
             self.app.main_window_controller.warning("Warning: currently "
                 "connected board does not have enough channels for this "
                 "protocol.")
         self.app.running = True
+        self.builder.get_object("button_run_protocol"). \
+            set_image(self.builder.get_object("image_pause"))
+        for observer in self.observers:
+            if hasattr(observer, "on_protocol_run"):
+                observer.on_protocol_run()
         self.run_step()
 
     def pause_protocol(self):
         self.app.running = False
+        self.builder.get_object("button_run_protocol"). \
+            set_image(self.builder.get_object("image_play"))
+        for observer in self.observers:
+            if hasattr(observer, "on_protocol_pause"):
+                observer.on_protocol_pause()
         
     def run_step(self):
         self.app.main_window_controller.update()
-        if self.app.control_board.connected():
-            data = {"step":self.app.protocol.current_step_number,
-                    "time":time.time()}
-            
-            """            
-            feedback_options = \
-                self.protocol.current_step().feedback_options
-            """
-            
-            state = self.app.protocol.current_step().state_of_channels
-            max_channels = self.app.control_board.number_of_channels() 
-            if len(state) >  max_channels:
-                state = state[0:max_channels]
-            elif len(state) < max_channels:
-                state = np.concatenate([state, np.zeros(max_channels-len(state), int)])
-            else:
-                assert(len(state)==max_channels)
+        
+        # run through protocol (even though device is not connected)
+        if self.app.control_board.connected()==False:
+            t = time.time()
+            while time.time()-t < self.app.protocol.current_step().time/1000.0:
+                while gtk.events_pending():
+                    gtk.main_iteration()
 
-            """
-            if feedback_options: # run this step with feedback
-                ad_channel = 1
-
-                # measure droplet impedance
-                self.control_board.set_series_resistor(ad_channel, 2)
-                
-                impedance = self.control_board.MeasureImpedance(
-                           feedback_options.sampling_time_ms,
-                           feedback_options.n_samples,
-                           feedback_options.delay_between_samples_ms,
-                           state)
-                V_fb = impedance[0::2]
-                Z_fb = impedance[1::2]
-                V_total = self.protocol.current_step().voltage
-                Z_device = Z_fb*(V_total/V_fb-1)
-                data["Z_device"] = Z_device
-                data["V_fb"] = V_fb
-                data["Z_fb"] = Z_fb
-
-                # measure the voltage waveform for each series resistor
-                for i in range(0,4):
-                    self.control_board.set_series_resistor(ad_channel,i)
-                    voltage_waveform = self.control_board.SampleVoltage(
-                                [ad_channel], 1000, 1, 0, state)
-                    data["voltage waveform (Resistor=%.1f kOhms)" %
-                         (self.control_board.series_resistor(ad_channel)/1000.0)] = \
-                         voltage_waveform
-            else:   # run without feedback
-                self.control_board.set_state_of_all_channels(state)
-                time.sleep(self.protocol.current_step().time/1000.0)
-            """
-
-            self.app.control_board.set_state_of_all_channels(state)
-            time.sleep(self.app.protocol.current_step().time/1000.0)
-
-            """
-            # TODO: temproary hack to measure temperature
-            state = np.zeros(len(state))
-            voltage_waveform = self.control_board.SampleVoltage(
-                        [15], 10, 1, 0, state)
-            temp = np.mean(voltage_waveform/1024.0*5.0/0.01)
-            print temp
-            data["AD595 temp"] = temp
-            """
-            self.app.experiment_log.add_data(data)
-        else: # run through protocol (even though device is not connected)
-            time.sleep(self.app.protocol.current_step().time/1000.0)
-                
         if self.app.protocol.current_step_number < len(self.app.protocol)-1:
             self.app.protocol.next_step()
         elif self.app.protocol.current_repetition < self.app.protocol.n_repeats-1:
             self.app.protocol.next_repetition()
         else: # we're on the last step
-            self.app.running = False
             self.app.experiment_log_controller.save()
+            self.pause_protocol()
 
         if self.app.running:
             self.run_step()
 
     def update(self):
-        self.textentry_step_time.set_text(str(self.app.protocol.current_step().time))
-        self.textentry_voltage.set_text(str(self.app.protocol.current_step().voltage))
-        self.textentry_frequency.set_text(str(self.app.protocol.current_step().frequency/1e3))
-        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
+        self.builder.get_object("textentry_step_time"). \
+            set_text(str(self.app.protocol.current_step().time))
+        self.builder.get_object("textentry_voltage"). \
+            set_text(str(self.app.protocol.current_step().voltage))
+        self.builder.get_object("textentry_frequency"). \
+            set_text(str(self.app.protocol.current_step().frequency/1e3))
+        self.builder.get_object("label_step_number"). \
+            set_text("Step: %d/%d\tRepetition: %d/%d" % 
             (self.app.protocol.current_step_number+1, len(self.app.protocol.steps),
              self.app.protocol.current_repetition+1, self.app.protocol.n_repeats))
-
-        if self.app.running:
-            self.button_run_protocol.set_image(self.image_pause)
-        else:
-            self.button_run_protocol.set_image(self.image_play)
 
         if self.app.control_board.connected() and \
             (self.app.realtime_mode or self.app.running):
