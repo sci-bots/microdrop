@@ -275,6 +275,31 @@
               </object>
             </child>
             <child>
+              <object class="GtkMenuItem" id="menu_view">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
+                <property name="label" translatable="yes">_View</property>
+                <property name="use_underline">True</property>
+                <child type="submenu">
+                  <object class="GtkMenu" id="menu2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkMenuItem" id="menu_experiment_logs">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="label" translatable="yes">_Experiment logs</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_menu_experiment_logs_activate" swapped="no"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
               <object class="GtkMenuItem" id="menu_hel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -599,7 +624,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHBox" id="hbox8">
+                  <object class="GtkHBox" id="hbox7">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
@@ -608,8 +633,7 @@
                         <property name="can_focus">False</property>
                         <property name="xalign">0</property>
                         <property name="yalign">0</property>
-                        <property name="xpad">3</property>
-                        <property name="ypad">3</property>
+                        <property name="xpad">4</property>
                         <property name="label" translatable="yes">Notes:</property>
                       </object>
                       <packing>
@@ -624,6 +648,7 @@
                         <property name="can_focus">True</property>
                         <property name="hscrollbar_policy">automatic</property>
                         <property name="vscrollbar_policy">automatic</property>
+                        <property name="shadow_type">in</property>
                         <child>
                           <object class="GtkTextView" id="textview_notes">
                             <property name="visible">True</property>
@@ -634,6 +659,7 @@
                       <packing>
                         <property name="expand">True</property>
                         <property name="fill">True</property>
+                        <property name="padding">4</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -641,7 +667,6 @@
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="padding">3</property>
                     <property name="position">10</property>
                   </packing>
                 </child>

@@ -18,13 +18,15 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
+
 import utility
 
-from app import App
-import update
 
 if __name__ == '__main__':
     # Change directory to where microdrop.py resides, so this program can be
     # run from any directory.
     os.chdir(utility.base_path())
-    app = App()
+    
+    # importing app automatically initilizes an instance of the class because
+    # it is defined as a singleton plugin
+    from app import App

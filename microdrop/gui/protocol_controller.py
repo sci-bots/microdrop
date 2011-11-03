@@ -27,52 +27,52 @@ import numpy as np
 
 from protocol import Protocol, load as load_protocol
 from utility import check_textentry, is_float, is_int
-from plugin_manager import ExtensionPoint, IPlugin
+from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
+    implements, emit_signal
 
 
-class ProtocolController(object):    
-    observers = ExtensionPoint(IPlugin)
+class ProtocolController(SingletonPlugin):
+    implements(IPlugin)
     
-    def __init__(self, app, builder, signals):
+    def __init__(self):
+        self.name = "microdrop.gui.protocol_controller"
+        self.app = None
+        self.builder = None
+        
+    def on_app_init(self, app):
         self.app = app
-        self.builder = builder
-        self.filename = None
-        self.previous_voltage = None
-        self.previous_frequency = None
-        signals["on_button_insert_step_clicked"] = self.on_insert_step
-        signals["on_button_delete_step_clicked"] = self.on_delete_step
-        signals["on_button_copy_step_clicked"] = self.on_copy_step
-        signals["on_button_first_step_clicked"] = self.on_first_step
-        signals["on_button_prev_step_clicked"] = self.on_prev_step
-        signals["on_button_next_step_clicked"] = self.on_next_step
-        signals["on_button_last_step_clicked"] = self.on_last_step
-        signals["on_button_run_protocol_clicked"] = self.on_run_protocol
-        signals["on_menu_new_protocol_activate"] = self.on_new_protocol
-        signals["on_menu_load_protocol_activate"] = self.on_load_protocol
-        signals["on_menu_rename_protocol_activate"] = self.on_rename_protocol
-        signals["on_menu_save_protocol_activate"] = self.on_save_protocol
-        signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
-        signals["on_menu_add_frequency_sweep_activate"] = self.on_add_frequency_sweep
-        signals["on_textentry_voltage_focus_out_event"] = \
+        self.builder = app.builder
+        app.signals["on_button_insert_step_clicked"] = self.on_insert_step
+        app.signals["on_button_delete_step_clicked"] = self.on_delete_step
+        app.signals["on_button_copy_step_clicked"] = self.on_copy_step
+        app.signals["on_button_first_step_clicked"] = self.on_first_step
+        app.signals["on_button_prev_step_clicked"] = self.on_prev_step
+        app.signals["on_button_next_step_clicked"] = self.on_next_step
+        app.signals["on_button_last_step_clicked"] = self.on_last_step
+        app.signals["on_button_run_protocol_clicked"] = self.on_run_protocol
+        app.signals["on_menu_new_protocol_activate"] = self.on_new_protocol
+        app.signals["on_menu_load_protocol_activate"] = self.on_load_protocol
+        app.signals["on_menu_rename_protocol_activate"] = self.on_rename_protocol
+        app.signals["on_menu_save_protocol_activate"] = self.on_save_protocol
+        app.signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
+        app.signals["on_menu_add_frequency_sweep_activate"] = self.on_add_frequency_sweep
+        app.signals["on_textentry_voltage_focus_out_event"] = \
                 self.on_textentry_voltage_focus_out
-        signals["on_textentry_voltage_key_press_event"] = \
+        app.signals["on_textentry_voltage_key_press_event"] = \
                 self.on_textentry_voltage_key_press
-        signals["on_textentry_frequency_focus_out_event"] = \
+        app.signals["on_textentry_frequency_focus_out_event"] = \
                 self.on_textentry_frequency_focus_out
-        signals["on_textentry_frequency_key_press_event"] = \
+        app.signals["on_textentry_frequency_key_press_event"] = \
                 self.on_textentry_frequency_key_press
-        signals["on_textentry_protocol_repeats_focus_out_event"] = \
+        app.signals["on_textentry_protocol_repeats_focus_out_event"] = \
                 self.on_textentry_protocol_repeats_focus_out
-        signals["on_textentry_protocol_repeats_key_press_event"] = \
+        app.signals["on_textentry_protocol_repeats_key_press_event"] = \
                 self.on_textentry_protocol_repeats_key_press
-        signals["on_textentry_step_time_focus_out_event"] = \
+        app.signals["on_textentry_step_time_focus_out_event"] = \
                 self.on_textentry_step_time_focus_out
-        signals["on_textentry_step_time_key_press_event"] = \
+        app.signals["on_textentry_step_time_key_press_event"] = \
                 self.on_textentry_step_time_key_press
-
-        store = gtk.ListStore(gobject.TYPE_STRING)
-        cell = gtk.CellRendererText()
-        store.append(["Normal"])
+        app.protocol_controller = self
 
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()
@@ -103,7 +103,7 @@ class ProtocolController(object):
         self.app.main_window_controller.update()
 
     def on_new_protocol(self, widget, data=None):
-        self.filename = None
+        filename = None
         # delete all steps (this is necessary so that plugins will also
         # clear all steps
         while len(self.app.protocol.steps) > 1:
@@ -125,11 +125,12 @@ class ProtocolController(object):
                                                "protocols"))
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
-            self.filename = dialog.get_filename()
+            filename = dialog.get_filename()
             try:
-                self.app.protocol = load_protocol(self.filename)
-            except:
-                self.app.main_window_controller.error("Could not open %s" % self.filename)
+                emit_signal("on_protocol_changed", [load_protocol(filename)])
+            except Exception, why:
+                print why
+                self.app.main_window_controller.error("Could not open %s" % filename)
         dialog.destroy()
         self.app.main_window_controller.update()
 
@@ -217,18 +218,16 @@ class ProtocolController(object):
         self.app.running = True
         self.builder.get_object("button_run_protocol"). \
             set_image(self.builder.get_object("image_pause"))
-        for observer in self.observers:
-            if hasattr(observer, "on_protocol_run"):
-                observer.on_protocol_run()
+        emit_signal("on_protocol_run")
         self.run_step()
 
     def pause_protocol(self):
         self.app.running = False
         self.builder.get_object("button_run_protocol"). \
             set_image(self.builder.get_object("image_play"))
-        for observer in self.observers:
-            if hasattr(observer, "on_protocol_pause"):
-                observer.on_protocol_pause()
+        emit_signal("on_protocol_pause")
+        self.app.experiment_log_controller.save()
+        emit_signal("on_experiment_log_changed", self.app.experiment_log)        
         
     def run_step(self):
         self.app.main_window_controller.update()
@@ -245,7 +244,6 @@ class ProtocolController(object):
         elif self.app.protocol.current_repetition < self.app.protocol.n_repeats-1:
             self.app.protocol.next_repetition()
         else: # we're on the last step
-            self.app.experiment_log_controller.save()
             self.pause_protocol()
 
         if self.app.running:
@@ -284,10 +282,11 @@ class ProtocolController(object):
                 else:
                     assert(len(state)==max_channels)
                 self.app.control_board.set_state_of_all_channels(state)
+        emit_signal("on_protocol_update")
+                
+    def on_dmf_device_changed(self, dmf_device):
+        emit_signal("on_protocol_changed", [Protocol(dmf_device.max_channel()+1)])
 
-        for observer in self.observers:
-            if hasattr(observer, "on_protocol_update"):
-                observer.on_protocol_update()
 
 class AddFrequencySweepDialog:
     def __init__(self, app):

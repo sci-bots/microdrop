@@ -23,58 +23,76 @@ import gtk
 import time
 
 from utility import wrap_string, is_float
-from plugin_manager import ExtensionPoint, IPlugin
+from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
+    implements, emit_signal
 
 class MicroDropError(Exception):
     pass
 
 
-class MainWindowController:
-    observers = ExtensionPoint(IPlugin)
+class MainWindowController(SingletonPlugin):
+    implements(IPlugin)
 
-    def __init__(self, app, builder, signals):
-        self.app = app
+    def __init__(self):
+        self.app = None
+        self.name = "microdrop.gui.main_window_controller"
+        self.builder = None
+        self.view = None
+        self.label_connection_status = None
+        self.label_experiment_id = None
+        self.label_device_name = None
+        self.label_protocol_name = None
+        self.checkbutton_realtime_mode = None
+        self.menu_tools = None
         gtk.link_button_set_uri_hook(self.on_url_clicked)
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "main_window.glade"))
-        self.view = builder.get_object("window")
-        self.label_connection_status = builder.get_object("label_connection_status")
-        self.label_experiment_id = builder.get_object("label_experiment_id")
-        self.label_device_name = builder.get_object("label_device_name")
-        self.label_protocol_name = builder.get_object("label_protocol_name")
-        self.checkbutton_realtime_mode = builder.get_object("checkbutton_realtime_mode")
-        self.menu_tools = builder.get_object("menu_tools")
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "about_dialog.glade"))
+        
+    def on_app_init(self, app):
+        self.app = app
+        app.builder.add_from_file(os.path.join("gui",
+                                               "glade",
+                                               "main_window.glade"))
+        self.view = app.builder.get_object("window")
+        self.label_connection_status = app.builder.get_object("label_connection_status")
+        self.label_experiment_id = app.builder.get_object("label_experiment_id")
+        self.label_device_name = app.builder.get_object("label_device_name")
+        self.label_protocol_name = app.builder.get_object("label_protocol_name")
+        self.checkbutton_realtime_mode = app.builder.get_object("checkbutton_realtime_mode")
+        self.menu_tools = app.builder.get_object("menu_tools")
 
-        signals["on_menu_quit_activate"] = self.on_destroy
-        signals["on_menu_about_activate"] = self.on_about
-        signals["on_window_destroy"] = self.on_destroy
-        signals["on_window_delete_event"] = self.on_delete_event
-        signals["on_checkbutton_realtime_mode_toggled"] = \
+        app.signals["on_menu_quit_activate"] = self.on_destroy
+        app.signals["on_menu_about_activate"] = self.on_about
+        app.signals["on_menu_experiment_logs_activate"] = \
+            self.on_menu_experiment_logs_activate
+        app.signals["on_window_destroy"] = self.on_destroy
+        app.signals["on_window_delete_event"] = self.on_delete_event
+        app.signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
+
+        self.builder = gtk.Builder()
+        self.builder.add_from_file(os.path.join("gui",
+                                                "glade",
+                                                "about_dialog.glade"))
+        self.app.main_window_controller = self
 
     def main(self):
         self.update()
         gtk.main()
 
     def on_delete_event(self, widget, data=None):
-        self.app.config_controller.on_quit()
-        for observer in self.observers:
-            if hasattr(observer, "on_app_exit"):
-                observer.on_app_exit()
+        emit_signal("on_app_exit")
 
     def on_destroy(self, widget, data=None):
         gtk.main_quit()
 
     def on_about(self, widget, data=None):
-        dialog = self.app.builder.get_object("about_dialog")
+        dialog = self.builder.get_object("about_dialog")
         dialog.set_transient_for(self.app.main_window_controller.view)
         dialog.set_version(self.app.version)
         dialog.run()
         dialog.hide()
+
+    def on_menu_experiment_logs_activate(self, widget, data=None):
+        self.app.experiment_log_controller.on_window_show(widget, data)
 
     def on_realtime_mode_toggled(self, widget, data=None):
         self.update()
@@ -101,7 +119,7 @@ class MainWindowController:
         self.app.protocol_controller.update()
         
         if self.app.dmf_device.name:
-            experiment_id = self.app.experiment_log.get_id()
+            experiment_id = self.app.experiment_log.get_next_id()
         else:
             experiment_id = None
         self.label_experiment_id.set_text("Experiment: %s" % str(experiment_id))

@@ -17,13 +17,22 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, gtk, shutil
+import os
+import shutil
+
+import gtk
+
 from dmf_device import DmfDevice, load as load_dmf_device
 from protocol import Protocol, load as load_protocol
+from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
+    implements, emit_signal
 
-class ConfigController():
-    def __init__(self, app):
-        self.app = app
+
+class ConfigController(SingletonPlugin):
+    implements(IPlugin)
+        
+    def __init__(self):
+        self.name = "microdrop.gui.config_controller"
         builder = gtk.Builder()
         builder.add_from_file(os.path.join("gui",
                               "glade",
@@ -31,6 +40,25 @@ class ConfigController():
         self.new_dialog = builder.get_object("new_dialog")
         self.new_dialog.textentry = builder.get_object("textentry")
         self.new_dialog.label = builder.get_object("label")
+
+    def on_app_init(self, app):
+        self.app = app
+        app.config_controller = self
+
+    def on_app_exit(self):
+        # TODO: prompt to save if these have been changed 
+        self.save_dmf_device()
+        self.save_protocol()
+        self.app.config.save()
+        
+    def process_config_file(self):
+        # save the protocol name from the config file because it is
+        # automatically overwritten when we load a new device
+        protocol_name = self.app.config.protocol_name
+        self.load_dmf_device()
+        # reapply the protocol name to the config file
+        self.app.config.protocol_name = protocol_name
+        self.load_protocol()
 
     def dmf_device_name_dialog(self, old_name=None):
         self.new_dialog.set_title("Save device")
@@ -129,39 +157,44 @@ class ConfigController():
                 self.app.config.protocol_name = name
                 self.app.main_window_controller.update()
     
-    def on_quit(self):
-        # TODO: prompt to save if these have been changed 
-        self.save_dmf_device()
-        self.save_protocol()
-        self.app.config.save()
-        
     def load_dmf_device(self):
+        dmf_device = None
+
         # try what's specified in config file
         if self.app.config.dmf_device_name:
+            path = os.path.join(self.app.config.dmf_device_directory,
+                                self.app.config.dmf_device_name,
+                                "device")
             try:
-                path = os.path.join(self.app.config.dmf_device_directory,
-                                    self.app.config.dmf_device_name,
-                                    "device")
-                return load_dmf_device(path)
+                emit_signal("on_dmf_device_changed", load_dmf_device(path))
             except:
-                self.app.config.dmf_device_name = ""
                 self.app.main_window_controller.error("Could not open %s" % path)
 
         # otherwise, return a new object
-        return DmfDevice()
+        if dmf_device==None:
+            dmf_device = DmfDevice()
+    
     
     def load_protocol(self):
+        protocol = None
         # try what's specified in config file
         if self.app.config.protocol_name:
+            path = os.path.join(self.app.config.dmf_device_directory,
+                                self.app.config.dmf_device_name,
+                                "protocols",
+                                self.app.config.protocol_name)
             try:
-                path = os.path.join(self.app.config.dmf_device_directory,
-                                    self.app.config.dmf_device_name,
-                                    "protocols",
-                                    self.app.config.protocol_name)
-                return load_protocol(path)
+                protocol = load_protocol(path)
             except:
-                self.app.config.protocol_name = ""
                 self.app.main_window_controller.error("Could not open %s" % path)
 
         # otherwise, return a new object
-        return Protocol(self.app.dmf_device.max_channel()+1)
+        if protocol==None:
+            protocol = Protocol(self.app.dmf_device.max_channel()+1)
+        emit_signal("on_protocol_changed", protocol)
+                
+    def on_dmf_device_changed(self, dmf_device):
+        self.app.config.dmf_device_name = dmf_device.name
+        
+    def on_protocol_changed(self, protocol):
+        self.app.config.protocol_name = protocol.name

@@ -17,9 +17,13 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, pickle
+import os
+import pickle
+
 import numpy as np
-from utility import is_int
+
+from utility import is_int, path
+
 
 def load(filename):
     f = open(filename,"rb")
@@ -33,7 +37,7 @@ class ExperimentLog():
         self.experiment_id = None
         self.data = []
 
-    def get_id(self):
+    def get_next_id(self):
         if self.directory is None:
             raise Exception("No device directory set.")
         elif self.experiment_id is None:
@@ -49,61 +53,39 @@ class ExperimentLog():
 
     def get_log_path(self):
         self.experiment_id = None
-        log_path = os.path.join(self.directory,str(self.get_id()))
+        log_path = os.path.join(self.directory,str(self.get_next_id()))
         if(os.path.isdir(log_path)==False):
             os.mkdir(log_path)
         return log_path
         
-    def add_data(self, data):
-        self.data.append(data)
+    def add_data(self, step, data):
+        if len(self.data) <= step:
+            for i in range(0, step-len(self.data)+1):
+                self.data.append({})
+        assert(len(self.data)>step)
+        for k, v in data.items():
+            self.data[step][k] = v
         
-    def save(self):
-        if self.data:
+    def save(self, filename=None):
+        if filename==None:
             log_path = self.get_log_path()
-            output = open(os.path.join(log_path,"data"), 'wb')
+            filename = os.path.join(log_path,"data")
+        else:
+            log_path = path(filename).parent 
+        if self.data:
+            output = open(filename, 'wb')
             pickle.dump(self, output, -1)
             output.close()
         return log_path
 
     def get(self, name):
-        step = []
-        time = []
         var = []
         for i in self.data:
             if i.keys().count(name):
                 var.append(i[name])
-                if i.keys().count('time'):
-                    time.append(i['time'])
-                else:
-                    time.append(None)
-                if i.keys().count('step'):
-                    step.append(i['step'])
-                else:
-                    step.append(None)
-        return step, time, var
-
-    def get_impedance(self):
-        step = []
-        time = []
-        Z_device = []
-        for i in self.data:
-            if i.keys().count('step') and i.keys().count('time') and \
-            i.keys().count('Z_device'):
-                step.append(i['step'])
-                time.append(i['time'])
-                Z_device.append(np.mean(i['Z_device']))
-        return step, time, Z_device
-        
-        #plt.plot(step, Z_device)
-        #plt.xlabel('Step')
-        #plt.ylabel('Device Impedance ($\Rho$)')
-        """
-        pk_to_pk = []
-        for resistor in (1e6, 1e5, 1e4, 1e3):
-            if i.keys().count("voltage waveform (Resistor=%.1f kOhms)" % resistor):
-                voltage = i["voltage waveform (Resistor=%.1f kOhms)" % resistor]*5.0/1024
-                pk_to_pk.append(max(voltage)-min(voltage))
-        """
+            else:
+                var.append(None)
+        return var
 
     def clear(self):
         # reset the log data

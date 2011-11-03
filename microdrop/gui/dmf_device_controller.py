@@ -17,16 +17,23 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, gtk
+import os
+import traceback
+
+import gtk
 import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
+
 from dmf_device_view import DmfDeviceView
 from dmf_device import DmfDevice, load as load_dmf_device
 from protocol import Protocol
 from experiment_log import ExperimentLog
+from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
+    implements, emit_signal
 
-class EditElectrodeDialog:
+
+class EditElectrodeDialog():
     def __init__(self, app, electrode):
         self.app = app
         builder = gtk.Builder()
@@ -65,30 +72,36 @@ class EditElectrodeDialog:
         self.dialog.hide()
         return response
 
-class DmfDeviceController:
-    def __init__(self, app, builder, signals):
-        self.app = app
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "right_click_popup.glade"))
-        self.view = DmfDeviceView(builder.get_object("dmf_device_view"),
-                                  self.app)
-        self.popup = builder.get_object("popup")
-        self.last_electrode_clicked = None
 
-        signals["on_dmf_device_view_button_press_event"] = self.on_button_press
-        signals["on_dmf_device_view_key_press_event"] = self.on_key_press
-        signals["on_dmf_device_view_expose_event"] = self.view.on_expose
-        signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
-        signals["on_menu_import_dmf_device_activate"] = \
-                self.on_import_dmf_device
-        signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device 
-        signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device 
-        signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as 
-        signals["on_menu_edit_electrode_activate"] = self.on_edit_electrode
+class DmfDeviceController(SingletonPlugin):
+    implements(IPlugin)
+    
+    def __init__(self):
+        self.name = "microdrop.gui.dmf_device_controller"        
+        self.app = None
+        self.view = None
+        self.builder = gtk.Builder()
+        self.builder.add_from_file(os.path.join("gui",
+                                   "glade",
+                                   "right_click_popup.glade"))
+        self.popup = self.builder.get_object("popup")
+        self.last_electrode_clicked = None
         
-        if self.app.dmf_device.name:
-            self.view.fit_device()
+    def on_app_init(self, app):        
+        self.app = app
+        self.view = DmfDeviceView(app.builder.get_object("dmf_device_view"),
+                                  app)
+        app.signals["on_dmf_device_view_button_press_event"] = self.on_button_press
+        app.signals["on_dmf_device_view_key_press_event"] = self.on_key_press
+        app.signals["on_dmf_device_view_expose_event"] = self.view.on_expose
+        app.signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
+        app.signals["on_menu_import_dmf_device_activate"] = \
+                self.on_import_dmf_device
+        app.signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device 
+        app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device 
+        app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as 
+        app.signals["on_menu_edit_electrode_activate"] = self.on_edit_electrode
+        self.app.dmf_device_controller = self
 
     def on_button_press(self, widget, event):
         self.view.widget.grab_focus()
@@ -129,14 +142,7 @@ class DmfDeviceController:
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             self.filename = dialog.get_filename()
-            self.app.dmf_device = load_dmf_device(self.filename)
-            device_path = None
-            if self.app.dmf_device.name:
-                device_path = os.path.join(self.app.config.dmf_device_directory,
-                                           self.app.dmf_device.name, "logs")
-            self.app.experiment_log = ExperimentLog(device_path)
-            self.app.protocol = Protocol(self.app.dmf_device.max_channel()+1)
-            self.view.fit_device()
+            emit_signal("on_dmf_device_changed", [load_dmf_device(self.filename)])
         dialog.destroy()
         self.app.main_window_controller.update()
         
@@ -172,8 +178,7 @@ class DmfDeviceController:
             svgcommand = M_command | C_command | L_command | Z_command
             phrase = OneOrMore(Group(svgcommand))
             
-            self.app.dmf_device = DmfDevice()
-            self.app.protocol = Protocol()
+            dmf_device = DmfDevice()
             try:
                 tree = et.parse(filename)
 
@@ -208,12 +213,10 @@ class DmfDeviceController:
                                     path.append({'command':step[0]})
                                 else:
                                     print "error"
-                            self.app.dmf_device.add_electrode_path(path)
-                self.view.fit_device()
-            except:
-                #TODO: error box
-                print "error"
-                        
+                            dmf_device.add_electrode_path(path)
+                emit_signal("on_dmf_device_changed", [dmf_device])
+            except Exception, why:
+                self.app.main_window_controller.error(why)
         dialog.destroy()
         self.app.main_window_controller.update()
 
@@ -230,6 +233,9 @@ class DmfDeviceController:
         EditElectrodeDialog(self.app, self.last_electrode_clicked).run()
         self.app.main_window_controller.update()
     
+    def on_dmf_device_changed(self, dmf_device):
+        self.view.fit_device()
+        
     def update(self):
         state_of_all_channels = self.app.protocol.state_of_all_channels()
         for id, electrode in self.app.dmf_device.electrodes.iteritems():

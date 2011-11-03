@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import traceback
+
 from pyutilib.component.core import Interface, ExtensionPoint, \
                                     SingletonPlugin, implements
 import pyutilib.component.loader
@@ -29,6 +31,11 @@ class PluginManager():
         for d in path("plugins").dirs():
             pyutilib.component.loader.PluginGlobals.load_services(
                 path=(d / path("microdrop")).abspath(), auto_disable=False)
+        observers = ExtensionPoint(IPlugin)
+        print "Registered plugins:"
+        for observer in observers:
+            print "\t", observer
+
 
 class IPlugin(Interface):
     def edit_options():
@@ -54,7 +61,7 @@ class IPlugin(Interface):
 
     def on_protocol_update():
         """
-        Handler called whenever the current protocol step changes.
+        Handler called whenever views of the protocol need to update.
         """
         pass
 
@@ -93,3 +100,34 @@ class IPlugin(Interface):
         Handler called when a protocol is paused.
         """
         pass
+
+    def on_dmf_device_changed():
+        """
+        Handler called when the DMF device changes (e.g., when a new device is
+        loaded).
+        """
+        pass
+
+    def on_experiment_log_changed():
+        """
+        Handler called when the experiment log changes (e.g., when a protocol
+        finishes running.
+        """
+        pass
+
+def emit_signal(function, args=[], interface=IPlugin):
+    observers = ExtensionPoint(interface)
+    for observer in observers:
+        if hasattr(observer, function):
+            try:
+                if type(args) is not list:
+                    args = [args]
+                arg_list = []
+                for i, arg in enumerate(args):
+                    arg_list.append("arg%d" % i)
+                    exec("arg%d=arg" % i)
+                command = "observer.%s(%s)" % (function, ",".join(arg_list))
+                exec(command)
+            except Exception, why:
+                print why
+                traceback.print_stack()
