@@ -19,6 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import time
+from collections import namedtuple
 
 import gtk
 
@@ -41,7 +42,17 @@ class ExperimentLogController(SingletonPlugin):
             "experiment_log_window.glade"))
         self.window = self.builder.get_object("window")
         self.combobox_log_files = self.builder.get_object("combobox_log_files")
-        self.results_log = None
+        self.results = namedtuple('Results', ['log', 'protocol'])
+        self.results.log = None
+        self.results.protocol = None
+        self.protocol_view = self.builder.get_object("treeview_protocol")
+        self.protocol_list = gtk.ListStore(int, float, float, float)
+        self.protocol_view.set_model(self.protocol_list)
+        self.protocol_view.get_selection().set_mode(gtk.SELECTION_MULTIPLE)        
+        self._add_list_column("Step #", 0)
+        self._add_list_column("Time", 1)
+        self._add_list_column("Voltage", 2)
+        self._add_list_column("Frequency", 3)
 
     def on_app_init(self, app):
         self.app = app
@@ -53,28 +64,28 @@ class ExperimentLogController(SingletonPlugin):
         try:
             id = combobox_get_active_text(self.combobox_log_files)
             f = path(self.app.experiment_log.directory) / path(id) / path("data")
-            self.results_log = load_experiment_log(f)
+            self.results.log = load_experiment_log(f)
 
             self.builder.get_object("button_load_device").set_sensitive(True)        
             self.builder.get_object("button_load_protocol").set_sensitive(True)    
             self.builder.get_object("textview_notes").set_sensitive(True)
             
             label = "Software version: "
-            val = self.results_log.get("software version")
+            val = self.results.log.get("software version")
             if len(val) and val[0]:
                 label += val[0]
             self.builder.get_object("label_software_version"). \
                 set_text(label)
 
             label = "Device: "
-            val = self.results_log.get("device name")
+            val = self.results.log.get("device name")
             if len(val) and val[0]:
                 label += val[0]
             self.builder.get_object("label_device"). \
                 set_text(label)
 
             label = "Protocol: "
-            val = self.results_log.get("protocol name")
+            val = self.results.log.get("protocol name")
             if len(val) and val[0]:
                 label += val[0]
             else:
@@ -83,13 +94,13 @@ class ExperimentLogController(SingletonPlugin):
                 set_text(label)
             
             label = "Control board: "
-            val = self.results_log.get("control board name")
+            val = self.results.log.get("control board name")
             if len(val) and val[0]:
                 label += val[0]
-                val = self.results_log.get("control board hardware version")
+                val = self.results.log.get("control board hardware version")
                 if len(val) and val[0]:
                     label += " v%s" % val[0]
-                val = self.results_log.get("control board software version")
+                val = self.results.log.get("control board software version")
                 if len(val) and val[0]:
                     label += "\n\tFirmware version:%s" % val[0]
             else:
@@ -98,19 +109,25 @@ class ExperimentLogController(SingletonPlugin):
                 set_text(label)
             
             label = "Time of experiment: "
-            val = self.results_log.get("experiment time")
+            val = self.results.log.get("experiment time")
             if len(val) and val[0]:
                 label += time.ctime(val[0])
             self.builder.get_object("label_experiment_time"). \
                 set_text(label)
             
-            val = self.results_log.get("notes")
+            val = self.results.log.get("notes")
             if len(val) and val[0]:
                 label = val[0]
             else:
                 label = ""
             self.builder.get_object("textview_notes"). \
                 get_buffer().set_text(label)
+
+            f = path(self.app.experiment_log.directory) / path(id) / path("protocol")
+            self.results.protocol = load_protocol(f)
+            self.protocol_list.clear()
+            for i, step in enumerate(self.results.protocol.steps):
+                self.protocol_list.append([i, step.time, step.voltage, step.frequency])
         except:
             self.builder.get_object("button_load_device").set_sensitive(False)        
             self.builder.get_object("button_load_protocol").set_sensitive(False)    
@@ -152,7 +169,7 @@ class ExperimentLogController(SingletonPlugin):
     
     def on_button_load_device_clicked(self, widget, data=None):
         filename = path(os.path.join(self.app.experiment_log.directory,
-                                     str(self.results_log.experiment_id),
+                                     str(self.results.log.experiment_id),
                                      'device')) 
         try:
             emit_signal("on_dmf_device_changed", [load_dmf_device(filename)])
@@ -162,7 +179,7 @@ class ExperimentLogController(SingletonPlugin):
         
     def on_button_load_protocol_clicked(self, widget, data=None):
         filename = path(os.path.join(self.app.experiment_log.directory,
-                                     str(self.results_log.experiment_id),
+                                     str(self.results.log.experiment_id),
                                      'protocol'))
         try:
             emit_signal("on_protocol_changed", [load_protocol(filename)])
@@ -171,14 +188,14 @@ class ExperimentLogController(SingletonPlugin):
         self.app.main_window_controller.update()
 
     def on_textview_notes_focus_out_event(self, widget, data=None):
-        if len(self.results_log.data[0])==0:
-            self.results_log.data.append({})
-        self.results_log.data[0]["notes"] = textview_get_text(self.builder. \
+        if len(self.results.log.data[0])==0:
+            self.results.log.data.append({})
+        self.results.log.data[0]["notes"] = textview_get_text(self.builder. \
             get_object("textview_notes"))
-        filename = os.path.join(self.results_log.directory,
-                                str(self.results_log.experiment_id),
+        filename = os.path.join(self.results.log.directory,
+                                str(self.results.log.experiment_id),
                                 'data')
-        self.results_log.save(filename)
+        self.results.log.save(filename)
 
     def on_dmf_device_changed(self, dmf_device):
         device_path = None
@@ -200,3 +217,21 @@ class ExperimentLogController(SingletonPlugin):
         if len(log_files):
             self.combobox_log_files.set_active(len(log_files)-1)
         self.update()
+
+    def on_treeview_protocol_button_press_event(self, widget, event=None):
+        pass
+    
+    def on_treeview_protocol_button_release_event(self, widget, data=None):
+        selection = self.protocol_view.get_selection().get_selected_rows()
+        print len(selection[1])
+
+    def _add_list_column(self, title, columnId):
+        """
+        This function adds a column to the list view.
+        First it create the gtk.TreeViewColumn and then set
+        some needed properties
+        """
+        column = gtk.TreeViewColumn(title, gtk.CellRendererText(), text=columnId)
+        column.set_resizable(True)
+        column.set_sort_column_id(columnId)
+        self.protocol_view.append_column(column)
