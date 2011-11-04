@@ -69,14 +69,14 @@ class Protocol():
         emit_signal("on_insert_protocol_step")
         self.steps.insert(self.current_step_number,
                           Step(self.n_channels,
-                               self.current_step().time,
+                               self.current_step().duration,
                                self.current_step().voltage,
                                self.current_step().frequency))
 
     def copy_step(self):
         self.steps.insert(self.current_step_number,
                           Step(self.n_channels,
-                               self.current_step().time,
+                               self.current_step().duration,
                                self.current_step().voltage,
                                self.current_step().frequency,
                                self.current_step().state_of_channels))
@@ -94,7 +94,7 @@ class Protocol():
     def next_step(self):
         if self.current_step_number == len(self.steps)-1:
             self.steps.append(Step(self.n_channels,
-                                   self.current_step().time,
+                                   self.current_step().duration,
                                    self.current_step().voltage,
                                    self.current_step().frequency))
         self.goto_step(self.current_step_number+1)
@@ -131,12 +131,12 @@ class Protocol():
         return frequencies
             
 class Step():
-    def __init__(self, n_channels, time=None, voltage=None,
+    def __init__(self, n_channels, duration=None, voltage=None,
                  frequency=None, state_of_channels=None):
-        if time:
-            self.time = time
+        if duration:
+            self.duration = duration
         else:
-            self.time = 100
+            self.duration = 100
         if voltage:
             self.voltage = voltage
         else:

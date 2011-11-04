@@ -38,7 +38,7 @@ class ProtocolController(SingletonPlugin):
         self.name = "microdrop.gui.protocol_controller"
         self.app = None
         self.builder = None
-        self.textentry_step_time = None
+        self.textentry_step_duration = None
         self.textentry_voltage = None
         self.textentry_frequency = None
         self.label_step_number = None
@@ -52,8 +52,8 @@ class ProtocolController(SingletonPlugin):
         self.app = app
         self.builder = app.builder
         
-        self.textentry_step_time = self.builder. \
-            get_object("textentry_step_time")
+        self.textentry_step_duration = self.builder. \
+            get_object("textentry_step_duration")
         self.textentry_voltage = self.builder.get_object("textentry_voltage")
         self.textentry_frequency = self.builder. \
             get_object("textentry_frequency")
@@ -92,10 +92,10 @@ class ProtocolController(SingletonPlugin):
                 self.on_textentry_protocol_repeats_focus_out
         app.signals["on_textentry_protocol_repeats_key_press_event"] = \
                 self.on_textentry_protocol_repeats_key_press
-        app.signals["on_textentry_step_time_focus_out_event"] = \
-                self.on_textentry_step_time_focus_out
-        app.signals["on_textentry_step_time_key_press_event"] = \
-                self.on_textentry_step_time_key_press
+        app.signals["on_textentry_step_duration_focus_out_event"] = \
+                self.on_textentry_step_duration_focus_out
+        app.signals["on_textentry_step_duration_key_press_event"] = \
+                self.on_textentry_step_duration_key_press
         app.protocol_controller = self
 
     def on_insert_step(self, widget, data=None):
@@ -171,17 +171,17 @@ class ProtocolController(SingletonPlugin):
         AddFrequencySweepDialog(self.app).run()
         self.app.main_window_controller.update()
 
-    def on_textentry_step_time_focus_out(self, widget, data=None):
-        self.on_step_time_changed()
+    def on_textentry_step_duration_focus_out(self, widget, data=None):
+        self.on_step_duration_changed()
 
-    def on_textentry_step_time_key_press(self, widget, event):
+    def on_textentry_step_duration_key_press(self, widget, event):
         if event.keyval == 65293: # user pressed enter
-            self.on_step_time_changed()
+            self.on_step_duration_changed()
 
-    def on_step_time_changed(self):        
-        self.app.protocol.current_step().time = \
-            check_textentry(self.textentry_step_time,
-                            self.app.protocol.current_step().time,
+    def on_step_duration_changed(self):        
+        self.app.protocol.current_step().duration = \
+            check_textentry(self.textentry_step_duration,
+                            self.app.protocol.current_step().duration,
                             int)
 
     def on_textentry_voltage_focus_out(self, widget, data=None):
@@ -259,7 +259,7 @@ class ProtocolController(SingletonPlugin):
         # run through protocol (even though device is not connected)
         if self.app.control_board.connected()==False:
             t = time.time()
-            while time.time()-t < self.app.protocol.current_step().time/1000.0:
+            while time.time()-t < self.app.protocol.current_step().duration/1000.0:
                 while gtk.events_pending():
                     gtk.main_iteration()
 
@@ -274,8 +274,8 @@ class ProtocolController(SingletonPlugin):
             self.run_step()
 
     def update(self):
-        self.textentry_step_time.set_text(str(
-            self.app.protocol.current_step().time))
+        self.textentry_step_duration.set_text(str(
+            self.app.protocol.current_step().duration))
         self.textentry_voltage.set_text(str(
             self.app.protocol.current_step().voltage))
         self.textentry_frequency.set_text(str(

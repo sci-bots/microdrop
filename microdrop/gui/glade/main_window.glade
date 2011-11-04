@@ -834,7 +834,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Step time:</property>
+                        <property name="label" translatable="yes">Step duration:</property>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -844,7 +844,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="textentry_step_time">
+                      <object class="GtkEntry" id="textentry_step_duration">
                         <property name="width_request">50</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -857,8 +857,8 @@
                         <property name="secondary_icon_activatable">False</property>
                         <property name="primary_icon_sensitive">True</property>
                         <property name="secondary_icon_sensitive">True</property>
-                        <signal name="key-press-event" handler="on_textentry_step_time_key_press_event" swapped="no"/>
-                        <signal name="focus-out-event" handler="on_textentry_step_time_focus_out_event" swapped="no"/>
+                        <signal name="key-press-event" handler="on_textentry_step_duration_key_press_event" swapped="no"/>
+                        <signal name="focus-out-event" handler="on_textentry_step_duration_focus_out_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
