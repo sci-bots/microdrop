@@ -38,10 +38,34 @@ class ProtocolController(SingletonPlugin):
         self.name = "microdrop.gui.protocol_controller"
         self.app = None
         self.builder = None
+        self.textentry_step_time = None
+        self.textentry_voltage = None
+        self.textentry_frequency = None
+        self.label_step_number = None
+        self.textentry_voltage = None
+        self.textentry_frequency = None
+        self.label_step_number = None
+        self.button_run_protocol = None
+        self.textentry_protocol_repeats = None
         
     def on_app_init(self, app):
         self.app = app
         self.builder = app.builder
+        
+        self.textentry_step_time = self.builder. \
+            get_object("textentry_step_time")
+        self.textentry_voltage = self.builder.get_object("textentry_voltage")
+        self.textentry_frequency = self.builder. \
+            get_object("textentry_frequency")
+        self.label_step_number = self.builder.get_object("label_step_number")
+        self.textentry_voltage = self.builder.get_object("textentry_voltage")
+        self.textentry_frequency = self.builder. \
+            get_object("textentry_frequency")
+        self.label_step_number = self.builder.get_object("label_step_number")
+        self.textentry_protocol_repeats = self.builder.get_object(
+            "self.textentry_protocol_repeats")        
+        self.button_run_protocol = self.builder.get_object("button_run_protocol")
+        
         app.signals["on_button_insert_step_clicked"] = self.on_insert_step
         app.signals["on_button_delete_step_clicked"] = self.on_delete_step
         app.signals["on_button_copy_step_clicked"] = self.on_copy_step
@@ -216,15 +240,15 @@ class ProtocolController(SingletonPlugin):
                 "connected board does not have enough channels for this "
                 "protocol.")
         self.app.running = True
-        self.builder.get_object("button_run_protocol"). \
-            set_image(self.builder.get_object("image_pause"))
+        self.button_run_protocol.set_image(self.builder.get_object(
+            "image_pause"))
         emit_signal("on_protocol_run")
         self.run_step()
 
     def pause_protocol(self):
         self.app.running = False
-        self.builder.get_object("button_run_protocol"). \
-            set_image(self.builder.get_object("image_play"))
+        self.button_run_protocol.set_image(self.builder.get_object(
+            "image_play"))
         emit_signal("on_protocol_pause")
         self.app.experiment_log_controller.save()
         emit_signal("on_experiment_log_changed", self.app.experiment_log)        
@@ -250,16 +274,17 @@ class ProtocolController(SingletonPlugin):
             self.run_step()
 
     def update(self):
-        self.builder.get_object("textentry_step_time"). \
-            set_text(str(self.app.protocol.current_step().time))
-        self.builder.get_object("textentry_voltage"). \
-            set_text(str(self.app.protocol.current_step().voltage))
-        self.builder.get_object("textentry_frequency"). \
-            set_text(str(self.app.protocol.current_step().frequency/1e3))
-        self.builder.get_object("label_step_number"). \
-            set_text("Step: %d/%d\tRepetition: %d/%d" % 
-            (self.app.protocol.current_step_number+1, len(self.app.protocol.steps),
-             self.app.protocol.current_repetition+1, self.app.protocol.n_repeats))
+        self.textentry_step_time.set_text(str(
+            self.app.protocol.current_step().time))
+        self.textentry_voltage.set_text(str(
+            self.app.protocol.current_step().voltage))
+        self.textentry_frequency.set_text(str(
+            self.app.protocol.current_step().frequency/1e3))
+        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
+            (self.app.protocol.current_step_number+1,
+            len(self.app.protocol.steps),
+            self.app.protocol.current_repetition+1,
+            self.app.protocol.n_repeats))
 
         if self.app.control_board.connected() and \
             (self.app.realtime_mode or self.app.running):
