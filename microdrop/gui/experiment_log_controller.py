@@ -46,13 +46,13 @@ class ExperimentLogController(SingletonPlugin):
         self.results.log = None
         self.results.protocol = None
         self.protocol_view = self.builder.get_object("treeview_protocol")
-        self.protocol_list = gtk.ListStore(int, float, float, float)
+        self.protocol_list = gtk.ListStore(int, str, str, str)
         self.protocol_view.set_model(self.protocol_list)
         self.protocol_view.get_selection().set_mode(gtk.SELECTION_MULTIPLE)        
         self._add_list_column("Step #", 0)
-        self._add_list_column("Time", 1)
-        self._add_list_column("Voltage", 2)
-        self._add_list_column("Frequency", 3)
+        self._add_list_column("Duration (ms)", 1)
+        self._add_list_column("Voltage (RMS)", 2)
+        self._add_list_column("Frequency (kHz)", 3)
 
     def on_app_init(self, app):
         self.app = app
@@ -127,8 +127,9 @@ class ExperimentLogController(SingletonPlugin):
             self.results.protocol = load_protocol(f)
             self.protocol_list.clear()
             for i, step in enumerate(self.results.protocol.steps):
-                self.protocol_list.append([i, step.time, step.voltage, step.frequency])
-        except:
+                self.protocol_list.append([i, "%.0f" % step.duration, "%.0f" % step.voltage, "%.1f" % (step.frequency/1000)])
+        except Exception, why:
+            print why
             self.builder.get_object("button_load_device").set_sensitive(False)        
             self.builder.get_object("button_load_protocol").set_sensitive(False)    
             self.builder.get_object("textview_notes").set_sensitive(False)
@@ -223,7 +224,6 @@ class ExperimentLogController(SingletonPlugin):
     
     def on_treeview_protocol_button_release_event(self, widget, data=None):
         selection = self.protocol_view.get_selection().get_selected_rows()
-        print len(selection[1])
 
     def _add_list_column(self, title, columnId):
         """
@@ -231,7 +231,9 @@ class ExperimentLogController(SingletonPlugin):
         First it create the gtk.TreeViewColumn and then set
         some needed properties
         """
-        column = gtk.TreeViewColumn(title, gtk.CellRendererText(), text=columnId)
+        right = gtk.CellRendererText()
+        right.set_alignment(1.0,0.5)
+        column = gtk.TreeViewColumn(title, right, text=columnId)
         column.set_resizable(True)
         column.set_sort_column_id(columnId)
         self.protocol_view.append_column(column)
