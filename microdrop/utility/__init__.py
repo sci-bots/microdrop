@@ -53,10 +53,9 @@ def check_textentry(textentry, prev_value, type):
     elif val and type is int:
         if is_int(val):
             return int(val)
-    else:
-        print "error" # TODO dialog error
-        textentry.set_text(str(prev_value))
-        return prev_value
+    print "error" # TODO dialog error
+    textentry.set_text(str(prev_value))
+    return prev_value
 
 
 def base_path():
