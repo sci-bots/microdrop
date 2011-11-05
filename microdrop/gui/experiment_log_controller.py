@@ -51,7 +51,7 @@ class ExperimentLogController(SingletonPlugin):
         self.protocol_view.get_selection().set_mode(gtk.SELECTION_MULTIPLE)        
         self._add_list_column("Step #", 0)
         self._add_list_column("Duration (ms)", 1)
-        self._add_list_column("Voltage (RMS)", 2)
+        self._add_list_column("Voltage (VRMS)", 2)
         self._add_list_column("Frequency (kHz)", 3)
 
     def on_app_init(self, app):
@@ -71,55 +71,64 @@ class ExperimentLogController(SingletonPlugin):
             self.builder.get_object("textview_notes").set_sensitive(True)
             
             label = "Software version: "
-            val = self.results.log.get("software version")
-            if len(val) and val[0]:
-                label += val[0]
+            data = self.results.log.get("software version")
+            for val in data:
+                if val:
+                    label += val
             self.builder.get_object("label_software_version"). \
                 set_text(label)
 
             label = "Device: "
-            val = self.results.log.get("device name")
-            if len(val) and val[0]:
-                label += val[0]
+            data = self.results.log.get("device name")
+            for val in data:
+                if val:
+                    label += val
             self.builder.get_object("label_device"). \
                 set_text(label)
 
             label = "Protocol: "
-            val = self.results.log.get("protocol name")
-            if len(val) and val[0]:
-                label += val[0]
+            data = self.results.log.get("protocol name")
+            for val in data:
+                if val:
+                    label += val
             else:
                 label += "None"
             self.builder.get_object("label_protocol"). \
                 set_text(label)
             
             label = "Control board: "
-            val = self.results.log.get("control board name")
-            if len(val) and val[0]:
-                label += val[0]
-                val = self.results.log.get("control board hardware version")
-                if len(val) and val[0]:
-                    label += " v%s" % val[0]
-                val = self.results.log.get("control board software version")
-                if len(val) and val[0]:
-                    label += "\n\tFirmware version:%s" % val[0]
-            else:
-                label += "None"
+            data = self.results.log.get("control board name")
+            for val in data:
+                if val:
+                    label += val
+            data = self.results.log.get("control board name")
+            for val in data:
+                if val:
+                    label += val
+            data = self.results.log.get("control board hardware version")
+            for val in data:
+                if val:
+                    label += " v%s" % val
+            data = self.results.log.get("control board software version")
+            for val in data:
+                if val:
+                    label += "\n\tFirmware version:%s" % val
             self.builder.get_object("label_control_board"). \
                 set_text(label)
             
             label = "Time of experiment: "
-            val = self.results.log.get("experiment time")
-            if len(val) and val[0]:
-                label += time.ctime(val[0])
+            data = self.results.log.get("experiment time")
+            for val in data:
+                if val:
+                    label += time.ctime(val)
             self.builder.get_object("label_experiment_time"). \
                 set_text(label)
             
-            val = self.results.log.get("notes")
-            if len(val) and val[0]:
-                label = val[0]
-            else:
-                label = ""
+            label = ""
+            data = self.results.log.get("notes")
+            for val in data:
+                if val:
+                    label += time.ctime(val)
             self.builder.get_object("textview_notes"). \
                 get_buffer().set_text(label)
 
@@ -148,7 +157,7 @@ class ExperimentLogController(SingletonPlugin):
                 self.app.control_board.software_version()
         data["notes"] = textview_get_text(self.app.protocol_controller. \
             builder.get_object("textview_notes"))
-        self.app.experiment_log.add_data(0, data)
+        self.app.experiment_log.add_data(data)
         log_path = self.app.experiment_log.save()
 
         # save the protocol and device

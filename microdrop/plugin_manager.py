@@ -59,9 +59,12 @@ class IPlugin(Interface):
         """
         pass
 
-    def on_protocol_update():
+    def on_protocol_update(self, data):
         """
         Handler called whenever views of the protocol need to update.
+
+        Parameters:
+            data : dictionary to store experiment log data for the current step
         """
         pass
 
@@ -83,7 +86,7 @@ class IPlugin(Interface):
         """
         pass
     
-    def on_protocol_load():
+    def on_protocol_load(self, version, data):
         """
         Handler called when a protocol is loaded.
         """

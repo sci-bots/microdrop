@@ -307,7 +307,12 @@ class ProtocolController(SingletonPlugin):
                 else:
                     assert(len(state)==max_channels)
                 self.app.control_board.set_state_of_all_channels(state)
-        emit_signal("on_protocol_update")
+
+        
+        data = {"step":self.app.protocol.current_step_number, 
+                "time":time.time()}
+        emit_signal("on_protocol_update", data)
+        self.app.experiment_log.add_data(data)
                 
     def on_dmf_device_changed(self, dmf_device):
         emit_signal("on_protocol_changed", [Protocol(dmf_device.max_channel()+1)])

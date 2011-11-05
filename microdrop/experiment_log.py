@@ -58,13 +58,8 @@ class ExperimentLog():
             os.mkdir(log_path)
         return log_path
         
-    def add_data(self, step, data):
-        if len(self.data) <= step:
-            for i in range(0, step-len(self.data)+1):
-                self.data.append({})
-        assert(len(self.data)>step)
-        for k, v in data.items():
-            self.data[step][k] = v
+    def add_data(self, data):
+        self.data.append(data)
         
     def save(self, filename=None):
         if filename==None:
