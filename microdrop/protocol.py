@@ -43,6 +43,9 @@ class Protocol():
     def __len__(self):
         return len(self.steps)
 
+    def __getitem__(self, i):
+        return self.steps[i]
+
     def save(self, filename):
         self.plugin_data = {}
         emit_signal("on_protocol_save")

@@ -44,6 +44,7 @@ class MainWindowController(SingletonPlugin):
         self.label_protocol_name = None
         self.checkbutton_realtime_mode = None
         self.menu_tools = None
+        self.menu_view = None
         gtk.link_button_set_uri_hook(self.on_url_clicked)
         
     def on_app_init(self, app):
@@ -58,6 +59,7 @@ class MainWindowController(SingletonPlugin):
         self.label_protocol_name = app.builder.get_object("label_protocol_name")
         self.checkbutton_realtime_mode = app.builder.get_object("checkbutton_realtime_mode")
         self.menu_tools = app.builder.get_object("menu_tools")
+        self.menu_view = app.builder.get_object("menu_view")
 
         app.signals["on_menu_quit_activate"] = self.on_destroy
         app.signals["on_menu_about_activate"] = self.on_about

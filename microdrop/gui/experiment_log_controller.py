@@ -31,6 +31,13 @@ from plugin_manager import IPlugin, SingletonPlugin, implements, \
 from protocol import load as load_protocol
 from dmf_device import load as load_dmf_device
 
+class ExperimentLogColumn():
+    def __init__(self, name, type, format_string=None):
+        self.name = name
+        self.type = type
+        self.format_string = format_string
+
+
 class ExperimentLogController(SingletonPlugin):
     implements(IPlugin)
 
@@ -46,13 +53,13 @@ class ExperimentLogController(SingletonPlugin):
         self.results.log = None
         self.results.protocol = None
         self.protocol_view = self.builder.get_object("treeview_protocol")
-        self.protocol_list = gtk.ListStore(int, int, int, float)
-        self.protocol_view.set_model(self.protocol_list)
         self.protocol_view.get_selection().set_mode(gtk.SELECTION_MULTIPLE)        
-        self._add_list_column("Step #", 0)
-        self._add_list_column("Duration (ms)", 1)
-        self._add_list_column("Voltage (VRMS)", 2)
-        self._add_list_column("Frequency (kHz)", 3, "%.1f")
+        self.columns = [ExperimentLogColumn("Time (s)", float, "%.3f"),
+                        ExperimentLogColumn("Step #", int),
+                        ExperimentLogColumn("Duration (s)", float, "%.3f"),
+                        ExperimentLogColumn("Voltage (VRMS)", int),
+                        ExperimentLogColumn("Frequency (kHz)", float, "%.1f")]
+        self.protocol_view.get_selection().connect("changed", self.on_treeview_selection_changed)
 
     def on_app_init(self, app):
         self.app = app
@@ -117,7 +124,7 @@ class ExperimentLogController(SingletonPlugin):
                 set_text(label)
             
             label = "Time of experiment: "
-            data = self.results.log.get("experiment time")
+            data = self.results.log.get("start time")
             for val in data:
                 if val:
                     label += time.ctime(val)
@@ -134,9 +141,31 @@ class ExperimentLogController(SingletonPlugin):
 
             f = path(self.app.experiment_log.directory) / path(id) / path("protocol")
             self.results.protocol = load_protocol(f)
-            self.protocol_list.clear()
-            for i, step in enumerate(self.results.protocol.steps):
-                self.protocol_list.append([i, int(step.duration), int(step.voltage), step.frequency/1000])
+            self._clear_list_columns()
+            types = []
+            for i, c in enumerate(self.columns):
+                types.append(c.type)
+                self._add_list_column(c.name, i, c.format_string)
+            protocol_list = gtk.ListStore(*types)
+            self.protocol_view.set_model(protocol_list)
+            for d in self.results.log.data:
+                if d.keys().count("step") and d.keys().count("time"):
+                    step = self.results.protocol[d["step"]]
+                    vals = []
+                    for i, c in enumerate(self.columns):
+                        if c.name=="Time (s)":
+                            vals.append(d["time"])
+                        elif c.name=="Step #":
+                            vals.append(d["step"])
+                        elif c.name=="Duration (s)":
+                            vals.append(step.duration/1000.0)
+                        elif c.name=="Voltage (VRMS)":
+                            vals.append(step.voltage)
+                        elif c.name=="Frequency (kHz)":
+                            vals.append(step.frequency/1000.0)
+                        else:
+                            vals.append(None)
+                    protocol_list.append(vals)
         except Exception, why:
             print why
             self.builder.get_object("button_load_device").set_sensitive(False)        
@@ -147,7 +176,6 @@ class ExperimentLogController(SingletonPlugin):
         data = {"software version":self.app.version}
         data["device name"] = self.app.dmf_device.name
         data["protocol name"] = self.app.protocol.name
-        data["experiment time"] = time.time()
         if self.app.control_board.connected():
             data["control board name"] = \
                 self.app.control_board.name()
@@ -227,12 +255,21 @@ class ExperimentLogController(SingletonPlugin):
         if len(log_files):
             self.combobox_log_files.set_active(len(log_files)-1)
         self.update()
-
-    def on_treeview_protocol_button_press_event(self, widget, event=None):
-        pass
     
-    def on_treeview_protocol_button_release_event(self, widget, data=None):
+    def on_treeview_selection_changed(self, widget, data=None):
         selection = self.protocol_view.get_selection().get_selected_rows()
+        selected_data = []
+        list_store = selection[0]
+        for row in selection[1]:
+            for d in self.results.log.data:
+                if d.keys().count("time"):
+                    if d["time"]==selection[0][row][0]:
+                        selected_data.append(d)
+        emit_signal("on_experiment_log_selection_changed", [selected_data])
+
+    def _clear_list_columns(self):
+        while len(self.protocol_view.get_columns()):
+            self.protocol_view.remove_column(self.protocol_view.get_column(0))
 
     def _add_list_column(self, title, columnId, format_string=None):
         """
@@ -246,10 +283,10 @@ class ExperimentLogController(SingletonPlugin):
         column.set_sort_column_id(columnId)
         if format_string:
             column.set_cell_data_func(cell,
-                                      self.cell_renderer_format,
+                                      self._cell_renderer_format,
                                       format_string)
         self.protocol_view.append_column(column)
     
-    def cell_renderer_format(self, column, cell, model, iter, format_string):
+    def _cell_renderer_format(self, column, cell, model, iter, format_string):
         val = model.get_value(iter, column.get_sort_column_id())
         cell.set_property('text', format_string % val)

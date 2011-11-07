@@ -19,6 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import pickle
+import time
 
 import numpy as np
 
@@ -36,6 +37,15 @@ class ExperimentLog():
         self.directory = directory
         self.experiment_id = None
         self.data = []
+
+    def start_time(self):
+        data = self.get("start time")
+        for val in data:
+            if val:
+                return val
+        start_time = time.time()
+        self.add_data({"start time":start_time})
+        return start_time
 
     def get_next_id(self):
         if self.directory is None:
@@ -57,7 +67,7 @@ class ExperimentLog():
         if(os.path.isdir(log_path)==False):
             os.mkdir(log_path)
         return log_path
-        
+
     def add_data(self, data):
         self.data.append(data)
         
@@ -75,9 +85,9 @@ class ExperimentLog():
 
     def get(self, name):
         var = []
-        for i in self.data:
-            if i.keys().count(name):
-                var.append(i[name])
+        for d in self.data:
+            if d.keys().count(name):
+                var.append(d[name])
             else:
                 var.append(None)
         return var

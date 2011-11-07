@@ -117,6 +117,16 @@ class IPlugin(Interface):
         finishes running.
         """
         pass
+    
+    def on_experiment_log_selection_changed(self, data):
+        """
+        Handler called whenever the experiment log selection changes.
+
+        Parameters:
+            data : dictionary of experiment log data for the selected steps
+        """
+        pass
+
 
 def emit_signal(function, args=[], interface=IPlugin):
     observers = ExtensionPoint(interface)

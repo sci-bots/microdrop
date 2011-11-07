@@ -233,12 +233,6 @@ class ProtocolController(SingletonPlugin):
             self.run_protocol()
 
     def run_protocol(self):
-        if self.app.control_board.connected() and\
-            self.app.control_board.number_of_channels() < \
-            self.app.protocol.n_channels:
-            self.app.main_window_controller.warning("Warning: currently "
-                "connected board does not have enough channels for this "
-                "protocol.")
         self.app.running = True
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_pause"))
@@ -286,33 +280,17 @@ class ProtocolController(SingletonPlugin):
             self.app.protocol.current_repetition+1,
             self.app.protocol.n_repeats))
 
-        if self.app.control_board.connected() and \
-            (self.app.realtime_mode or self.app.running):
+        if self.app.realtime_mode or self.app.running:
+            data = {"step":self.app.protocol.current_step_number, 
+            "time":time.time()-self.app.experiment_log.start_time()}
             if self.app.func_gen.is_connected():
                 self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage*math.sqrt(2)/200)
                 self.app.func_gen.set_frequency(self.app.protocol.current_step().frequency)
-            else:
-                self.app.control_board.set_waveform_voltage(float(self.app.protocol.current_step().voltage)*math.sqrt(2)/100)
-                self.app.control_board.set_waveform_frequency(float(self.app.protocol.current_step().frequency))
-            if self.app.realtime_mode:
-                state = self.app.protocol.state_of_all_channels()
-                max_channels = self.app.control_board.number_of_channels() 
-                if len(state) >  max_channels:
-                    if len(np.nonzero(state[max_channels:]>=1)[0]):
-                        self.app.main_window_controller.warning("One or more "
-                            "channels that are currently on are not available.")
-                    state = state[0:max_channels]
-                elif len(state) < max_channels:
-                    state = np.concatenate([state, np.zeros(max_channels-len(state), int)])
-                else:
-                    assert(len(state)==max_channels)
-                self.app.control_board.set_state_of_all_channels(state)
-
-        
-        data = {"step":self.app.protocol.current_step_number, 
-                "time":time.time()}
-        emit_signal("on_protocol_update", data)
-        self.app.experiment_log.add_data(data)
+            emit_signal("on_protocol_update", data)
+            self.app.experiment_log.add_data(data)
+        else:
+            data = {}
+            emit_signal("on_protocol_update", data)
                 
     def on_dmf_device_changed(self, dmf_device):
         emit_signal("on_protocol_changed", [Protocol(dmf_device.max_channel()+1)])
