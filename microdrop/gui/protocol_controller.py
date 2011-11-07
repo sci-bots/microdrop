@@ -100,14 +100,17 @@ class ProtocolController(SingletonPlugin):
 
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()
+        emit_signal("on_insert_protocol_step")
         self.app.main_window_controller.update()
 
     def on_copy_step(self, widget, data=None):
         self.app.protocol.copy_step()
+        emit_signal("on_insert_protocol_step")
         self.app.main_window_controller.update()
 
     def on_delete_step(self, widget, data=None):
         self.app.protocol.delete_step()
+        emit_signal("on_delete_protocol_step")
         self.app.main_window_controller.update()
 
     def on_first_step(self, widget=None, data=None):
@@ -128,12 +131,8 @@ class ProtocolController(SingletonPlugin):
 
     def on_new_protocol(self, widget, data=None):
         filename = None
-        # delete all steps (this is necessary so that plugins will also
-        # clear all steps
-        while len(self.app.protocol.steps) > 1:
-            self.app.protocol.delete_step()
-        self.app.protocol.delete_step() # still need to delete the first step
-        self.app.protocol = Protocol(self.app.dmf_device.max_channel()+1)
+        protocol = Protocol(self.app.dmf_device.max_channel()+1)
+        emit_signal("on_protocol_changed", protocol)
         self.app.main_window_controller.update()
 
     def on_load_protocol(self, widget, data=None):
@@ -151,7 +150,10 @@ class ProtocolController(SingletonPlugin):
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             try:
-                emit_signal("on_protocol_changed", [load_protocol(filename)])
+                protocol = load_protocol(filename)
+                for (name, (version, data)) in protocol.plugin_data.items():
+                    emit_signal("on_protocol_load", [version, data])
+                emit_signal("on_protocol_changed", protocol)
             except Exception, why:
                 print why
                 self.app.main_window_controller.error("Could not open %s" % filename)
@@ -293,7 +295,7 @@ class ProtocolController(SingletonPlugin):
             emit_signal("on_protocol_update", data)
                 
     def on_dmf_device_changed(self, dmf_device):
-        emit_signal("on_protocol_changed", [Protocol(dmf_device.max_channel()+1)])
+        emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel()+1))
 
 
 class AddFrequencySweepDialog:

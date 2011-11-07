@@ -20,14 +20,12 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 from copy import deepcopy
 import cPickle
 import numpy as np
-from plugin_manager import ExtensionPoint, IPlugin, emit_signal
+
 
 def load(filename):
     f = open(filename, 'rb')
     protocol = cPickle.load(f)
     f.close()
-    for (name, (version, data)) in protocol.plugin_data.items():
-        emit_signal("on_protocol_load", [version, data])
     return protocol
 
 class Protocol():
@@ -47,8 +45,6 @@ class Protocol():
         return self.steps[i]
 
     def save(self, filename):
-        self.plugin_data = {}
-        emit_signal("on_protocol_save")
         f = open(filename, 'wb')
         cPickle.dump(self, f, -1)
         f.close()
@@ -69,7 +65,6 @@ class Protocol():
         return self.steps[self.current_step_number]
 
     def insert_step(self):
-        emit_signal("on_insert_protocol_step")
         self.steps.insert(self.current_step_number,
                           Step(self.n_channels,
                                self.current_step().duration,
@@ -86,7 +81,6 @@ class Protocol():
         self.next_step()
 
     def delete_step(self):
-        emit_signal("on_delete_protocol_step")
         if len(self.steps) > 1:
             del self.steps[self.current_step_number]
             if self.current_step_number == len(self.steps):

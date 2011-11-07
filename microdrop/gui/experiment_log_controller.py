@@ -189,6 +189,7 @@ class ExperimentLogController(SingletonPlugin):
         log_path = self.app.experiment_log.save()
 
         # save the protocol and device
+        emit_signal("on_protocol_save")
         self.app.protocol.save(os.path.join(log_path,"protocol"))
         self.app.dmf_device.save(os.path.join(log_path,"device"))
         self.app.experiment_log.clear()
@@ -220,7 +221,10 @@ class ExperimentLogController(SingletonPlugin):
                                      str(self.results.log.experiment_id),
                                      'protocol'))
         try:
-            emit_signal("on_protocol_changed", [load_protocol(filename)])
+            protocol = load_protocol(filename)
+            for (name, (version, data)) in protocol.plugin_data.items():
+                emit_signal("on_protocol_load", [version, data])
+            emit_signal("on_protocol_changed", protocol)
         except:
             self.app.main_window_controller.error("Could not open %s" % filename)
         self.app.main_window_controller.update()

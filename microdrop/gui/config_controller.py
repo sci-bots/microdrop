@@ -151,6 +151,7 @@ class ConfigController(SingletonPlugin):
                 if rename and os.path.isfile(src):
                     shutil.move(src, dest)
                 else: # save the file
+                    emit_signal("on_protocol_save")
                     self.app.protocol.save(dest)
     
                 # update config
@@ -185,6 +186,8 @@ class ConfigController(SingletonPlugin):
                                 self.app.config.protocol_name)
             try:
                 protocol = load_protocol(path)
+                for (name, (version, data)) in protocol.plugin_data.items():
+                    emit_signal("on_protocol_load", [version, data])
             except:
                 self.app.main_window_controller.error("Could not open %s" % path)
 
