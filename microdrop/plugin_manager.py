@@ -142,5 +142,7 @@ def emit_signal(function, args=[], interface=IPlugin):
                 command = "observer.%s(%s)" % (function, ",".join(arg_list))
                 exec(command)
             except Exception, why:
+                if hasattr(observer, "name"):
+                    print "%s plugin crashed." % observer.name  
                 print why
                 traceback.print_stack()
