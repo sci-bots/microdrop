@@ -28,9 +28,12 @@ from utility import path
 
 class PluginManager():
     def __init__(self):
+        print "Loading plugins:"
         for d in path("plugins").dirs():
-            pyutilib.component.loader.PluginGlobals.load_services(
-                path=(d / path("microdrop")).abspath(), auto_disable=False)
+            package = (d / path("microdrop"))
+            if package.isdir(): 
+                print "\t", package.abspath()
+                exec("import plugins.%s.microdrop" % d.name) 
         observers = ExtensionPoint(IPlugin)
         print "Registered plugins:"
         for observer in observers:
