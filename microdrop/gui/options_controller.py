@@ -21,7 +21,7 @@ import os
 
 import gtk
 
-from path import path
+from utility.path import path
 
 
 class OptionsController:
