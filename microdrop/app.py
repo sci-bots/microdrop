@@ -28,7 +28,6 @@ import numpy as np
 from utility import base_path
 from dmf_device import DmfDevice
 from protocol import Protocol
-from hardware.agilent_33220a import Agilent33220A
 from config import load as load_config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
@@ -60,9 +59,6 @@ class App(SingletonPlugin):
         self.running = False
         self.builder = gtk.Builder()
         self.signals = {}
-
-        # function generator
-        self.func_gen = Agilent33220A()
 
         # these members are initialized by plugins
         self.control_board = None

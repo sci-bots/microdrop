@@ -38,15 +38,33 @@ class PluginManager():
         print "Registered plugins:"
         for observer in observers:
             print "\t", observer
+        observers = ExtensionPoint(IWaveformGenerator)
+        print "Registered function generator plugins:"
+        for observer in observers:
+            print "\t", observer
 
 
-class IPlugin(Interface):
-    def edit_options():
+class IWaveformGenerator(Interface):
+    def set_voltage(self, voltage):
         """
-        Edit the options for this plugin. 
+        Set the waveform voltage.
+        
+        Parameters:
+            voltage : RMS voltage
         """
         pass
     
+    def set_frequency(self, frequency):
+        """
+        Set the waveform frequency.
+        
+        Parameters:
+            frequency : frequency in Hz
+        """
+        pass
+
+
+class IPlugin(Interface):    
     def on_app_init(app=None):
         """
         Handler called once when the Microdrop application starts.
@@ -71,19 +89,19 @@ class IPlugin(Interface):
         """
         pass
 
-    def on_delete_protocol_step():
+    def on_delete_protocol_step(self):
         """
         Handler called whenever a protocol step is deleted.
         """
         pass
 
-    def on_insert_protocol_step():
+    def on_insert_protocol_step(self):
         """
         Handler called whenever a protocol step is inserted.
         """
         pass
 
-    def on_protocol_save():
+    def on_protocol_save(self):
         """
         Handler called when a protocol is saved.
         """
@@ -95,26 +113,26 @@ class IPlugin(Interface):
         """
         pass
 
-    def on_protocol_run():
+    def on_protocol_run(self):
         """
         Handler called when a protocol starts running.
         """
         pass
     
-    def on_protocol_pause():
+    def on_protocol_pause(self):
         """
         Handler called when a protocol is paused.
         """
         pass
 
-    def on_dmf_device_changed():
+    def on_dmf_device_changed(self):
         """
         Handler called when the DMF device changes (e.g., when a new device is
         loaded).
         """
         pass
 
-    def on_experiment_log_changed():
+    def on_experiment_log_changed(self):
         """
         Handler called when the experiment log changes (e.g., when a protocol
         finishes running.

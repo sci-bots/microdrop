@@ -280,9 +280,6 @@ class ProtocolController(SingletonPlugin):
         if self.app.realtime_mode or self.app.running:
             data = {"step":self.app.protocol.current_step_number, 
             "time":time.time()-self.app.experiment_log.start_time()}
-            if self.app.func_gen.is_connected():
-                self.app.func_gen.set_voltage(self.app.protocol.current_step().voltage*math.sqrt(2)/200)
-                self.app.func_gen.set_frequency(self.app.protocol.current_step().frequency)
             emit_signal("on_protocol_update", data)
             self.app.experiment_log.add_data(data)
         else:

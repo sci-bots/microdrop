@@ -23,7 +23,7 @@ try:
 except:
     pass
 
-class Agilent33220A():
+class VisaFuncGen():
     def __init__(self):
         self.connected = False
         self.idn = ""
