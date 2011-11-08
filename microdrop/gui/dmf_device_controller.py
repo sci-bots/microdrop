@@ -138,7 +138,7 @@ class DmfDeviceController(SingletonPlugin):
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder("devices")
+        dialog.set_current_folder(self.app.config.dmf_device_directory)
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             self.filename = dialog.get_filename()
