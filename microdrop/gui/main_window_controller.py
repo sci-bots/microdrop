@@ -69,7 +69,7 @@ class MainWindowController(SingletonPlugin):
         app.signals["on_window_delete_event"] = self.on_delete_event
         app.signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
-        signals["on_menu_options_activate"] = self.on_menu_options_activate
+        app.signals["on_menu_options_activate"] = self.on_menu_options_activate
 
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui",
