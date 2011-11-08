@@ -2,3 +2,6 @@
 .sconsign.dblite
 dmf_control_board_base.so
 .microdrop
+*.exe
+*.dll
+*.pyd

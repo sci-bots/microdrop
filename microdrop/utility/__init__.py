@@ -18,6 +18,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import gtk
+import sys
 
 from utility.path import path
 
@@ -59,11 +60,17 @@ def check_textentry(textentry, prev_value, type):
 
 
 def base_path():
+    # When executing from a frozen (pyinstaller) executable...
+    if hasattr(sys, 'frozen'):
+        print 'FROZEN!'
+        return path(sys.executable).parent
+    else:
+        print 'NOT FROZEN!'
+
+    # Otherwise...
     try:
         script = path(__file__)
     except NameError:
-        import sys
-
         script = path(sys.argv[0])
     return script.parent.parent
 
