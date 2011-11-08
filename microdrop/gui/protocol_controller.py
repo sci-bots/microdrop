@@ -79,7 +79,6 @@ class ProtocolController(SingletonPlugin):
         app.signals["on_menu_rename_protocol_activate"] = self.on_rename_protocol
         app.signals["on_menu_save_protocol_activate"] = self.on_save_protocol
         app.signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
-        app.signals["on_menu_add_frequency_sweep_activate"] = self.on_add_frequency_sweep
         app.signals["on_textentry_voltage_focus_out_event"] = \
                 self.on_textentry_voltage_focus_out
         app.signals["on_textentry_voltage_key_press_event"] = \
@@ -169,10 +168,6 @@ class ProtocolController(SingletonPlugin):
     def on_save_protocol_as(self, widget, data=None):
         self.app.config_controller.save_protocol(save_as=True)
     
-    def on_add_frequency_sweep(self, widget, data=None):
-        AddFrequencySweepDialog(self.app).run()
-        self.app.main_window_controller.update()
-
     def on_textentry_step_duration_focus_out(self, widget, data=None):
         self.on_step_duration_changed()
 
@@ -296,47 +291,3 @@ class ProtocolController(SingletonPlugin):
                 
     def on_dmf_device_changed(self, dmf_device):
         emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel()+1))
-
-
-class AddFrequencySweepDialog:
-    def __init__(self, app):
-        self.app = app
-        builder = gtk.Builder()
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "frequency_sweep_dialog.glade"))
-        self.dialog = builder.get_object("frequency_sweep_dialog")
-        self.dialog.set_transient_for(app.main_window_controller.view)
-        self.textentry_start_freq = \
-            builder.get_object("textentry_start_freq")
-        self.textentry_end_freq = \
-            builder.get_object("textentry_end_freq")
-        self.textentry_n_steps = \
-            builder.get_object("textentry_n_steps")
-        self.textentry_start_freq.set_text("0.1")
-        self.textentry_end_freq.set_text("1e2")
-        self.textentry_n_steps.set_text("30")
-        
-    def run(self):
-        response = self.dialog.run()
-        if response == gtk.RESPONSE_OK:
-            start_freq = self.textentry_start_freq.get_text() 
-            end_freq = self.textentry_end_freq.get_text() 
-            number_of_steps = self.textentry_n_steps.get_text()
-            if is_float(start_freq) == False:
-                self.app.main_window_controller.error("Invalid start frequency.")
-            elif is_float(end_freq) == False:
-                self.app.main_window_controller.error("Invalid end frequency.")
-            elif is_int(number_of_steps) == False or number_of_steps < 1:
-                self.app.main_window_controller.error("Invalid number of steps.")
-            elif end_freq < start_freq:
-                self.app.main_window_controller.error("End frequency must be greater than the start frequency.")
-            else:
-                frequencies = np.logspace(np.log10(float(start_freq)),
-                                          np.log10(float(end_freq)),
-                                          int(number_of_steps))
-                for frequency in frequencies:
-                    self.app.protocol.current_step().frequency = frequency*1e3
-                    self.app.protocol.copy_step()
-        self.dialog.hide()
-        return response
