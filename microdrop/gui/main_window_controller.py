@@ -69,6 +69,7 @@ class MainWindowController(SingletonPlugin):
         app.signals["on_window_delete_event"] = self.on_delete_event
         app.signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
+        app.signals["on_menu_options_activate"] = self.on_menu_options_activate
 
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui",
@@ -97,6 +98,13 @@ class MainWindowController(SingletonPlugin):
         self.app.experiment_log_controller.on_window_show(widget, data)
 
     def on_realtime_mode_toggled(self, widget, data=None):
+        self.update()
+
+    def on_menu_options_activate(self, widget, data=None):
+        from options_controller import OptionsController
+
+        print 'selected options menu'
+        OptionsController(self.app).run()
         self.update()
 
     def error(self, message):
