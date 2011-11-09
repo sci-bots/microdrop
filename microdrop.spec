@@ -18,18 +18,17 @@ a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
 
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
-          a.scripts + [('v', '', 'OPTION')],
-          exclude_binaries=1,
-          name=os.path.join('build\\pyi.win32\\microdrop', 'microdrop.exe'),
-          #debug=False,
-          debug=True,
-          strip=False,
-          upx=True,
-          console=True )
-coll = COLLECT( exe,
-               a.binaries,
-               a.zipfiles,
+            a.scripts,
+            a.binaries,
+            a.zipfiles,
+            exclude_binaries=False,
+            name=os.path.join('build\\pyi.win32\\microdrop', 'microdrop.exe'),
+            debug=False,
+            strip=False,
+            upx=True,
+            console=False,
+            icon='microdrop.ico')
+coll = COLLECT(exe,
                a.datas,
-               strip=False,
                upx=True,
                name=os.path.join('dist', 'microdrop'))
