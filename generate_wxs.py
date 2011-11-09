@@ -21,10 +21,26 @@ WXS_TEMPLATE = '''\
          <Directory Id='ProgramFilesFolder' Name='PFiles'>
 {{ dir_tree }}
          </Directory>
+         <Directory Id='ProgramMenuFolder'>
+            <Directory Id='ApplicationProgramsFolder' Name='microdrop' />
+         </Directory>
       </Directory>
+
+    <!-- Step 2: Add the shortcut to your installer package -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+        <Component Id="ApplicationShortcut" Guid="9f3fb577-2e2f-4a53-8df2-9e9f7fcb79a6" >
+            <Shortcut Id="ApplicationStartMenuShortcut" Name="microdrop" 
+                Description="My Application Description"
+                Target="[{{ root }}]microdrop.exe"
+                        WorkingDirectory="{{ root }}"/>
+            <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+            <RegistryValue Root="HKCU" Key="Software\Microsoft\microdrop" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+        </Component>
+    </DirectoryRef>
  
     <Feature Id='{{ id }}' Title='{{ title }}' Level='1'>{% for c in components %}
         <ComponentRef Id='{{ c.id }}' />{% endfor %}
+        <ComponentRef Id="ApplicationShortcut" />   
     </Feature>
 
     <Property Id="WIXUI_INSTALLDIR" Value="{{ root }}" />
