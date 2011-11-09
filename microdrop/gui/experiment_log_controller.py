@@ -93,13 +93,13 @@ class ExperimentLogController(SingletonPlugin):
             self.builder.get_object("label_device"). \
                 set_text(label)
 
-            label = "Protocol: "
             data = self.results.log.get("protocol name")
+
+            label = "Protocol: None"
             for val in data:
                 if val:
-                    label += val
-            else:
-                label += "None"
+                    label = "Protocol: %s" % val
+
             self.builder.get_object("label_protocol"). \
                 set_text(label)
             
