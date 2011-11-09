@@ -11,13 +11,15 @@ from path import path
 
 WXS_TEMPLATE = '''\
 <?xml version='1.0'?><Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-   <Product Id='*' Name='MicroDrop' Language='1033'
-            Version='{{ version }}' Manufacturer='Wheeler Microfluidics Lab' UpgradeCode='048f3511-0a49-11e1-a03e-080027963a76'>
-      <Package Description='microdrop'
+    <Product Id='*' Name='MicroDrop' Language='1033'
+            Version='{{ version }}' Manufacturer='Wheeler Microfluidics Lab'
+            UpgradeCode='048f3511-0a49-11e1-a03e-080027963a76'>
+        <Package Description='microdrop'
                 Comments='microdrop'
-                Manufacturer='Wheeler Microfluidics Lab' InstallerVersion='200' Compressed='yes' />
+                Manufacturer='Wheeler Microfluidics Lab'
+                InstallerVersion='200' Compressed='yes' />
  
-      <Media Id='1' Cabinet='product.cab' EmbedCab='yes' />
+        <Media Id='1' Cabinet='product.cab' EmbedCab='yes' />
  
         <Upgrade Id="048f3511-0a49-11e1-a03e-080027963a76">
             <UpgradeVersion OnlyDetect="yes" Minimum="{{ version }}" Property="NEWERVERSIONDETECTED" IncludeMinimum="no" />
@@ -28,8 +30,11 @@ WXS_TEMPLATE = '''\
             <RemoveExistingProducts After="InstallInitialize" />
         </InstallExecuteSequence>
 
-      <Directory Id='TARGETDIR' Name='SourceDir'>
-         <Directory Id='ProgramFilesFolder' Name='PFiles'>
+        <Icon Id="microdrop.ico" SourceFile="microdrop.ico" />
+        <Property Id="ARPPRODUCTICON" Value="microdrop.ico" />
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='ProgramFilesFolder' Name='PFiles'>
 {{ dir_tree }}
          </Directory>
          <Directory Id='ProgramMenuFolder'>
