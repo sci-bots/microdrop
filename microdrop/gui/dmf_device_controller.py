@@ -31,6 +31,7 @@ from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
     implements, emit_signal
+from utility import is_float
 
 
 class DmfDeviceController(SingletonPlugin):
@@ -60,7 +61,8 @@ class DmfDeviceController(SingletonPlugin):
         app.signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device 
         app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device 
         app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as 
-        app.signals["on_menu_edit_electrode_activate"] = self.on_edit_electrode
+        app.signals["on_menu_edit_electrode_channels_activate"] = self.on_edit_electrode_channels
+        app.signals["on_menu_edit_electrode_area_activate"] = self.on_edit_electrode_area
         self.app.dmf_device_controller = self
 
     def on_button_press(self, widget, event):
@@ -189,15 +191,16 @@ class DmfDeviceController(SingletonPlugin):
     def on_save_dmf_device_as(self, widget, data=None):
         self.app.config_controller.save_dmf_device(save_as=True)
         
-    def on_edit_electrode(self, widget, data=None):
+    def on_edit_electrode_channels(self, widget, data=None):
         # TODO: set default value
         channel_list = ""
         for i in self.last_electrode_clicked.channels:
             channel_list += str(i) + ','
         channel_list = channel_list[:-1]
-        channel_list = self.app.main_window_controller.get_text_input("Edit electrode",
-                                                                  "Channels",
-                                                                  channel_list)
+        channel_list = self.app.main_window_controller.get_text_input(
+            "Edit electrode channels",
+            "Channels",
+            channel_list)
         if channel_list:
             channels = channel_list.split(',')
             try: # convert to integers
@@ -212,7 +215,24 @@ class DmfDeviceController(SingletonPlugin):
             except:
                 self.app.main_window_controller.error("Invalid channel.")
         self.app.main_window_controller.update()
-            
+        
+    def on_edit_electrode_area(self, widget, data=None):
+        if self.app.dmf_device.scale is None:
+            area = ""
+        else:
+            area = self.last_electrode_clicked.area()*self.app.dmf_device.scale
+        area = self.app.main_window_controller.get_text_input(
+            "Edit electrode area",
+            "Area of electrode in mm<span rise=\"5000\" font_size=\"smaller\">"
+            "2</span>:",
+            str(area))
+        if area:
+            if is_float(area):
+                self.app.dmf_device.scale = \
+                    float(area)/self.last_electrode_clicked.area()
+            else:
+                self.app.main_window_controller.error("Area value is invalid.")
+    
     def on_dmf_device_changed(self, dmf_device):
         self.view.fit_device()
         

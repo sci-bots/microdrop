@@ -86,6 +86,10 @@ class IPlugin(Interface):
 
         Parameters:
             data : dictionary to store experiment log data for the current step
+
+        Returns:
+            True if the protocol should be updated again (e.g., if a feedback
+            plugin wants to signal that the step should be repeated)
         """
         pass
 
@@ -150,6 +154,7 @@ class IPlugin(Interface):
 
 
 def emit_signal(function, args=[], interface=IPlugin):
+    return_codes = []
     observers = ExtensionPoint(interface)
     for observer in observers:
         if hasattr(observer, function):
@@ -160,10 +165,13 @@ def emit_signal(function, args=[], interface=IPlugin):
                 for i, arg in enumerate(args):
                     arg_list.append("arg%d" % i)
                     exec("arg%d=arg" % i)
-                command = "observer.%s(%s)" % (function, ",".join(arg_list))
+                command = "return_code = observer.%s(%s)" % \
+                    (function, ",".join(arg_list))
                 exec(command)
+                return_codes.append(return_code)
             except Exception, why:
                 if hasattr(observer, "name"):
                     print "%s plugin crashed." % observer.name  
                 print why
                 traceback.print_stack()
+    return return_codes

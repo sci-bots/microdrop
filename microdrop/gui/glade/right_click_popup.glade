@@ -6,13 +6,23 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
-      <object class="GtkMenuItem" id="menu_edit_electrode">
+      <object class="GtkMenuItem" id="menu_edit_electrode_channels">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="use_action_appearance">False</property>
-        <property name="label" translatable="yes">Edit electrode</property>
+        <property name="label" translatable="yes">Edit electrode channels</property>
         <property name="use_underline">True</property>
-        <signal name="activate" handler="on_menu_edit_electrode_activate" swapped="no"/>
+        <signal name="activate" handler="on_menu_edit_electrode_channels_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_edit_electrode_area">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="use_action_appearance">False</property>
+        <property name="label" translatable="yes">Edit electrode area</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="on_menu_edit_electrode_area_activate" swapped="no"/>
       </object>
     </child>
   </object>

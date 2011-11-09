@@ -278,10 +278,17 @@ class ProtocolController(SingletonPlugin):
             self.app.protocol.n_repeats))
 
         if self.app.realtime_mode or self.app.running:
-            data = {"step":self.app.protocol.current_step_number, 
-            "time":time.time()-self.app.experiment_log.start_time()}
-            emit_signal("on_protocol_update", data)
-            self.app.experiment_log.add_data(data)
+            attempt=0
+            while True:
+                data = {"step":self.app.protocol.current_step_number, 
+                "time":time.time()-self.app.experiment_log.start_time()}
+                if attempt>0:
+                    data["attempt"] = attempt                
+                return_codes = emit_signal("on_protocol_update", data)
+                self.app.experiment_log.add_data(data)
+                if return_codes.count(True)==0:
+                    break
+                attempt+=1
         else:
             data = {}
             emit_signal("on_protocol_update", data)

@@ -91,7 +91,7 @@ class MainWindowController(SingletonPlugin):
 
     def get_text_input(self, title, label, default_value=""):
         self.text_input_dialog.set_title(title)
-        self.text_input_dialog.label.set_text(label)
+        self.text_input_dialog.label.set_markup(label)
         self.text_input_dialog.textentry.set_text(default_value)
         self.text_input_dialog.set_transient_for(self.view)
         response = self.text_input_dialog.run()
