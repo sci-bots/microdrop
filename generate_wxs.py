@@ -1,4 +1,6 @@
+##!/usr/bin/env python
 import hashlib
+import itertools
 import uuid
 import re
 from xml.dom.minidom import Document
@@ -10,7 +12,7 @@ from path import path
 WXS_TEMPLATE = '''\
 <?xml version='1.0'?><Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
    <Product Id='*' Name='MicroDrop' Language='1033'
-            Version='1.0.0.0' Manufacturer='Wheeler Microfluidics Lab' UpgradeCode='048f3511-0a49-11e1-a03e-080027963a76'>
+            Version='{{ version }}' Manufacturer='Wheeler Microfluidics Lab' UpgradeCode='048f3511-0a49-11e1-a03e-080027963a76'>
       <Package Description='microdrop'
                 Comments='microdrop'
                 Manufacturer='Wheeler Microfluidics Lab' InstallerVersion='200' Compressed='yes' />
@@ -147,11 +149,8 @@ class DirectoryWalker(object):
         return pre_dir
 
 
-if __name__ == '__main__':
-    import itertools
 
-    root_path = path('dist').joinpath('microdrop')
-
+def generate_wxs(root_path, version):
     dw = DirectoryWalker()
     root = dw.xml_tree(root_path)
     etc = dw.xml_tree(root_path.joinpath('etc'), recursive=True)
@@ -171,7 +170,33 @@ if __name__ == '__main__':
 
     t = jinja2.Template(WXS_TEMPLATE)
 
-    print t.render(id='microdrop', title='microdrop',
+    return t.render(id='microdrop', title='microdrop',
                     dir_tree=root[0].toprettyxml(indent='  '),
                     components=all_components,
-                    root=root[0].getAttribute('Id'))
+                    root=root[0].getAttribute('Id'), version=version)
+
+
+def _parse_args():
+    """Parses arguments, returns ``(options, args)``."""
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser(description="""\
+Generates a WiX input file for microdrop.""",
+                            epilog="""\
+(C) 2011  Ryan Fobel and Christian Fobel.""",
+                           )
+    parser.add_argument('-v', '--version',
+                    action='store', dest='version', type=str,
+                    required=True,
+                    help='install version')
+    args = parser.parse_args()
+    
+    return args
+
+
+
+
+if __name__ == '__main__':
+    args = _parse_args()
+    root_path = path('dist').joinpath('microdrop')
+    print generate_wxs(root_path, args.version)
