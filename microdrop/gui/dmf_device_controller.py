@@ -80,17 +80,17 @@ class DmfDeviceController(SingletonPlugin):
         self.name = "microdrop.gui.dmf_device_controller"        
         self.app = None
         self.view = None
-        self.builder = gtk.Builder()
-        self.builder.add_from_file(os.path.join("gui",
-                                   "glade",
-                                   "right_click_popup.glade"))
-        self.popup = self.builder.get_object("popup")
+        self.popup = None
         self.last_electrode_clicked = None
         
     def on_app_init(self, app):        
         self.app = app
         self.view = DmfDeviceView(app.builder.get_object("dmf_device_view"),
                                   app)
+        app.builder.add_from_file(os.path.join("gui",
+                                   "glade",
+                                   "right_click_popup.glade"))
+        self.popup = app.builder.get_object("popup")
         app.signals["on_dmf_device_view_button_press_event"] = self.on_button_press
         app.signals["on_dmf_device_view_key_press_event"] = self.on_key_press
         app.signals["on_dmf_device_view_expose_event"] = self.view.on_expose
