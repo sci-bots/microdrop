@@ -33,13 +33,6 @@ class ConfigController(SingletonPlugin):
         
     def __init__(self):
         self.name = "microdrop.gui.config_controller"
-        builder = gtk.Builder()
-        builder.add_from_file(os.path.join("gui",
-                              "glade",
-                              "new_dialog.glade"))
-        self.new_dialog = builder.get_object("new_dialog")
-        self.new_dialog.textentry = builder.get_object("textentry")
-        self.new_dialog.label = builder.get_object("label")
 
     def on_app_init(self, app):
         self.app = app
@@ -60,35 +53,19 @@ class ConfigController(SingletonPlugin):
         self.app.config.protocol_name = protocol_name
         self.load_protocol()
 
-    def dmf_device_name_dialog(self, old_name=None):
-        self.new_dialog.set_title("Save device")
-        self.new_dialog.label.set_text("Device name:")
-        if old_name:
-            self.new_dialog.textentry.set_text(old_name)
-        else:
-            self.new_dialog.textentry.set_text("")
-        self.new_dialog.set_transient_for(self.app.main_window_controller.view)
-        response = self.new_dialog.run()
-        self.new_dialog.hide()
-        name = ""
-        if response == gtk.RESPONSE_OK:
-            name = self.new_dialog.textentry.get_text()
-        return name
+    def dmf_device_name_dialog(self, name=None):
+        if name is None:
+            name=""
+        return self.app.main_window_controller.get_text_input("Save device",
+                                                              "Device name",
+                                                              name)
     
-    def protocol_name_dialog(self, old_name=None):
-        self.new_dialog.set_title("Save protocol")
-        self.new_dialog.label.set_text("Protocol name:")
-        if old_name:
-            self.new_dialog.textentry.set_text(old_name)
-        else:
-            self.new_dialog.textentry.set_text("")
-        self.new_dialog.set_transient_for(self.app.main_window_controller.view)
-        response = self.new_dialog.run()
-        self.new_dialog.hide()
-        name = ""
-        if response == gtk.RESPONSE_OK:
-            name = self.new_dialog.textentry.get_text()
-        return name
+    def protocol_name_dialog(self, name=None):
+        if name is None:
+            name=""
+        return self.app.main_window_controller.get_text_input("Save protocol",
+                                                              "Protocol name",
+                                                              name)
 
     def save_dmf_device(self, save_as=False, rename=False):
         # if the device has no name, try to get one

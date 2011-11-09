@@ -47,6 +47,14 @@ class MainWindowController(SingletonPlugin):
         self.menu_view = None
         gtk.link_button_set_uri_hook(self.on_url_clicked)
         
+        builder = gtk.Builder()
+        builder.add_from_file(os.path.join("gui",
+                              "glade",
+                              "text_input_dialog.glade"))
+        self.text_input_dialog = builder.get_object("window")
+        self.text_input_dialog.textentry = builder.get_object("textentry")
+        self.text_input_dialog.label = builder.get_object("label")
+        
     def on_app_init(self, app):
         self.app = app
         app.builder.add_from_file(os.path.join("gui",
@@ -80,6 +88,18 @@ class MainWindowController(SingletonPlugin):
     def main(self):
         self.update()
         gtk.main()
+
+    def get_text_input(self, title, label, default_value=""):
+        self.text_input_dialog.set_title(title)
+        self.text_input_dialog.label.set_text(label)
+        self.text_input_dialog.textentry.set_text(default_value)
+        self.text_input_dialog.set_transient_for(self.view)
+        response = self.text_input_dialog.run()
+        self.text_input_dialog.hide()
+        name = ""
+        if response == gtk.RESPONSE_OK:
+            name = self.text_input_dialog.textentry.get_text()
+        return name
 
     def on_delete_event(self, widget, data=None):
         emit_signal("on_app_exit")

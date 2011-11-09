@@ -2,7 +2,7 @@
 <interface>
   <requires lib="gtk+" version="2.24"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkDialog" id="new_dialog">
+  <object class="GtkDialog" id="window">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Device name</property>
@@ -21,7 +21,7 @@
               <object class="GtkLabel" id="label">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Device name:</property>
+                <property name="label" translatable="yes">Label:</property>
               </object>
               <packing>
                 <property name="expand">True</property>
