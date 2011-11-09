@@ -148,7 +148,8 @@ class IPlugin(Interface):
         Handler called whenever the experiment log selection changes.
 
         Parameters:
-            data : dictionary of experiment log data for the selected steps
+            data : experiment log data (list of dictionaries, one per step)
+                   for the selected steps
         """
         pass
 
