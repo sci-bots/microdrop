@@ -1,5 +1,7 @@
+import hashlib
 import uuid
 import re
+from xml.dom.minidom import Document
 
 import jinja2
 from path import path
@@ -17,11 +19,7 @@ WXS_TEMPLATE = '''\
  
       <Directory Id='TARGETDIR' Name='SourceDir'>
          <Directory Id='ProgramFilesFolder' Name='PFiles'>
-            <Directory Id='microdrop' Name='MicroDrop Program'>{% for c in components %}
-                <Component Id='{{ c.id }}' Guid='{{ c.guid }}'>
-                    <File Id='f{{ c.id }}' Name='{{ c.filename }}' DiskId='1' Source='{{ c.source }}' />
-                </Component>{% endfor %}
-            </Directory>
+{{ dir_tree }}
          </Directory>
       </Directory>
  
@@ -33,12 +31,20 @@ WXS_TEMPLATE = '''\
 </Wix>'''
 
 
+def _clean_id(x):
+    return re.sub(r'[\\\/\.-]', '_', x)
+
+
 class Component(object):
-    def __init__(self, filepath):
+    def __init__(self, filepath, root=None):
         self.filepath = path(filepath)
-        self.guid = self._get_guid()
-        self.id = self._clean_id(self.filepath)
-        self.filename = self.filepath.name
+        self.guid = str(self._get_guid())
+        #self.id = _clean_id(self.filepath)
+        self.id = 'id__%s' % hashlib.md5(self.filepath).hexdigest()
+        if root:
+            self.filename = path(root) / self.filepath.name
+        else:
+            self.filename = self.filepath.name
         self.source = self.filepath
         
     def _get_guid(self):
@@ -46,14 +52,106 @@ class Component(object):
         md5.update(self.filepath)
         return uuid.UUID(bytes=md5.hexdigest()[:16])
 
-    def _clean_id(self, x):
-        return re.sub(r'[\\\/\.-]', '_', x)
+    def __str__(self):
+        return '''filepath=%s, guid=%s, id=%s, filename=%s, source=%s''' % (
+            self.filepath, self.guid, self.id, self.filename, self.source)
+
+
+class Directory(object):
+    def __init__(self, dirpath, root=None):
+        self.dirpath = path(dirpath)
+        #self.id = _clean_id(self.dirpath)
+        self.id = 'id__%s' % hashlib.md5(self.dirpath).hexdigest()
+        if root:
+            self.dirname = path(root) / self.dirpath.name
+        else:
+            self.dirname = self.dirpath.name
+
+
+class DirectoryWalker(object):
+    def __init__(self):
+        self.components = []
+
+    def post_file(self, f, parent, elem):
+        parent.appendChild(elem)
+
+    def pre_file(self, f):
+        '''
+        <Component Id='{{ c.id }}' Guid='{{ c.guid }}'>
+            <File Id='f{{ c.id }}' Name='{{ c.filename }}' DiskId='1' Source='{{ c.source }}' />
+        </Component>{% endfor %}
+        '''
+        comp = Component(f)
+        self.components.append(comp)
+        component = self.doc.createElement('Component')
+        component.setAttribute('Id', comp.id)
+        component.setAttribute('Guid', comp.guid)
+        elem = self.doc.createElement('File')
+        elem.setAttribute('Id', 'f%s' % comp.id)
+        elem.setAttribute('Name', '%s' % comp.filename)
+        elem.setAttribute('Source', '%s' % comp.source)
+        component.appendChild(elem)
+        return component
+
+    def post_directory(self, d, parent, elem):
+        parent.appendChild(elem)
+        return parent
+
+    def pre_directory(self, d):
+        directory = Directory(d)
+        node = self.doc.createElement('Directory')
+        node.setAttribute('Id', directory.id)
+        node.setAttribute('Name', directory.dirname.name)
+        return node
+
+    def xml_tree(self, filepath, recursive=False):
+        self.components = []
+        self.doc = Document()
+        filepath = path(filepath)
+        node = self.walk(filepath, recursive)
+        return node, self.components
+
+    def walk(self, filepath, recursive=False):
+        "Return a document node contains a directory tree for the filepath."
+        filepath = path(filepath)
+        pre_dir = self.pre_directory(filepath)
+        for fullname in filepath.listdir():
+            f = fullname.name
+            if fullname.isdir():
+                if not recursive:
+                    continue
+                in_dir = self.walk(fullname)
+                post_dir = self.post_directory(fullname, pre_dir, in_dir)
+            else:
+                pre_file = self.pre_file(fullname)
+                post_file = self.post_file(fullname, pre_dir, pre_file)
+        return pre_dir
 
 
 if __name__ == '__main__':
-    files = path('dist\\microdrop').files('microdrop.exe*')
-    components = [Component(f) for f in files]
+    import itertools
+
+    root_path = path('dist').joinpath('microdrop')
+
+    dw = DirectoryWalker()
+    root = dw.xml_tree(root_path)
+    etc = dw.xml_tree(root_path.joinpath('etc'), recursive=True)
+    devices = dw.xml_tree(root_path.joinpath('devices'), recursive=True)
+    gui = dw.xml_tree(root_path.joinpath('gui'), recursive=True)
+    mpl_data = dw.xml_tree(root_path.joinpath('mpl-data'), recursive=True)
+    plugins = dw.xml_tree(root_path.joinpath('plugins'), recursive=True)
+    share = dw.xml_tree(root_path.joinpath('share'), recursive=True)
+
+    children = dict(etc=etc, devices=devices, gui=gui,
+                    mpl_data=mpl_data, plugins=plugins, share=share)
+    for c in children.itervalues():
+        root[0].appendChild(c[0])
+
+    all_components = list(itertools.chain(*[c[1] for c in children.itervalues()]))
+    all_components += root[1]
 
     t = jinja2.Template(WXS_TEMPLATE)
 
-    print t.render(id='microdrop', title='microdrop', components=components)
+    print t.render(id='microdrop', title='microdrop',
+                    dir_tree=root[0].toprettyxml(indent='  '),
+                    components=all_components)
