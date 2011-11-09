@@ -27,6 +27,9 @@ WXS_TEMPLATE = '''\
         <ComponentRef Id='{{ c.id }}' />{% endfor %}
     </Feature>
 
+    <Property Id="WIXUI_INSTALLDIR" Value="{{ root }}" />
+    <UIRef Id="WixUI_InstallDir" />
+
    </Product>
 </Wix>'''
 
@@ -40,7 +43,7 @@ class Component(object):
         self.filepath = path(filepath)
         self.guid = str(self._get_guid())
         #self.id = _clean_id(self.filepath)
-        self.id = 'id__%s' % hashlib.md5(self.filepath).hexdigest()
+        self.id = 'ID__%s' % hashlib.md5(self.filepath).hexdigest().upper()
         if root:
             self.filename = path(root) / self.filepath.name
         else:
@@ -61,7 +64,7 @@ class Directory(object):
     def __init__(self, dirpath, root=None):
         self.dirpath = path(dirpath)
         #self.id = _clean_id(self.dirpath)
-        self.id = 'id__%s' % hashlib.md5(self.dirpath).hexdigest()
+        self.id = 'ID__%s' % hashlib.md5(self.dirpath).hexdigest().upper()
         if root:
             self.dirname = path(root) / self.dirpath.name
         else:
@@ -154,4 +157,5 @@ if __name__ == '__main__':
 
     print t.render(id='microdrop', title='microdrop',
                     dir_tree=root[0].toprettyxml(indent='  '),
-                    components=all_components)
+                    components=all_components,
+                    root=root[0].getAttribute('Id'))
