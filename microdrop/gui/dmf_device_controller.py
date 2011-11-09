@@ -26,7 +26,7 @@ from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 
 from dmf_device_view import DmfDeviceView
-from dmf_device import DmfDevice, load as load_dmf_device
+from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
@@ -142,7 +142,7 @@ class DmfDeviceController(SingletonPlugin):
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             self.filename = dialog.get_filename()
-            emit_signal("on_dmf_device_changed", [load_dmf_device(self.filename)])
+            emit_signal("on_dmf_device_changed", [DmfDevice.load(self.filename)])
         dialog.destroy()
         self.app.main_window_controller.update()
         

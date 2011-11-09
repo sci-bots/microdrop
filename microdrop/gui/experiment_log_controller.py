@@ -29,7 +29,7 @@ from utility import path, combobox_set_model_from_list, \
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
     ExtensionPoint, emit_signal
 from protocol import load as load_protocol
-from dmf_device import load as load_dmf_device
+from dmf_device import DmfDevice
 
 class ExperimentLogColumn():
     def __init__(self, name, type, format_string=None):
@@ -211,7 +211,7 @@ class ExperimentLogController(SingletonPlugin):
                                      str(self.results.log.experiment_id),
                                      'device')) 
         try:
-            emit_signal("on_dmf_device_changed", [load_dmf_device(filename)])
+            emit_signal("on_dmf_device_changed", [DmfDevice.load(filename)])
         except:
             self.app.main_window_controller.error("Could not open %s" % filename)
         self.app.main_window_controller.update()

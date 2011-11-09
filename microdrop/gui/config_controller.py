@@ -22,7 +22,7 @@ import shutil
 
 import gtk
 
-from dmf_device import DmfDevice, load as load_dmf_device
+from dmf_device import DmfDevice
 from protocol import Protocol, load as load_protocol
 from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
     implements, emit_signal
@@ -167,7 +167,7 @@ class ConfigController(SingletonPlugin):
                                 self.app.config.dmf_device_name,
                                 "device")
             try:
-                emit_signal("on_dmf_device_changed", load_dmf_device(path))
+                emit_signal("on_dmf_device_changed", DmfDevice.load(path))
             except:
                 self.app.main_window_controller.error("Could not open %s" % path)
 

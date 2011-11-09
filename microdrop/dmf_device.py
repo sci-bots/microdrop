@@ -20,13 +20,9 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import cPickle
 import numpy as np
 
-def load(filename):
-    f = open(filename, 'rb')
-    dmf_device = cPickle.load(f)
-    f.close()
-    return dmf_device
 
 class DmfDevice():
+    class_version = '0.1'
     def __init__(self):
         self.electrodes = {}
         self.x_min = np.Inf
@@ -34,6 +30,27 @@ class DmfDevice():
         self.y_min = np.Inf
         self.y_max = 0
         self.name = None
+        self.scale = None
+        self.version = self.__class__.class_version
+
+    @staticmethod
+    def load(filename):
+        f = open(filename, 'rb')
+        out = cPickle.load(f)
+        f.close()
+        if not hasattr(out, 'version'):
+            out.version = '0.0'
+        if out.version != out.class_version:
+            out.upgrade()
+        return out
+
+    def upgrade(self):
+        version = float(self.version)
+        print 'upgrade from version %s' % self.version
+        if version < 0.1:
+            self.version = '0.1'
+            self.scale = None
+            print 'upgrade to version 0.1'
 
     def save(self, filename):
         f = open(filename, 'wb')
@@ -109,6 +126,9 @@ class Electrode:
                     self.y_min = float(step['y'])
                 if float(step['y']) > self.y_max:
                     self.y_max = float(step['y'])
+
+    def area(self):
+        return (self.x_max-self.x_min)*(self.y_max-self.y_min)
 
     def contains(self, x, y):
         if self.x_min < x < self.x_max and self.y_min < y < self.y_max:
