@@ -33,46 +33,6 @@ from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
     implements, emit_signal
 
 
-class EditElectrodeDialog():
-    def __init__(self, app, electrode):
-        self.app = app
-        builder = gtk.Builder()
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "edit_electrode_dialog.glade"))
-        self.dialog = builder.get_object("edit_electrode_dialog")
-        self.dialog.set_transient_for(app.main_window_controller.view)
-        self.textentry_channels = builder.get_object("textentry_channels")
-        self.electrode = electrode
-
-        # TODO: set default value
-
-        channel_list = ""
-        for i in electrode.channels:
-            channel_list += str(i) + ','
-        channel_list = channel_list[:-1]
-        self.textentry_channels.set_text(channel_list)
-        
-    def run(self):
-        response = self.dialog.run()
-        if response == gtk.RESPONSE_OK:
-            channel_list = self.textentry_channels.get_text()
-            channels = channel_list.split(',')
-            try: # convert to integers
-                if len(channels[0]):
-                    for i in range(0,len(channels)):
-                        channels[i] = int(channels[i])
-                else:
-                    channels = []
-                if channels and max(channels) >= self.app.protocol.n_channels:
-                    self.app.protocol.set_number_of_channels(max(channels)+1)
-                self.electrode.channels = channels
-            except:
-                self.app.main_window_controller.error("Invalid channel.")
-        self.dialog.hide()
-        return response
-
-
 class DmfDeviceController(SingletonPlugin):
     implements(IPlugin)
     
@@ -230,9 +190,29 @@ class DmfDeviceController(SingletonPlugin):
         self.app.config_controller.save_dmf_device(save_as=True)
         
     def on_edit_electrode(self, widget, data=None):
-        EditElectrodeDialog(self.app, self.last_electrode_clicked).run()
+        # TODO: set default value
+        channel_list = ""
+        for i in self.last_electrode_clicked.channels:
+            channel_list += str(i) + ','
+        channel_list = channel_list[:-1]
+        channel_list = self.app.main_window_controller.get_text_input("Edit electrode",
+                                                                  "Channels",
+                                                                  channel_list)
+        if channel_list:
+            channels = channel_list.split(',')
+            try: # convert to integers
+                if len(channels[0]):
+                    for i in range(0,len(channels)):
+                        channels[i] = int(channels[i])
+                else:
+                    channels = []
+                if channels and max(channels) >= self.app.protocol.n_channels:
+                    self.app.protocol.set_number_of_channels(max(channels)+1)
+                self.last_electrode_clicked.channels = channels
+            except:
+                self.app.main_window_controller.error("Invalid channel.")
         self.app.main_window_controller.update()
-    
+            
     def on_dmf_device_changed(self, dmf_device):
         self.view.fit_device()
         
