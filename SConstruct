@@ -36,4 +36,6 @@ if os.name == 'nt':
     msi = Command('microdrop.msi', wixobj,
             'light -ext WixUIExtension -cultures:en-us $SOURCE -out $TARGET')
     AlwaysBuild(version_target)
+    Depends(exe, version_target)
+    Depends(wxs, version_target)
     Default(msi)
