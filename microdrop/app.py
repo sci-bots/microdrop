@@ -80,15 +80,18 @@ class App(SingletonPlugin):
         # protocol
         self.protocol = Protocol()
 
-        # initilize main window controller first (necessary for other
-        # plugins to add items to the menu, etc.)
+        # initilize main window controller and dmf device control first
+        # (necessary for other plugins to add items to the menus, etc.)
         observers = ExtensionPoint(IPlugin)
         observers('microdrop.gui.main_window_controller')[0]. \
+            on_app_init(self)
+        observers('microdrop.gui.dmf_device_controller')[0]. \
             on_app_init(self)
         
         # initialize other core plugins
         for observer in observers:
             if observer.name!='microdrop.gui.main_window_controller' and \
+                observer.name!='microdrop.gui.dmf_device_controller' and \
                 hasattr(observer,"on_app_init"):
                 try:
                     observer.on_app_init(self)
