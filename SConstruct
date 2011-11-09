@@ -29,6 +29,8 @@ if os.name == 'nt':
                             'generate_wxs.py -v %s > $TARGET' % SOFTWARE_VERSION)
     wixobj = Command('microdrop.wixobj', wxs,
                             'candle -o $TARGET $SOURCE')
+    Clean(exe, 'dist') 
+    Clean(exe, 'build') 
     Clean(wixobj, 'microdrop.wixpdb') 
 
     msi = Command('microdrop.msi', wixobj,

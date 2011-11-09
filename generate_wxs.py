@@ -19,6 +19,15 @@ WXS_TEMPLATE = '''\
  
       <Media Id='1' Cabinet='product.cab' EmbedCab='yes' />
  
+        <Upgrade Id="048f3511-0a49-11e1-a03e-080027963a76">
+            <UpgradeVersion OnlyDetect="yes" Minimum="{{ version }}" Property="NEWERVERSIONDETECTED" IncludeMinimum="no" />
+            <UpgradeVersion OnlyDetect="no" Maximum="{{ version }}" Property="OLDERVERSIONBEINGUPGRADED" IncludeMaximum="no" />
+        </Upgrade>
+
+        <InstallExecuteSequence>
+            <RemoveExistingProducts After="InstallInitialize" />
+        </InstallExecuteSequence>
+
       <Directory Id='TARGETDIR' Name='SourceDir'>
          <Directory Id='ProgramFilesFolder' Name='PFiles'>
 {{ dir_tree }}
