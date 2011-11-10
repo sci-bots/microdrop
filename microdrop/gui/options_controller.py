@@ -58,7 +58,21 @@ class OptionsController:
 
     def apply(self):
         data_dir = path(self.txt_data_dir.get_text())
+        if data_dir == self.app.config.dmf_device_directory:
+            return
+
         print 'apply changes:', data_dir
+        data_dir.makedirs_p()
+        if data_dir.listdir():
+            self.app.main_window_controller.error('''Directory must be empty''')
+            return
+
+        for d in self.app.config.dmf_device_directory.dirs():
+            d.copytree(data_dir.joinpath(d.name))
+        for f in self.app.config.dmf_device_directory.files():
+            f.copyfile(data_dir.joinpath(f.name))
+        self.app.config.dmf_device_directory.rmtree()
+        
         self.app.config.dmf_device_directory = data_dir
         self.app.config.save()
 
