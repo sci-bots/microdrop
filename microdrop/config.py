@@ -31,7 +31,7 @@ from utility.user_paths import home_dir, app_data_dir, common_app_data_dir
 def device_skeleton_path():
     if os.name == 'nt':
         #devices = path('devices')
-        devices = common_app_data_dir().joinpath('MicroDrop', 'devices')
+        devices = common_app_data_dir().joinpath('Microdrop', 'devices')
         if not devices.isdir():
             print 'warning: devices does not exist in common AppData dir'
             devices = path('devices')
@@ -59,7 +59,7 @@ class Config():
     
     def __init__(self):
         if os.name == 'nt':
-            self.dmf_device_directory = home_dir().joinpath('MicroDrop', 'devices')
+            self.dmf_device_directory = home_dir().joinpath('Microdrop', 'devices')
         else:
             self.dmf_device_directory = home_dir().joinpath('.microdrop', 'devices')
         self.dmf_device_directory.parent.makedirs_p()
