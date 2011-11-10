@@ -20,6 +20,8 @@ WXS_TEMPLATE = '''\
                 InstallerVersion='200' Compressed='yes' />
  
         <Media Id='1' Cabinet='product.cab' EmbedCab='yes' />
+
+        <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
  
         <Upgrade Id="048f3511-0a49-11e1-a03e-080027963a76">
             <UpgradeVersion OnlyDetect="yes" Minimum="{{ version }}" Property="NEWERVERSIONDETECTED" IncludeMinimum="no" />

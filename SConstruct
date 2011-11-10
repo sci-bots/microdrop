@@ -38,4 +38,5 @@ if os.name == 'nt':
     AlwaysBuild(version_target)
     Depends(exe, version_target)
     Depends(wxs, exe)
+    Depends(wxs, 'generate_wxs.py')
     Default(msi)
