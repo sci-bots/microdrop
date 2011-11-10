@@ -160,7 +160,7 @@ class DirectoryWalker(object):
             if fullname.isdir():
                 if not recursive:
                     continue
-                in_dir = self.walk(fullname)
+                in_dir = self.walk(fullname, recursive)
                 post_dir = self.post_directory(fullname, pre_dir, in_dir)
             else:
                 pre_file = self.pre_file(fullname)
