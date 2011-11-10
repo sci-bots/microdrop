@@ -23,7 +23,7 @@ from pyutilib.component.core import Interface, ExtensionPoint, \
                                     SingletonPlugin, implements
 import pyutilib.component.loader
 
-from utility import path
+from path import path
 
 
 class PluginManager():

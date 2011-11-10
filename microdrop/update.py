@@ -26,7 +26,9 @@ import tarfile
 import os
 import re
 
-from utility import path, base_path
+from path import path
+
+from utility import base_path
 
 verbose = False
 

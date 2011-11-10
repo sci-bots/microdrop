@@ -37,6 +37,11 @@ WXS_TEMPLATE = '''\
             <Directory Id='ProgramFilesFolder' Name='PFiles'>
 {{ dir_tree }}
          </Directory>
+        <Directory Id="CommonAppDataFolder">
+            <Directory Id='microdrop_app_data' Name='MicroDrop'>
+{{ device_tree }}
+            </Directory>
+        </Directory>
          <Directory Id='ProgramMenuFolder'>
             <Directory Id='ApplicationProgramsFolder' Name='microdrop' />
          </Directory>
@@ -174,18 +179,19 @@ def generate_wxs(root_path, version):
     plugins = dw.xml_tree(root_path.joinpath('plugins'), recursive=True)
     share = dw.xml_tree(root_path.joinpath('share'), recursive=True)
 
-    children = dict(etc=etc, devices=devices, gui=gui,
+    children = dict(etc=etc, gui=gui,
                     mpl_data=mpl_data, plugins=plugins, share=share)
     for c in children.itervalues():
         root[0].appendChild(c[0])
 
     all_components = list(itertools.chain(*[c[1] for c in children.itervalues()]))
-    all_components += root[1]
+    all_components += root[1] + devices[1]
 
     t = jinja2.Template(WXS_TEMPLATE)
 
     return t.render(id='microdrop', title='microdrop',
                     dir_tree=root[0].toprettyxml(indent='  '),
+                    device_tree=devices[0].toprettyxml(indent='  '),
                     components=all_components,
                     root=root[0].getAttribute('Id'), version=version)
 

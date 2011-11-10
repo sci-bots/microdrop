@@ -21,19 +21,21 @@ if os.name == 'nt':
         raise IOError, 'Cannot find PyInstaller on PATH.'
     BUILD_PATH = pyinstaller_path.joinpath('Build.py')
 
-    version_target = Command('microdrop/version.txt', None,
+    version_target = env.Command('microdrop/version.txt', None,
                             'echo %s > $TARGET' % SOFTWARE_VERSION)
-    exe = Command('microdrop/dist/microdrop.exe', 'microdrop.spec',
+    exe = env.Command('microdrop/dist/microdrop.exe', 'microdrop.spec',
                             '%s %s -y $SOURCE' % (sys.executable, BUILD_PATH))
-    wxs = Command('microdrop.wxs', exe,
+    wxs = env.Command('microdrop.wxs', version_target,
                             'generate_wxs.py -v %s > $TARGET' % SOFTWARE_VERSION)
-    wixobj = Command('microdrop.wixobj', wxs,
+    wixobj = env.Command('microdrop.wixobj', wxs,
                             'candle -o $TARGET $SOURCE')
-    Clean(exe, 'dist') 
-    Clean(exe, 'build') 
-    Clean(wixobj, 'microdrop.wixpdb') 
+    env.Clean(exe, 'dist') 
+    env.Clean(exe, 'build') 
+    env.Clean(wixobj, 'microdrop.wixpdb') 
 
-    msi = Command('microdrop.msi', wixobj,
+    msi = env.Command('microdrop.msi', wixobj,
             'light -ext WixUIExtension -cultures:en-us $SOURCE -out $TARGET')
     AlwaysBuild(version_target)
+    Depends(exe, version_target)
+    Depends(wxs, exe)
     Default(msi)
