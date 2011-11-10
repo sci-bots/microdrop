@@ -135,7 +135,7 @@ class ExperimentLogController(SingletonPlugin):
             data = self.results.log.get("notes")
             for val in data:
                 if val:
-                    label += time.ctime(val)
+                    label = val
             self.builder.get_object("textview_notes"). \
                 get_buffer().set_text(label)
 
