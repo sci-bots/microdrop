@@ -144,14 +144,15 @@ class ConfigController(SingletonPlugin):
                                 self.app.config.dmf_device_name,
                                 "device")
             try:
-                emit_signal("on_dmf_device_changed", DmfDevice.load(path))
+                dmf_device = DmfDevice.load(path)
             except:
                 self.app.main_window_controller.error("Could not open %s" % path)
 
         # otherwise, return a new object
         if dmf_device==None:
             dmf_device = DmfDevice()
-    
+        emit_signal("on_dmf_device_changed", dmf_device)
+
     
     def load_protocol(self):
         protocol = None
