@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Copyright 2011 Ryan Fobel
 
@@ -18,8 +19,16 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
+import sys
 
-import utility
+try:
+    import utility as utility
+except ImportError:
+    from path import path
+    import microdrop
+
+    sys.path.append(path(microdrop.__file__).parent)
+    import utility as utility
 
 
 if __name__ == '__main__':
@@ -28,6 +37,7 @@ if __name__ == '__main__':
     root_dir = utility.base_path()
     print 'Root directory: %s' % root_dir
     os.chdir(root_dir)
+    print os.getcwd()
 
     # importing app automatically initilizes an instance of the class because
     # it is defined as a singleton plugin
