@@ -26,7 +26,7 @@ if os.name == 'nt':
     exe = env.Command('microdrop/dist/microdrop.exe', 'microdrop.spec',
                             '%s %s -y $SOURCE' % (sys.executable, BUILD_PATH))
     wxs = env.Command('microdrop.wxs', version_target,
-                            'generate_wxs.py -v %s > $TARGET' % SOFTWARE_VERSION)
+                            'python generate_wxs.py -v %s > $TARGET' % SOFTWARE_VERSION)
     wixobj = env.Command('microdrop.wixobj', wxs,
                             'candle -o $TARGET $SOURCE')
     env.Clean(exe, 'dist') 
