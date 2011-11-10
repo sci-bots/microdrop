@@ -20,7 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import gtk
 import sys
 
-from utility.path import path
+from path import path
 
 
 def is_float(s):
