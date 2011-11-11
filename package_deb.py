@@ -14,12 +14,12 @@ def generate_deb():
 
     #changelog=open("changelog.txt","r").read()
 
-    p = Py2deb("microdrop")
-    p.author="Christian Fobel"
-    p.mail="christian@fobel.net"
+    p = Py2deb("python-microdrop")
+    p.author="Ryan Fobel and Christian Fobel"
+    p.mail="{ryan,christian}@fobel.net"
     p.description="""."""
     p.url = "http://microfluidics.utoronto.ca/microdrop"
-    p.depends="python-gtk2, python, libboost-all-dev, python-matplotlib, python-numpy, python-jinja2, avrdude"
+    p.depends="python-gtk2, python, libboost-all-dev, python-matplotlib, python-numpy, python-jinja2, avrdude, python-path"
     p.license="gpl"
     p.section="utils"
     p.arch="all"
