@@ -8,6 +8,7 @@ from path_find import path_find
 env = Environment(ENV=os.environ)
 Export('env')
 
+ARGUMENTS['genrst'] = 'sphinx-autopackage-script/generate_modules.py ../microdrop -d . -s rst'
 SConscript('doc/SConstruct')
 
 if os.name == 'nt':
