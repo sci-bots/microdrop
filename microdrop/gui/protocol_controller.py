@@ -63,7 +63,7 @@ class ProtocolController(SingletonPlugin):
             get_object("textentry_frequency")
         self.label_step_number = self.builder.get_object("label_step_number")
         self.textentry_protocol_repeats = self.builder.get_object(
-            "self.textentry_protocol_repeats")        
+            "textentry_protocol_repeats")        
         self.button_run_protocol = self.builder.get_object("button_run_protocol")
         
         app.signals["on_button_insert_step_clicked"] = self.on_insert_step
@@ -285,10 +285,16 @@ class ProtocolController(SingletonPlugin):
                 if attempt>0:
                     data["attempt"] = attempt                
                 return_codes = emit_signal("on_protocol_update", data)
-                self.app.experiment_log.add_data(data)
-                if return_codes.count(True)==0:
+                if return_codes.count("Fail")>0:
+                    self.pause_protocol()
+                    self.app.main_window_controller.error("Protocol failed.")
                     break
-                attempt+=1
+                elif return_codes.count("Repeat")>0:
+                    self.app.experiment_log.add_data(data)
+                    attempt+=1
+                else:
+                    self.app.experiment_log.add_data(data)
+                    break
         else:
             data = {}
             emit_signal("on_protocol_update", data)
