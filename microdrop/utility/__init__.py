@@ -76,7 +76,8 @@ def base_path():
 
 
 def combobox_set_model_from_list (cb, items):
-    """Setup a ComboBox or ComboBoxEntry based on a list of strings."""           
+    """Setup a ComboBox or ComboBoxEntry based on a list of strings."""
+    cb.clear()           
     model = gtk.ListStore(str)
     for i in items:
         model.append([i])
