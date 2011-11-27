@@ -9,7 +9,7 @@ Welcome to Microdrop's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 10
 
    microdrop
 
@@ -21,3 +21,7 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+Todo list
+=========
+
+.. todolist::

@@ -25,7 +25,7 @@ import traceback
 import gtk
 import numpy as np
 
-from utility import base_path
+from utility import base_path, PROGRAM_LAUNCHED
 from dmf_device import DmfDevice
 from protocol import Protocol
 from config import load as load_config
@@ -44,6 +44,7 @@ class App(SingletonPlugin):
     implements(IPlugin)
 
     def __init__(self):
+        print 'PROGRAM_LAUNCHED:', PROGRAM_LAUNCHED
         self.name = "microdrop.app"
         # get the version number
         self.version = ""

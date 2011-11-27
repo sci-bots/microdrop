@@ -19,11 +19,16 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import traceback
 
-from pyutilib.component.core import Interface, ExtensionPoint, \
-                                    SingletonPlugin, implements
+from pyutilib.component.core import Interface, ExtensionPoint, implements
 import pyutilib.component.loader
-
 from path import path
+
+import utility
+
+if utility.PROGRAM_LAUNCHED:
+    from pyutilib.component.core import SingletonPlugin
+else:
+    from pyutilib.component.config import ManagedPlugin as SingletonPlugin
 
 
 class PluginManager():
@@ -44,114 +49,122 @@ class PluginManager():
             print "\t", observer
 
 
-class IWaveformGenerator(Interface):
-    def set_voltage(self, voltage):
-        """
-        Set the waveform voltage.
+if not utility.PROGRAM_LAUNCHED:
+    class IPlugin(object):    
+        __interface_namespace__ = None
+
+    class IWaveformGenerator(object):
+        __interface_namespace__ = None
+
+else:
+    class IWaveformGenerator(Interface):
+        def set_voltage(self, voltage):
+            """
+            Set the waveform voltage.
+            
+            Parameters:
+                voltage : RMS voltage
+            """
+            pass
         
-        Parameters:
-            voltage : RMS voltage
-        """
-        pass
-    
-    def set_frequency(self, frequency):
-        """
-        Set the waveform frequency.
+        def set_frequency(self, frequency):
+            """
+            Set the waveform frequency.
+            
+            Parameters:
+                frequency : frequency in Hz
+            """
+            pass
+
+
+    class IPlugin(Interface):    
+        def on_app_init(app=None):
+            """
+            Handler called once when the Microdrop application starts.
+            
+            Plugins should store a reference to the app object if they need to
+            access other components.
+            """
+            pass
         
-        Parameters:
-            frequency : frequency in Hz
-        """
-        pass
+        def on_app_exit(self):
+            """
+            Handler called just before the Microdrop application exists. 
+            """
+            pass
 
+        def on_protocol_update(self, data):
+            """
+            Handler called whenever views of the protocol need to update.
 
-class IPlugin(Interface):    
-    def on_app_init(app=None):
-        """
-        Handler called once when the Microdrop application starts.
+            Parameters:
+                data : dictionary to store experiment log data for the current step
+
+            Returns:
+                True if the protocol should be updated again (e.g., if a feedback
+                plugin wants to signal that the step should be repeated)
+            """
+            pass
+
+        def on_delete_protocol_step(self):
+            """
+            Handler called whenever a protocol step is deleted.
+            """
+            pass
+
+        def on_insert_protocol_step(self):
+            """
+            Handler called whenever a protocol step is inserted.
+            """
+            pass
+
+        def on_protocol_save(self):
+            """
+            Handler called when a protocol is saved.
+            """
+            pass
         
-        Plugins should store a reference to the app object if they need to
-        access other components.
-        """
-        pass
-    
-    def on_app_exit(self):
-        """
-        Handler called just before the Microdrop application exists. 
-        """
-        pass
+        def on_protocol_load(self, version, data):
+            """
+            Handler called when a protocol is loaded.
+            """
+            pass
 
-    def on_protocol_update(self, data):
-        """
-        Handler called whenever views of the protocol need to update.
+        def on_protocol_run(self):
+            """
+            Handler called when a protocol starts running.
+            """
+            pass
+        
+        def on_protocol_pause(self):
+            """
+            Handler called when a protocol is paused.
+            """
+            pass
 
-        Parameters:
-            data : dictionary to store experiment log data for the current step
+        def on_dmf_device_changed(self):
+            """
+            Handler called when the DMF device changes (e.g., when a new device is
+            loaded).
+            """
+            pass
 
-        Returns:
-            True if the protocol should be updated again (e.g., if a feedback
-            plugin wants to signal that the step should be repeated)
-        """
-        pass
+        def on_experiment_log_changed(self):
+            """
+            Handler called when the experiment log changes (e.g., when a protocol
+            finishes running.
+            """
+            pass
+        
+        def on_experiment_log_selection_changed(self, data):
+            """
+            Handler called whenever the experiment log selection changes.
 
-    def on_delete_protocol_step(self):
-        """
-        Handler called whenever a protocol step is deleted.
-        """
-        pass
-
-    def on_insert_protocol_step(self):
-        """
-        Handler called whenever a protocol step is inserted.
-        """
-        pass
-
-    def on_protocol_save(self):
-        """
-        Handler called when a protocol is saved.
-        """
-        pass
-    
-    def on_protocol_load(self, version, data):
-        """
-        Handler called when a protocol is loaded.
-        """
-        pass
-
-    def on_protocol_run(self):
-        """
-        Handler called when a protocol starts running.
-        """
-        pass
-    
-    def on_protocol_pause(self):
-        """
-        Handler called when a protocol is paused.
-        """
-        pass
-
-    def on_dmf_device_changed(self):
-        """
-        Handler called when the DMF device changes (e.g., when a new device is
-        loaded).
-        """
-        pass
-
-    def on_experiment_log_changed(self):
-        """
-        Handler called when the experiment log changes (e.g., when a protocol
-        finishes running.
-        """
-        pass
-    
-    def on_experiment_log_selection_changed(self, data):
-        """
-        Handler called whenever the experiment log selection changes.
-
-        Parameters:
-            data : experiment log data (list of dictionaries, one per step)
-                   for the selected steps
-        """
-        pass
+            Parameters:
+                data : experiment log data (list of dictionaries, one per step)
+                    for the selected steps
+            """
+            pass
 
 
 def emit_signal(function, args=[], interface=IPlugin):

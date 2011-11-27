@@ -23,6 +23,9 @@ import sys
 from path import path
 
 
+PROGRAM_LAUNCHED = False
+
+
 def is_float(s):
     try: return (float(s), True)[1]
     except (ValueError, TypeError), e: return False
