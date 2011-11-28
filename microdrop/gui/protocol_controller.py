@@ -29,6 +29,7 @@ from protocol import Protocol, load as load_protocol
 from utility import check_textentry, is_float, is_int
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal
+from gui.textbuffer_with_undo import UndoableBuffer
 
 
 class ProtocolController(SingletonPlugin):
@@ -52,6 +53,9 @@ class ProtocolController(SingletonPlugin):
         self.app = app
         self.builder = app.builder
         
+        self.textentry_notes = self.builder.get_object("textview_notes")
+        notes_buffer = UndoableBuffer()
+        self.textentry_notes.set_buffer(notes_buffer)
         self.textentry_step_duration = self.builder. \
             get_object("textentry_step_duration")
         self.textentry_voltage = self.builder.get_object("textentry_voltage")
@@ -96,6 +100,56 @@ class ProtocolController(SingletonPlugin):
         app.signals["on_textentry_step_duration_key_press_event"] = \
                 self.on_textentry_step_duration_key_press
         app.protocol_controller = self
+
+        view = app.main_window_controller.view
+        accelgroup = gtk.AccelGroup()
+        shortcuts = {
+            'space': self.on_run_protocol,
+            '<Control>Left': self.on_prev_step,
+            '<Control>Right': self.on_next_step,
+            'Home': self.on_first_step,
+            'End': self.on_last_step,
+            'Delete': self.on_delete_step,
+        }
+        for shortcut, action in shortcuts.iteritems():
+            key, modifier = gtk.accelerator_parse(shortcut)
+            print shortcut, action, key, modifier
+            accelgroup.connect_group(key, modifier, gtk.ACCEL_VISIBLE,
+                lambda a, b, c, d, action=action: self.action_wrapper(action, a))
+        view.add_accel_group(accelgroup)
+
+        accelgroup = gtk.AccelGroup()
+        def notes_action(action, *args, **kwargs):
+            view = self.app.main_window_controller.view
+            active = view.get_focus()
+            if active == self.textentry_notes:
+                action()
+                return True
+            else:
+                return False
+
+        notes_shortcuts = {
+            '<Control>z': self.textentry_notes.get_buffer().undo,
+            '<Control>y': self.textentry_notes.get_buffer().redo,
+        }
+        for shortcut, action in notes_shortcuts.iteritems():
+            key, modifier = gtk.accelerator_parse(shortcut)
+            print 'NOTES:', shortcut, action, key, modifier
+            accelgroup.connect_group(key, modifier, gtk.ACCEL_VISIBLE,
+                lambda a, b, c, d, action=action: notes_action(action))
+        view.add_accel_group(accelgroup)
+
+
+    def action_wrapper(self, action, *args, **kwargs):
+        view = self.app.main_window_controller.view
+        active = view.get_focus()
+        if active == self.textentry_notes:
+            # Ignore shortcuts and pass control to default handlers
+            return False
+        else:
+            # Perform associated action and stop propagation of key event
+            action(*args, **kwargs)
+            return True
 
     def on_insert_step(self, widget, data=None):
         self.app.protocol.insert_step()

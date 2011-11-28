@@ -84,7 +84,7 @@ class MainWindowController(SingletonPlugin):
                                                 "glade",
                                                 "about_dialog.glade"))
         self.app.main_window_controller = self
-
+        
     def main(self):
         self.update()
         gtk.main()
