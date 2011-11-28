@@ -44,7 +44,6 @@ class App(SingletonPlugin):
     implements(IPlugin)
 
     def __init__(self):
-        print 'PROGRAM_LAUNCHED:', PROGRAM_LAUNCHED
         self.name = "microdrop.app"
         # get the version number
         self.version = ""
@@ -113,7 +112,7 @@ class App(SingletonPlugin):
         self.experiment_log = ExperimentLog(device_path)
         
         self.main_window_controller.main()
-        
+
     def on_dmf_device_changed(self, dmf_device):
         self.dmf_device = dmf_device
 
