@@ -27,6 +27,7 @@ import numpy as np
 
 from protocol import Protocol, load as load_protocol
 from utility import check_textentry, is_float, is_int
+from utility.gui import register_shortcuts
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer
@@ -54,8 +55,7 @@ class ProtocolController(SingletonPlugin):
         self.builder = app.builder
         
         self.textentry_notes = self.builder.get_object("textview_notes")
-        notes_buffer = UndoableBuffer()
-        self.textentry_notes.set_buffer(notes_buffer)
+        self.textentry_notes.set_buffer(UndoableBuffer())
         self.textentry_step_duration = self.builder. \
             get_object("textentry_step_duration")
         self.textentry_voltage = self.builder.get_object("textentry_voltage")
@@ -100,9 +100,11 @@ class ProtocolController(SingletonPlugin):
         app.signals["on_textentry_step_duration_key_press_event"] = \
                 self.on_textentry_step_duration_key_press
         app.protocol_controller = self
+        self._register_shortcuts()
 
+    def _register_shortcuts(self):
+        app = self.app
         view = app.main_window_controller.view
-        accelgroup = gtk.AccelGroup()
         shortcuts = {
             'space': self.on_run_protocol,
             '<Control>Left': self.on_prev_step,
@@ -111,57 +113,27 @@ class ProtocolController(SingletonPlugin):
             'End': self.on_last_step,
             'Delete': self.on_delete_step,
         }
-        for shortcut, action in shortcuts.iteritems():
-            key, modifier = gtk.accelerator_parse(shortcut)
-            print shortcut, action, key, modifier
-            accelgroup.connect_group(key, modifier, gtk.ACCEL_VISIBLE,
-                lambda a, b, c, d, action=action: self.action_wrapper(action, a))
-        view.add_accel_group(accelgroup)
-
-        accelgroup = gtk.AccelGroup()
-        def notes_action(action, *args, **kwargs):
-            view = self.app.main_window_controller.view
-            active = view.get_focus()
-            if active == self.textentry_notes:
-                action()
-                return True
-            else:
-                return False
+        register_shortcuts(view, shortcuts,
+                    disabled_widgets=[self.textentry_notes])
 
         notes_shortcuts = {
             '<Control>z': self.textentry_notes.get_buffer().undo,
             '<Control>y': self.textentry_notes.get_buffer().redo,
         }
-        for shortcut, action in notes_shortcuts.iteritems():
-            key, modifier = gtk.accelerator_parse(shortcut)
-            print 'NOTES:', shortcut, action, key, modifier
-            accelgroup.connect_group(key, modifier, gtk.ACCEL_VISIBLE,
-                lambda a, b, c, d, action=action: notes_action(action))
-        view.add_accel_group(accelgroup)
+        register_shortcuts(view, notes_shortcuts,
+                    enabled_widgets=[self.textentry_notes])
 
-
-    def action_wrapper(self, action, *args, **kwargs):
-        view = self.app.main_window_controller.view
-        active = view.get_focus()
-        if active == self.textentry_notes:
-            # Ignore shortcuts and pass control to default handlers
-            return False
-        else:
-            # Perform associated action and stop propagation of key event
-            action(*args, **kwargs)
-            return True
-
-    def on_insert_step(self, widget, data=None):
+    def on_insert_step(self, widget=None, data=None):
         self.app.protocol.insert_step()
         emit_signal("on_insert_protocol_step")
         self.app.main_window_controller.update()
 
-    def on_copy_step(self, widget, data=None):
+    def on_copy_step(self, widget=None, data=None):
         self.app.protocol.copy_step()
         emit_signal("on_insert_protocol_step")
         self.app.main_window_controller.update()
 
-    def on_delete_step(self, widget, data=None):
+    def on_delete_step(self, widget=None, data=None):
         self.app.protocol.delete_step()
         emit_signal("on_delete_protocol_step")
         self.app.main_window_controller.update()
@@ -182,13 +154,13 @@ class ProtocolController(SingletonPlugin):
         self.app.protocol.last_step()
         self.app.main_window_controller.update()
 
-    def on_new_protocol(self, widget, data=None):
+    def on_new_protocol(self, widget=None, data=None):
         filename = None
         protocol = Protocol(self.app.dmf_device.max_channel()+1)
         emit_signal("on_protocol_changed", protocol)
         self.app.main_window_controller.update()
 
-    def on_load_protocol(self, widget, data=None):
+    def on_load_protocol(self, widget=None, data=None):
         dialog = gtk.FileChooserDialog(title="Load protocol",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
@@ -213,16 +185,16 @@ class ProtocolController(SingletonPlugin):
         dialog.destroy()
         self.app.main_window_controller.update()
 
-    def on_rename_protocol(self, widget, data=None):
+    def on_rename_protocol(self, widget=None, data=None):
         self.app.config_controller.save_protocol(rename=True)
     
-    def on_save_protocol(self, widget, data=None):
+    def on_save_protocol(self, widget=None, data=None):
         self.app.config_controller.save_protocol()
     
-    def on_save_protocol_as(self, widget, data=None):
+    def on_save_protocol_as(self, widget=None, data=None):
         self.app.config_controller.save_protocol(save_as=True)
     
-    def on_textentry_step_duration_focus_out(self, widget, data=None):
+    def on_textentry_step_duration_focus_out(self, widget=None, data=None):
         self.on_step_duration_changed()
 
     def on_textentry_step_duration_key_press(self, widget, event):
@@ -235,7 +207,7 @@ class ProtocolController(SingletonPlugin):
                             self.app.protocol.current_step().duration,
                             int)
 
-    def on_textentry_voltage_focus_out(self, widget, data=None):
+    def on_textentry_voltage_focus_out(self, widget=None, data=None):
         self.on_voltage_changed()
 
     def on_textentry_voltage_key_press(self, widget, event):
@@ -249,7 +221,7 @@ class ProtocolController(SingletonPlugin):
                             float)
         self.update()
         
-    def on_textentry_frequency_focus_out(self, widget, data=None):
+    def on_textentry_frequency_focus_out(self, widget=None, data=None):
         self.on_frequency_changed()
 
     def on_textentry_frequency_key_press(self, widget, event):
@@ -277,7 +249,7 @@ class ProtocolController(SingletonPlugin):
                             int)
         self.update()
             
-    def on_run_protocol(self, widget, data=None):
+    def on_run_protocol(self, widget=None, data=None):
         if self.app.running:
             self.pause_protocol()
         else:
