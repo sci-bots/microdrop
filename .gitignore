@@ -1,3 +1,6 @@
+doc
+build
+dist
 *.pyc
 .sconsign.dblite
 dmf_control_board_base.so
