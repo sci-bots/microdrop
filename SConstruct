@@ -34,7 +34,7 @@ if os.name == 'nt':
     env.Clean(exe, 'build') 
     env.Clean(wixobj, 'microdrop.wixpdb') 
 
-    msi = env.Command('microdrop.msi', wixobj,
+    msi = env.Command('microdrop-%s.msi' % SOFTWARE_VERSION, wixobj,
             'light -ext WixUIExtension -cultures:en-us $SOURCE -out $TARGET')
     AlwaysBuild(version_target)
     Depends(exe, version_target)
