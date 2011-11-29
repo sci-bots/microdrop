@@ -53,7 +53,12 @@ class App(SingletonPlugin):
             m = re.match('v(\d+)\.(\d+)-(\d+)', version)
             self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
         except:
-            pass
+            if os.path.isfile('version.txt'):
+                try:
+                    f = open('version.txt', 'r')
+                    self.version = f.readline().strip()
+                finally:
+                    f.close()
             
         self.realtime_mode = False
         self.running = False
