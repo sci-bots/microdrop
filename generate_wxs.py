@@ -11,11 +11,11 @@ from path import path
 
 WXS_TEMPLATE = '''\
 <?xml version='1.0'?><Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-    <Product Id='*' Name='MicroDrop' Language='1033'
+    <Product Id='*' Name='Microdrop' Language='1033'
             Version='{{ version }}' Manufacturer='Wheeler Microfluidics Lab'
             UpgradeCode='048f3511-0a49-11e1-a03e-080027963a76'>
-        <Package Description='microdrop'
-                Comments='microdrop'
+        <Package Description='Microdrop'
+                Comments='Microdrop'
                 Manufacturer='Wheeler Microfluidics Lab'
                 InstallerVersion='200' Compressed='yes' />
  
@@ -40,24 +40,24 @@ WXS_TEMPLATE = '''\
 {{ dir_tree }}
          </Directory>
         <Directory Id="CommonAppDataFolder">
-            <Directory Id='microdrop_app_data' Name='MicroDrop'>
+            <Directory Id='microdrop_app_data' Name='Microdrop'>
 {{ device_tree }}
             </Directory>
         </Directory>
          <Directory Id='ProgramMenuFolder'>
-            <Directory Id='ApplicationProgramsFolder' Name='microdrop' />
+            <Directory Id='ApplicationProgramsFolder' Name='Microdrop' />
          </Directory>
       </Directory>
 
     <!-- Step 2: Add the shortcut to your installer package -->
     <DirectoryRef Id="ApplicationProgramsFolder">
         <Component Id="ApplicationShortcut" Guid="9f3fb577-2e2f-4a53-8df2-9e9f7fcb79a6" >
-            <Shortcut Id="ApplicationStartMenuShortcut" Name="microdrop" 
+            <Shortcut Id="ApplicationStartMenuShortcut" Name="Microdrop" 
                 Description="My Application Description"
                 Target="[{{ root }}]microdrop.exe"
                         WorkingDirectory="{{ root }}"/>
             <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
-            <RegistryValue Root="HKCU" Key="Software\Microsoft\microdrop" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+            <RegistryValue Root="HKCU" Key="Software\Microsoft\Microdrop" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
         </Component>
     </DirectoryRef>
  
@@ -191,7 +191,7 @@ def generate_wxs(root_path, version):
 
     t = jinja2.Template(WXS_TEMPLATE)
 
-    return t.render(id='microdrop', title='microdrop',
+    return t.render(id='Microdrop', title='Microdrop',
                     dir_tree=root[0].toprettyxml(indent='  '),
                     device_tree=devices[0].toprettyxml(indent='  '),
                     components=all_components,
@@ -203,7 +203,7 @@ def _parse_args():
     from argparse import ArgumentParser
 
     parser = ArgumentParser(description="""\
-Generates a WiX input file for microdrop.""",
+Generates a WiX input file for Microdrop.""",
                             epilog="""\
 (C) 2011  Ryan Fobel and Christian Fobel.""",
                            )
