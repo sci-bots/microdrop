@@ -6,4 +6,4 @@
 	url = http://microfluidics.utoronto.ca/git/python___pygtk___gtk-textbuffer-with-undo.git
 [submodule "microdrop/opencv"]
 	path = microdrop/opencv
-	url = https://github.com/cfobel/python___opencv_examples.git
+	url = http://github.com/cfobel/python___opencv_examples.git
