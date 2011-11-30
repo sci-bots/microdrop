@@ -19,27 +19,30 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import time
 
-from opencv.recorder import Recorder, cv, CVCaptureProperties
+try:
+    from opencv.recorder import Recorder, cv, CVCaptureProperties
 
 
-class VideoRecorder():
-    def __init__(self):
-        self.recorder = None
-        self.out_file = None
-        self.cap = None
+    class VideoRecorder():
+        def __init__(self):
+            self.recorder = None
+            self.out_file = None
+            self.cap = None
 
-    def record(self, out_file):
-        self.out_file = out_file
-        self.cap = cv.CaptureFromCAM(-1)
-        if str(self.cap).find('nil') >= 0:
-            raise ValueError, 'Could not connect to camera.'
-        props = CVCaptureProperties(self.cap)
-        if self.recorder is not None:
-            del self.recorder
-        self.recorder = Recorder(self.cap, self.out_file)
-        self.recorder.record()
+        def record(self, out_file):
+            self.out_file = out_file
+            self.cap = cv.CaptureFromCAM(-1)
+            if str(self.cap).find('nil') >= 0:
+                raise ValueError, 'Could not connect to camera.'
+            props = CVCaptureProperties(self.cap)
+            if self.recorder is not None:
+                del self.recorder
+            self.recorder = Recorder(self.cap, self.out_file)
+            self.recorder.record()
 
-    def stop(self):
-        if self.recorder is not None:
-            self.recorder.stop()
-        del(self.cap)
+        def stop(self):
+            if self.recorder is not None:
+                self.recorder.stop()
+            del(self.cap)
+except (ImportError, ), why:
+    pass

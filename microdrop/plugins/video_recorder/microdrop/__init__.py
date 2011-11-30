@@ -21,28 +21,31 @@ from datetime import datetime
 
 from path import path
 
-from plugins.video_recorder import VideoRecorder
-from plugin_manager import IPlugin, SingletonPlugin, implements
+try:
+    from plugins.video_recorder import VideoRecorder
+    from plugin_manager import IPlugin, SingletonPlugin, implements
 
 
-class VideoRecorderPlugin(SingletonPlugin):
-    implements(IPlugin)
-    
-    def __init__(self):
-        self.video_recorder = VideoRecorder()
-        self.video_path = None
+    class VideoRecorderPlugin(SingletonPlugin):
+        implements(IPlugin)
+        
+        def __init__(self):
+            self.video_recorder = VideoRecorder()
+            self.video_path = None
 
-    def on_app_init(self, app):
-        self.app = app
-    
-    def on_protocol_pause(self):
-        """
-        Handler called when a protocol is paused.
-        """
-        self.video_recorder.stop()
-    
-    def on_protocol_run(self):
-        log_dir = path(self.app.experiment_log.get_log_path())
-        self.video_path = log_dir.joinpath('%s.avi' % log_dir.name)
-        self.app.experiment_log.add_data({"video": self.video_path, "video start": datetime.now()})
-        self.video_recorder.record(self.video_path)
+        def on_app_init(self, app):
+            self.app = app
+        
+        def on_protocol_pause(self):
+            """
+            Handler called when a protocol is paused.
+            """
+            self.video_recorder.stop()
+        
+        def on_protocol_run(self):
+            log_dir = path(self.app.experiment_log.get_log_path())
+            self.video_path = log_dir.joinpath('%s.avi' % log_dir.name)
+            self.app.experiment_log.add_data({"video": self.video_path, "video start": datetime.now()})
+            self.video_recorder.record(self.video_path)
+except (ImportError, ), why:
+    print 'VideoRecorderPlugin disabled: %s' % why
