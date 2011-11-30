@@ -147,7 +147,7 @@ if __name__ == "__main__":
               ("pyvisa", "exe", "http://sourceforge.net/projects/pyvisa/files/PyVISA/1.3/PyVISA-1.3.win32.exe/download"),
               ("sympy", "exe", "http://sympy.googlecode.com/files/sympy-0.7.1.win32.exe"),
               ("pyparsing", "pip"),
-              ("path", "pip", "http://microfluidics.utoronto.ca/git/path.py.git/snapshot/04355756b9972f2443907d5ba382ef3520e79fc6.zip"),
+              ("path", "pip", "http://microfluidics.utoronto.ca/git/path.py.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip"),
               ("pyutilib", "pip"),
               ):
         try:
