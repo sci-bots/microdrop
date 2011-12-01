@@ -91,7 +91,7 @@ def install(package):
         print "copying extracted files to %s" % dst
         copy_tree(src, dst)
     elif type=="pip":
-        if p[2]:
+        if len(p)>2:
             subprocess.call("pip install " + p[2], shell=False)
         else:
             subprocess.call("pip install " + name, shell=False)
@@ -182,11 +182,14 @@ if __name__ == "__main__":
     try:
         exec("import " + "win32api")
     except:
-        packages.append(("pywin32", "exe", "http://sourceforge.net/projects/pywin32/files/pywin32/Build216/pywin32-216.win32-py2.7.exe/download"))
+        if PYTHON_VERSION=="2.6":
+            packages.append(("pywin32", "exe", "http://sourceforge.net/projects/pywin32/files/pywin32/Build216/pywin32-216.win32-py2.6.exe/download"))
+        elif PYTHON_VERSION=="2.7":
+            packages.append(("pywin32", "exe", "http://sourceforge.net/projects/pywin32/files/pywin32/Build216/pywin32-216.win32-py2.7.exe/download"))
     # check if pyinstaller is installed
     if in_path("pyinstaller.py")==False:
         if os.path.isdir("C:/pyinstaller"):
-            print "Warning: C:/pyinstaller already exists but you need to add it to your path."
+            print "Warning: C:\\pyinstaller already exists but you need to add it to your path."
         else:
             packages.append(("pyinstaller",
                              "zip",
@@ -202,8 +205,8 @@ if __name__ == "__main__":
     # check if WiX is installed
     if in_path('candle.exe')==False and in_path('light.exe')==False:
         path_exists = False
-        for d in ["C:/Program Files (x86)/Windows Installer XML v3.5/bin",
-                  "C:/Program Files/Windows Installer XML v3.5/bin"]:
+        for d in ["C:\\Program Files (x86)\\Windows Installer XML v3.5\\bin",
+                  "C:\\Program Files\\Windows Installer XML v3.5\\bin"]:
             if os.path.isdir(d):
                 path_exists = True
                 print "Warning: %s already exists but you need to add it "\
