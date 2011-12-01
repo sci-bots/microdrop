@@ -133,6 +133,8 @@ if __name__ == "__main__":
         print "This program only works on Windows."
         exit(1)
 
+    warnings = []
+
     # get the microdrop root directory
     root_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -154,6 +156,7 @@ if __name__ == "__main__":
             exec("import " + p[0])
         except:
             packages.append(p)
+
     # python 2.7 specific packages
     if PYTHON_VERSION=="2.7":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.7.msi"),
@@ -163,6 +166,7 @@ if __name__ == "__main__":
                 exec("import " + p[0])
             except:
                 packages.append(p)
+
     # python 2.6 specific packages
     elif PYTHON_VERSION=="2.6":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.6.msi"),
@@ -175,9 +179,11 @@ if __name__ == "__main__":
     else:
         print "Microdrop only supports Python 2.6 and 2.7."
         exit(1)
+
     # check if ipython is installed
     if in_path('ipython.exe')==False and in_path('ipython.bat')==False:
         packages.append(("ipython", "pip"))
+
     # check if pywin32 is installed
     try:
         exec("import " + "win32api")
@@ -186,36 +192,35 @@ if __name__ == "__main__":
             packages.append(("pywin32", "exe", "http://sourceforge.net/projects/pywin32/files/pywin32/Build216/pywin32-216.win32-py2.6.exe/download"))
         elif PYTHON_VERSION=="2.7":
             packages.append(("pywin32", "exe", "http://sourceforge.net/projects/pywin32/files/pywin32/Build216/pywin32-216.win32-py2.7.exe/download"))
+
     # check if pyinstaller is installed
-    if in_path("pyinstaller.py")==False:
-        if os.path.isdir("C:/pyinstaller"):
-            print "Warning: C:\\pyinstaller already exists but you need to add it to your path."
-        else:
-            packages.append(("pyinstaller",
-                             "zip",
-                             "http://files.zibricky.org/pyinst/pyinstaller-1.5.1.zip",
-                             "pyinstaller-1.5.1",
-                             "C:/pyinstaller"))
+    if os.path.isdir("C:/pyinstaller")==False:
+        packages.append(("pyinstaller",
+                         "zip",
+                         "http://files.zibricky.org/pyinst/pyinstaller-1.5.1.zip",
+                         "pyinstaller-1.5.1",
+                         "C:/pyinstaller"))
+
     # check if scons is installed
     if in_path('scons.bat')==False:
         packages.append(("scons", "exe", "http://prdownloads.sourceforge.net/scons/scons-2.1.0.win32.exe"))
+
     # check if sphinx is installed
     if in_path('sphinx-build.exe')==False:
         packages.append(("sphinx", "pip"))
+
     # check if WiX is installed
-    if in_path('candle.exe')==False and in_path('light.exe')==False:
-        path_exists = False
-        for d in ["C:\\Program Files (x86)\\Windows Installer XML v3.5\\bin",
-                  "C:\\Program Files\\Windows Installer XML v3.5\\bin"]:
-            if os.path.isdir(d):
-                path_exists = True
-                print "Warning: %s already exists but you need to add it "\
-                      "to your path." % d
-                break
-        if path_exists==False:
-            packages.append(("WiX",
-                             "msi",
-                             "http://microfluidics.utoronto.ca/software/Wix35.msi"))
+    path_exists = False
+    for d in ["C:\\Program Files (x86)\\Windows Installer XML v3.5\\bin",
+              "C:\\Program Files\\Windows Installer XML v3.5\\bin"]:
+        if os.path.isdir(d):
+            path_exists = True
+            break
+    if path_exists==False:
+        packages.append(("WiX",
+                         "msi",
+                         "http://microfluidics.utoronto.ca/software/Wix35.msi"))
+
     # check if the dmf_control_board binaries have been installed
     dmf_control_board_path = os.path.join(root_dir,
                                           "microdrop",
@@ -242,12 +247,55 @@ if __name__ == "__main__":
         print "The following packages need to be installed:"
         for p in packages:
             print "\t%s" % p[0]
-        proceed=None
-        while (proceed!='y' and proceed!='n'):
-            proceed = raw_input("Proceed (y/n)?")
+        
+        for p in packages:
+            install(p)
 
-        if proceed=='y':
-            for p in packages:
-                install(p)
-    else:
-        print "\nAll dependencies are already installed."
+    # configure pyinstaller
+    print "configuring pyinstaller..."
+    subprocess.call("python C:\pyinstaller\Configure.py")
+ 
+    # extract data.zip
+    if os.path.isdir(os.path.join("microdrop", "devices"))==False or \
+       os.path.isdir(os.path.join("microdrop", "lib"))==False or \
+       os.path.isdir(os.path.join("microdrop", "share"))==False or \
+       os.path.isdir(os.path.join("microdrop", "etc"))==False:
+        print "extracting data.zip..."
+        z = zipfile.ZipFile(os.path.join("microdrop", "data.zip"), 'r')
+        z.extractall("microdrop")
+
+    # fix pyutilib for exporting
+    PYTHON_PATH = os.path.dirname(sys.executable)
+    if os.path.isdir(os.path.join(PYTHON_PATH, "Lib", "site-packages",
+                                   "pyutilib"))==False:
+        warnings.append("Warning: pyutilib looks like it may not be installed " \
+                        "correctly. If you experience problems, try deleting " \
+                        "it and running this script again.")
+    elif os.path.isfile(os.path.join(PYTHON_PATH, "Lib", "site-packages",
+                                   "pyutilib", "__init__.py"))==False:
+        print "fixing pyutilib for exporting..."
+        open(os.path.join(PYTHON_PATH, "Lib", "site-packages", "pyutilib",
+             "__init__.py"), 'w').close()
+        open(os.path.join(PYTHON_PATH, "Lib", "site-packages", "pyutilib",
+             "component", "__init__.py"), 'w').close()
+
+    # check that pyinstaller is in the path
+    if in_path("pyinstaller.py")==False and os.path.isdir("C:\pyinstaller"):
+        warnings.append("Warning: C:\\pyinstaller exists but you need to " \
+                        "add it to your path.")
+
+    # check that WiX is in the path
+    if in_path("candle.exe")==False:
+        for d in ["C:\\Program Files (x86)\\Windows Installer XML v3.5\\bin",
+                  "C:\\Program Files\\Windows Installer XML v3.5\\bin"]:
+            if os.path.isdir(d):
+                warnings.append("Warning: %s exists but you need to "\
+                      "add it to your path." % d)
+                break
+    
+    print "\nAll dependencies are installed."
+
+    if len(warnings)>0:
+        print
+        for w in warnings:
+            print w
