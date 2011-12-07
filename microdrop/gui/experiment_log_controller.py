@@ -68,7 +68,7 @@ class ExperimentLogController(SingletonPlugin):
         self.window.set_title("Experiment logs")
         self.builder.connect_signals(self)
 
-    def update(self):
+    def update(self):        
         try:
             id = combobox_get_active_text(self.combobox_log_files)
             f = path(self.app.experiment_log.directory) / path(id) / path("data")
@@ -168,7 +168,7 @@ class ExperimentLogController(SingletonPlugin):
                             vals.append(None)
                     protocol_list.append(vals)
         except Exception, why:
-            print why
+            print "ExperimentLogController.update(): %s" % why
             self.builder.get_object("button_load_device").set_sensitive(False)        
             self.builder.get_object("button_load_protocol").set_sensitive(False)    
             self.builder.get_object("textview_notes").set_sensitive(False)
