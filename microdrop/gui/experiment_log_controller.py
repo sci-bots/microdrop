@@ -250,11 +250,12 @@ class ExperimentLogController(SingletonPlugin):
         
     def on_experiment_log_changed(self, dmf_device):
         log_files = []
-        for d in path(self.app.experiment_log.directory).dirs():
-            f = d / path("data")
-            if f.isfile():
-                log_files.append(int(d.name))
-        log_files.sort()
+        if path(self.app.experiment_log.directory).isdir():
+            for d in path(self.app.experiment_log.directory).dirs():
+                f = d / path("data")
+                if f.isfile():
+                    log_files.append(int(d.name))
+            log_files.sort()
         self.combobox_log_files.clear()
         combobox_set_model_from_list(self.combobox_log_files, log_files)
         if len(log_files):
