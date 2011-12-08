@@ -23,7 +23,7 @@ import shutil
 import gtk
 
 from dmf_device import DmfDevice
-from protocol import Protocol, load as load_protocol
+from protocol import Protocol
 from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
     implements, emit_signal
 
@@ -155,24 +155,17 @@ class ConfigController(SingletonPlugin):
 
     
     def load_protocol(self):
-        protocol = None
         # try what's specified in config file
         if self.app.config.protocol_name:
-            path = os.path.join(self.app.config.dmf_device_directory,
-                                self.app.config.dmf_device_name,
-                                "protocols",
-                                self.app.config.protocol_name)
-            try:
-                protocol = load_protocol(path)
-                for (name, (version, data)) in protocol.plugin_data.items():
-                    emit_signal("on_protocol_load", [version, data])
-            except:
-                self.app.main_window_controller.error("Could not open %s" % path)
-
+            filename = os.path.join(self.app.config.dmf_device_directory,
+                                    self.app.config.dmf_device_name,
+                                    "protocols",
+                                    self.app.config.protocol_name)
+            self.app.protocol_controller.load_protocol(filename)
         # otherwise, return a new object
-        if protocol==None:
+        else:
             protocol = Protocol(self.app.dmf_device.max_channel()+1)
-        emit_signal("on_protocol_changed", protocol)
+            emit_signal("on_protocol_changed", protocol)
                 
     def on_dmf_device_changed(self, dmf_device):
         self.app.config.dmf_device_name = dmf_device.name

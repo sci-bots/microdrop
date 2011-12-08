@@ -221,15 +221,8 @@ class ExperimentLogController(SingletonPlugin):
         filename = path(os.path.join(self.app.experiment_log.directory,
                                      str(self.results.log.experiment_id),
                                      'protocol'))
-        try:
-            protocol = load_protocol(filename)
-            for (name, (version, data)) in protocol.plugin_data.items():
-                emit_signal("on_protocol_load", [version, data])
-            emit_signal("on_protocol_changed", protocol)
-        except:
-            self.app.main_window_controller.error("Could not open %s" % filename)
-        self.app.main_window_controller.update()
-
+        self.app.protocol_controller.load_protocol(filename)
+        
     def on_textview_notes_focus_out_event(self, widget, data=None):
         if len(self.results.log.data[0])==0:
             self.results.log.data.append({})

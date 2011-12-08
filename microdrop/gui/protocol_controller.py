@@ -25,7 +25,8 @@ import time
 
 import numpy as np
 
-from protocol import Protocol, load as load_protocol
+import protocol
+from protocol import Protocol
 from utility import check_textentry, is_float, is_int
 from utility.gui import register_shortcuts
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
@@ -49,6 +50,26 @@ class ProtocolController(SingletonPlugin):
         self.label_step_number = None
         self.button_run_protocol = None
         self.textentry_protocol_repeats = None
+
+    def load_protocol(self, filename):
+        p = None
+        try:
+            p = protocol.load(filename)
+            for (name, (version, data)) in p.plugin_data.items():
+                observers = ExtensionPoint(IPlugin)
+                service = observers.service(name)
+                if service:
+                    service.on_protocol_load(version, data)
+                else:
+                    self.app.main_window_controller.warning("Protocol "
+                        "requires the %s plugin, however this plugin is "
+                        "not available." % (name))
+        except Exception, why:
+            print why
+            self.app.main_window_controller.error("Could not open %s. %s" \
+                                                  % (filename, why))
+        if p:
+            emit_signal("on_protocol_changed", p)
         
     def on_app_init(self, app):
         self.app = app
@@ -156,8 +177,8 @@ class ProtocolController(SingletonPlugin):
 
     def on_new_protocol(self, widget=None, data=None):
         filename = None
-        protocol = Protocol(self.app.dmf_device.max_channel()+1)
-        emit_signal("on_protocol_changed", protocol)
+        p = Protocol(self.app.dmf_device.max_channel()+1)
+        emit_signal("on_protocol_changed", p)
         self.app.main_window_controller.update()
 
     def on_load_protocol(self, widget=None, data=None):
@@ -174,14 +195,7 @@ class ProtocolController(SingletonPlugin):
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            try:
-                protocol = load_protocol(filename)
-                for (name, (version, data)) in protocol.plugin_data.items():
-                    emit_signal("on_protocol_load", [version, data])
-                emit_signal("on_protocol_changed", protocol)
-            except Exception, why:
-                print why
-                self.app.main_window_controller.error("Could not open %s" % filename)
+            self.load_protocol(filename)
         dialog.destroy()
         self.app.main_window_controller.update()
 
