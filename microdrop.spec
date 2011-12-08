@@ -8,7 +8,7 @@ a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'), os.path.join(HOME
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\gui').walkfiles('*.glade')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
-            for p in path('microdrop\\plugins').walkfiles(ignore=r'site_scons')]
+            for p in path('microdrop\\plugins').walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\devices').walkfiles()]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
