@@ -36,7 +36,7 @@ def archive_version():
     """Get the version string for the most recent archive file.  If no archive
     files can be found, this function will return an empty string.
     """
-    version = subprocess.Popen([sys.executable, __file__, '--archive-version'],
+    version = subprocess.Popen([sys.executable, base_path() / path(update.py), '--archive-version'],
                           stdout=subprocess.PIPE).communicate()[0].rstrip()
     return version
 
@@ -46,7 +46,7 @@ def firmware_version():
     have the DmfControlBoard firmware installed, this function will return an
     empty string.
     """
-    version = subprocess.Popen([sys.executable, __file__, '--firmware-version'],
+    version = subprocess.Popen([sys.executable, base_path() / path(update.py), '--firmware-version'],
                           stdout=subprocess.PIPE).communicate()[0].rstrip()
     return version
 
@@ -55,7 +55,7 @@ def package_version():
     """Get the version string of the currently installed DmfControlBoard
     package.
     """
-    version = subprocess.Popen([sys.executable, __file__, '--package-version'],
+    version = subprocess.Popen([sys.executable, base_path() / path(update.py), '--package-version'],
                         stdout=subprocess.PIPE).communicate()[0].rstrip()
     return version
 
@@ -64,7 +64,7 @@ def update_firmware():
     """Update the Arduino with firmware from the most recent archive.
     Returns True if successful, False otherwise.
     """
-    p = subprocess.Popen([sys.executable, __file__, '--update-firmware'],
+    p = subprocess.Popen([sys.executable, base_path() / path(update.py), '--update-firmware'],
                          stdout=subprocess.PIPE)
     output = p.communicate()[0].rstrip()
     if output and verbose:
@@ -76,7 +76,7 @@ def update_package():
     """Update the DmfControlBoard package using the most recent archive.
     Returns True if successful, False otherwise.
     """
-    p = subprocess.Popen([sys.executable, __file__, '--update-package'],
+    p = subprocess.Popen([sys.executable, base_path() / path(update.py), '--update-package'],
                          stdout=subprocess.PIPE)
     output = p.communicate()[0].rstrip()
     if output and verbose:
