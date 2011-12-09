@@ -49,7 +49,9 @@ class App(SingletonPlugin):
         self.version = ""
         try:
             version = subprocess.Popen(['git','describe'],
-                          stdout=subprocess.PIPE).communicate()[0].rstrip()
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE,
+                          stdin=subprocess.PIPE).communicate()[0].rstrip()
             m = re.match('v(\d+)\.(\d+)-(\d+)', version)
             self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
         except:

@@ -36,8 +36,10 @@ def get_version(path):
     version = ""
     try:
         os.chdir(path)
-        version = subprocess.Popen(['git','describe'],
-                      stdout=subprocess.PIPE).communicate()[0].rstrip()
+        version = subprocess.Popen(['git','describe'], \
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   stdin=subprocess.PIPE).communicate()[0].rstrip()
         m = re.match('v(\d+)\.(\d+)-(\d+)', version)
         version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
     finally:

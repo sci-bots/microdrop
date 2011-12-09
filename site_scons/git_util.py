@@ -31,7 +31,7 @@ class GitUtil(object):
 
         os.chdir(self.root_path)
         cmd = ['git'] + x
-        stdout, stderr = Popen(cmd, stdout=PIPE, stderr=PIPE).communicate()
+        stdout, stderr = Popen(cmd, stdout=PIPE, stderr=PIPE, stdin=PIPE).communicate()
         os.chdir(cwd)
 
         if stderr:
