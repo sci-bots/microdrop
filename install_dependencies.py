@@ -27,24 +27,18 @@ import tarfile
 import re
 from distutils.dir_util import copy_tree
 
+from site_scons.git_util import GitUtil
+
+
 PYTHON_VERSION = "%s.%s" % (sys.version_info[0],
                             sys.version_info[1])
 CACHE_PATH = "download_cache"
 
 def get_version(path):
-    current_path = os.getcwd()
-    version = ""
-    try:
-        os.chdir(path)
-        version = subprocess.Popen(['git','describe'], \
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   stdin=subprocess.PIPE).communicate()[0].rstrip()
-        m = re.match('v(\d+)\.(\d+)-(\d+)', version)
-        version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
-    finally:
-        os.chdir(current_path)
-    return version
+    g = GitUtil(path)
+    version = g.describe()
+    m = re.match('v(\d+)\.(\d+)-(\d+)', version)
+    return "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
 
 def in_path(filename):
     for d in os.environ['PATH'].split(';'):
