@@ -1,5 +1,5 @@
 import os
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_call, CalledProcessError
 import re
 
 from path import path
@@ -19,7 +19,36 @@ class GitUtil(object):
             if not dir_node:
                 raise GitError('No git root found.')
             self.root_path = dir_node
+        self._git = None
         assert(self.root_path.dirs('.git'))
+
+
+    @property
+    def git(self):
+        if self._git:
+            return self._git
+
+        cmds = ['git']
+        if os.name == 'nt':
+            exceptions = (WindowsError,)
+            cmds += ['git.cmd']
+        else:
+            exceptions = (OSError,)
+
+        valid_cmd = False
+        for cmd in cmds:
+            try:
+                check_call([cmd], stdout=PIPE, stderr=PIPE)
+            except exceptions:
+                # The command was not found, try the next one
+                pass
+            except CalledProcessError:
+                valid_cmd = True
+                break
+        if not valid_cmd:
+            raise GitError, 'No valid git command found'
+        self._git = cmd
+        return self._git
 
 
     def command(self, x):
@@ -30,7 +59,7 @@ class GitUtil(object):
         cwd = os.getcwd()
 
         os.chdir(self.root_path)
-        cmd = ['git'] + x
+        cmd = [self.git] + x
         stdout, stderr = Popen(cmd, stdout=PIPE, stderr=PIPE, stdin=PIPE).communicate()
         os.chdir(cwd)
 
