@@ -127,21 +127,45 @@ class MainWindowController(SingletonPlugin):
         OptionsController(self.app).run()
         self.update()
 
-    def error(self, message):
+    def error(self, message, title="Error"):
         dialog = gtk.MessageDialog(self.view,
                                    gtk.DIALOG_DESTROY_WITH_PARENT,
                                    gtk.MESSAGE_ERROR, 
                                    gtk.BUTTONS_CLOSE, message)
-        dialog.run()
-        dialog.destroy()                    
+        dialog.set_title(title)
+        result = dialog.run()
+        dialog.destroy()
+        return result
 
-    def warning(self, message):
+    def warning(self, message, title="Warning"):
         dialog = gtk.MessageDialog(self.view,
                                    gtk.DIALOG_DESTROY_WITH_PARENT,
                                    gtk.MESSAGE_WARNING, 
                                    gtk.BUTTONS_CLOSE, message)
-        dialog.run()
-        dialog.destroy()                    
+        dialog.set_title(title)
+        result = dialog.run()
+        dialog.destroy()
+        return result
+
+    def question(self, message, title=""):
+        dialog = gtk.MessageDialog(self.view, 
+                                   gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   gtk.MESSAGE_QUESTION,
+                                   gtk.BUTTONS_YES_NO, message)
+        dialog.set_title(title)
+        result = dialog.run()
+        dialog.destroy()
+        return result
+
+    def info(self, message, title=""):
+        dialog = gtk.MessageDialog(self.view, 
+                                   gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   gtk.MESSAGE_INFO, 
+                                   gtk.BUTTONS_CLOSE, message)
+        dialog.set_title(title)
+        result = dialog.run()
+        dialog.destroy()
+        return result
 
     def update(self):
         self.app.realtime_mode = self.checkbutton_realtime_mode.get_active()
