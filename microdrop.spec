@@ -22,9 +22,7 @@ a.datas += [(path('version.txt'),
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
             a.scripts,
-            a.binaries,
-            a.zipfiles,
-            exclude_binaries=False,
+            exclude_binaries=True,
             name=os.path.join('build\\pyi.win32\\microdrop', 'microdrop.exe'),
             debug=False,
             strip=False,
@@ -32,6 +30,8 @@ exe = EXE(pyz,
             console=False,
             icon='microdrop.ico')
 coll = COLLECT(exe,
-               a.datas,
-               upx=True,
-               name=os.path.join('dist', 'microdrop'))
+                a.datas,
+                a.binaries,
+                a.zipfiles,
+                upx=True,
+                name=os.path.join('dist', 'microdrop'))

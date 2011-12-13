@@ -27,24 +27,18 @@ import tarfile
 import re
 from distutils.dir_util import copy_tree
 
+
 PYTHON_VERSION = "%s.%s" % (sys.version_info[0],
                             sys.version_info[1])
 CACHE_PATH = "download_cache"
 
 def get_version(path):
-    current_path = os.getcwd()
-    version = ""
-    try:
-        os.chdir(path)
-        version = subprocess.Popen(['git','describe'], \
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   stdin=subprocess.PIPE).communicate()[0].rstrip()
-        m = re.match('v(\d+)\.(\d+)-(\d+)', version)
-        version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
-    finally:
-        os.chdir(current_path)
-    return version
+    from site_scons.git_util import GitUtil
+
+    g = GitUtil(path)
+    version = g.describe()
+    m = re.match('v(\d+)\.(\d+)-(\d+)', version)
+    return "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
 
 def in_path(filename):
     for d in os.environ['PATH'].split(';'):
@@ -145,13 +139,23 @@ if __name__ == "__main__":
     if os.path.isdir(CACHE_PATH) == False:
         os.mkdir(CACHE_PATH)
 
+    # We must check for the 'path' Python module separately since it is
+    # required by the git_util module.  The git_util.GitUtil class is used
+    # to get the version of the dmf_control_board plugin.
+    p = ("path", "pip", "http://microfluidics.utoronto.ca/git/path.py.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip")
+    try:
+        exec("import " + p[0])
+    except:
+        print "The following packages need to be installed before continuing:"
+        print "\t%s" % p[0]
+        install(p)
+
     # package name, type, url
     for p in (("setuptools", "py", "http://python-distribute.org/distribute_setup.py"),
               ("pip", "easy_install"),
               ("pyvisa", "exe", "http://sourceforge.net/projects/pyvisa/files/PyVISA/1.3/PyVISA-1.3.win32.exe/download"),
               ("sympy", "exe", "http://sympy.googlecode.com/files/sympy-0.7.1.win32.exe"),
               ("pyparsing", "pip"),
-              ("path", "pip", "http://microfluidics.utoronto.ca/git/path.py.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip"),
               ("pyutilib", "pip"),
               ):
         try:
