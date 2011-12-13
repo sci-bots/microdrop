@@ -20,8 +20,7 @@ class GitUtil(object):
                 raise GitError('No git root found.')
             self.root_path = dir_node
         self._git = None
-        assert(self.root_path.dirs('.git'))
-
+        assert((self.root_path / path('.git')).exists())
 
     @property
     def git(self):
@@ -50,7 +49,6 @@ class GitUtil(object):
         self._git = cmd
         return self._git
 
-
     def command(self, x):
         try:
             x.__iter__
@@ -67,10 +65,8 @@ class GitUtil(object):
             raise GitError('Error executing git %s' % x)
         return stdout.strip()
 
-
     def describe(self):
         return self.command('describe')
-
 
     def summary(self, color=False):
         if color:
@@ -80,10 +76,8 @@ class GitUtil(object):
         return self.command(['''log''', '''--graph''', format_,
                     '''--abbrev-commit''', '''--date=relative'''])
 
-
     def rev_parse(self, ref='HEAD'):
         return self.command(['rev-parse', ref])
-
 
     def show(self, ref='HEAD', color=False, extra_args=None):
         extra_args = [extra_args, []][extra_args is None]
