@@ -134,26 +134,35 @@ if __name__ == "__main__":
     # get the microdrop root directory
     root_dir = os.path.dirname(os.path.abspath(__file__))
 
-    packages = []
-
     if os.path.isdir(CACHE_PATH) == False:
         os.mkdir(CACHE_PATH)
+
+    packages = []
 
     # We must check for the 'path' Python module separately since it is
     # required by the git_util module.  The git_util.GitUtil class is used
     # to get the version of the dmf_control_board plugin.
-    p = ("path", "pip", "http://microfluidics.utoronto.ca/git/path.py.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip")
-    try:
-        exec("import " + p[0])
-    except:
-        print "The following packages need to be installed before continuing:"
-        print "\t%s" % p[0]
-        install(p)
-
-    # package name, type, url
     for p in (("setuptools", "py", "http://python-distribute.org/distribute_setup.py"),
               ("pip", "easy_install"),
-              ("pyvisa", "exe", "http://sourceforge.net/projects/pyvisa/files/PyVISA/1.3/PyVISA-1.3.win32.exe/download"),
+              ("path", "pip", "http://microfluidics.utoronto.ca/git/path.py.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip")
+              ):
+        try:
+            exec("import " + p[0])
+        except:
+            packages.append(p)
+
+    if len(packages):
+        print "The following packages need to be installed before continuing:"
+        for p in packages:
+            print "\t%s" % p[0]
+        
+        for p in packages:
+            install(p)
+
+    packages = []
+
+    # package name, type, url
+    for p in (("pyvisa", "exe", "http://sourceforge.net/projects/pyvisa/files/PyVISA/1.3/PyVISA-1.3.win32.exe/download"),
               ("sympy", "exe", "http://sympy.googlecode.com/files/sympy-0.7.1.win32.exe"),
               ("pyparsing", "pip"),
               ("pyutilib", "pip"),
