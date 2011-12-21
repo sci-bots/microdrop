@@ -287,15 +287,6 @@ class ProtocolController(SingletonPlugin):
     def run_step(self):
         self.app.main_window_controller.update()
         
-        # run through protocol (even though device is not connected)
-        if self.app.control_board.connected()==False:
-            t = time.time()
-            while time.time()-t < self.app.protocol.current_step().duration/1000.0:
-                while gtk.events_pending():
-                    gtk.main_iteration()
-                #time.sleep(0.001)
-                time.sleep(0.0001)
-
         if self.app.protocol.current_step_number < len(self.app.protocol)-1:
             self.app.protocol.next_step()
         elif self.app.protocol.current_repetition < self.app.protocol.n_repeats-1:

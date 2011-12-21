@@ -38,7 +38,7 @@ if __name__ == '__main__':
     utility.PROGRAM_LAUNCHED = True
     # Change directory to where microdrop.py resides, so this program can be
     # run from any directory.
-    root_dir = utility.base_path()
+    root_dir = utility.base_path().abspath()
     print 'Root directory: %s' % root_dir
     os.chdir(root_dir)
     print os.getcwd()
