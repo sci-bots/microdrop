@@ -293,6 +293,8 @@ class ProtocolController(SingletonPlugin):
             while time.time()-t < self.app.protocol.current_step().duration/1000.0:
                 while gtk.events_pending():
                     gtk.main_iteration()
+                #time.sleep(0.001)
+                time.sleep(0.0001)
 
         if self.app.protocol.current_step_number < len(self.app.protocol)-1:
             self.app.protocol.next_step()
