@@ -22,6 +22,7 @@ import traceback
 from pyutilib.component.core import Interface, ExtensionPoint, implements
 import pyutilib.component.loader
 from path import path
+import logging
 
 import utility
 
@@ -33,22 +34,29 @@ else:
 
 class PluginManager():
     def __init__(self):
-        print "Loading plugins:"
+        logging.info('Loading plugins:')
         for d in path("plugins").dirs():
             package = (d / path("microdrop"))
             if package.isdir(): 
-                print "\t", package.abspath()
+                logging.info('\t %s' % package.abspath())
                 exec("import plugins.%s.microdrop" % d.name) 
         observers = ExtensionPoint(IPlugin)
-        print "Registered plugins:"
+        logging.info('Registered plugins:')
         for observer in observers:
-            print "\t", observer
+            logging.info('\t %s' % observer)
         observers = ExtensionPoint(IWaveformGenerator)
-        print "Registered function generator plugins:"
+        logging.info('Registered function generator plugins:')
         for observer in observers:
-            print "\t", observer
+            logging.info('\t %s' % observer)
+        observers = ExtensionPoint(IWaveformGenerator)
+        logging.info('Registered logging plugins:')
+        for observer in observers:
+            logging.info('\t %s' % observer)
 
 
+# Workaround to allow Sphinx autodoc to run.  If the program is not actually
+# running, we are just being imported here, so declare plugin interfaces as
+# plain-old objects, rather than Interface sub-classes.
 if not utility.PROGRAM_LAUNCHED:
     class IPlugin(object):    
         __interface_namespace__ = None
@@ -56,7 +64,26 @@ if not utility.PROGRAM_LAUNCHED:
     class IWaveformGenerator(object):
         __interface_namespace__ = None
 
+    class ILoggingPlugin(object):
+        __interface_namespace__ = None
 else:
+    class ILoggingPlugin(Interface):
+        def on_debug(self, record):
+            pass
+
+        def on_info(self, record):
+            pass
+
+        def on_warning(self, record):
+            pass
+
+        def on_error(self, record):
+            pass
+
+        def on_critical(self, record):
+            pass
+
+
     class IWaveformGenerator(Interface):
         def set_voltage(self, voltage):
             """
@@ -175,17 +202,12 @@ def emit_signal(function, args=[], interface=IPlugin):
             try:
                 if type(args) is not list:
                     args = [args]
-                arg_list = []
-                for i, arg in enumerate(args):
-                    arg_list.append("arg%d" % i)
-                    exec("arg%d=arg" % i)
-                command = "return_code = observer.%s(%s)" % \
-                    (function, ",".join(arg_list))
-                exec(command)
+                f = getattr(observer, function)
+                return_code = f(*args)
                 return_codes.append(return_code)
             except Exception, why:
                 if hasattr(observer, "name"):
-                    print "%s plugin crashed." % observer.name  
-                print why
-                traceback.print_stack()
+                    logging.error('%s plugin crashed.' % observer.name)
+                logging.error(str(why))
+                logging.error(''.join(traceback.format_stack()))
     return return_codes

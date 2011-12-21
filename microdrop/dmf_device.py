@@ -20,6 +20,8 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import cPickle
 import numpy as np
 
+from logger import logger
+
 
 class DmfDevice():
     class_version = '0.1'
@@ -46,11 +48,11 @@ class DmfDevice():
 
     def upgrade(self):
         version = float(self.version)
-        print 'upgrade from version %s' % self.version
+        logger.info('upgrade from version %s' % self.version)
         if version < 0.1:
             self.version = '0.1'
             self.scale = None
-            print 'upgrade to version 0.1'
+            logger.info('upgrade to version 0.1')
 
     def save(self, filename):
         f = open(filename, 'wb')

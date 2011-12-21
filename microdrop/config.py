@@ -25,6 +25,7 @@ except ImportError:
 
 from path import path
 
+from logger import logger
 from utility.user_paths import home_dir, app_data_dir, common_app_data_dir
 
 
@@ -32,7 +33,7 @@ def device_skeleton_path():
     if os.name == 'nt':
         devices = common_app_data_dir().joinpath('Microdrop', 'devices')
         if not devices.isdir():
-            print 'warning: devices does not exist in common AppData dir'
+            logger.warning('warning: devices does not exist in common AppData dir')
             devices = path('devices')
     else:
         devices = path('devices')

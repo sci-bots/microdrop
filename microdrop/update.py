@@ -25,10 +25,12 @@ import tempfile
 import tarfile
 import os
 import re
+import traceback
 
 from path import path
 
 from utility import base_path
+from logger import logger
 
 verbose = False
 
@@ -75,7 +77,7 @@ def update_firmware():
                          stderr=subprocess.PIPE,stdin=subprocess.PIPE)
     output = p.communicate()[0].rstrip()
     if output and verbose:
-        print output
+        logger.debug(output)
     return p.returncode==0
 
 
@@ -88,12 +90,12 @@ def update_package():
                          stderr=subprocess.PIPE,stdin=subprocess.PIPE)
     output = p.communicate()[0].rstrip()
     if output and verbose:
-        print output
+        logger.debug(output)
     return p.returncode==0
 
 
 def usage():
-    print("""Usage: update [options]
+    logger.info("""Usage: update [options]
     --archive-version      Get the version of the archive
     --firmware-version     Get the firmware version
     --package-version      Get the package version
@@ -119,7 +121,8 @@ def main():
              "package-version", "update-firmware", "update-package"])
     except getopt.GetoptError, err:
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        # will print something like "option -a not recognized"
+        logger.error(str(err))
         usage()
         sys.exit(2)
     
@@ -129,7 +132,7 @@ def main():
 
     for o, a in opts:
         if o in ("-v", "--verbose"):
-            print "verbose=True"
+            logger.info('verbose=True')
             opts.remove((o,a))
             global verbose
             verbose = True
@@ -142,22 +145,22 @@ def main():
             from hardware.dmf_control_board.info import DmfControlBoardInfo, ConnectionError
             try:
                 d = DmfControlBoardInfo()
-                print d.firmware_version
+                logger.info(str(d.firmware_version))
             except (ImportError, ConnectionError):
-                print ""
+                logger.info('')
             exit(0)
         elif o in ("--package-version"):
             from hardware.dmf_control_board.info import DmfControlBoardInfo, ConnectionError
             try:
                 d = DmfControlBoard()
-                print d.host_software_version()
+                logger.info(str(d.host_software_version()))
             except:
-                print ""
+                logger.info('')
             exit(0)
         elif o in ("--archive-version"):
             try:
                 u = Updater(base_path() / path("hardware") / path("dmf_control_board"))
-                print u.version
+                logger.info(str(u.version))
                 exit(0)
             except ArchiveError, why:
                 warnings.warn(str(why))
@@ -170,11 +173,12 @@ def main():
                 avrdude = AvrDude()
                 stdout, stderr = avrdude.flash(hex_path)
                 if stdout:
-                    print stdout
+                    logger.info(str(stdout))
                 if stderr:
-                    print stderr
+                    logger.info(str(stderr))
             except Exception, why:
-                print why
+                logger.error(str(why))
+                logger.error(''.join(traceback.format_stack()))
                 exit(1)
         elif o in ("--update-package"):
             try:
@@ -189,7 +193,8 @@ def main():
                 u.update(file_names)
                 exit(0)
             except Exception, why:
-                print why
+                logger.error(str(why))
+                logger.error(''.join(traceback.format_stack()))
                 exit(1)
         else:
             assert False, "unhandled option"
@@ -212,11 +217,11 @@ class Updater(object):
     def __del__(self):
         if self.tar:
             if verbose:
-                print "closing archive"
+                logger.info('closing archive')
             self.tar.close()
         if self.temp_dir:
             if verbose:
-                print "cleaning up temp directory:", self.temp_dir
+                logger.info('cleaning up temp directory: %s' % self.temp_dir)
             self.temp_dir.rmtree()
 
     def update(self, file_names):
@@ -224,7 +229,7 @@ class Updater(object):
             for p in file_names:
                 if re.search(p, f.name):
                     dest_path = path(self.module_path) / f.name
-                    print 'copying %s to %s' % (f, dest_path)
+                    logger.info('copying %s to %s' % (f, dest_path))
                     f.copy(dest_path)
                     break
 
@@ -240,12 +245,12 @@ class Updater(object):
 
         update_file = files[-1]
         if verbose:
-            print "checking %s for update" % update_file
+            logger.info('checking %s for update' % update_file)
         
         self.tar = tarfile.open(update_file)
         self.temp_dir = path(tempfile.mkdtemp())
         if verbose:
-            print 'created temp dir: %s' % self.temp_dir
+            logger.info('created temp dir: %s' % self.temp_dir)
 
         # Extract update archive to temporary directory
         self.tar.extractall(self.temp_dir)

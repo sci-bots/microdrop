@@ -39,9 +39,9 @@ if __name__ == '__main__':
     # Change directory to where microdrop.py resides, so this program can be
     # run from any directory.
     root_dir = utility.base_path().abspath()
-    print 'Root directory: %s' % root_dir
+    from logger import logger
+    logger.info('Root directory: %s' % root_dir)
     os.chdir(root_dir)
-    print os.getcwd()
 
     # importing app automatically initilizes an instance of the class because
     # it is defined as a singleton plugin

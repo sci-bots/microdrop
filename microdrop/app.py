@@ -32,6 +32,7 @@ from config import load as load_config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
     IPlugin, implements
+from logger import logger, CustomHandler
 
 # these imports automatically load (and initialize) core singleton plugins
 import gui.experiment_log_controller
@@ -39,6 +40,7 @@ import gui.config_controller
 import gui.main_window_controller
 import gui.dmf_device_controller
 import gui.protocol_controller
+import gui.logging_controller
     
 class App(SingletonPlugin):
     implements(IPlugin)
@@ -78,6 +80,9 @@ class App(SingletonPlugin):
         # load plugins
         self.plugin_manager = PluginManager()
 
+        # Enable custom logging handler
+        logger.addHandler(CustomHandler())
+
         # config model
         self.config = load_config()
         
@@ -103,8 +108,8 @@ class App(SingletonPlugin):
                 try:
                     observer.on_app_init(self)
                 except Exception, why:
-                    print why
-                    traceback.print_stack()
+                    logger.error(str(why))
+                    logger.error(''.join(traceback.format_stack()))
                 
         self.builder.connect_signals(self.signals)
 
