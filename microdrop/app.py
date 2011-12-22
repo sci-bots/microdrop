@@ -95,8 +95,9 @@ class App(SingletonPlugin):
         # until we create a GUI for enabling/disabling plugins.
         plugin_config = self.config.get_data_dir().joinpath('enabled_plugins.conf')
         if plugin_config.isfile():
-            for name in [l.strip() for l in plugin_config.lines() if l.strip()]:
-                self.plugin_manager.enable(name)
+            for name in [l.strip() for l in plugin_config.lines()]:
+                if not name.startswith('#'):
+                    self.plugin_manager.enable(name)
         self.plugin_manager.log_summary()
 
         # dmf device
