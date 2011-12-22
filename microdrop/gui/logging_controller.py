@@ -17,7 +17,10 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from plugin_manager import SingletonPlugin, implements, ILoggingPlugin, IPlugin
+from plugin_manager import SingletonPlugin, implements, ILoggingPlugin, IPlugin, PluginGlobals
+
+
+PluginGlobals.push_env('microdrop')
 
 
 class LoggingController(SingletonPlugin):
@@ -47,3 +50,6 @@ class LoggingController(SingletonPlugin):
 
     def on_critical(self, record):
         self.app.main_window_controller.error(record.message)
+
+
+PluginGlobals.pop_env()

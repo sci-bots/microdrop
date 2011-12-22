@@ -24,10 +24,14 @@ import time
 
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal
+    implements, emit_signal, PluginGlobals
+
 
 class MicroDropError(Exception):
     pass
+
+
+PluginGlobals.push_env('microdrop')
 
 
 class MainWindowController(SingletonPlugin):
@@ -187,3 +191,5 @@ class MainWindowController(SingletonPlugin):
 
     def on_url_clicked(self, widget, data=None):
         print "url clicked"
+
+PluginGlobals.pop_env()

@@ -31,8 +31,12 @@ from protocol import Protocol
 from config import load as load_config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
-    IPlugin, implements
+    IPlugin, implements, PluginGlobals
 from logger import logger, CustomHandler
+
+
+PluginGlobals.push_env('microdrop')
+    
 
 # these imports automatically load (and initialize) core singleton plugins
 import gui.experiment_log_controller
@@ -41,7 +45,8 @@ import gui.main_window_controller
 import gui.dmf_device_controller
 import gui.protocol_controller
 import gui.logging_controller
-    
+
+
 class App(SingletonPlugin):
     implements(IPlugin)
 
@@ -86,6 +91,14 @@ class App(SingletonPlugin):
         # config model
         self.config = load_config()
         
+        # Temporarily enable plugins listed in file 'enabled_plugins.conf'
+        # until we create a GUI for enabling/disabling plugins.
+        plugin_config = self.config.get_data_dir().joinpath('enabled_plugins.conf')
+        if plugin_config.isfile():
+            for name in [l.strip() for l in plugin_config.lines() if l.strip()]:
+                self.plugin_manager.enable(name)
+        self.plugin_manager.log_summary()
+
         # dmf device
         self.dmf_device = DmfDevice()
 
@@ -134,6 +147,9 @@ class App(SingletonPlugin):
     def on_experiment_log_changed(self, experiment_log):
         self.experiment_log = experiment_log
         
+
+PluginGlobals.pop_env()
+
+
 if __name__ == '__main__':
     os.chdir(base_path())
-    app = App()

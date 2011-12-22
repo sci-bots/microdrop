@@ -19,7 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import traceback
 
-from pyutilib.component.core import Interface, ExtensionPoint, implements
+from pyutilib.component.core import Interface, ExtensionPoint, implements, PluginGlobals
 import pyutilib.component.loader
 from path import path
 import logging
@@ -27,10 +27,12 @@ import logging
 import utility
 
 if utility.PROGRAM_LAUNCHED:
-    from pyutilib.component.core import SingletonPlugin
+    from pyutilib.component.core import SingletonPlugin, Plugin, PluginGlobals
 else:
     from pyutilib.component.config import ManagedPlugin as SingletonPlugin
 
+
+PluginGlobals.push_env('microdrop')
 
 class PluginManager():
     def __init__(self):
@@ -40,6 +42,8 @@ class PluginManager():
             if package.isdir(): 
                 logging.info('\t %s' % package.abspath())
                 exec("import plugins.%s.microdrop" % d.name) 
+
+    def log_summary(self):
         observers = ExtensionPoint(IPlugin)
         logging.info('Registered plugins:')
         for observer in observers:
@@ -53,6 +57,44 @@ class PluginManager():
         for observer in observers:
             logging.info('\t %s' % observer)
 
+    def get_plugin_names(self, env=None):
+        if env is None:
+            env = 'pca'
+        e = PluginGlobals.env(env)
+        return list(e.plugin_registry.keys())
+
+    def disable(self, name, env='microdrop.managed'):
+        e = PluginGlobals.env(env)
+        if name not in e.plugin_registry:
+            raise KeyError, 'No plugin registered with name: %s' % name
+        class_ = e.plugin_registry[name]
+        service = self.get_service_instance(class_, env)
+        if service and service.enabled():
+            service.disable()
+            logging.info('[PluginManager] Disabled plugin: %s' % name)
+
+    def enable(self, name, env='microdrop.managed'):
+        e = PluginGlobals.env(env)
+        if name not in e.plugin_registry:
+            raise KeyError, 'No plugin registered with name: %s' % name
+        PluginClass = e.plugin_registry[name]
+        service = self.get_service_instance(PluginClass, env)
+        if service is None:
+            # There is not currently any plugin registered of the specified
+            # type.
+            service = PluginClass()
+        if not service.enabled():
+            service.enable()
+            logging.info('[PluginManager] Enabled plugin: %s' % name)
+
+    def get_service_instance(self, class_, env='microdrop.managed'):
+        e = PluginGlobals.env(env)
+        for service in e.services:
+            if isinstance(service, class_):
+                # A plugin of this type is registered
+                return service
+        return None
+        
 
 # Workaround to allow Sphinx autodoc to run.  If the program is not actually
 # running, we are just being imported here, so declare plugin interfaces as
@@ -192,6 +234,8 @@ else:
                     for the selected steps
             """
             pass
+    
+
 
 
 def emit_signal(function, args=[], interface=IPlugin):
@@ -211,3 +255,5 @@ def emit_signal(function, args=[], interface=IPlugin):
                 logging.error(str(why))
                 logging.error(''.join(traceback.format_stack()))
     return return_codes
+
+PluginGlobals.pop_env()

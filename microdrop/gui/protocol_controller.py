@@ -30,8 +30,11 @@ from protocol import Protocol
 from utility import check_textentry, is_float, is_int
 from utility.gui import register_shortcuts
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal
+    implements, emit_signal, PluginGlobals
 from gui.textbuffer_with_undo import UndoableBuffer
+
+
+PluginGlobals.push_env('microdrop')
 
 
 class ProtocolController(SingletonPlugin):
@@ -334,3 +337,6 @@ class ProtocolController(SingletonPlugin):
                 
     def on_dmf_device_changed(self, dmf_device):
         emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel()+1))
+
+
+PluginGlobals.pop_env()

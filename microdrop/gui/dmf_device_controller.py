@@ -30,8 +30,11 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
-    implements, emit_signal
+    implements, emit_signal, PluginGlobals
 from utility import is_float
+
+
+PluginGlobals.push_env('microdrop')
 
 
 class DmfDeviceController(SingletonPlugin):
@@ -257,3 +260,6 @@ class DmfDeviceController(SingletonPlugin):
             else:
                 self.view.electrode_color[id] = (1,0,0)
         self.view.update()
+
+
+PluginGlobals.pop_env()

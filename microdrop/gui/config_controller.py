@@ -25,7 +25,10 @@ import gtk
 from dmf_device import DmfDevice
 from protocol import Protocol
 from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
-    implements, emit_signal
+    implements, emit_signal, PluginGlobals
+
+
+PluginGlobals.push_env('microdrop')
 
 
 class ConfigController(SingletonPlugin):
@@ -172,3 +175,6 @@ class ConfigController(SingletonPlugin):
         
     def on_protocol_changed(self, protocol):
         self.app.config.protocol_name = protocol.name
+
+
+PluginGlobals.pop_env()

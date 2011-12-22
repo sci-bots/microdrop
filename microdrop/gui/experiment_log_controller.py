@@ -28,7 +28,7 @@ from experiment_log import ExperimentLog, load as load_experiment_log
 from utility import combobox_set_model_from_list, \
     combobox_get_active_text, textview_get_text
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
-    ExtensionPoint, emit_signal
+    ExtensionPoint, emit_signal, PluginGlobals
 from protocol import load as load_protocol
 from dmf_device import DmfDevice
 
@@ -37,6 +37,9 @@ class ExperimentLogColumn():
         self.name = name
         self.type = type
         self.format_string = format_string
+
+
+PluginGlobals.push_env('microdrop')
 
 
 class ExperimentLogController(SingletonPlugin):
@@ -289,3 +292,6 @@ class ExperimentLogController(SingletonPlugin):
     def _cell_renderer_format(self, column, cell, model, iter, format_string):
         val = model.get_value(iter, column.get_sort_column_id())
         cell.set_property('text', format_string % val)
+        
+
+PluginGlobals.pop_env()

@@ -69,6 +69,9 @@ class Config():
 
         self.dmf_device_name = None
         self.protocol_name = None
+
+    def get_data_dir(self):
+        return self.dmf_device_directory.parent
         
     def save(self, filename=None):
         if filename == None:
