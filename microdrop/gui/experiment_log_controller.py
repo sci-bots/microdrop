@@ -160,7 +160,7 @@ class ExperimentLogController(SingletonPlugin):
                         if c.name=="Time (s)":
                             vals.append(d["time"])
                         elif c.name=="Step #":
-                            vals.append(d["step"])
+                            vals.append(d["step"]+1)
                         elif c.name=="Duration (s)":
                             vals.append(step.duration/1000.0)
                         elif c.name=="Voltage (VRMS)":
