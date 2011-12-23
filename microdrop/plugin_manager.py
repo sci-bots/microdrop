@@ -84,10 +84,11 @@ class PluginManager():
             # There is not currently any plugin registered of the specified
             # type.
             service = PluginClass()
-            service.on_plugin_enable(app)
         if not service.enabled():
             service.enable()
             logging.info('[PluginManager] Enabled plugin: %s' % name)
+        if hasattr(service, "on_plugin_enable"):
+            service.on_plugin_enable(app)
 
     def get_service_instance(self, class_, env='microdrop.managed'):
         e = PluginGlobals.env(env)
