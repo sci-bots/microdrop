@@ -33,6 +33,8 @@ else:
 
 PluginGlobals.push_env('microdrop.managed')
 PluginGlobals.pop_env()
+
+
 PluginGlobals.push_env('microdrop')
 
 class PluginManager():

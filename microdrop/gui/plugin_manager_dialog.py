@@ -45,12 +45,12 @@ class PluginController(object):
         return not(self.service is None or not self.service.enabled())
 
     def update(self):
+        self.service = self.plugin_manager\
+                        .get_service_instance(self.plugin_class)
         if self.enabled():
             self.button.set_label('enabled')
         else:
             self.button.set_label('disabled')
-        self.service = self.plugin_manager\
-                        .get_service_instance(self.plugin_class)
 
     def toggle_enabled(self):
         if not self.enabled():
