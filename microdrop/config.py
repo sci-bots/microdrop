@@ -69,6 +69,10 @@ class Config():
 
         self.dmf_device_name = None
         self.protocol_name = None
+        self.enabled_plugins = []
+
+    def set_plugins(self, plugins):
+        self.enabled_plugins = plugins
 
     def get_data_dir(self):
         return self.dmf_device_directory.parent

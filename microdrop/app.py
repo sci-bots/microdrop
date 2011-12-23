@@ -91,13 +91,9 @@ class App(SingletonPlugin):
         # config model
         self.config = load_config()
         
-        # Temporarily enable plugins listed in file 'enabled_plugins.conf'
-        # until we create a GUI for enabling/disabling plugins.
-        plugin_config = self.config.get_data_dir().joinpath('enabled_plugins.conf')
-        if plugin_config.isfile():
-            for name in [l.strip() for l in plugin_config.lines()]:
-                if not name.startswith('#'):
-                    self.plugin_manager.enable(name)
+        # Load optional plugins marked as enabled in config
+        for p in self.config.enabled_plugins:
+            self.plugin_manager.enable(self, p)
         self.plugin_manager.log_summary()
 
         # dmf device

@@ -75,6 +75,7 @@ class PluginManagerDialog(object):
         self.app = app
         self.plugin_manager = app.plugin_manager
         self.e = PluginGlobals.env('microdrop.managed')
+        self.plugins = []
 
     def clear_plugin_list(self):
         self.vbox_plugins.foreach(lambda x: self.vbox_plugins.remove(x))
@@ -82,8 +83,11 @@ class PluginManagerDialog(object):
     def update(self):
         self.clear_plugin_list()
         plugin_names = self.get_plugin_names()
+        del self.plugins
+        self.plugins = []
         for name in plugin_names:
             p = PluginController(self.app, name, self.plugin_manager)
+            self.plugins.append(p)
             self.vbox_plugins.pack_start(p.get_widget())
 
     def get_plugin_names(self):
@@ -93,6 +97,9 @@ class PluginManagerDialog(object):
         self.update()
         response = self.window.run()
         self.window.hide()
+        enabled_plugins = [p.name for p in self.plugins if p.enabled()]
+        self.app.config.set_plugins(enabled_plugins)
+        self.app.config.save()
         return response
 
 
