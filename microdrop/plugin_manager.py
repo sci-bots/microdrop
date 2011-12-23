@@ -73,7 +73,7 @@ class PluginManager():
             service.disable()
             logging.info('[PluginManager] Disabled plugin: %s' % name)
 
-    def enable(self, name, env='microdrop.managed'):
+    def enable(self, app, name, env='microdrop.managed'):
         e = PluginGlobals.env(env)
         if name not in e.plugin_registry:
             raise KeyError, 'No plugin registered with name: %s' % name
@@ -83,6 +83,7 @@ class PluginManager():
             # There is not currently any plugin registered of the specified
             # type.
             service = PluginClass()
+            service.on_plugin_enable(app)
         if not service.enabled():
             service.enable()
             logging.info('[PluginManager] Enabled plugin: %s' % name)

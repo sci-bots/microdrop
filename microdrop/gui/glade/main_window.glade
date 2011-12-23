@@ -12,6 +12,16 @@
     <property name="can_focus">False</property>
     <property name="stock">gtk-properties</property>
   </object>
+  <object class="GtkImage" id="image3">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-properties</property>
+  </object>
+  <object class="GtkImage" id="image4">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-properties</property>
+  </object>
   <object class="GtkImage" id="image_go_back">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -250,6 +260,18 @@
                         <property name="image">image2</property>
                         <property name="use_stock">False</property>
                         <signal name="activate" handler="on_menu_options_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="menu_manage_plugins">
+                        <property name="label">_Manage plugins...</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="image">image4</property>
+                        <property name="use_stock">False</property>
+                        <signal name="activate" handler="on_menu_manage_plugins_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>

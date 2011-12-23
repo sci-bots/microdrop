@@ -156,7 +156,6 @@ class ConfigController(SingletonPlugin):
             dmf_device = DmfDevice()
         emit_signal("on_dmf_device_changed", dmf_device)
 
-    
     def load_protocol(self):
         # try what's specified in config file
         if self.app.config.protocol_name:

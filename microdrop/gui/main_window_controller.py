@@ -25,6 +25,7 @@ import time
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal, PluginGlobals
+from gui.plugin_manager_dialog import PluginManagerDialog
 
 
 class MicroDropError(Exception):
@@ -82,6 +83,7 @@ class MainWindowController(SingletonPlugin):
         app.signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
         app.signals["on_menu_options_activate"] = self.on_menu_options_activate
+        app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
 
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui",
@@ -117,6 +119,10 @@ class MainWindowController(SingletonPlugin):
         dialog.set_version(self.app.version)
         dialog.run()
         dialog.hide()
+
+    def on_menu_manage_plugins_activate(self, widget, data=None):
+        pmd = PluginManagerDialog(self.app)        
+        response = pmd.run()
 
     def on_menu_experiment_logs_activate(self, widget, data=None):
         self.app.experiment_log_controller.on_window_show(widget, data)
