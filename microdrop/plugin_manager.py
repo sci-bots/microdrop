@@ -31,7 +31,8 @@ if utility.PROGRAM_LAUNCHED:
 else:
     from pyutilib.component.config import ManagedPlugin as SingletonPlugin
 
-
+PluginGlobals.push_env('microdrop.managed')
+PluginGlobals.pop_env()
 PluginGlobals.push_env('microdrop')
 
 class PluginManager():
