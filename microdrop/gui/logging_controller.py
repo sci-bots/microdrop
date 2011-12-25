@@ -28,7 +28,7 @@ class LoggingController(SingletonPlugin):
     implements(ILoggingPlugin)
         
     def __init__(self):
-        pass
+        self.name = "microdrop.gui.logging_controller"
 
     def on_app_init(self, app):
         self.app = app

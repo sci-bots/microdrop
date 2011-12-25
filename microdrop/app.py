@@ -102,19 +102,24 @@ class App(SingletonPlugin):
         # protocol
         self.protocol = Protocol()
 
-        # initilize main window controller and dmf device control first
-        # (necessary for other plugins to add items to the menus, etc.)
+        # initilize loggin controller, main window controller and dmf device
+        # controller first (necessary for other plugins to add items to the
+        # menus, etc.)
         observers = ExtensionPoint(IPlugin)
+        observers('microdrop.gui.logging_controller')[0]. \
+            on_app_init(self)
         observers('microdrop.gui.main_window_controller')[0]. \
             on_app_init(self)
         observers('microdrop.gui.dmf_device_controller')[0]. \
             on_app_init(self)
         
-        # initialize other core plugins
+        # initialize other plugins
         for observer in observers:
-            if observer.name!='microdrop.gui.main_window_controller' and \
+            if observer.name!='microdrop.gui.logging_controller' and \
+                observer.name!='microdrop.gui.main_window_controller' and \
                 observer.name!='microdrop.gui.dmf_device_controller' and \
                 hasattr(observer,"on_app_init"):
+                print "Initialize %s plugin" % observer.name
                 try:
                     observer.on_app_init(self)
                 except Exception, why:
