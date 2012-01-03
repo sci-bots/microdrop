@@ -55,7 +55,7 @@ class PluginManager():
         logging.info('Registered function generator plugins:')
         for observer in observers:
             logging.info('\t %s' % observer)
-        observers = ExtensionPoint(IWaveformGenerator)
+        observers = ExtensionPoint(ILoggingPlugin)
         logging.info('Registered logging plugins:')
         for observer in observers:
             logging.info('\t %s' % observer)
