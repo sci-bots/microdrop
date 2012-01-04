@@ -148,9 +148,9 @@ class Config():
             self.version = '0.0'
         version = float(self.version)
         logger.info('upgrade from version %s' % self.version)
-        version = 0.1
         if version < 0.1:
             self.version = '0.1'
+            self.enabled_plugins = []
             self.log_file_config = LogFileConfig()
             logger.info('upgrade to version 0.1')
             upgraded = True
