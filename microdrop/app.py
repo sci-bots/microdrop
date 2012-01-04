@@ -44,7 +44,6 @@ import gui.config_controller
 import gui.main_window_controller
 import gui.dmf_device_controller
 import gui.protocol_controller
-import gui.logging_controller
 
 
 class App(SingletonPlugin):
@@ -91,23 +90,16 @@ class App(SingletonPlugin):
         # config model
         self.config = load_config()
         
-        # Load optional plugins marked as enabled in config
-        for p in self.config.enabled_plugins:
-            self.plugin_manager.enable(self, p)
-        self.plugin_manager.log_summary()
-
         # dmf device
         self.dmf_device = DmfDevice()
 
         # protocol
         self.protocol = Protocol()
 
-        # initilize loggin controller, main window controller and dmf device
+        # initilize logging controller, main window controller and dmf device
         # controller first (necessary for other plugins to add items to the
         # menus, etc.)
         observers = ExtensionPoint(IPlugin)
-        observers('microdrop.gui.logging_controller')[0]. \
-            on_app_init(self)
         observers('microdrop.gui.main_window_controller')[0]. \
             on_app_init(self)
         observers('microdrop.gui.dmf_device_controller')[0]. \
@@ -115,11 +107,10 @@ class App(SingletonPlugin):
         
         # initialize other plugins
         for observer in observers:
-            if observer.name!='microdrop.gui.logging_controller' and \
-                observer.name!='microdrop.gui.main_window_controller' and \
-                observer.name!='microdrop.gui.dmf_device_controller' and \
+            if observer.name not in ['microdrop.gui.main_window_controller',
+                                    'microdrop.gui.dmf_device_controller'] and \
                 hasattr(observer,"on_app_init"):
-                print "Initialize %s plugin" % observer.name
+                logger.info("Initialize %s plugin" % observer.name)
                 try:
                     observer.on_app_init(self)
                 except Exception, why:
@@ -131,6 +122,11 @@ class App(SingletonPlugin):
         # process the config file
         self.config_controller.process_config_file()
         
+        # Load optional plugins marked as enabled in config
+        for p in self.config.enabled_plugins:
+            self.plugin_manager.enable(self, p)
+        self.plugin_manager.log_summary()
+
         # experiment logs
         device_path = None
         if self.dmf_device.name:

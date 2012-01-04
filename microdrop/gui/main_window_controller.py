@@ -24,7 +24,7 @@ import time
 
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal, PluginGlobals
+    implements, emit_signal, PluginGlobals, ILoggingPlugin
 from gui.plugin_manager_dialog import PluginManagerDialog
 
 
@@ -37,6 +37,7 @@ PluginGlobals.push_env('microdrop')
 
 class MainWindowController(SingletonPlugin):
     implements(IPlugin)
+    implements(ILoggingPlugin)
 
     def __init__(self):
         self.app = None
@@ -136,6 +137,15 @@ class MainWindowController(SingletonPlugin):
         print 'selected options menu'
         OptionsController(self.app).run()
         self.update()
+
+    def on_warning(self, record):
+        self.warning(record.message)
+
+    def on_error(self, record):
+        self.error(record.message)
+
+    def on_critical(self, record):
+        self.error(record.message)
 
     def error(self, message, title="Error"):
         dialog = gtk.MessageDialog(self.view,
