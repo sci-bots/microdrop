@@ -99,16 +99,15 @@ class PluginManager():
                 service = PluginClass()
             except Exception, why:
                 service_instance = self.get_service_instance(PluginClass)
-
-                if service_instance:
-                    with closing(StringIO()) as message:
-                        if hasattr(service_instance, "name"):
-                            print >> message, '%s plugin crashed during initialization:' % str(PluginClass),
-                        # Deactivate in plugin registry since the plugin was not
-                        # initialized properly.
-                        service_instance.deactivate()
-                        print >> message, str(why)
-                        logging.error(message.getvalue().strip())
+                with closing(StringIO()) as message:
+                    if service_instance:
+                            if hasattr(service_instance, "name"):
+                                print >> message, '%s plugin crashed during initialization:' % str(PluginClass),
+                            # Deactivate in plugin registry since the plugin was not
+                            # initialized properly.
+                            service_instance.deactivate()
+                    print >> message, str(why)
+                    logging.error(message.getvalue().strip())
                 return None
         if not service.enabled():
             service.enable()

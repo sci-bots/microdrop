@@ -96,8 +96,7 @@ class App(Plugin):
         self.protocol = Protocol()
 
     def run(self):
-        self.plugins_dir = path('plugins').abspath()
-        plugin_manager.load_plugins(self.plugins_dir)
+        plugin_manager.load_plugins(self.config.plugins_directory)
         self.update_log_file()
 
         # Initialize main window controller and dmf device
@@ -128,7 +127,12 @@ class App(Plugin):
         
         # Load optional plugins marked as enabled in config
         for p in self.config.enabled_plugins:
-            plugin_manager.enable(p)
+            try:
+                plugin_manager.enable(p)
+            except KeyError:
+                logger.warning('Requested plugin (%s) is not available.\n\n'
+                    'Please check that it exists in the plugins '
+                    'directory:\n\n    %s' % (p, self.config.plugins_directory))
         plugin_manager.log_summary()
 
         # experiment logs
