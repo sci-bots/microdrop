@@ -75,6 +75,8 @@ class PluginManager():
         class_ = e.plugin_registry[name]
         service = self.get_service_instance(class_, env)
         if service and service.enabled():
+            if hasattr(service, "on_plugin_disable"):
+                service.on_plugin_disable()
             service.disable()
             logging.info('[PluginManager] Disabled plugin: %s' % name)
 
@@ -168,6 +170,18 @@ else:
 
 
     class IPlugin(Interface):    
+        def on_plugin_disable():
+            """
+            Handler called once the plugin instance has been disabled.
+            """
+            pass
+        
+        def on_plugin_enable(app=None):
+            """
+            Handler called once the plugin instance has been enabled.
+            """
+            pass
+        
         def on_app_init(app=None):
             """
             Handler called once when the Microdrop application starts.
@@ -255,8 +269,6 @@ else:
                     for the selected steps
             """
             pass
-    
-
 
 
 def emit_signal(function, args=[], interface=IPlugin):
