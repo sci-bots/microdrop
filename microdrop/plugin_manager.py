@@ -18,6 +18,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import traceback
+import sys
 from StringIO import StringIO
 from contextlib import closing
 
@@ -40,13 +41,18 @@ PluginGlobals.pop_env()
 PluginGlobals.push_env('microdrop')
 
 class PluginManager():
-    def __init__(self):
+    def load_plugins(self, plugins_dir='plugins'):
+        plugins_dir = path(plugins_dir)
         logging.info('Loading plugins:')
-        for d in path("plugins").dirs():
-            package = (d / path("microdrop"))
+        if plugins_dir.parent.abspath() not in sys.path:
+            sys.path.append(plugins_dir.parent.abspath())
+        for d in plugins_dir.dirs():
+            package = (d / path('microdrop'))
             if package.isdir(): 
                 logging.info('\t %s' % package.abspath())
-                exec("import plugins.%s.microdrop" % d.name) 
+                import_statement = 'import %s.%s.microdrop' % (plugins_dir.name, d.name)
+                logging.info(import_statement)
+                exec(import_statement)
 
     def log_summary(self):
         observers = ExtensionPoint(IPlugin)

@@ -24,6 +24,7 @@ import traceback
 
 import gtk
 import numpy as np
+from path import path
 
 from utility import base_path, PROGRAM_LAUNCHED
 from dmf_device import DmfDevice
@@ -94,8 +95,9 @@ class App(Plugin):
         # protocol
         self.protocol = Protocol()
 
-
     def run(self):
+        self.plugins_dir = path('plugins').abspath()
+        plugin_manager.load_plugins(self.plugins_dir)
         self.update_log_file()
 
         # Initialize main window controller and dmf device
