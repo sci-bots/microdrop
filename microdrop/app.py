@@ -96,19 +96,18 @@ class App(SingletonPlugin):
         # protocol
         self.protocol = Protocol()
 
-        # initilize logging controller, main window controller and dmf device
+        # Initialize main window controller and dmf device
         # controller first (necessary for other plugins to add items to the
         # menus, etc.)
         observers = ExtensionPoint(IPlugin)
-        observers('microdrop.gui.main_window_controller')[0]. \
-            on_app_init(self)
-        observers('microdrop.gui.dmf_device_controller')[0]. \
-            on_app_init(self)
+        preinit_plugins = ['microdrop.gui.main_window_controller',
+                                    'microdrop.gui.dmf_device_controller']
+        for plugin in preinit_plugins:
+            observers(plugin)[0].on_app_init(self)
         
         # initialize other plugins
         for observer in observers:
-            if observer.name not in ['microdrop.gui.main_window_controller',
-                                    'microdrop.gui.dmf_device_controller'] and \
+            if observer.name not in preinit_plugins and \
                 hasattr(observer,"on_app_init"):
                 logger.info("Initialize %s plugin" % observer.name)
                 try:
