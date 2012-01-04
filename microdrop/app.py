@@ -32,7 +32,7 @@ from config import load as load_config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
     IPlugin, implements, PluginGlobals, Plugin
-from logger import logger, CustomHandler
+from logger import logger, CustomHandler, logging
 from app_context import plugin_manager
 
 
@@ -81,11 +81,9 @@ class App(Plugin):
         self.protocol_controller = None
         self.main_window_controller = None
 
-        # load plugins
-        #plugin_manager = PluginManager()
-
         # Enable custom logging handler
         logger.addHandler(CustomHandler())
+        self.log_file_handler = None
 
         # config model
         self.config = load_config()
@@ -98,6 +96,8 @@ class App(Plugin):
 
 
     def run(self):
+        self.update_log_file()
+
         # Initialize main window controller and dmf device
         # controller first (necessary for other plugins to add items to the
         # menus, etc.)
@@ -146,6 +146,39 @@ class App(Plugin):
 
     def on_experiment_log_changed(self, experiment_log):
         self.experiment_log = experiment_log
+
+    def _set_log_file_handler(self):
+        if self.log_file_handler:
+            self._destroy_log_file_handler()
+        log_file = self.config.log_file_config.file
+        self.log_file_handler = logging.FileHandler(log_file)
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        self.log_file_handler.setFormatter(formatter)
+        logger.addHandler(self.log_file_handler)
+        logger.info('[App] added log_file_handler: %s' % log_file)
+
+    def _destroy_log_file_handler(self):
+        if self.log_file_handler is None:
+            return
+        logger.info('[App] closing log_file_handler')
+        self.log_file_handler.close()
+        del self.log_file_handler
+        self.log_file_handler = None
+
+    def update_log_file(self):
+        if self.log_file_handler is None:
+            if self.config.log_file_config.enabled:
+                self._set_log_file_handler()
+                logger.info('[App] logging enabled')
+        else:
+            # Log file handler already exists
+            if self.config.log_file_config.enabled:
+                log_file = self.config.log_file_config.file
+                if log_file != self.log_file_handler.baseFilename:
+                    # Requested log file path has been changed
+                    self._set_log_file_handler()
+            else:
+                self._destroy_log_file_handler()
 
 PluginGlobals.pop_env()
 

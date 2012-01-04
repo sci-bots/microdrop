@@ -284,15 +284,17 @@ def emit_signal(function, args=[], interface=IPlugin):
                 return_code = f(*args)
                 return_codes.append(return_code)
             except Exception, why:
-                if hasattr(observer, "name"):
-                    if interface == ILoggingPlugin:
-                        # If this is a logging plugin, do not try to log since
-                        # that will result in infinite recursion.  Instead,
-                        # just continute onto the next plugin.
-                        continue
-                    logging.error('%s plugin crashed.' % observer.name)
-                logging.error(str(why))
-                logging.error(''.join(traceback.format_stack()))
+                with closing(StringIO()) as message:
+                    if hasattr(observer, "name"):
+                        if interface == ILoggingPlugin:
+                            # If this is a logging plugin, do not try to log since
+                            # that will result in infinite recursion.  Instead,
+                            # just continute onto the next plugin.
+                            continue
+                        print >> message, '%s plugin crashed.' % observer.name
+                    print >> message, 'Reason:', str(why)
+                    logging.error(message.getvalue().strip())
+                logging.debug(''.join(traceback.format_stack()))
     return return_codes
 
 PluginGlobals.pop_env()

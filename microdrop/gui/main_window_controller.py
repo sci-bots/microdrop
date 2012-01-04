@@ -27,6 +27,7 @@ from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal, PluginGlobals, ILoggingPlugin
 from gui.plugin_manager_dialog import PluginManagerDialog
 from app_context import get_app
+from logger import logger
 
 
 class MicroDropError(Exception):
@@ -138,9 +139,7 @@ class MainWindowController(SingletonPlugin):
     def on_menu_options_activate(self, widget, data=None):
         from options_controller import OptionsController
 
-        print 'selected options menu'
-        app = get_app()
-        OptionsController(app).run()
+        OptionsController().run()
         self.update()
 
     def on_warning(self, record):
@@ -212,6 +211,6 @@ class MainWindowController(SingletonPlugin):
             gtk.main_iteration()
 
     def on_url_clicked(self, widget, data=None):
-        print "url clicked"
+        logger.debug('url clicked')
 
 PluginGlobals.pop_env()

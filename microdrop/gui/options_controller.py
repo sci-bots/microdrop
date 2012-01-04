@@ -20,9 +20,10 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 
 import gtk
-
 from path import path
+
 from app_context import get_app
+from logger import logger
 
 
 def copytree(src, dst, symlinks=False, ignore=None):
@@ -88,12 +89,22 @@ class OptionsController:
                                            "configuration_dialog.glade"))
         self.dialog = builder.get_object("configuration_dialog")
         self.dialog.set_transient_for(app.main_window_controller.view)
+
         self.txt_data_dir = builder.get_object('txt_data_dir')
         self.btn_data_dir_browse = builder.get_object('btn_data_dir_browse')
+        self.txt_data_dir.set_text(path(app.config.dmf_device_directory).abspath())
+
+        self.btn_log_file_browse = builder.get_object('btn_log_file_browse')
+        self.txt_log_file = builder.get_object('txt_log_file')
+        self.chk_log_file_enabled = builder.get_object('chk_log_file_enabled')
+        if app.config.log_file_config.file:
+            self.txt_log_file.set_text(app.config.log_file_config.file.abspath())
+        if app.config.log_file_config.enabled:
+            self.chk_log_file_enabled.set_active(True)
+
         self.btn_ok = builder.get_object('btn_ok')
         self.btn_apply = builder.get_object('btn_apply')
         self.btn_cancel = builder.get_object('btn_cancel')
-        self.txt_data_dir.set_text(path(app.config.dmf_device_directory).abspath())
 
         builder.connect_signals(self)
         self.builder = builder
@@ -101,10 +112,9 @@ class OptionsController:
     def run(self):
         response = self.dialog.run()
         if response == gtk.RESPONSE_OK:
-            print 'ok'
             self.apply()
         elif response == gtk.RESPONSE_CANCEL:
-            print 'cancel'
+            pass
         self.dialog.hide()
         return response
 
@@ -112,12 +122,21 @@ class OptionsController:
         self.apply()
 
     def apply(self):
+        updated = False
+        updated = updated or self.apply_data_dir()
+        updated = updated or self.apply_log_file_config()
+        if updated:
+            logger.info('saving options')
+            app = get_app()
+            app.config.save()
+
+    def apply_data_dir(self):
         app = get_app()
         data_dir = path(self.txt_data_dir.get_text())
         if data_dir == app.config.dmf_device_directory:
-            return
+            # If the data directory hasn't changed, we do nothing
+            return False
 
-        print 'apply changes:', data_dir
         data_dir.makedirs_p()
         if data_dir.listdir():
             from standalone_message_dialog import MessageDialog
@@ -125,7 +144,7 @@ class OptionsController:
             m = MessageDialog()
             result = m.ques('Target directory is not empty.  Merge contents with current devices (overwriting common paths in the target directory)?')
             if not result == gtk.RESPONSE_OK:
-                return
+                return False
 
         for d in app.config.dmf_device_directory.dirs():
             copytree(d, data_dir.joinpath(d.name))
@@ -134,24 +153,61 @@ class OptionsController:
         app.config.dmf_device_directory.rmtree()
         
         app.config.dmf_device_directory = data_dir
-        app.config.save()
+        return True
 
-    def on_btn_data_dir_browse_clicked(self, widget, data=None):
+    def on_chk_log_file_enabled_clicked(self, widget, data=None):
+        enabled = widget.get_active()
+        log_file = self.txt_log_file.get_text().strip()
+        if enabled and not log_file:
+            logger.error('Logging can not be enabled without a path selected.')
+            widget.set_active(False)
+
+    def apply_log_file_config(self):
         app = get_app()
-        dialog = gtk.FileChooserDialog(title="Select data directory",
-                                        action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                        buttons=(gtk.STOCK_CANCEL,
-                                                gtk.RESPONSE_CANCEL,
-                                                gtk.STOCK_OPEN,
-                                                gtk.RESPONSE_OK))
-        dialog.set_current_folder(self.txt_data_dir.get_text())
+        enabled = self.chk_log_file_enabled.get_active()
+        log_file = path(self.txt_log_file.get_text())
+        if enabled and not log_file:
+            logger.error('Log file can only be enabled if a path is selected.')
+            return False
+        app.config.log_file_config.file = log_file
+        app.config.log_file_config.enabled = enabled
+        app.update_log_file()
+        return True
+
+    def browse_for_file(self, title='Select file',
+                            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                            buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                                    gtk.STOCK_OPEN, gtk.RESPONSE_OK),
+                            starting_dir=None):
+        dialog = gtk.FileChooserDialog(title=title, action=action,
+                                        buttons=buttons)
+        if starting_dir:
+            dialog.set_current_folder(starting_dir)
         dialog.set_default_response(gtk.RESPONSE_OK)
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:
-            options_dir = dialog.get_filename()
-            print 'got new options_dir:', options_dir
-            self.txt_data_dir.set_text(options_dir)
-                        
+            value = dialog.get_filename()
+        else:
+            value = None
         dialog.destroy()
+        return response, value
+
+    def on_btn_data_dir_browse_clicked(self, widget, data=None):
+        app = get_app()
+        response, options_dir = self.browse_for_file('Select data directory',
+                    action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                    starting_dir=self.txt_data_dir.get_text())
+        if response == gtk.RESPONSE_OK:
+            logger.info('got new options_dir: %s' % options_dir)
+            self.txt_data_dir.set_text(options_dir)
+        app.main_window_controller.update()
+
+    def on_btn_log_file_browse_clicked(self, widget, data=None):
+        app = get_app()
+        response, log_file = self.browse_for_file('Open log file',
+                    starting_dir=self.txt_data_dir.get_text())
+        if response == gtk.RESPONSE_OK:
+            logger.info('got new log file path: %s' % log_file)
+            self.txt_log_file.set_text(log_file)
         app.main_window_controller.update()
