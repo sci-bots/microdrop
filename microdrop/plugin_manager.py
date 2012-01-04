@@ -18,6 +18,8 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import traceback
+from StringIO import StringIO
+from contextlib import closing
 
 from pyutilib.component.core import Interface, ExtensionPoint, implements, PluginGlobals
 import pyutilib.component.loader
@@ -85,7 +87,21 @@ class PluginManager():
         if service is None:
             # There is not currently any plugin registered of the specified
             # type.
-            service = PluginClass()
+            try:
+                service = PluginClass()
+            except Exception, why:
+                service_instance = self.get_service_instance(PluginClass)
+
+                if service_instance:
+                    with closing(StringIO()) as message:
+                        if hasattr(service_instance, "name"):
+                            print >> message, '%s plugin crashed during initialization:' % str(PluginClass),
+                        # Deactivate in plugin registry since the plugin was not
+                        # initialized properly.
+                        service_instance.deactivate()
+                        print >> message, str(why)
+                        logging.error(message.getvalue().strip())
+                return
         if not service.enabled():
             service.enable()
             logging.info('[PluginManager] Enabled plugin: %s' % name)
@@ -256,6 +272,11 @@ def emit_signal(function, args=[], interface=IPlugin):
                 return_codes.append(return_code)
             except Exception, why:
                 if hasattr(observer, "name"):
+                    if interface == ILoggingPlugin:
+                        # If this is a logging plugin, do not try to log since
+                        # that will result in infinite recursion.  Instead,
+                        # just continute onto the next plugin.
+                        continue
                     logging.error('%s plugin crashed.' % observer.name)
                 logging.error(str(why))
                 logging.error(''.join(traceback.format_stack()))
