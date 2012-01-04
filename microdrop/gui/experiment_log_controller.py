@@ -31,6 +31,8 @@ from plugin_manager import IPlugin, SingletonPlugin, implements, \
     ExtensionPoint, emit_signal, PluginGlobals
 from protocol import load as load_protocol
 from dmf_device import DmfDevice
+from app_context import get_app
+from logger import logger
 
 class ExperimentLogColumn():
     def __init__(self, name, type, format_string=None):
@@ -47,7 +49,6 @@ class ExperimentLogController(SingletonPlugin):
 
     def __init__(self):
         self.name = "microdrop.gui.experiment_log_controller" 
-        self.app = None
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui","glade",
             "experiment_log_window.glade"))
@@ -65,16 +66,17 @@ class ExperimentLogController(SingletonPlugin):
                         ExperimentLogColumn("Frequency (kHz)", float, "%.1f")]
         self.protocol_view.get_selection().connect("changed", self.on_treeview_selection_changed)
 
-    def on_app_init(self, app):
-        self.app = app
-        self.app.experiment_log_controller = self
+    def on_app_init(self):
+        app = get_app()
+        app.experiment_log_controller = self
         self.window.set_title("Experiment logs")
         self.builder.connect_signals(self)
 
     def update(self):        
+        app = get_app()
         try:
             id = combobox_get_active_text(self.combobox_log_files)
-            f = path(self.app.experiment_log.directory) / path(id) / path("data")
+            f = path(app.experiment_log.directory) / path(id) / path("data")
             self.results.log = load_experiment_log(f)
 
             self.builder.get_object("button_load_device").set_sensitive(True)        
@@ -143,7 +145,7 @@ class ExperimentLogController(SingletonPlugin):
             self.builder.get_object("textview_notes"). \
                 get_buffer().set_text(label)
 
-            f = path(self.app.experiment_log.directory) / path(id) / path("protocol")
+            f = path(app.experiment_log.directory) / path(id) / path("protocol")
             self.results.protocol = load_protocol(f)
             self._clear_list_columns()
             types = []
@@ -171,34 +173,35 @@ class ExperimentLogController(SingletonPlugin):
                             vals.append(None)
                     protocol_list.append(vals)
         except Exception, why:
-            print "ExperimentLogController.update(): %s" % why
+            logger.info("[ExperimentLogController].update(): %s" % why)
             self.builder.get_object("button_load_device").set_sensitive(False)        
             self.builder.get_object("button_load_protocol").set_sensitive(False)    
             self.builder.get_object("textview_notes").set_sensitive(False)
     
     def save(self):
-        data = {"software version":self.app.version}
-        data["device name"] = self.app.dmf_device.name
-        data["protocol name"] = self.app.protocol.name
-        if self.app.control_board.connected():
+        app = get_app()
+        data = {"software version": app.version}
+        data["device name"] = app.dmf_device.name
+        data["protocol name"] = app.protocol.name
+        if app.control_board.connected():
             data["control board name"] = \
-                self.app.control_board.name()
+                app.control_board.name()
             data["control board hardware version"] = \
-                self.app.control_board.hardware_version()
+                app.control_board.hardware_version()
             data["control board software version"] = \
-                self.app.control_board.software_version()
-        data["notes"] = textview_get_text(self.app.protocol_controller. \
+                app.control_board.software_version()
+        data["notes"] = textview_get_text(app.protocol_controller. \
             builder.get_object("textview_notes"))
-        self.app.experiment_log.add_data(data)
-        log_path = self.app.experiment_log.save()
+        app.experiment_log.add_data(data)
+        log_path = app.experiment_log.save()
 
         # save the protocol and device
         emit_signal("on_protocol_save")
-        self.app.protocol.save(os.path.join(log_path,"protocol"))
-        self.app.dmf_device.save(os.path.join(log_path,"device"))
-        self.app.experiment_log.clear()
-        emit_signal("on_experiment_log_changed", self.app.experiment_log)
-        self.app.main_window_controller.update()
+        app.protocol.save(os.path.join(log_path,"protocol"))
+        app.dmf_device.save(os.path.join(log_path,"device"))
+        app.experiment_log.clear()
+        emit_signal("on_experiment_log_changed", app.experiment_log)
+        app.main_window_controller.update()
 
     def on_window_show(self, widget, data=None):
         self.window.show()
@@ -211,20 +214,22 @@ class ExperimentLogController(SingletonPlugin):
         self.update()
     
     def on_button_load_device_clicked(self, widget, data=None):
-        filename = path(os.path.join(self.app.experiment_log.directory,
+        app = get_app()
+        filename = path(os.path.join(app.experiment_log.directory,
                                      str(self.results.log.experiment_id),
                                      'device')) 
         try:
             emit_signal("on_dmf_device_changed", [DmfDevice.load(filename)])
         except:
-            self.app.main_window_controller.error("Could not open %s" % filename)
-        self.app.main_window_controller.update()
+            app.main_window_controller.error("Could not open %s" % filename)
+        app.main_window_controller.update()
         
     def on_button_load_protocol_clicked(self, widget, data=None):
-        filename = path(os.path.join(self.app.experiment_log.directory,
+        app = get_app()
+        filename = path(os.path.join(app.experiment_log.directory,
                                      str(self.results.log.experiment_id),
                                      'protocol'))
-        self.app.protocol_controller.load_protocol(filename)
+        app.protocol_controller.load_protocol(filename)
         
     def on_textview_notes_focus_out_event(self, widget, data=None):
         if len(self.results.log.data[0])==0:
@@ -237,17 +242,19 @@ class ExperimentLogController(SingletonPlugin):
         self.results.log.save(filename)
 
     def on_dmf_device_changed(self, dmf_device):
+        app = get_app()
         device_path = None
         if dmf_device.name:
-            device_path = os.path.join(self.app.config.dmf_device_directory,
+            device_path = os.path.join(app.config.dmf_device_directory,
                                        dmf_device.name, "logs")
         experiment_log = ExperimentLog(device_path)
         emit_signal("on_experiment_log_changed", [experiment_log])
         
     def on_experiment_log_changed(self, dmf_device):
+        app = get_app()
         log_files = []
-        if path(self.app.experiment_log.directory).isdir():
-            for d in path(self.app.experiment_log.directory).dirs():
+        if path(app.experiment_log.directory).isdir():
+            for d in path(app.experiment_log.directory).dirs():
                 f = d / path("data")
                 if f.isfile():
                     log_files.append(int(d.name))

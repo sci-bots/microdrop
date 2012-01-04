@@ -21,13 +21,12 @@ import gtk
 from path import path
 
 from plugin_manager import PluginGlobals
+from app_context import get_app, plugin_manager
 
 
 class PluginController(object):
-    def __init__(self, app, name, plugin_manager):
-        self.app = app
+    def __init__(self, name):
         self.name = name
-        self.plugin_manager = plugin_manager
         self.e = PluginGlobals.env('microdrop.managed')
         self.plugin_class = self.e.plugin_registry[name]
         self.service = plugin_manager.get_service_instance(self.plugin_class)
@@ -45,8 +44,7 @@ class PluginController(object):
         return not(self.service is None or not self.service.enabled())
 
     def update(self):
-        self.service = self.plugin_manager\
-                        .get_service_instance(self.plugin_class)
+        self.service = plugin_manager.get_service_instance(self.plugin_class)
         if self.enabled():
             self.button.set_label('enabled')
         else:
@@ -54,9 +52,9 @@ class PluginController(object):
 
     def toggle_enabled(self):
         if not self.enabled():
-            self.plugin_manager.enable(self.app, self.name)
+            plugin_manager.enable(self.name)
         else:
-            self.plugin_manager.disable(self.name)
+            plugin_manager.disable(self.name)
         self.update()
 
     def get_widget(self):
@@ -67,13 +65,11 @@ class PluginController(object):
 
 
 class PluginManagerDialog(object):
-    def __init__(self, app):
+    def __init__(self):
         builder = gtk.Builder()
         builder.add_from_file(path('gui').joinpath('glade', 'plugin_manager_dialog.glade'))
         self.window = builder.get_object('plugin_manager')
         self.vbox_plugins = builder.get_object('vbox_plugins')
-        self.app = app
-        self.plugin_manager = app.plugin_manager
         self.e = PluginGlobals.env('microdrop.managed')
         self.plugins = []
 
@@ -86,7 +82,7 @@ class PluginManagerDialog(object):
         del self.plugins
         self.plugins = []
         for name in plugin_names:
-            p = PluginController(self.app, name, self.plugin_manager)
+            p = PluginController(name)
             self.plugins.append(p)
             self.vbox_plugins.pack_start(p.get_widget())
 
@@ -94,12 +90,13 @@ class PluginManagerDialog(object):
         return list(self.e.plugin_registry.keys())
 
     def run(self):
+        app = get_app()
         self.update()
         response = self.window.run()
         self.window.hide()
         enabled_plugins = [p.name for p in self.plugins if p.enabled()]
-        self.app.config.set_plugins(enabled_plugins)
-        self.app.config.save()
+        app.config.set_plugins(enabled_plugins)
+        app.config.save()
         return response
 
 

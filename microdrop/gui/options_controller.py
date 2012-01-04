@@ -22,6 +22,7 @@ import os
 import gtk
 
 from path import path
+from app_context import get_app
 
 
 def copytree(src, dst, symlinks=False, ignore=None):
@@ -79,8 +80,8 @@ def copytree(src, dst, symlinks=False, ignore=None):
 
 
 class OptionsController:
-    def __init__(self, app):
-        self.app = app
+    def __init__(self):
+        app = get_app()
         builder = gtk.Builder()
         builder.add_from_file(os.path.join("gui",
                                            "glade",
@@ -92,7 +93,7 @@ class OptionsController:
         self.btn_ok = builder.get_object('btn_ok')
         self.btn_apply = builder.get_object('btn_apply')
         self.btn_cancel = builder.get_object('btn_cancel')
-        self.txt_data_dir.set_text(path(self.app.config.dmf_device_directory).abspath())
+        self.txt_data_dir.set_text(path(app.config.dmf_device_directory).abspath())
 
         builder.connect_signals(self)
         self.builder = builder
@@ -111,8 +112,9 @@ class OptionsController:
         self.apply()
 
     def apply(self):
+        app = get_app()
         data_dir = path(self.txt_data_dir.get_text())
-        if data_dir == self.app.config.dmf_device_directory:
+        if data_dir == app.config.dmf_device_directory:
             return
 
         print 'apply changes:', data_dir
@@ -125,16 +127,17 @@ class OptionsController:
             if not result == gtk.RESPONSE_OK:
                 return
 
-        for d in self.app.config.dmf_device_directory.dirs():
+        for d in app.config.dmf_device_directory.dirs():
             copytree(d, data_dir.joinpath(d.name))
-        for f in self.app.config.dmf_device_directory.files():
+        for f in app.config.dmf_device_directory.files():
             f.copyfile(data_dir.joinpath(f.name))
-        self.app.config.dmf_device_directory.rmtree()
+        app.config.dmf_device_directory.rmtree()
         
-        self.app.config.dmf_device_directory = data_dir
-        self.app.config.save()
+        app.config.dmf_device_directory = data_dir
+        app.config.save()
 
     def on_btn_data_dir_browse_clicked(self, widget, data=None):
+        app = get_app()
         dialog = gtk.FileChooserDialog(title="Select data directory",
                                         action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
                                         buttons=(gtk.STOCK_CANCEL,
@@ -151,4 +154,4 @@ class OptionsController:
             self.txt_data_dir.set_text(options_dir)
                         
         dialog.destroy()
-        self.app.main_window_controller.update()
+        app.main_window_controller.update()

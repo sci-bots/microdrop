@@ -31,8 +31,9 @@ from protocol import Protocol
 from config import load as load_config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
-    IPlugin, implements, PluginGlobals
+    IPlugin, implements, PluginGlobals, Plugin
 from logger import logger, CustomHandler
+from app_context import plugin_manager
 
 
 PluginGlobals.push_env('microdrop')
@@ -45,8 +46,7 @@ import gui.main_window_controller
 import gui.dmf_device_controller
 import gui.protocol_controller
 
-
-class App(SingletonPlugin):
+class App(Plugin):
     implements(IPlugin)
 
     def __init__(self):
@@ -82,7 +82,7 @@ class App(SingletonPlugin):
         self.main_window_controller = None
 
         # load plugins
-        self.plugin_manager = PluginManager()
+        #plugin_manager = PluginManager()
 
         # Enable custom logging handler
         logger.addHandler(CustomHandler())
@@ -96,6 +96,8 @@ class App(SingletonPlugin):
         # protocol
         self.protocol = Protocol()
 
+
+    def run(self):
         # Initialize main window controller and dmf device
         # controller first (necessary for other plugins to add items to the
         # menus, etc.)
@@ -103,7 +105,7 @@ class App(SingletonPlugin):
         preinit_plugins = ['microdrop.gui.main_window_controller',
                                     'microdrop.gui.dmf_device_controller']
         for plugin in preinit_plugins:
-            observers(plugin)[0].on_app_init(self)
+            observers(plugin)[0].on_app_init()
         
         # initialize other plugins
         for observer in observers:
@@ -111,8 +113,9 @@ class App(SingletonPlugin):
                 hasattr(observer,"on_app_init"):
                 logger.info("Initialize %s plugin" % observer.name)
                 try:
-                    observer.on_app_init(self)
+                    observer.on_app_init()
                 except Exception, why:
+                    logger.error("Could not Initialize %s plugin" % observer.name)
                     logger.error(str(why))
                     logger.error(''.join(traceback.format_stack()))
                 
@@ -123,8 +126,8 @@ class App(SingletonPlugin):
         
         # Load optional plugins marked as enabled in config
         for p in self.config.enabled_plugins:
-            self.plugin_manager.enable(self, p)
-        self.plugin_manager.log_summary()
+            plugin_manager.enable(p)
+        plugin_manager.log_summary()
 
         # experiment logs
         device_path = None
@@ -143,7 +146,6 @@ class App(SingletonPlugin):
 
     def on_experiment_log_changed(self, experiment_log):
         self.experiment_log = experiment_log
-        
 
 PluginGlobals.pop_env()
 

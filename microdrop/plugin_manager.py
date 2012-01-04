@@ -80,7 +80,7 @@ class PluginManager():
             service.disable()
             logging.info('[PluginManager] Disabled plugin: %s' % name)
 
-    def enable(self, app, name, env='microdrop.managed'):
+    def enable(self, name, env='microdrop.managed'):
         e = PluginGlobals.env(env)
         if name not in e.plugin_registry:
             raise KeyError, 'No plugin registered with name: %s' % name
@@ -103,12 +103,13 @@ class PluginManager():
                         service_instance.deactivate()
                         print >> message, str(why)
                         logging.error(message.getvalue().strip())
-                return
+                return None
         if not service.enabled():
             service.enable()
             logging.info('[PluginManager] Enabled plugin: %s' % name)
         if hasattr(service, "on_plugin_enable"):
-            service.on_plugin_enable(app)
+            service.on_plugin_enable()
+        return service
 
     def get_service_instance(self, class_, env='microdrop.managed'):
         e = PluginGlobals.env(env)
@@ -176,13 +177,13 @@ else:
             """
             pass
         
-        def on_plugin_enable(app=None):
+        def on_plugin_enable():
             """
             Handler called once the plugin instance has been enabled.
             """
             pass
         
-        def on_app_init(app=None):
+        def on_app_init():
             """
             Handler called once when the Microdrop application starts.
             

@@ -32,6 +32,7 @@ from utility.gui import register_shortcuts
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal, PluginGlobals
 from gui.textbuffer_with_undo import UndoableBuffer
+from app_context import get_app
 
 
 PluginGlobals.push_env('microdrop')
@@ -42,7 +43,6 @@ class ProtocolController(SingletonPlugin):
     
     def __init__(self):
         self.name = "microdrop.gui.protocol_controller"
-        self.app = None
         self.builder = None
         self.textentry_step_duration = None
         self.textentry_voltage = None
@@ -55,6 +55,7 @@ class ProtocolController(SingletonPlugin):
         self.textentry_protocol_repeats = None
 
     def load_protocol(self, filename):
+        app = get_app()
         p = None
         try:
             p = protocol.load(filename)
@@ -64,18 +65,17 @@ class ProtocolController(SingletonPlugin):
                 if service:
                     service.on_protocol_load(version, data)
                 else:
-                    self.app.main_window_controller.warning("Protocol "
+                    app.main_window_controller.warning("Protocol "
                         "requires the %s plugin, however this plugin is "
                         "not available." % (name))
         except Exception, why:
-            print why
-            self.app.main_window_controller.error("Could not open %s. %s" \
+            app.main_window_controller.error("Could not open %s. %s" \
                                                   % (filename, why))
         if p:
             emit_signal("on_protocol_changed", p)
         
-    def on_app_init(self, app):
-        self.app = app
+    def on_app_init(self):
+        app = get_app()
         self.builder = app.builder
         
         self.textentry_notes = self.builder.get_object("textview_notes")
@@ -127,7 +127,7 @@ class ProtocolController(SingletonPlugin):
         self._register_shortcuts()
 
     def _register_shortcuts(self):
-        app = self.app
+        app = get_app()
         view = app.main_window_controller.view
         shortcuts = {
             'space': self.on_run_protocol,
@@ -148,43 +148,52 @@ class ProtocolController(SingletonPlugin):
                     enabled_widgets=[self.textentry_notes])
 
     def on_insert_step(self, widget=None, data=None):
-        self.app.protocol.insert_step()
+        app = get_app()
+        app.protocol.insert_step()
         emit_signal("on_insert_protocol_step")
-        self.app.main_window_controller.update()
+        app.main_window_controller.update()
 
     def on_copy_step(self, widget=None, data=None):
-        self.app.protocol.copy_step()
+        app = get_app()
+        app.protocol.copy_step()
         emit_signal("on_insert_protocol_step")
-        self.app.main_window_controller.update()
+        app.main_window_controller.update()
 
     def on_delete_step(self, widget=None, data=None):
-        self.app.protocol.delete_step()
+        app = get_app()
+        app.protocol.delete_step()
         emit_signal("on_delete_protocol_step")
-        self.app.main_window_controller.update()
+        app.main_window_controller.update()
 
     def on_first_step(self, widget=None, data=None):
-        self.app.protocol.first_step()
-        self.app.main_window_controller.update()
+        app = get_app()
+        app.protocol.first_step()
+        app.main_window_controller.update()
 
     def on_prev_step(self, widget=None, data=None):
-        self.app.protocol.prev_step()
-        self.app.main_window_controller.update()
+        app = get_app()
+        app.protocol.prev_step()
+        app.main_window_controller.update()
 
     def on_next_step(self, widget=None, data=None):
-        self.app.protocol.next_step()
-        self.app.main_window_controller.update()
+        app = get_app()
+        app.protocol.next_step()
+        app.main_window_controller.update()
 
     def on_last_step(self, widget=None, data=None):
-        self.app.protocol.last_step()
-        self.app.main_window_controller.update()
+        app = get_app()
+        app.protocol.last_step()
+        app.main_window_controller.update()
 
     def on_new_protocol(self, widget=None, data=None):
+        app = get_app()
         filename = None
-        p = Protocol(self.app.dmf_device.max_channel()+1)
+        p = Protocol(app.dmf_device.max_channel()+1)
         emit_signal("on_protocol_changed", p)
-        self.app.main_window_controller.update()
+        app.main_window_controller.update()
 
     def on_load_protocol(self, widget=None, data=None):
+        app = get_app()
         dialog = gtk.FileChooserDialog(title="Load protocol",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
@@ -192,24 +201,27 @@ class ProtocolController(SingletonPlugin):
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(os.path.join(self.app.config.dmf_device_directory,
-                                               self.app.dmf_device.name,
+        dialog.set_current_folder(os.path.join(app.config.dmf_device_directory,
+                                               app.dmf_device.name,
                                                "protocols"))
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             self.load_protocol(filename)
         dialog.destroy()
-        self.app.main_window_controller.update()
+        app.main_window_controller.update()
 
     def on_rename_protocol(self, widget=None, data=None):
-        self.app.config_controller.save_protocol(rename=True)
+        app = get_app()
+        app.config_controller.save_protocol(rename=True)
     
     def on_save_protocol(self, widget=None, data=None):
-        self.app.config_controller.save_protocol()
+        app = get_app()
+        app.config_controller.save_protocol()
     
     def on_save_protocol_as(self, widget=None, data=None):
-        self.app.config_controller.save_protocol(save_as=True)
+        app = get_app()
+        app.config_controller.save_protocol(save_as=True)
     
     def on_textentry_step_duration_focus_out(self, widget=None, data=None):
         self.on_step_duration_changed()
@@ -219,9 +231,10 @@ class ProtocolController(SingletonPlugin):
             self.on_step_duration_changed()
 
     def on_step_duration_changed(self):        
-        self.app.protocol.current_step().duration = \
+        app = get_app()
+        app.protocol.current_step().duration = \
             check_textentry(self.textentry_step_duration,
-                            self.app.protocol.current_step().duration,
+                            app.protocol.current_step().duration,
                             int)
 
     def on_textentry_voltage_focus_out(self, widget=None, data=None):
@@ -232,9 +245,10 @@ class ProtocolController(SingletonPlugin):
             self.on_voltage_changed()
 
     def on_voltage_changed(self):
-        self.app.protocol.current_step().voltage = \
+        app = get_app()
+        app.protocol.current_step().voltage = \
             check_textentry(self.textentry_voltage,
-                            self.app.protocol.current_step().voltage,
+                            app.protocol.current_step().voltage,
                             float)
         self.update()
         
@@ -246,9 +260,10 @@ class ProtocolController(SingletonPlugin):
             self.on_frequency_changed()
 
     def on_frequency_changed(self):
-        self.app.protocol.current_step().frequency = \
+        app = get_app()
+        app.protocol.current_step().frequency = \
             check_textentry(self.textentry_frequency,
-                            self.app.protocol.current_step().frequency/1e3,
+                            app.protocol.current_step().frequency/1e3,
                             float)*1e3
         self.update()
 
@@ -260,76 +275,82 @@ class ProtocolController(SingletonPlugin):
             self.on_protocol_repeats_changed()
     
     def on_protocol_repeats_changed(self):
-        self.app.protocol.n_repeats = \
+        app = get_app()
+        app.protocol.n_repeats = \
             check_textentry(self.textentry_protocol_repeats,
-                            self.app.protocol.n_repeats,
+                            app.protocol.n_repeats,
                             int)
         self.update()
             
     def on_run_protocol(self, widget=None, data=None):
-        if self.app.running:
+        app = get_app()
+        if app.running:
             self.pause_protocol()
         else:
             self.run_protocol()
 
     def run_protocol(self):
-        self.app.running = True
+        app = get_app()
+        app.running = True
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_pause"))
         emit_signal("on_protocol_run")
         self.run_step()
 
     def pause_protocol(self):
-        self.app.running = False
+        app = get_app()
+        app.running = False
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_play"))
         emit_signal("on_protocol_pause")
-        self.app.experiment_log_controller.save()
-        emit_signal("on_experiment_log_changed", self.app.experiment_log)        
+        app.experiment_log_controller.save()
+        emit_signal("on_experiment_log_changed", app.experiment_log)        
         
     def run_step(self):
-        self.app.main_window_controller.update()
+        app = get_app()
+        app.main_window_controller.update()
         
-        if self.app.protocol.current_step_number < len(self.app.protocol)-1:
-            self.app.protocol.next_step()
-        elif self.app.protocol.current_repetition < self.app.protocol.n_repeats-1:
-            self.app.protocol.next_repetition()
+        if app.protocol.current_step_number < len(app.protocol)-1:
+            app.protocol.next_step()
+        elif app.protocol.current_repetition < app.protocol.n_repeats-1:
+            app.protocol.next_repetition()
         else: # we're on the last step
             self.pause_protocol()
 
-        if self.app.running:
+        if app.running:
             self.run_step()
 
     def update(self):
+        app = get_app()
         self.textentry_step_duration.set_text(str(
-            self.app.protocol.current_step().duration))
+            app.protocol.current_step().duration))
         self.textentry_voltage.set_text(str(
-            self.app.protocol.current_step().voltage))
+            app.protocol.current_step().voltage))
         self.textentry_frequency.set_text(str(
-            self.app.protocol.current_step().frequency/1e3))
+            app.protocol.current_step().frequency/1e3))
         self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
-            (self.app.protocol.current_step_number+1,
-            len(self.app.protocol.steps),
-            self.app.protocol.current_repetition+1,
-            self.app.protocol.n_repeats))
+            (app.protocol.current_step_number+1,
+            len(app.protocol.steps),
+            app.protocol.current_repetition+1,
+            app.protocol.n_repeats))
 
-        if self.app.realtime_mode or self.app.running:
+        if app.realtime_mode or app.running:
             attempt=0
             while True:
-                data = {"step":self.app.protocol.current_step_number, 
-                "time":time.time()-self.app.experiment_log.start_time()}
+                data = {"step":app.protocol.current_step_number, 
+                "time":time.time()-app.experiment_log.start_time()}
                 if attempt>0:
                     data["attempt"] = attempt                
                 return_codes = emit_signal("on_protocol_update", data)
-                if return_codes.count("Fail")>0:
+                if return_codes.count("Fail") > 0:
                     self.pause_protocol()
-                    self.app.main_window_controller.error("Protocol failed.")
+                    app.main_window_controller.error("Protocol failed.")
                     break
-                elif return_codes.count("Repeat")>0:
-                    self.app.experiment_log.add_data(data)
+                elif return_codes.count("Repeat") > 0:
+                    app.experiment_log.add_data(data)
                     attempt+=1
                 else:
-                    self.app.experiment_log.add_data(data)
+                    app.experiment_log.add_data(data)
                     break
         else:
             data = {}
