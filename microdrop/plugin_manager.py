@@ -45,7 +45,7 @@ class PluginManager():
         plugins_dir = path(plugins_dir)
         logging.info('Loading plugins:')
         if plugins_dir.parent.abspath() not in sys.path:
-            sys.path.append(plugins_dir.parent.abspath())
+            sys.path.insert(0, plugins_dir.parent.abspath())
         for d in plugins_dir.dirs():
             package = (d / path('microdrop'))
             if package.isdir(): 
