@@ -21,6 +21,7 @@ import os
 import sys
 import gtk
 import time
+import webbrowser
 
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
@@ -79,6 +80,7 @@ class MainWindowController(SingletonPlugin):
 
         app.signals["on_menu_quit_activate"] = self.on_destroy
         app.signals["on_menu_about_activate"] = self.on_about
+        app.signals["on_menu_online_help_activate"] = self.on_menu_online_help_activate
         app.signals["on_menu_experiment_logs_activate"] = \
             self.on_menu_experiment_logs_activate
         app.signals["on_window_destroy"] = self.on_destroy
@@ -123,6 +125,9 @@ class MainWindowController(SingletonPlugin):
         dialog.set_version(app.version)
         dialog.run()
         dialog.hide()
+
+    def on_menu_online_help_activate(self, widget, data=None):
+        webbrowser.open_new_tab('http://microfluidics.utoronto.ca/microdrop/wiki/UserGuide')
 
     def on_menu_manage_plugins_activate(self, widget, data=None):
         app = get_app()

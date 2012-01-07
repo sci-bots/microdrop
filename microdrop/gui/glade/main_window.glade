@@ -22,6 +22,11 @@
     <property name="can_focus">False</property>
     <property name="stock">gtk-properties</property>
   </object>
+  <object class="GtkImage" id="image5">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-dialog-question</property>
+  </object>
   <object class="GtkImage" id="image_go_back">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -347,6 +352,18 @@
                   <object class="GtkMenu" id="menu_help">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkImageMenuItem" id="menu_online_help">
+                        <property name="label">Online _help</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="image">image5</property>
+                        <property name="use_stock">False</property>
+                        <signal name="activate" handler="on_menu_online_help_activate" swapped="no"/>
+                      </object>
+                    </child>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_about">
                         <property name="label">gtk-about</property>
