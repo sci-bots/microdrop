@@ -1,5 +1,5 @@
 """
-Copyright 2011 Ryan Fobel
+Copyright 2011 Ryan Fobel and Christian Fobel
 
 This file is part of Microdrop.
 
@@ -18,13 +18,17 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from copy import deepcopy
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 import numpy as np
 
 
 def load(filename):
     f = open(filename, 'rb')
-    protocol = cPickle.load(f)
+    protocol = pickle.load(f)
     f.close()
     return protocol
 
@@ -46,7 +50,7 @@ class Protocol():
 
     def save(self, filename):
         f = open(filename, 'wb')
-        cPickle.dump(self, f, -1)
+        pickle.dump(self, f, -1)
         f.close()
 
     def set_state_of_channel(self, index, state):

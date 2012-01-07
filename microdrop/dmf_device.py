@@ -17,7 +17,11 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 import numpy as np
 
 from logger import logger
@@ -38,7 +42,7 @@ class DmfDevice():
     @staticmethod
     def load(filename):
         f = open(filename, 'rb')
-        out = cPickle.load(f)
+        out = pickle.load(f)
         f.close()
         if not hasattr(out, 'version'):
             out.version = '0.0'
@@ -56,7 +60,7 @@ class DmfDevice():
 
     def save(self, filename):
         f = open(filename, 'wb')
-        cPickle.dump(self, f, -1)
+        pickle.dump(self, f, -1)
         f.close()
 
     def geometry(self):
