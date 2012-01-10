@@ -277,7 +277,7 @@ else:
             pass
 
 
-def emit_signal(function, args=[], interface=IPlugin):
+def emit_signal(function, args=[], interface=IPlugin, observer_tuple=False):
     return_codes = []
     observers = ExtensionPoint(interface)
     for observer in observers:
@@ -286,7 +286,10 @@ def emit_signal(function, args=[], interface=IPlugin):
                 if type(args) is not list:
                     args = [args]
                 f = getattr(observer, function)
-                return_code = f(*args)
+                if observer_tuple:
+                    return_code = observer, f(*args)
+                else:
+                    return_code = f(*args)
                 return_codes.append(return_code)
             except Exception, why:
                 with closing(StringIO()) as message:

@@ -22,6 +22,7 @@ import gobject
 import os
 import math
 import time
+import logging
 
 import numpy as np
 
@@ -232,10 +233,9 @@ class ProtocolController(SingletonPlugin):
 
     def on_step_duration_changed(self):        
         app = get_app()
-        app.protocol.current_step().duration = \
-            check_textentry(self.textentry_step_duration,
-                            app.protocol.current_step().duration,
-                            int)
+        step = app.protocol.current_step()
+        step.duration = \
+            check_textentry(self.textentry_step_duration, step.duration, int)
 
     def on_textentry_voltage_focus_out(self, widget=None, data=None):
         self.on_voltage_changed()
@@ -246,10 +246,12 @@ class ProtocolController(SingletonPlugin):
 
     def on_voltage_changed(self):
         app = get_app()
-        app.protocol.current_step().voltage = \
-            check_textentry(self.textentry_voltage,
-                            app.protocol.current_step().voltage,
-                            float)
+        step = app.protocol.current_step()
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        options = step.get_data(dmf_plugin_name)
+        options.voltage = \
+            check_textentry(self.textentry_voltage, options.voltage, float)
         self.update()
         
     def on_textentry_frequency_focus_out(self, widget=None, data=None):
@@ -261,9 +263,13 @@ class ProtocolController(SingletonPlugin):
 
     def on_frequency_changed(self):
         app = get_app()
-        app.protocol.current_step().frequency = \
+        step = app.protocol.current_step()
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        options = step.get_data(dmf_plugin_name)
+        options.frequency = \
             check_textentry(self.textentry_frequency,
-                            app.protocol.current_step().frequency/1e3,
+                            options.frequency/1e3,
                             float)*1e3
         self.update()
 
@@ -312,33 +318,28 @@ class ProtocolController(SingletonPlugin):
         app = get_app()
         app.main_window_controller.update()
         
-        if app.protocol.current_step_number < len(app.protocol)-1:
+        if app.protocol.current_step_number < len(app.protocol) - 1:
             app.protocol.next_step()
-        elif app.protocol.current_repetition < app.protocol.n_repeats-1:
+        elif app.protocol.current_repetition < app.protocol.n_repeats - 1:
             app.protocol.next_repetition()
         else: # we're on the last step
             self.pause_protocol()
 
     def update(self):
         app = get_app()
-        self.textentry_step_duration.set_text(str(
-            app.protocol.current_step().duration))
-        self.textentry_voltage.set_text(str(
-            app.protocol.current_step().voltage))
-        self.textentry_frequency.set_text(str(
-            app.protocol.current_step().frequency/1e3))
+        step = app.protocol.current_step()
         self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
-            (app.protocol.current_step_number+1,
+            (app.protocol.current_step_number + 1,
             len(app.protocol.steps),
-            app.protocol.current_repetition+1,
+            app.protocol.current_repetition + 1,
             app.protocol.n_repeats))
 
         if app.realtime_mode or app.running:
             attempt=0
             while True:
-                data = {"step":app.protocol.current_step_number, 
-                "time":time.time()-app.experiment_log.start_time()}
-                if attempt>0:
+                data = {"step": app.protocol.current_step_number, 
+                        "time": time.time() - app.experiment_log.start_time()}
+                if attempt > 0:
                     data["attempt"] = attempt                
                 return_codes = emit_signal("on_protocol_update", data)
                 if return_codes.count("Fail") > 0:
@@ -354,9 +355,17 @@ class ProtocolController(SingletonPlugin):
         else:
             data = {}
             emit_signal("on_protocol_update", data)
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        logging.debug('[ProtocolController] dmf_plugin_name=%s' % dmf_plugin_name)
+        options = step.get_data(dmf_plugin_name)
+
+        self.textentry_step_duration.set_text(str(step.duration))
+        self.textentry_voltage.set_text(str(options.voltage))
+        self.textentry_frequency.set_text(str(options.frequency / 1e3))
                 
     def on_dmf_device_changed(self, dmf_device):
-        emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel()+1))
+        emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel() + 1))
 
 
 PluginGlobals.pop_env()

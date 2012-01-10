@@ -47,6 +47,8 @@ PluginGlobals.push_env('microdrop')
 class ExperimentLogController(SingletonPlugin):
     implements(IPlugin)
 
+    Results = namedtuple('Results', ['log', 'protocol'])
+
     def __init__(self):
         self.name = "microdrop.gui.experiment_log_controller" 
         self.builder = gtk.Builder()
@@ -54,9 +56,7 @@ class ExperimentLogController(SingletonPlugin):
             "experiment_log_window.glade"))
         self.window = self.builder.get_object("window")
         self.combobox_log_files = self.builder.get_object("combobox_log_files")
-        self.results = namedtuple('Results', ['log', 'protocol'])
-        self.results.log = None
-        self.results.protocol = None
+        self.results = self.Results(None, None)
         self.protocol_view = self.builder.get_object("treeview_protocol")
         self.protocol_view.get_selection().set_mode(gtk.SELECTION_MULTIPLE)        
         self.columns = [ExperimentLogColumn("Time (s)", float, "%.3f"),
@@ -76,8 +76,11 @@ class ExperimentLogController(SingletonPlugin):
         app = get_app()
         try:
             id = combobox_get_active_text(self.combobox_log_files)
-            f = path(app.experiment_log.directory) / path(id) / path("data")
-            self.results.log = load_experiment_log(f)
+            log = path(app.experiment_log.directory) / path(id) / path("data")
+            protocol = path(app.experiment_log.directory) / path(id) / path("protocol")
+
+            self.results = self.Results(load_experiment_log(log),
+                                        load_protocol(protocol))
 
             self.builder.get_object("button_load_device").set_sensitive(True)        
             self.builder.get_object("button_load_protocol").set_sensitive(True)    
@@ -145,8 +148,6 @@ class ExperimentLogController(SingletonPlugin):
             self.builder.get_object("textview_notes"). \
                 get_buffer().set_text(label)
 
-            f = path(app.experiment_log.directory) / path(id) / path("protocol")
-            self.results.protocol = load_protocol(f)
             self._clear_list_columns()
             types = []
             for i, c in enumerate(self.columns):
@@ -157,18 +158,21 @@ class ExperimentLogController(SingletonPlugin):
             for d in self.results.log.data:
                 if d.keys().count("step") and d.keys().count("time"):
                     step = self.results.protocol[d["step"]]
+                    dmf_plugin_name = step.plugin_name_lookup(
+                        r'wheelerlab.dmf_control_board_', re_pattern=True)
+                    options = step.get_data(dmf_plugin_name)
                     vals = []
                     for i, c in enumerate(self.columns):
                         if c.name=="Time (s)":
                             vals.append(d["time"])
                         elif c.name=="Step #":
-                            vals.append(d["step"]+1)
+                            vals.append(d["step"] + 1)
                         elif c.name=="Duration (s)":
-                            vals.append(step.duration/1000.0)
+                            vals.append(step.duration / 1000.0)
                         elif c.name=="Voltage (VRMS)":
-                            vals.append(step.voltage)
+                            vals.append(options.voltage)
                         elif c.name=="Frequency (kHz)":
-                            vals.append(step.frequency/1000.0)
+                            vals.append(options.frequency / 1000.0)
                         else:
                             vals.append(None)
                     protocol_list.append(vals)
