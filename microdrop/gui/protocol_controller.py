@@ -370,7 +370,6 @@ class ProtocolController(SingletonPlugin):
         self.textentry_voltage.set_text(str(options.voltage))
         self.textentry_frequency.set_text(str(options.frequency / 1e3))
 
-
     def on_protocol_update(self, data=None):
         app = get_app()
         with closing(StringIO()) as sio:
@@ -379,9 +378,8 @@ class ProtocolController(SingletonPlugin):
                 service = observers.service(plugin_name)
                 print >> sio, '[ProtocolController] plugin.name=%s field_values='\
                         % (plugin_name),
-                print >> sio, [service.get_step_value(f.name) for f in fields]
+                print >> sio, [service.get_step_value(f) for f in fields]
             logging.debug(sio.getvalue())
-
                 
     def on_dmf_device_changed(self, dmf_device):
         emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel() + 1))
