@@ -32,6 +32,13 @@ except ImportError:
     import utility as utility
 
 
+def except_handler(*args, **kwargs):
+    import traceback
+
+    print args, kwargs
+    traceback.print_tb(args[2])
+
+
 if __name__ == '__main__':
     if hasattr(sys, 'frozen'):
         multiprocessing.freeze_support()
@@ -47,4 +54,5 @@ if __name__ == '__main__':
     from app_context import get_app
     
     my_app = get_app()
+    sys.excepthook = except_handler
     my_app.run()

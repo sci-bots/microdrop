@@ -19,6 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 from copy import deepcopy
 import re
+import logging
 try:
     import cPickle as pickle
 except ImportError:
@@ -37,7 +38,7 @@ class Protocol():
     def __init__(self, n_channels=0, name=None):
         self.n_channels = n_channels
         self.current_step_number = 0
-        self.steps = [Step(self.n_channels)]
+        self.steps = [Step()]
         self.name = None
         self.n_repeats = 1
         self.current_repetition = 0
@@ -54,29 +55,21 @@ class Protocol():
         pickle.dump(self, f, -1)
         f.close()
 
-    def set_state_of_channel(self, index, state):
-        self.current_step().state_of_channels[index] = state
-
-    def state_of_all_channels(self):
-        return self.current_step().state_of_channels
-
     def set_number_of_channels(self, n_channels):
         self.n_channels = n_channels
-        for step in self.steps:
-            step.state_of_channels = np.resize(step.state_of_channels, n_channels)
 
     def current_step(self):
         return self.steps[self.current_step_number]
 
     def insert_step(self):
         self.steps.insert(self.current_step_number,
-                          Step(self.n_channels, self.current_step().duration))
+                          Step(duration=self.current_step().duration))
 
     def copy_step(self):
         self.steps.insert(self.current_step_number,
-            Step(self.n_channels, duration=self.current_step().duration,
+            Step(duration=self.current_step().duration,
                 state_of_channels=self.current_step().state_of_channels,
-                plugin_data=self.current_step().plugin_data))
+                plugin_data=deepcopy(self.current_step().plugin_data)))
         self.next_step()
 
     def delete_step(self):
@@ -85,11 +78,11 @@ class Protocol():
             if self.current_step_number == len(self.steps):
                 self.current_step_number -= 1
         else: # reset first step
-            self.steps = [Step(self.n_channels, )]
+            self.steps = [Step()]
 
     def next_step(self):
         if self.current_step_number == len(self.steps) - 1:
-            self.steps.append(Step(self.n_channels, self.current_step().duration))
+            self.steps.append(Step(duration=self.current_step().duration))
         self.goto_step(self.current_step_number + 1)
         
     def next_repetition(self):
@@ -113,12 +106,8 @@ class Protocol():
         
 
 class Step(object):
-    def __init__(self, n_channels, duration=100, state_of_channels=None, plugin_data=None):
+    def __init__(self, duration=100, plugin_data=None):
         self.duration = duration
-        if state_of_channels is None:
-            self.state_of_channels = np.zeros(n_channels)
-        else:
-            self.state_of_channels = deepcopy(state_of_channels)
         if plugin_data is None:
             self.plugin_data = {}
         else:
@@ -139,6 +128,7 @@ class Step(object):
 
     def get_data(self, plugin_name):
         #return self.plugin_data.get(plugin_name, None)
+        logging.debug('[Step] plugin_data=%s' % self.plugin_data)
         return self.plugin_data.get(plugin_name)
 
     def set_data(self, plugin_name, data):
