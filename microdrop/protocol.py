@@ -43,6 +43,7 @@ class Protocol():
         self.n_repeats = 1
         self.current_repetition = 0
         self.plugin_data = {}
+        self.plugin_fields = {}
 
     def __len__(self):
         return len(self.steps)
