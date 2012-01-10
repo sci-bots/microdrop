@@ -6,12 +6,12 @@ import logging
 class Field(object):
     def __init__(self, name, type=str, editable=True, default=None):
         self.name = name
-        self.type_ = type
+        self.type = type
         self.editable = editable
         if default is None:
-            self._default = self.type_()
+            self._default = self.type()
         else:
-            self._default = self.type_(default)
+            self._default = self.type(default)
 
     def __setstate__(self, state):
         self.__dict__.update(state)

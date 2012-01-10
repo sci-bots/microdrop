@@ -143,7 +143,10 @@ class MainWindowController(SingletonPlugin):
         logger.info('[MainWindowController] Menu debug activated')
         observers = ExtensionPoint(IPlugin)
         service = observers.service(dmf_plugin_name)
-        service.set_step_values({'voltage': 9090, 'frequency': 100})
+        import random
+        service.set_step_values({'voltage': random.randint(10, 100),
+                'frequency': random.randint(1e3, 100e3),
+                'feedback_enabled': True})
         self.update()
 
     def on_menu_experiment_logs_activate(self, widget, data=None):
