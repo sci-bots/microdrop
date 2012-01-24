@@ -215,7 +215,8 @@ class MainWindowController(SingletonPlugin):
         while gtk.events_pending():
             gtk.main_iteration()
 
-    def on_url_clicked(self, widget, data=None):
-        logger.debug('url clicked')
+    def on_url_clicked(self, widget, data):
+        logger.debug("URL clicked: %s" % data)
+        webbrowser.open_new_tab(data)
 
 PluginGlobals.pop_env()
