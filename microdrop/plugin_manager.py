@@ -18,6 +18,9 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import traceback
+import sys
+from StringIO import StringIO
+from contextlib import closing
 
 from pyutilib.component.core import Interface, ExtensionPoint, implements, PluginGlobals
 import pyutilib.component.loader
@@ -38,13 +41,18 @@ PluginGlobals.pop_env()
 PluginGlobals.push_env('microdrop')
 
 class PluginManager():
-    def __init__(self):
+    def load_plugins(self, plugins_dir='plugins'):
+        plugins_dir = path(plugins_dir)
         logging.info('Loading plugins:')
-        for d in path("plugins").dirs():
-            package = (d / path("microdrop"))
+        if plugins_dir.parent.abspath() not in sys.path:
+            sys.path.insert(0, plugins_dir.parent.abspath())
+        for d in plugins_dir.dirs():
+            package = (d / path('microdrop'))
             if package.isdir(): 
                 logging.info('\t %s' % package.abspath())
-                exec("import plugins.%s.microdrop" % d.name) 
+                import_statement = 'import %s.%s.microdrop' % (plugins_dir.name, d.name)
+                logging.info(import_statement)
+                exec(import_statement)
 
     def log_summary(self):
         observers = ExtensionPoint(IPlugin)
@@ -73,10 +81,12 @@ class PluginManager():
         class_ = e.plugin_registry[name]
         service = self.get_service_instance(class_, env)
         if service and service.enabled():
+            if hasattr(service, "on_plugin_disable"):
+                service.on_plugin_disable()
             service.disable()
             logging.info('[PluginManager] Disabled plugin: %s' % name)
 
-    def enable(self, app, name, env='microdrop.managed'):
+    def enable(self, name, env='microdrop.managed'):
         e = PluginGlobals.env(env)
         if name not in e.plugin_registry:
             raise KeyError, 'No plugin registered with name: %s' % name
@@ -85,12 +95,26 @@ class PluginManager():
         if service is None:
             # There is not currently any plugin registered of the specified
             # type.
-            service = PluginClass()
+            try:
+                service = PluginClass()
+            except Exception, why:
+                service_instance = self.get_service_instance(PluginClass)
+                with closing(StringIO()) as message:
+                    if service_instance:
+                            if hasattr(service_instance, "name"):
+                                print >> message, '%s plugin crashed during initialization:' % str(PluginClass),
+                            # Deactivate in plugin registry since the plugin was not
+                            # initialized properly.
+                            service_instance.deactivate()
+                    print >> message, str(why)
+                    logging.error(message.getvalue().strip())
+                return None
         if not service.enabled():
             service.enable()
             logging.info('[PluginManager] Enabled plugin: %s' % name)
         if hasattr(service, "on_plugin_enable"):
-            service.on_plugin_enable(app)
+            service.on_plugin_enable()
+        return service
 
     def get_service_instance(self, class_, env='microdrop.managed'):
         e = PluginGlobals.env(env)
@@ -152,7 +176,19 @@ else:
 
 
     class IPlugin(Interface):    
-        def on_app_init(app=None):
+        def on_plugin_disable():
+            """
+            Handler called once the plugin instance has been disabled.
+            """
+            pass
+        
+        def on_plugin_enable():
+            """
+            Handler called once the plugin instance has been enabled.
+            """
+            pass
+        
+        def on_app_init():
             """
             Handler called once when the Microdrop application starts.
             
@@ -239,8 +275,6 @@ else:
                     for the selected steps
             """
             pass
-    
-
 
 
 def emit_signal(function, args=[], interface=IPlugin):
@@ -255,10 +289,17 @@ def emit_signal(function, args=[], interface=IPlugin):
                 return_code = f(*args)
                 return_codes.append(return_code)
             except Exception, why:
-                if hasattr(observer, "name"):
-                    logging.error('%s plugin crashed.' % observer.name)
-                logging.error(str(why))
-                logging.error(''.join(traceback.format_stack()))
+                with closing(StringIO()) as message:
+                    if hasattr(observer, "name"):
+                        if interface == ILoggingPlugin:
+                            # If this is a logging plugin, do not try to log since
+                            # that will result in infinite recursion.  Instead,
+                            # just continute onto the next plugin.
+                            continue
+                        print >> message, '%s plugin crashed.' % observer.name
+                    print >> message, 'Reason:', str(why)
+                    logging.error(message.getvalue().strip())
+                logging.debug(''.join(traceback.format_stack()))
     return return_codes
 
 PluginGlobals.pop_env()

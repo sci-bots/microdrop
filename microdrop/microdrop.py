@@ -43,6 +43,8 @@ if __name__ == '__main__':
     logger.info('Root directory: %s' % root_dir)
     os.chdir(root_dir)
 
-    # importing app automatically initilizes an instance of the class because
-    # it is defined as a singleton plugin
     from app import App
+    from app_context import get_app
+    
+    my_app = get_app()
+    my_app.run()

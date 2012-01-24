@@ -26,6 +26,7 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
     implements, emit_signal, PluginGlobals
+from app_context import get_app
 
 
 PluginGlobals.push_env('microdrop')
@@ -37,9 +38,9 @@ class ConfigController(SingletonPlugin):
     def __init__(self):
         self.name = "microdrop.gui.config_controller"
 
-    def on_app_init(self, app):
-        self.app = app
-        app.config_controller = self
+    def on_app_init(self):
+        self.app = get_app()
+        self.app.config_controller = self
 
     def on_app_exit(self):
         # TODO: prompt to save if these have been changed 

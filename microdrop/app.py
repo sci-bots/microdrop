@@ -24,6 +24,7 @@ import traceback
 
 import gtk
 import numpy as np
+from path import path
 
 from utility import base_path, PROGRAM_LAUNCHED
 from dmf_device import DmfDevice
@@ -31,8 +32,9 @@ from protocol import Protocol
 from config import load as load_config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
-    IPlugin, implements, PluginGlobals
-from logger import logger, CustomHandler
+    IPlugin, implements, PluginGlobals, Plugin
+from logger import logger, CustomHandler, logging
+from app_context import plugin_manager
 
 
 PluginGlobals.push_env('microdrop')
@@ -44,10 +46,8 @@ import gui.config_controller
 import gui.main_window_controller
 import gui.dmf_device_controller
 import gui.protocol_controller
-import gui.logging_controller
 
-
-class App(SingletonPlugin):
+class App(Plugin):
     implements(IPlugin)
 
     def __init__(self):
@@ -82,47 +82,41 @@ class App(SingletonPlugin):
         self.protocol_controller = None
         self.main_window_controller = None
 
-        # load plugins
-        self.plugin_manager = PluginManager()
-
         # Enable custom logging handler
         logger.addHandler(CustomHandler())
+        self.log_file_handler = None
 
         # config model
         self.config = load_config()
         
-        # Load optional plugins marked as enabled in config
-        for p in self.config.enabled_plugins:
-            self.plugin_manager.enable(self, p)
-        self.plugin_manager.log_summary()
-
         # dmf device
         self.dmf_device = DmfDevice()
 
         # protocol
         self.protocol = Protocol()
 
-        # initilize loggin controller, main window controller and dmf device
+    def run(self):
+        plugin_manager.load_plugins(self.config.plugins_directory)
+        self.update_log_file()
+
+        # Initialize main window controller and dmf device
         # controller first (necessary for other plugins to add items to the
         # menus, etc.)
         observers = ExtensionPoint(IPlugin)
-        observers('microdrop.gui.logging_controller')[0]. \
-            on_app_init(self)
-        observers('microdrop.gui.main_window_controller')[0]. \
-            on_app_init(self)
-        observers('microdrop.gui.dmf_device_controller')[0]. \
-            on_app_init(self)
+        preinit_plugins = ['microdrop.gui.main_window_controller',
+                                    'microdrop.gui.dmf_device_controller']
+        for plugin in preinit_plugins:
+            observers(plugin)[0].on_app_init()
         
         # initialize other plugins
         for observer in observers:
-            if observer.name!='microdrop.gui.logging_controller' and \
-                observer.name!='microdrop.gui.main_window_controller' and \
-                observer.name!='microdrop.gui.dmf_device_controller' and \
+            if observer.name not in preinit_plugins and \
                 hasattr(observer,"on_app_init"):
-                print "Initialize %s plugin" % observer.name
+                logger.info("Initialize %s plugin" % observer.name)
                 try:
-                    observer.on_app_init(self)
+                    observer.on_app_init()
                 except Exception, why:
+                    logger.error("Could not Initialize %s plugin" % observer.name)
                     logger.error(str(why))
                     logger.error(''.join(traceback.format_stack()))
                 
@@ -131,6 +125,16 @@ class App(SingletonPlugin):
         # process the config file
         self.config_controller.process_config_file()
         
+        # Load optional plugins marked as enabled in config
+        for p in self.config.enabled_plugins:
+            try:
+                plugin_manager.enable(p)
+            except KeyError:
+                logger.warning('Requested plugin (%s) is not available.\n\n'
+                    'Please check that it exists in the plugins '
+                    'directory:\n\n    %s' % (p, self.config.plugins_directory))
+        plugin_manager.log_summary()
+
         # experiment logs
         device_path = None
         if self.dmf_device.name:
@@ -148,7 +152,39 @@ class App(SingletonPlugin):
 
     def on_experiment_log_changed(self, experiment_log):
         self.experiment_log = experiment_log
-        
+
+    def _set_log_file_handler(self):
+        if self.log_file_handler:
+            self._destroy_log_file_handler()
+        log_file = self.config.log_file_config.file
+        self.log_file_handler = logging.FileHandler(log_file)
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        self.log_file_handler.setFormatter(formatter)
+        logger.addHandler(self.log_file_handler)
+        logger.info('[App] added log_file_handler: %s' % log_file)
+
+    def _destroy_log_file_handler(self):
+        if self.log_file_handler is None:
+            return
+        logger.info('[App] closing log_file_handler')
+        self.log_file_handler.close()
+        del self.log_file_handler
+        self.log_file_handler = None
+
+    def update_log_file(self):
+        if self.log_file_handler is None:
+            if self.config.log_file_config.enabled:
+                self._set_log_file_handler()
+                logger.info('[App] logging enabled')
+        else:
+            # Log file handler already exists
+            if self.config.log_file_config.enabled:
+                log_file = self.config.log_file_config.file
+                if log_file != self.log_file_handler.baseFilename:
+                    # Requested log file path has been changed
+                    self._set_log_file_handler()
+            else:
+                self._destroy_log_file_handler()
 
 PluginGlobals.pop_env()
 

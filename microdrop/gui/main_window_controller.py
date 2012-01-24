@@ -21,11 +21,14 @@ import os
 import sys
 import gtk
 import time
+import webbrowser
 
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal, PluginGlobals
+    implements, emit_signal, PluginGlobals, ILoggingPlugin
 from gui.plugin_manager_dialog import PluginManagerDialog
+from app_context import get_app
+from logger import logger
 
 
 class MicroDropError(Exception):
@@ -37,9 +40,9 @@ PluginGlobals.push_env('microdrop')
 
 class MainWindowController(SingletonPlugin):
     implements(IPlugin)
+    implements(ILoggingPlugin)
 
     def __init__(self):
-        self.app = None
         self.name = "microdrop.gui.main_window_controller"
         self.builder = None
         self.view = None
@@ -60,8 +63,9 @@ class MainWindowController(SingletonPlugin):
         self.text_input_dialog.textentry = builder.get_object("textentry")
         self.text_input_dialog.label = builder.get_object("label")
         
-    def on_app_init(self, app):
-        self.app = app
+    def on_app_init(self):
+        #print '[MainWindowController] %s' % get_app()
+        app = get_app()
         app.builder.add_from_file(os.path.join("gui",
                                                "glade",
                                                "main_window.glade"))
@@ -76,6 +80,7 @@ class MainWindowController(SingletonPlugin):
 
         app.signals["on_menu_quit_activate"] = self.on_destroy
         app.signals["on_menu_about_activate"] = self.on_about
+        app.signals["on_menu_online_help_activate"] = self.on_menu_online_help_activate
         app.signals["on_menu_experiment_logs_activate"] = \
             self.on_menu_experiment_logs_activate
         app.signals["on_window_destroy"] = self.on_destroy
@@ -89,7 +94,7 @@ class MainWindowController(SingletonPlugin):
         self.builder.add_from_file(os.path.join("gui",
                                                 "glade",
                                                 "about_dialog.glade"))
-        self.app.main_window_controller = self
+        app.main_window_controller = self
         
     def main(self):
         self.update()
@@ -114,18 +119,24 @@ class MainWindowController(SingletonPlugin):
         gtk.main_quit()
 
     def on_about(self, widget, data=None):
+        app = get_app()
         dialog = self.builder.get_object("about_dialog")
-        dialog.set_transient_for(self.app.main_window_controller.view)
-        dialog.set_version(self.app.version)
+        dialog.set_transient_for(app.main_window_controller.view)
+        dialog.set_version(app.version)
         dialog.run()
         dialog.hide()
 
+    def on_menu_online_help_activate(self, widget, data=None):
+        webbrowser.open_new_tab('http://microfluidics.utoronto.ca/microdrop/wiki/UserGuide')
+
     def on_menu_manage_plugins_activate(self, widget, data=None):
-        pmd = PluginManagerDialog(self.app)        
+        app = get_app()
+        pmd = PluginManagerDialog()
         response = pmd.run()
 
     def on_menu_experiment_logs_activate(self, widget, data=None):
-        self.app.experiment_log_controller.on_window_show(widget, data)
+        app = get_app()
+        app.experiment_log_controller.on_window_show(widget, data)
 
     def on_realtime_mode_toggled(self, widget, data=None):
         self.update()
@@ -133,9 +144,17 @@ class MainWindowController(SingletonPlugin):
     def on_menu_options_activate(self, widget, data=None):
         from options_controller import OptionsController
 
-        print 'selected options menu'
-        OptionsController(self.app).run()
+        OptionsController().run()
         self.update()
+
+    def on_warning(self, record):
+        self.warning(record.message)
+
+    def on_error(self, record):
+        self.error(record.message)
+
+    def on_critical(self, record):
+        self.error(record.message)
 
     def error(self, message, title="Error"):
         dialog = gtk.MessageDialog(self.view,
@@ -178,24 +197,25 @@ class MainWindowController(SingletonPlugin):
         return result
 
     def update(self):
-        self.app.realtime_mode = self.checkbutton_realtime_mode.get_active()
-        self.app.dmf_device_controller.update()
-        self.app.protocol_controller.update()
+        app = get_app()
+        app.realtime_mode = self.checkbutton_realtime_mode.get_active()
+        app.dmf_device_controller.update()
+        app.protocol_controller.update()
         
-        if self.app.dmf_device.name:
-            experiment_id = self.app.experiment_log.get_next_id()
+        if app.dmf_device.name:
+            experiment_id = app.experiment_log.get_next_id()
         else:
             experiment_id = None
         self.label_experiment_id.set_text("Experiment: %s" % str(experiment_id))
-        self.label_device_name.set_text("Device: %s" % self.app.dmf_device.name)
+        self.label_device_name.set_text("Device: %s" % app.dmf_device.name)
         self.label_protocol_name.set_text(
-                wrap_string("Protocol: %s" % self.app.protocol.name, 30, "\n\t"))
+                wrap_string("Protocol: %s" % app.protocol.name, 30, "\n\t"))
         
         # process all gtk events
         while gtk.events_pending():
             gtk.main_iteration()
 
     def on_url_clicked(self, widget, data=None):
-        print "url clicked"
+        logger.debug('url clicked')
 
 PluginGlobals.pop_env()

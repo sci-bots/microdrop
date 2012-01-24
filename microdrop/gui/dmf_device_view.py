@@ -19,9 +19,11 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import gtk
 
+from app_context import get_app
+
+
 class DmfDeviceView:
-    def __init__(self, widget, app):
-        self.app = app
+    def __init__(self, widget):
         self.widget = widget
         x, y, width, height = self.widget.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
@@ -32,11 +34,12 @@ class DmfDeviceView:
         self.electrode_color = {}
 
     def fit_device(self, padding=None):
-        if len(self.app.dmf_device.electrodes):
+        app = get_app()
+        if len(app.dmf_device.electrodes):
             if padding is None:
                 padding = 10
             widget = self.widget.get_allocation()
-            device = self.app.dmf_device.geometry()
+            device = app.dmf_device.geometry()
             scale_x = (widget[2]-2*padding)/device[2]
             scale_y = (widget[3]-2*padding)/device[3]
             self.scale = min(scale_x, scale_y)
@@ -57,10 +60,11 @@ class DmfDeviceView:
         return False
 
     def update(self):
+        app = get_app()
         x, y, width, height = self.widget.get_allocation()
         self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
                                    True, 0, 0, width, height)
-        for id, electrode in self.app.dmf_device.electrodes.iteritems():
+        for id, electrode in app.dmf_device.electrodes.iteritems():
             if self.electrode_color.keys().count(id):
                 cr = self.pixmap.cairo_create()
                 x,y = self.offset
