@@ -295,7 +295,9 @@ class ProtocolController(SingletonPlugin):
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_pause"))
         emit_signal("on_protocol_run")
-        self.run_step()
+        
+        while app.running:
+            self.run_step()
 
     def pause_protocol(self):
         app = get_app()
@@ -316,9 +318,6 @@ class ProtocolController(SingletonPlugin):
             app.protocol.next_repetition()
         else: # we're on the last step
             self.pause_protocol()
-
-        if app.running:
-            self.run_step()
 
     def update(self):
         app = get_app()
