@@ -96,6 +96,7 @@ class MainWindowController(SingletonPlugin):
                                                 "glade",
                                                 "about_dialog.glade"))
         app.main_window_controller = self
+        self.protocol_list_view = None
         
     def main(self):
         self.update()

@@ -79,7 +79,7 @@ class ProtocolController(SingletonPlugin):
 
     def on_protocol_changed(self, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields', by_observer=True)
-        logging.debug('[ProtocolController] plugin_fields=%s' % protocol.plugin_fields)
+        logging.info('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
         
     def on_app_init(self):
         app = get_app()
