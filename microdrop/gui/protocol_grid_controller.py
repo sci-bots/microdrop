@@ -71,6 +71,7 @@ class CombinedFields(ObjectList):
     field_set_prefix = '%s__'
 
     def __init__(self, forms, *args, **kwargs):
+        self.first_selected = True
         self.forms = forms
         self.uuid_mapping = dict([(name, uuid.uuid4().get_hex()[:10]) for name in forms])
         self.uuid_reverse_mapping = dict([(v, k) for k, v in self.uuid_mapping.items()])
@@ -90,6 +91,17 @@ class CombinedFields(ObjectList):
         logging.debug('[CombinedFields] columns=%s' % self._columns)
         super(CombinedFields, self).__init__(self._columns, *args, **kwargs)
         self.connect('item-changed', self._on_item_changed)
+        self.connect('selection-changed', self._on_selection_changed)
+
+    def _on_selection_changed(self, selection, *args, **kwargs):
+        model, rows = selection.get_selected_rows()
+        if rows:
+            selected_row_id = rows[0][0]
+            logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
+            app = get_app()
+            if selected_row_id != app.protocol.current_step_number:
+                app.protocol.goto_step(selected_row_id)
+                emit_signal("on_protocol_update", None)
 
     def _on_item_changed(self, widget, step, name, value, **kwargs):
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
@@ -203,7 +215,13 @@ class ProtocolGridController(SingletonPlugin):
             del self.widget
         self.widget = combined_fields
         s = self.widget.get_selection()
-        s.select_path(step_number)
+        model, rows = s.get_selected_rows()
+        if rows:
+            selected_row_id = rows[0][0]
+        else:
+            selected_row_id = -1
+        if selected_row_id != step_number:
+            s.select_path(step_number)
         self.widget.show_all()
         self.parent.add(self.widget)
 

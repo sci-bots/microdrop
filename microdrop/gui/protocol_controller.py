@@ -348,12 +348,6 @@ class ProtocolController(SingletonPlugin):
 
     def update(self):
         app = get_app()
-        step = app.protocol.current_step()
-        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
-            (app.protocol.current_step_number + 1,
-            len(app.protocol.steps),
-            app.protocol.current_repetition + 1,
-            app.protocol.n_repeats))
 
         if app.realtime_mode or app.running:
             attempt=0
@@ -398,6 +392,11 @@ class ProtocolController(SingletonPlugin):
 
     def on_protocol_update(self, data=None):
         app = get_app()
+        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
+            (app.protocol.current_step_number + 1,
+            len(app.protocol.steps),
+            app.protocol.current_repetition + 1,
+            app.protocol.n_repeats))
         with closing(StringIO()) as sio:
             for plugin_name, fields in app.protocol.plugin_fields.iteritems():
                 observers = ExtensionPoint(IPlugin)
