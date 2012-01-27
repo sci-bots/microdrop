@@ -275,6 +275,18 @@ else:
                     for the selected steps
             """
             pass
+        
+        def on_step_options_changed(self, plugin, step_number):
+            """
+            Handler called when the step options are changed for a particular
+            plugin.  This will, for example, allow for GUI elements to be
+            updated based on step specified.
+
+            Parameters:
+                plugin : plugin instance for which the step options changed
+                step_number : step number that the options changed for
+            """
+            pass
 
 
 def emit_signal(function, args=[], interface=IPlugin, by_observer=False):

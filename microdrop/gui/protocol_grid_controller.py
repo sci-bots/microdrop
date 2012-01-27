@@ -79,28 +79,29 @@ class CombinedFields(ObjectList):
             for f in form.field_schema:
                 title = re.sub(r'_', ' ', f.name).capitalize()
                 name = '%s__%s' % (self.uuid_mapping[form_name], f.name)
-                d = dict(attr=name, type=type(f(0).value), title=title, resizable=True, editable=True)
-                logging.info('[CombinedFields] column attrs=%s' % d)
+                val_type = type(f(0).value)
+                d = dict(attr=name, type=val_type, title=title, resizable=True, editable=True, sorted=False)
+                if val_type == bool:
+                    d['choices'] = [('True', True), ('False', False)]
+                elif val_type == int:
+                    d['use_spin'] = True
+                logging.debug('[CombinedFields] column attrs=%s' % d)
                 self._columns.append(Column(**d))
         logging.debug('[CombinedFields] columns=%s' % self._columns)
         super(CombinedFields, self).__init__(self._columns, *args, **kwargs)
         self.connect('item-changed', self._on_item_changed)
 
     def _on_item_changed(self, widget, step, name, value, **kwargs):
-        logging.info('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
+        logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
         for form_name, uuid_code in self.uuid_mapping.iteritems():
             field_set_prefix = self.field_set_prefix % uuid_code
-            #print '_on_item_changed() widget.find(step)=%s' % widget.find(step)
-            #import pdb; pdb.set_trace()
             step_number = [r for r in widget].index(step)
             if name.startswith(field_set_prefix):
                 form_step = step.get_fields_step(form_name)
-                print '%s, %s, %s attrs=%s' % (form_name, uuid_code, name, form_step.attrs)
+                #print '%s, %s, %s attrs=%s' % (form_name, uuid_code, name, form_step.attrs)
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(form_name)
                 service.set_step_values(form_step.attrs, step_number=step_number)
-        app = get_app()
-        app.main_window_controller.update()
 
 
 class CombinedStep(object):
@@ -172,7 +173,7 @@ class ProtocolGridController(SingletonPlugin):
         print 'args=%s, kwargs=%s' % (args, kwargs)
         print 'attrs=%s' % args[1].attrs
 
-    def on_protocol_update(self, data):
+    def on_step_options_changed(self, plugin, step_number):
         """
         Handler called whenever the current protocol step changes.
         """
@@ -180,15 +181,15 @@ class ProtocolGridController(SingletonPlugin):
         forms = emit_signal('get_step_form_class', by_observer=True)
 
         steps = app.protocol.steps
-        logging.info('[ProtocolGridController] on_protocol_update():')
-        logging.info('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
-        logging.info('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
+        logging.debug('[ProtocolGridController] on_protocol_update():')
+        logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
+        logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
             
         combined_fields = CombinedFields(forms)
 
         for i, step in enumerate(steps):
             values = emit_signal('get_step_values', [i], by_observer=True)
-            logging.info('[ProtocolGridController]   Step[%d]=%s values=%s' % (i, step, values))
+            logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s' % (i, step, values))
 
             attributes = dict()
             for form_name, form in combined_fields.forms.iteritems():
@@ -201,6 +202,8 @@ class ProtocolGridController(SingletonPlugin):
             self.parent.remove(self.widget)
             del self.widget
         self.widget = combined_fields
+        s = self.widget.get_selection()
+        s.select_path(step_number)
         self.widget.show_all()
         self.parent.add(self.widget)
 
