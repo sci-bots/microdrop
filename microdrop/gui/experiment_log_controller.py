@@ -168,7 +168,7 @@ class ExperimentLogController(SingletonPlugin):
                         elif c.name=="Step #":
                             vals.append(d["step"] + 1)
                         elif c.name=="Duration (s)":
-                            vals.append(step.duration / 1000.0)
+                            vals.append(options.duration / 1000.0)
                         elif c.name=="Voltage (VRMS)":
                             vals.append(options.voltage)
                         elif c.name=="Frequency (kHz)":

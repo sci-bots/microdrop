@@ -97,11 +97,14 @@ class CombinedFields(ObjectList):
         model, rows = selection.get_selected_rows()
         if rows:
             selected_row_id = rows[0][0]
-            logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
+            #logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
             app = get_app()
-            if selected_row_id != app.protocol.current_step_number:
+            options = app.protocol.get_data('microdrop.gui.protocol_controller')
+            if selected_row_id != options.current_step_number:
+                logging.info('[CombinedFields] selected_row_id=%d' % selected_row_id)
                 app.protocol.goto_step(selected_row_id)
-                emit_signal("on_protocol_update", None)
+                emit_signal('on_protocol_options_changed', interface=IPlugin)
+                #emit_signal("on_protocol_update", None)
 
     def _on_item_changed(self, widget, step, name, value, **kwargs):
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
@@ -204,6 +207,7 @@ class ProtocolGridController(SingletonPlugin):
             logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s' % (i, step, values))
 
             attributes = dict()
+            #import pudb; pudb.set_trace()
             for form_name, form in combined_fields.forms.iteritems():
                 attr_values = values[form_name]
                 logging.debug('[CombinedStep] attr_values=%s' % attr_values)

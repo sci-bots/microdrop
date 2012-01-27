@@ -42,6 +42,14 @@ from app_context import get_app
 PluginGlobals.push_env('microdrop')
 
 
+class ProtocolOptions(object):
+    def __init__(self, n_repeats=1,
+                    current_step_number=0,
+                    current_repetition=0):
+        self.n_repeats = n_repeats
+        self.current_step_number = current_step_number
+        self.current_repetition = current_repetition
+
 class ProtocolController(SingletonPlugin):
     implements(IPlugin)
     
@@ -63,11 +71,11 @@ class ProtocolController(SingletonPlugin):
         p = None
         try:
             p = protocol.load(filename)
-            for (name, (version, data)) in p.plugin_data.items():
+            for name, data in p.plugin_data.items():
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)
                 if service:
-                    service.on_protocol_load(version, data)
+                    service.on_protocol_load(data)
                 else:
                     app.main_window_controller.warning("Protocol "
                         "requires the %s plugin, however this plugin is "
@@ -75,10 +83,15 @@ class ProtocolController(SingletonPlugin):
         except Exception, why:
             app.main_window_controller.error("Could not open %s. %s" \
                                                   % (filename, why))
+        emit_signal('on_protocol_options_changed')
         if p:
             emit_signal("on_protocol_changed", p)
 
+    def on_protocol_load(self, data):
+        pass
+
     def on_protocol_changed(self, protocol):
+        options = self.get_protocol_options()
         protocol.plugin_fields = emit_signal('get_step_fields', by_observer=True)
         logging.info('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
         
@@ -159,46 +172,52 @@ class ProtocolController(SingletonPlugin):
         app = get_app()
         app.protocol.insert_step()
         emit_signal("on_insert_protocol_step")
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        #app.main_window_controller.update()
 
     def on_copy_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.copy_step()
         emit_signal("on_insert_protocol_step")
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        #app.main_window_controller.update()
 
     def on_delete_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.delete_step()
         emit_signal("on_delete_protocol_step")
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        #app.main_window_controller.update()
 
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.first_step()
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        #app.main_window_controller.update()
 
     def on_prev_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.prev_step()
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        #app.main_window_controller.update()
 
     def on_next_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.next_step()
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        #app.main_window_controller.update()
 
     def on_last_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.last_step()
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        #app.main_window_controller.update()
 
     def on_new_protocol(self, widget=None, data=None):
         app = get_app()
-        filename = None
-        p = Protocol(app.dmf_device.max_channel()+1)
-        emit_signal("on_protocol_changed", p)
-        app.main_window_controller.update()
+        emit_signal("on_protocol_changed",
+                    Protocol(app.dmf_device.max_channel() + 1))
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
 
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()
@@ -217,7 +236,7 @@ class ProtocolController(SingletonPlugin):
             filename = dialog.get_filename()
             self.load_protocol(filename)
         dialog.destroy()
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
 
     def on_rename_protocol(self, widget=None, data=None):
         app = get_app()
@@ -242,10 +261,14 @@ class ProtocolController(SingletonPlugin):
     def on_step_duration_changed(self):        
         app = get_app()
         step = app.protocol.current_step()
-        step.duration = \
-            check_textentry(self.textentry_step_duration, step.duration, int)
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        options = step.get_data(dmf_plugin_name)
+        options.duration = \
+            check_textentry(self.textentry_step_duration, options.duration, int)
+        protocol_options = self.get_protocol_options()
         emit_signal('on_step_options_changed',
-                    ['_Step', app.protocol.current_step_number],
+                    [dmf_plugin_name, protocol_options.current_step_number],
                     interface=IPlugin)
 
     def on_textentry_voltage_focus_out(self, widget=None, data=None):
@@ -264,8 +287,9 @@ class ProtocolController(SingletonPlugin):
         options = step.get_data(dmf_plugin_name)
         options.voltage = \
             check_textentry(self.textentry_voltage, options.voltage, float)
+        options = self.get_protocol_options()
         emit_signal('on_step_options_changed',
-                    [dmf_plugin_name, app.protocol.current_step_number],
+                    [dmf_plugin_name, options.current_step_number],
                     interface=IPlugin)
         
     def on_textentry_frequency_focus_out(self, widget=None, data=None):
@@ -286,8 +310,9 @@ class ProtocolController(SingletonPlugin):
             check_textentry(self.textentry_frequency,
                             options.frequency / 1e3,
                             float) * 1e3
+        options = self.get_protocol_options()
         emit_signal('on_step_options_changed',
-                    [dmf_plugin_name, app.protocol.current_step_number],
+                    [dmf_plugin_name, options.current_step_number],
                     interface=IPlugin)
 
     def on_textentry_protocol_repeats_focus_out(self, widget, data=None):
@@ -300,15 +325,13 @@ class ProtocolController(SingletonPlugin):
     
     def on_protocol_repeats_changed(self):
         app = get_app()
-        app.protocol.n_repeats = \
+        options = self.get_protocol_options()
+        options.n_repeats = \
             check_textentry(self.textentry_protocol_repeats,
-                            app.protocol.n_repeats,
-                            int)
-        #emit_signal('on_step_options_changed',
-                    #['_Protocol', -1],
-                    #interface=IPlugin)
-        self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
-            
+                options.n_repeats,
+                int)
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+
     def on_run_protocol(self, widget=None, data=None):
         app = get_app()
         if app.running:
@@ -337,22 +360,42 @@ class ProtocolController(SingletonPlugin):
         
     def run_step(self):
         app = get_app()
-        app.main_window_controller.update()
+        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        #app.main_window_controller.update()
+        options = self.get_protocol_options()
         
-        if app.protocol.current_step_number < len(app.protocol) - 1:
+        if options.current_step_number < len(app.protocol) - 1:
             app.protocol.next_step()
-        elif app.protocol.current_repetition < app.protocol.n_repeats - 1:
+        elif options.current_repetition < options.n_repeats - 1:
             app.protocol.next_repetition()
         else: # we're on the last step
             self.pause_protocol()
 
+    def get_step_options(self, step_number=None):
+        """
+        Return a FeedbackOptions object for the current step in the protocol.
+        If none exists yet, create a new one.
+        """
+        step_number = self.get_step(step_number)
+        app = get_app()
+        
+        step = app.protocol.steps[step_number]
+        options = step.get_data(self.name)
+        if options is None:
+            # No data is registered for this plugin (for this step).
+            options = self.get_default_options()
+            step.set_data(self.name, options)
+        return options
+
     def update(self):
         app = get_app()
+
+        protocol_options = self.get_protocol_options()
 
         if app.realtime_mode or app.running:
             attempt=0
             while True:
-                data = {"step": app.protocol.current_step_number, 
+                data = {"step": protocol_options.current_step_number, 
                         "time": time.time() - app.experiment_log.start_time()}
                 if attempt > 0:
                     data["attempt"] = attempt                
@@ -372,31 +415,34 @@ class ProtocolController(SingletonPlugin):
             emit_signal("on_protocol_update", data)
 
     def on_step_options_changed(self, plugin, step_number):
+        logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, step_number=%s'\
+            % (plugin, step_number))
         app = get_app()
-
-        #if '_Protocol' == plugin:
-            # There is no step here
-            #self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
-            #return
-
+        options = self.get_protocol_options()
         step = app.protocol.steps[step_number]
-        if '_Step' == plugin:
-            self.textentry_step_duration.set_text(str(step.duration))
-        elif(re.search(r'wheelerlab.dmf_control_board_', plugin)):
+        #if '_Step' == plugin:
+        if(re.search(r'wheelerlab.dmf_control_board_', plugin)):
             dmf_plugin_name = step.plugin_name_lookup(
                 r'wheelerlab.dmf_control_board_', re_pattern=True)
-            logging.debug('[ProtocolController] dmf_plugin_name=%s' % dmf_plugin_name)
             options = step.get_data(dmf_plugin_name)
             self.textentry_voltage.set_text(str(options.voltage))
             self.textentry_frequency.set_text(str(options.frequency / 1e3))
+            #for i, tstep in enumerate(app.protocol.steps):
+                #print '[on_step_duration_changed] step[%d%s].duration: %.2f'\
+                    #% (i, ['', '*'][options.current_step_number == i],
+                        #tstep.duration)
+            self.textentry_step_duration.set_text(str(options.duration))
 
     def on_protocol_update(self, data=None):
+        self._update_labels()
         app = get_app()
-        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
-            (app.protocol.current_step_number + 1,
-            len(app.protocol.steps),
-            app.protocol.current_repetition + 1,
-            app.protocol.n_repeats))
+        step = app.protocol.current_step()
+        protocol_options = self.get_protocol_options()
+        for plugin_name in step.plugins:
+            emit_signal('on_step_options_changed',
+                    [plugin_name,
+                    protocol_options.current_step_number],
+                    interface=IPlugin)
         with closing(StringIO()) as sio:
             for plugin_name, fields in app.protocol.plugin_fields.iteritems():
                 observers = ExtensionPoint(IPlugin)
@@ -405,9 +451,38 @@ class ProtocolController(SingletonPlugin):
                         % (plugin_name),
                 print >> sio, [service.get_step_value(f) for f in fields]
             logging.debug(sio.getvalue())
+
+    def _update_labels(self):
+        app = get_app()
+        options = self.get_protocol_options()
+        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
+            (options.current_step_number + 1,
+            len(app.protocol.steps),
+            options.current_repetition + 1,
+            options.n_repeats))
+        self.textentry_protocol_repeats.set_text(str(options.n_repeats))
                 
     def on_dmf_device_changed(self, dmf_device):
         emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel() + 1))
+
+    def get_default_protocol_options(self):
+        return ProtocolOptions()
+
+    def get_protocol_options(self):
+        app = get_app()
+        protocol = app.protocol
+        options = protocol.get_data(self.name)
+        if options is None:
+            # No data is registered for this plugin (for this step).
+            options = self.get_default_protocol_options()
+            protocol.set_data(self.name, options)
+        return options
+
+    def on_protocol_options_changed(self):
+        app = get_app()
+        self._update_labels()
+        self.update()
+        emit_signal("on_protocol_update", app.protocol)
 
 
 PluginGlobals.pop_env()

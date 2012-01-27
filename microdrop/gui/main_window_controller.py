@@ -215,8 +215,8 @@ class MainWindowController(SingletonPlugin):
     def update(self):
         app = get_app()
         app.realtime_mode = self.checkbutton_realtime_mode.get_active()
-        app.dmf_device_controller.update()
         app.protocol_controller.update()
+        app.dmf_device_controller.update()
         
         if app.dmf_device.name:
             experiment_id = app.experiment_log.get_next_id()
@@ -234,5 +234,8 @@ class MainWindowController(SingletonPlugin):
     def on_url_clicked(self, widget, data):
         logger.debug("URL clicked: %s" % data)
         webbrowser.open_new_tab(data)
+
+    def on_protocol_changed(self, protocol):
+        self.update()
 
 PluginGlobals.pop_env()

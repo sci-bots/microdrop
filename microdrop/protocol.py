@@ -37,13 +37,30 @@ def load(filename):
 class Protocol():
     def __init__(self, n_channels=0, name=None):
         self.n_channels = n_channels
-        self.current_step_number = 0
         self.steps = [Step()]
         self.name = None
-        self.n_repeats = 1
-        self.current_repetition = 0
         self.plugin_data = {}
         self.plugin_fields = {}
+
+    @property
+    def plugins(self):
+        return set(self.plugin_data.keys())
+
+    def plugin_name_lookup(self, name, re_pattern=False):
+        if not re_pattern:
+            return name
+
+        for plugin_name in self.plugins:
+            if re.search(name, plugin_name):
+                return plugin_name
+        return None
+
+    def get_data(self, plugin_name):
+        logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
+        return self.plugin_data.get(plugin_name)
+
+    def set_data(self, plugin_name, data):
+        self.plugin_data[plugin_name] = data
 
     def __len__(self):
         return len(self.steps)
@@ -60,55 +77,61 @@ class Protocol():
         self.n_channels = n_channels
 
     def current_step(self):
-        return self.steps[self.current_step_number]
+        options = self.get_data('microdrop.gui.protocol_controller')
+        return self.steps[options.current_step_number]
 
     def insert_step(self):
-        self.steps.insert(self.current_step_number,
-                          Step(duration=self.current_step().duration))
+        options = self.get_data('microdrop.gui.protocol_controller')
+        self.steps.insert(options.current_step_number,
+                          Step())
 
     def copy_step(self):
-        self.steps.insert(self.current_step_number,
-            Step(duration=self.current_step().duration,
-                state_of_channels=self.current_step().state_of_channels,
-                plugin_data=deepcopy(self.current_step().plugin_data)))
+        options = self.get_data('microdrop.gui.protocol_controller')
+        self.steps.insert(options.current_step_number,
+            Step(plugin_data=deepcopy(self.current_step().plugin_data)))
         self.next_step()
 
     def delete_step(self):
         if len(self.steps) > 1:
-            del self.steps[self.current_step_number]
-            if self.current_step_number == len(self.steps):
-                self.current_step_number -= 1
+            options = self.get_data('microdrop.gui.protocol_controller')
+            del self.steps[options.current_step_number]
+            if options.current_step_number == len(self.steps):
+                options.current_step_number -= 1
         else: # reset first step
             self.steps = [Step()]
 
     def next_step(self):
-        if self.current_step_number == len(self.steps) - 1:
-            self.steps.append(Step(duration=self.current_step().duration))
-        self.goto_step(self.current_step_number + 1)
+        options = self.get_data('microdrop.gui.protocol_controller')
+        if options.current_step_number == len(self.steps) - 1:
+            self.steps.append(Step())
+        self.goto_step(options.current_step_number + 1)
         
     def next_repetition(self):
-        if self.current_repetition < self.n_repeats - 1:
-            self.current_repetition += 1
+        options = self.get_data('microdrop.gui.protocol_controller')
+        if options.current_repetition < options.n_repeats - 1:
+            options.current_repetition += 1
             self.goto_step(0)
             
     def prev_step(self):
-        if self.current_step_number > 0:
-            self.goto_step(self.current_step_number - 1)
+        options = self.get_data('microdrop.gui.protocol_controller')
+        if options.current_step_number > 0:
+            self.goto_step(options.current_step_number - 1)
 
     def first_step(self):
-        self.current_repetition = 0
+        options = self.get_data('microdrop.gui.protocol_controller')
+        options.current_repetition = 0
         self.goto_step(0)
 
     def last_step(self):
         self.goto_step(len(self.steps) - 1)
 
     def goto_step(self, step):
-        self.current_step_number = step
+        options = self.get_data('microdrop.gui.protocol_controller')
+        options.current_step_number = step
         
 
 class Step(object):
-    def __init__(self, duration=100, plugin_data=None):
-        self.duration = duration
+    def __init__(self, plugin_data=None):
         if plugin_data is None:
             self.plugin_data = {}
         else:
@@ -128,7 +151,6 @@ class Step(object):
         return None
 
     def get_data(self, plugin_name):
-        #return self.plugin_data.get(plugin_name, None)
         logging.debug('[Step] plugin_data=%s' % self.plugin_data)
         return self.plugin_data.get(plugin_name)
 
