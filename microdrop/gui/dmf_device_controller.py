@@ -38,6 +38,14 @@ from logger import logger
 
 PluginGlobals.push_env('microdrop')
 
+class DmfDeviceOptions(object):
+    def __init__(self, state_of_channels=None):
+        app = get_app()
+        if state_of_channels is None:
+            self.state_of_channels = np.zeros(app.protocol.n_channels)
+        else:
+            self.state_of_channels = deepcopy(state_of_channels)
+
 
 class DmfDeviceController(SingletonPlugin):
     implements(IPlugin)
@@ -68,21 +76,41 @@ class DmfDeviceController(SingletonPlugin):
         app.signals["on_menu_edit_electrode_area_activate"] = self.on_edit_electrode_area
         app.dmf_device_controller = self
 
+    def get_default_options(self):
+        return DmfDeviceOptions()
+
+    def get_step_options(self, step=None):
+        """
+        Return a FeedbackOptions object for the current step in the protocol.
+        If none exists yet, create a new one.
+        """
+        app = get_app()
+        if step is None:
+            step = app.protocol.current_step_number
+        
+        options = app.protocol.current_step().get_data(self.name)
+        if options is None:
+            # No data is registered for this plugin (for this step).
+            options = self.get_default_options()
+            app.protocol.current_step().set_data(self.name, options)
+        return options
+
     def on_button_press(self, widget, event):
         app = get_app()
         self.view.widget.grab_focus()
+        options = self.get_step_options()
         for electrode in app.dmf_device.electrodes.values():
             if electrode.contains(event.x/self.view.scale-self.view.offset[0],
                                   event.y/self.view.scale-self.view.offset[1]):
                 self.last_electrode_clicked = electrode
                 if event.button == 1:
-                    state = app.protocol.state_of_all_channels()
+                    state = options.state_of_channels
                     if len(electrode.channels): 
                         for channel in electrode.channels:
-                            if state[channel]>0:
-                                app.protocol.set_state_of_channel(channel, 0)
+                            if state[channel] > 0:
+                                state[channel] = 0
                             else:
-                                app.protocol.set_state_of_channel(channel, 1)
+                                state[channel] = 1
                     else:
                         logger.error("no channel assigned to electrode.")
                 elif event.button == 3:
@@ -248,7 +276,8 @@ class DmfDeviceController(SingletonPlugin):
         
     def update(self):
         app = get_app()
-        state_of_all_channels = app.protocol.state_of_all_channels()
+        options = self.get_step_options()
+        state_of_all_channels = options.state_of_channels
         for id, electrode in app.dmf_device.electrodes.iteritems():
             channels = app.dmf_device.electrodes[id].channels
             if channels:
@@ -258,7 +287,7 @@ class DmfDeviceController(SingletonPlugin):
                 # if all of the states are the same
                 if len(np.nonzero(states == states[0])[0]) == len(states):
                     electrode.state = states[0]
-                    if states[0]>0:
+                    if states[0] > 0:
                         self.view.electrode_color[id] = (1,1,1)
                     else:
                         self.view.electrode_color[id] = (0,0,1)

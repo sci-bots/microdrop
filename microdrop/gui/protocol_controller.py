@@ -17,12 +17,16 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import gtk
-import gobject
 import os
 import math
 import time
+import logging
+from StringIO import StringIO
+from contextlib import closing
+import re
 
+import gtk
+import gobject
 import numpy as np
 
 import protocol
@@ -73,6 +77,10 @@ class ProtocolController(SingletonPlugin):
                                                   % (filename, why))
         if p:
             emit_signal("on_protocol_changed", p)
+
+    def on_protocol_changed(self, protocol):
+        protocol.plugin_fields = emit_signal('get_step_fields', by_observer=True)
+        logging.info('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
         
     def on_app_init(self):
         app = get_app()
@@ -227,51 +235,67 @@ class ProtocolController(SingletonPlugin):
         self.on_step_duration_changed()
 
     def on_textentry_step_duration_key_press(self, widget, event):
-        if event.keyval == 65293: # user pressed enter
+        if event.keyval == gtk.gdk.keyval_from_name('Return'):
+            # user pressed enter
             self.on_step_duration_changed()
 
     def on_step_duration_changed(self):        
         app = get_app()
-        app.protocol.current_step().duration = \
-            check_textentry(self.textentry_step_duration,
-                            app.protocol.current_step().duration,
-                            int)
+        step = app.protocol.current_step()
+        step.duration = \
+            check_textentry(self.textentry_step_duration, step.duration, int)
+        emit_signal('on_step_options_changed',
+                    ['_Step', app.protocol.current_step_number],
+                    interface=IPlugin)
 
     def on_textentry_voltage_focus_out(self, widget=None, data=None):
         self.on_voltage_changed()
 
     def on_textentry_voltage_key_press(self, widget, event):
-        if event.keyval == 65293: # user pressed enter
+        if event.keyval == gtk.gdk.keyval_from_name('Return'):
+            # user pressed enter
             self.on_voltage_changed()
 
     def on_voltage_changed(self):
         app = get_app()
-        app.protocol.current_step().voltage = \
-            check_textentry(self.textentry_voltage,
-                            app.protocol.current_step().voltage,
-                            float)
-        self.update()
+        step = app.protocol.current_step()
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        options = step.get_data(dmf_plugin_name)
+        options.voltage = \
+            check_textentry(self.textentry_voltage, options.voltage, float)
+        emit_signal('on_step_options_changed',
+                    [dmf_plugin_name, app.protocol.current_step_number],
+                    interface=IPlugin)
         
     def on_textentry_frequency_focus_out(self, widget=None, data=None):
         self.on_frequency_changed()
 
     def on_textentry_frequency_key_press(self, widget, event):
-        if event.keyval == 65293: # user pressed enter
+        if event.keyval == gtk.gdk.keyval_from_name('Return'):
+            # user pressed enter
             self.on_frequency_changed()
 
     def on_frequency_changed(self):
         app = get_app()
-        app.protocol.current_step().frequency = \
+        step = app.protocol.current_step()
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        options = step.get_data(dmf_plugin_name)
+        options.frequency = \
             check_textentry(self.textentry_frequency,
-                            app.protocol.current_step().frequency/1e3,
-                            float)*1e3
-        self.update()
+                            options.frequency / 1e3,
+                            float) * 1e3
+        emit_signal('on_step_options_changed',
+                    [dmf_plugin_name, app.protocol.current_step_number],
+                    interface=IPlugin)
 
     def on_textentry_protocol_repeats_focus_out(self, widget, data=None):
         self.on_protocol_repeats_changed()
     
     def on_textentry_protocol_repeats_key_press(self, widget, event):
-        if event.keyval == 65293: # user pressed enter
+        if event.keyval == gtk.gdk.keyval_from_name('Return'):
+            # user pressed enter
             self.on_protocol_repeats_changed()
     
     def on_protocol_repeats_changed(self):
@@ -280,7 +304,10 @@ class ProtocolController(SingletonPlugin):
             check_textentry(self.textentry_protocol_repeats,
                             app.protocol.n_repeats,
                             int)
-        self.update()
+        #emit_signal('on_step_options_changed',
+                    #['_Protocol', -1],
+                    #interface=IPlugin)
+        self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
             
     def on_run_protocol(self, widget=None, data=None):
         app = get_app()
@@ -312,40 +339,29 @@ class ProtocolController(SingletonPlugin):
         app = get_app()
         app.main_window_controller.update()
         
-        if app.protocol.current_step_number < len(app.protocol)-1:
+        if app.protocol.current_step_number < len(app.protocol) - 1:
             app.protocol.next_step()
-        elif app.protocol.current_repetition < app.protocol.n_repeats-1:
+        elif app.protocol.current_repetition < app.protocol.n_repeats - 1:
             app.protocol.next_repetition()
         else: # we're on the last step
             self.pause_protocol()
 
     def update(self):
         app = get_app()
-        self.textentry_step_duration.set_text(str(
-            app.protocol.current_step().duration))
-        self.textentry_voltage.set_text(str(
-            app.protocol.current_step().voltage))
-        self.textentry_frequency.set_text(str(
-            app.protocol.current_step().frequency/1e3))
-        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
-            (app.protocol.current_step_number+1,
-            len(app.protocol.steps),
-            app.protocol.current_repetition+1,
-            app.protocol.n_repeats))
 
         if app.realtime_mode or app.running:
             attempt=0
             while True:
-                data = {"step":app.protocol.current_step_number, 
-                "time":time.time()-app.experiment_log.start_time()}
-                if attempt>0:
+                data = {"step": app.protocol.current_step_number, 
+                        "time": time.time() - app.experiment_log.start_time()}
+                if attempt > 0:
                     data["attempt"] = attempt                
                 return_codes = emit_signal("on_protocol_update", data)
-                if return_codes.count("Fail") > 0:
+                if 'Fail' in return_codes:
                     self.pause_protocol()
                     app.main_window_controller.error("Protocol failed.")
                     break
-                elif return_codes.count("Repeat") > 0:
+                elif 'Repeat' in return_codes:
                     app.experiment_log.add_data(data)
                     attempt+=1
                 else:
@@ -354,9 +370,44 @@ class ProtocolController(SingletonPlugin):
         else:
             data = {}
             emit_signal("on_protocol_update", data)
+
+    def on_step_options_changed(self, plugin, step_number):
+        app = get_app()
+
+        #if '_Protocol' == plugin:
+            # There is no step here
+            #self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
+            #return
+
+        step = app.protocol.steps[step_number]
+        if '_Step' == plugin:
+            self.textentry_step_duration.set_text(str(step.duration))
+        elif(re.search(r'wheelerlab.dmf_control_board_', plugin)):
+            dmf_plugin_name = step.plugin_name_lookup(
+                r'wheelerlab.dmf_control_board_', re_pattern=True)
+            logging.debug('[ProtocolController] dmf_plugin_name=%s' % dmf_plugin_name)
+            options = step.get_data(dmf_plugin_name)
+            self.textentry_voltage.set_text(str(options.voltage))
+            self.textentry_frequency.set_text(str(options.frequency / 1e3))
+
+    def on_protocol_update(self, data=None):
+        app = get_app()
+        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
+            (app.protocol.current_step_number + 1,
+            len(app.protocol.steps),
+            app.protocol.current_repetition + 1,
+            app.protocol.n_repeats))
+        with closing(StringIO()) as sio:
+            for plugin_name, fields in app.protocol.plugin_fields.iteritems():
+                observers = ExtensionPoint(IPlugin)
+                service = observers.service(plugin_name)
+                print >> sio, '[ProtocolController] plugin.name=%s field_values='\
+                        % (plugin_name),
+                print >> sio, [service.get_step_value(f) for f in fields]
+            logging.debug(sio.getvalue())
                 
     def on_dmf_device_changed(self, dmf_device):
-        emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel()+1))
+        emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel() + 1))
 
 
 PluginGlobals.pop_env()

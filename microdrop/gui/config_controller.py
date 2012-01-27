@@ -124,7 +124,7 @@ class ConfigController(SingletonPlugin):
 
                 # current file name
                 if self.app.protocol.name:
-                    src = os.path.join(path,self.app.protocol.name)
+                    src = os.path.join(path, self.app.protocol.name)
                 dest = os.path.join(path,name)
                 self.app.protocol.name = name
 

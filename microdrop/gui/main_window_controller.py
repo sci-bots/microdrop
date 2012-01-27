@@ -89,12 +89,14 @@ class MainWindowController(SingletonPlugin):
                 self.on_realtime_mode_toggled
         app.signals["on_menu_options_activate"] = self.on_menu_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
+        app.signals["on_menu_debug_activate"] = self.on_menu_debug_activate
 
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui",
                                                 "glade",
                                                 "about_dialog.glade"))
         app.main_window_controller = self
+        self.protocol_list_view = None
         
     def main(self):
         self.update()
@@ -133,6 +135,20 @@ class MainWindowController(SingletonPlugin):
         app = get_app()
         pmd = PluginManagerDialog()
         response = pmd.run()
+
+    def on_menu_debug_activate(self, widget, data=None):
+        app = get_app()
+        step = app.protocol.current_step()
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        logger.info('[MainWindowController] Menu debug activated')
+        observers = ExtensionPoint(IPlugin)
+        service = observers.service(dmf_plugin_name)
+        import random
+        service.set_step_values({'voltage': random.randint(10, 100),
+                'frequency': random.randint(1e3, 100e3),
+                'feedback_enabled': True})
+        self.update()
 
     def on_menu_experiment_logs_activate(self, widget, data=None):
         app = get_app()

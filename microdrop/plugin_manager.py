@@ -275,19 +275,37 @@ else:
                     for the selected steps
             """
             pass
+        
+        def on_step_options_changed(self, plugin, step_number):
+            """
+            Handler called when the step options are changed for a particular
+            plugin.  This will, for example, allow for GUI elements to be
+            updated based on step specified.
+
+            Parameters:
+                plugin : plugin instance for which the step options changed
+                step_number : step number that the options changed for
+            """
+            pass
 
 
-def emit_signal(function, args=[], interface=IPlugin):
-    return_codes = []
+def emit_signal(function, args=[], interface=IPlugin, by_observer=False):
     observers = ExtensionPoint(interface)
+    if by_observer:
+        return_codes = {}
+    else:
+        return_codes = []
     for observer in observers:
         if hasattr(observer, function):
             try:
                 if type(args) is not list:
                     args = [args]
                 f = getattr(observer, function)
-                return_code = f(*args)
-                return_codes.append(return_code)
+                if by_observer:
+                    return_codes[observer.name] = f(*args)
+                else:
+                    return_code = f(*args)
+                    return_codes.append(return_code)
             except Exception, why:
                 with closing(StringIO()) as message:
                     if hasattr(observer, "name"):

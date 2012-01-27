@@ -22,6 +22,7 @@ class CustomHandler(logging.Handler):
             emit_signal('on_critical', [record], interface=ILoggingPlugin)
 
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+#logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
 logger = logging.getLogger()
