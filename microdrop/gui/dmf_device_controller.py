@@ -85,8 +85,9 @@ class DmfDeviceController(SingletonPlugin):
         If none exists yet, create a new one.
         """
         app = get_app()
+        protocol_options = app.protocol.get_data('microdrop.gui.protocol_controller')
         if step is None:
-            step = app.protocol.current_step_number
+            step = protocol_options.current_step_number
         
         options = app.protocol.current_step().get_data(self.name)
         if options is None:
