@@ -97,12 +97,17 @@ class DmfDeviceController(SingletonPlugin):
         return options
 
     def on_button_press(self, widget, event):
+        '''
+        Modifies state of channel based on mouse-click.
+        '''
         app = get_app()
         self.view.widget.grab_focus()
         options = self.get_step_options()
+        state_updated = False
         for electrode in app.dmf_device.electrodes.values():
-            if electrode.contains(event.x/self.view.scale-self.view.offset[0],
-                                  event.y/self.view.scale-self.view.offset[1]):
+            if electrode.contains(
+                    event.x / self.view.scale - self.view.offset[0],
+                    event.y / self.view.scale - self.view.offset[1]):
                 self.last_electrode_clicked = electrode
                 if event.button == 1:
                     state = options.state_of_channels
@@ -112,13 +117,20 @@ class DmfDeviceController(SingletonPlugin):
                                 state[channel] = 0
                             else:
                                 state[channel] = 1
+                            state_updated = True
                     else:
                         logger.error("no channel assigned to electrode.")
                 elif event.button == 3:
                     self.popup.popup(None, None, None, event.button,
                                      event.time, data=None)
                 break
-        app.main_window_controller.update()
+        if state_updated:
+            protocol_options = app.protocol\
+                .get_data('microdrop.gui.protocol_controller')
+            #app.main_window_controller.update()
+            emit_signal('on_step_options_changed',
+                        [self.name, protocol_options.current_step_number],
+                        interface=IPlugin)
         return True
 
     def on_key_press(self, widget, data=None):
@@ -274,7 +286,18 @@ class DmfDeviceController(SingletonPlugin):
     
     def on_dmf_device_changed(self, dmf_device):
         self.view.fit_device()
-        
+
+    def on_step_options_changed(self, plugin_name, step_number):
+        '''
+        The step options for the current step have changed.
+        If the change was to options affecting this plugin, update state.
+        '''
+        app = get_app()
+        protocol_options = app.protocol.get_data('microdrop.gui.protocol_controller')
+        if protocol_options.current_step_number == step_number\
+                and plugin_name == self.name:
+            self.update()
+
     def update(self):
         app = get_app()
         options = self.get_step_options()

@@ -83,14 +83,12 @@ class Protocol():
     def insert_step(self):
         options = self.get_data('microdrop.gui.protocol_controller')
         self.steps.insert(options.current_step_number,
-                          Step(duration=self.current_step().duration))
+                          Step())
 
     def copy_step(self):
         options = self.get_data('microdrop.gui.protocol_controller')
         self.steps.insert(options.current_step_number,
-            Step(duration=self.current_step().duration,
-                state_of_channels=self.current_step().state_of_channels,
-                plugin_data=deepcopy(self.current_step().plugin_data)))
+            Step(plugin_data=deepcopy(self.current_step().plugin_data)))
         self.next_step()
 
     def delete_step(self):
@@ -105,7 +103,7 @@ class Protocol():
     def next_step(self):
         options = self.get_data('microdrop.gui.protocol_controller')
         if options.current_step_number == len(self.steps) - 1:
-            self.steps.append(Step(duration=self.current_step().duration))
+            self.steps.append(Step())
         self.goto_step(options.current_step_number + 1)
         
     def next_repetition(self):
@@ -133,8 +131,7 @@ class Protocol():
         
 
 class Step(object):
-    def __init__(self, duration=100, plugin_data=None):
-        self.duration = duration
+    def __init__(self, plugin_data=None):
         if plugin_data is None:
             self.plugin_data = {}
         else:
