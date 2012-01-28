@@ -76,6 +76,7 @@ class CombinedFields(ObjectList):
         self.uuid_mapping = dict([(name, uuid.uuid4().get_hex()[:10]) for name in forms])
         self.uuid_reverse_mapping = dict([(v, k) for k, v in self.uuid_mapping.items()])
         self._columns = []
+        self._full_field_to_field_def = {}
         for form_name, form in self.forms.iteritems():
             for f in form.field_schema:
                 title = re.sub(r'_', ' ', f.name).capitalize()
@@ -92,6 +93,7 @@ class CombinedFields(ObjectList):
                     d['use_spin'] = True
                 logging.debug('[CombinedFields] column attrs=%s' % d)
                 self._columns.append(Column(**d))
+                self._full_field_to_field_def[name] = f
         logging.debug('[CombinedFields] columns=%s' % self._columns)
         super(CombinedFields, self).__init__(self._columns, *args, **kwargs)
         s = self.get_selection()
@@ -103,9 +105,23 @@ class CombinedFields(ObjectList):
         app.combined_fields = self
 
     def _set_rows_attr(self, row_ids, column_title, value=None):
-        assert(value is not None)
         title_map = dict([(c.title, c.attr) for c in self.columns])
         attr = title_map.get(column_title)
+        if value is None:
+            from protocol_grid_dialog import ProtocolGridDialog
+            from flatland import Form
+
+            Fields = Form.of(self._full_field_to_field_def[attr])
+
+            temp = ProtocolGridDialog()
+            response_ok, value = temp.run(Fields)
+            if not response_ok:
+                return
+        else:
+            title_map = dict([(c.title, c.attr) for c in self.columns])
+            attr = title_map.get(column_title)
+
+        assert(value is not None)
         for i in row_ids:
             setattr(self[i], attr, value)
         print 'Set rows attr: row_ids=%s column_title=%s value=%s'\
@@ -124,9 +140,8 @@ class CombinedFields(ObjectList):
             self._set_rows_attr(row_ids, column_title)
         menu_items = [(gtk.MenuItem('''Set selected [%s] to "%s"'''\
                         % (column_title, value)), set_attr_value),
-                #(gtk.MenuItem('''Set selected [%s] to...''' % column_title),
-                #set_attr),
-                 ]
+                (gtk.MenuItem('''Set selected [%s] to...''' % column_title),
+                set_attr), ]
         for item, callback in menu_items:
             popup.add(item)
             item.connect('activate', callback)
