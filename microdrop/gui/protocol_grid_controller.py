@@ -102,6 +102,37 @@ class CombinedFields(ObjectList):
         app = get_app()
         app.combined_fields = self
 
+    def _set_rows_attr(self, row_ids, column_title, value=None):
+        assert(value is not None)
+        title_map = dict([(c.title, c.attr) for c in self.columns])
+        attr = title_map.get(column_title)
+        for i in row_ids:
+            setattr(self[i], attr, value)
+        print 'Set rows attr: row_ids=%s column_title=%s value=%s'\
+            % (row_ids, column_title, value)
+        self._on_multiple_changed(attr)
+        return True
+
+
+    def _get_popup_menu(self, item, column_title, value, row_ids):
+        popup = gtk.Menu()
+        def set_attr_value(*args, **kwargs):
+            print '[set_attr_value] args=%s kwargs=%s' % (args, kwargs)
+            self._set_rows_attr(row_ids, column_title, value=value)
+        def set_attr(*args, **kwargs):
+            print '[set_attr] args=%s kwargs=%s' % (args, kwargs)
+            self._set_rows_attr(row_ids, column_title)
+        menu_items = [(gtk.MenuItem('''Set selected [%s] to "%s"'''\
+                        % (column_title, value)), set_attr_value),
+                #(gtk.MenuItem('''Set selected [%s] to...''' % column_title),
+                #set_attr),
+                 ]
+        for item, callback in menu_items:
+            popup.add(item)
+            item.connect('activate', callback)
+        popup.show_all()
+        return popup
+
     def _on_button_press_event(self, treeview, event):
         item_spec = self.get_path_at_pos(int(event.x), int(event.y))
         if item_spec is not None:
@@ -126,12 +157,16 @@ class CombinedFields(ObjectList):
         selection = self.get_selection()
         model, rows = selection.get_selected_rows()
         row_ids = zip(*rows)[0]
+        item_id = [r for r in self].index(item)
+        if item_id not in row_ids:
+            print 'clicked item is not selected'
+            return False
         value = getattr(item, attr)
-        for i in row_ids:
-            setattr(self[i], attr, value)
-        print 'Right click: column_title=%s column_attr=%s value=%s'\
-            % (column_title, attr, value)
-        self._on_multiple_changed(attr)
+
+        self.grab_focus()
+        popup = self._get_popup_menu(item, column_title, value, row_ids)
+        popup.popup(None, None, None, event.button, event.time)
+        del popup
         return True
 
     def _on_step_options_changed(self, plugin_name, step_number):
