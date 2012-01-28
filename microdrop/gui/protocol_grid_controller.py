@@ -68,7 +68,7 @@ class FieldsStep(object):
 
 
 class CombinedFields(ObjectList):
-    field_set_prefix = '%s__'
+    field_set_prefix = '_%s__'
 
     def __init__(self, forms, *args, **kwargs):
         self.first_selected = True
@@ -79,25 +79,109 @@ class CombinedFields(ObjectList):
         for form_name, form in self.forms.iteritems():
             for f in form.field_schema:
                 title = re.sub(r'_', ' ', f.name).capitalize()
-                name = '%s__%s' % (self.uuid_mapping[form_name], f.name)
+                name = '%s%s'\
+                    % (self.field_set_prefix % self.uuid_mapping[form_name],
+                        f.name)
                 val_type = type(f(0).value)
                 d = dict(attr=name, type=val_type, title=title, resizable=True, editable=True, sorted=False)
                 if val_type == bool:
-                    d['choices'] = [('True', True), ('False', False)]
+                    # Use checkbox for boolean cells
+                    d['use_checkbox'] = True
                 elif val_type == int:
+                    # Use spinner for integer cells
                     d['use_spin'] = True
                 logging.debug('[CombinedFields] column attrs=%s' % d)
                 self._columns.append(Column(**d))
         logging.debug('[CombinedFields] columns=%s' % self._columns)
         super(CombinedFields, self).__init__(self._columns, *args, **kwargs)
+        s = self.get_selection()
+        s.set_mode(gtk.SELECTION_MULTIPLE)
         self.connect('item-changed', self._on_item_changed)
         self.connect('selection-changed', self._on_selection_changed)
+        self.connect('item-right-clicked', self._on_right_clicked)
+        app = get_app()
+        app.combined_fields = self
+
+    def _on_button_press_event(self, treeview, event):
+        item_spec = self.get_path_at_pos(int(event.x), int(event.y))
+        if item_spec is not None:
+            # clicked on an actual cell
+            path, col, rx, ry = item_spec
+            signal_map = {
+                (1, gtk.gdk.BUTTON_PRESS): 'item-left-clicked',
+                (3, gtk.gdk.BUTTON_PRESS): 'item-right-clicked',
+                (2, gtk.gdk.BUTTON_PRESS): 'item-middle-clicked',
+                (1, gtk.gdk._2BUTTON_PRESS): 'item-double-clicked',
+            }
+            signal_name = signal_map.get((event.button, event.type))
+            if not signal_name == 'item-right-clicked':
+                self._emit_for_path(path, event)
+            else:
+                item = self._object_at_sort_path(path)
+                return self._on_right_clicked(self, item, event, col.get_title())
+
+    def _on_right_clicked(self, list_, item, event, column_title):
+        title_map = dict([(c.title, c.attr) for c in self.columns])
+        attr = title_map.get(column_title)
+        selection = self.get_selection()
+        model, rows = selection.get_selected_rows()
+        row_ids = zip(*rows)[0]
+        value = getattr(item, attr)
+        for i in row_ids:
+            setattr(self[i], attr, value)
+        print 'Right click: column_title=%s column_attr=%s value=%s'\
+            % (column_title, attr, value)
+        self._on_multiple_changed(attr)
+        return True
+
+    def _on_step_options_changed(self, plugin_name, step_number):
+        '''
+        -get step values for (plugin, step_number)
+        -set affected objectlist item attributes based on step values
+        '''
+        if plugin_name not in self.forms\
+            or step_number >= len(self):
+            return
+        app = get_app()
+        step = app.protocol.current_step()
+        combined_step = self[step_number]
+        form_step = combined_step.get_fields_step(plugin_name)
+        observers = ExtensionPoint(IPlugin)
+        # Get the instance of the specified plugin
+        service = observers.service(plugin_name)
+        # Get the step option values from the plugin instance
+        attrs = service.get_step_values(step_number=step_number)
+        for attr, value in attrs.items():
+            setattr(form_step, attr, value)
+        #import pudb; pudb.set_trace()
+        self.update(combined_step)
+        print '[CombinedFields] _on_step_options_changed(): '\
+                'plugin_name=%s step_number=%s attrs=%s' % (plugin_name, step_number, attrs)
+        #logging.info('[CombinedFields] _on_step_options_changed(): '\
+                #'plugin_name=%s step_number=%s attrs=%s' % (plugin_name, step_number, attrs))
+
+    def _on_multiple_changed(self, attr, **kwargs):
+        selection = self.get_selection()
+        model, rows = selection.get_selected_rows()
+        row_ids = zip(*rows)[0]
+        logging.info('[CombinedFields] _on_multiple_changed(): attr=%s selected_rows=%s' % (attr, row_ids))
+        app = get_app()
+        for step_number, step in [(i, self[i]) for i in row_ids]:
+            for form_name, uuid_code in self.uuid_mapping.iteritems():
+                field_set_prefix = self.field_set_prefix % uuid_code
+                if attr.startswith(field_set_prefix):
+                    form_step = step.get_fields_step(form_name)
+                    observers = ExtensionPoint(IPlugin)
+                    service = observers.service(form_name)
+                    service.set_step_values(form_step.attrs, step_number=step_number)
 
     def _on_selection_changed(self, selection, *args, **kwargs):
         model, rows = selection.get_selected_rows()
-        if rows:
-            selected_row_id = rows[0][0]
-            #logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
+        row_ids = zip(*rows)[0]
+        logging.info('[CombinedFields] selection changed: %s %s' % (selection, row_ids))
+        if len(row_ids) == 1:
+            # A single row is selected
+            selected_row_id = row_ids[0]
             app = get_app()
             options = app.protocol.get_data('microdrop.gui.protocol_controller')
             if selected_row_id != options.current_step_number:
@@ -106,13 +190,13 @@ class CombinedFields(ObjectList):
                 emit_signal('on_protocol_options_changed', interface=IPlugin)
                 #emit_signal("on_protocol_update", None)
 
-    def _on_item_changed(self, widget, step, name, value, **kwargs):
-        logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
+    def _on_item_changed(self, widget, step_data, name, value, **kwargs):
+        logging.info('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
         for form_name, uuid_code in self.uuid_mapping.iteritems():
             field_set_prefix = self.field_set_prefix % uuid_code
-            step_number = [r for r in widget].index(step)
+            step_number = [r for r in self].index(step_data)
             if name.startswith(field_set_prefix):
-                form_step = step.get_fields_step(form_name)
+                form_step = step_data.get_fields_step(form_name)
                 #print '%s, %s, %s attrs=%s' % (form_name, uuid_code, name, form_step.attrs)
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(form_name)
@@ -120,7 +204,7 @@ class CombinedFields(ObjectList):
 
 
 class CombinedStep(object):
-    field_set_prefix = '%s__'
+    field_set_prefix = '_%s__'
 
     def __init__(self, combined_fields, step_id=None, attributes=None):
         self.combined_fields = combined_fields
@@ -189,8 +273,13 @@ class ProtocolGridController(SingletonPlugin):
         print 'attrs=%s' % args[1].attrs
 
     def on_step_options_changed(self, plugin, step_number):
+        if self.widget is None:
+            return
+        self.widget._on_step_options_changed(plugin, step_number)
+
+    def on_protocol_update(self, data=None):
         """
-        Handler called whenever the current protocol step changes.
+        Handler called whenever the current step options change.
         """
         app = get_app()
         forms = emit_signal('get_step_form_class', by_observer=True)
@@ -207,7 +296,6 @@ class ProtocolGridController(SingletonPlugin):
             logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s' % (i, step, values))
 
             attributes = dict()
-            #import pudb; pudb.set_trace()
             for form_name, form in combined_fields.forms.iteritems():
                 attr_values = values[form_name]
                 logging.debug('[CombinedStep] attr_values=%s' % attr_values)
@@ -224,8 +312,9 @@ class ProtocolGridController(SingletonPlugin):
             selected_row_id = rows[0][0]
         else:
             selected_row_id = -1
-        if selected_row_id != step_number:
-            s.select_path(step_number)
+        protocol_options = app.protocol.get_data('microdrop.gui.protocol_controller')
+        if selected_row_id != protocol_options.current_step_number:
+            s.select_path(protocol_options.current_step_number)
         self.widget.show_all()
         self.parent.add(self.widget)
 

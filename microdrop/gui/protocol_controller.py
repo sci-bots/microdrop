@@ -83,9 +83,9 @@ class ProtocolController(SingletonPlugin):
         except Exception, why:
             app.main_window_controller.error("Could not open %s. %s" \
                                                   % (filename, why))
-        emit_signal('on_protocol_options_changed')
         if p:
             emit_signal("on_protocol_changed", p)
+        emit_signal('on_protocol_options_changed')
 
     def on_protocol_load(self, data):
         pass
