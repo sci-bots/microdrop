@@ -104,24 +104,23 @@ class CombinedFields(ObjectList):
         app = get_app()
         app.combined_fields = self
 
-    def _set_rows_attr(self, row_ids, column_title, value=None):
+    def _set_rows_attr(self, row_ids, column_title, value, prompt=False):
         title_map = dict([(c.title, c.attr) for c in self.columns])
         attr = title_map.get(column_title)
-        if value is None:
+        if prompt:
             from protocol_grid_dialog import ProtocolGridDialog
             from flatland import Form
 
             Fields = Form.of(self._full_field_to_field_def[attr])
 
             temp = ProtocolGridDialog()
-            response_ok, value = temp.run(Fields)
+            response_ok, value = temp.run(Fields, value)
             if not response_ok:
                 return
         else:
             title_map = dict([(c.title, c.attr) for c in self.columns])
             attr = title_map.get(column_title)
 
-        assert(value is not None)
         for i in row_ids:
             setattr(self[i], attr, value)
         print 'Set rows attr: row_ids=%s column_title=%s value=%s'\
@@ -134,10 +133,10 @@ class CombinedFields(ObjectList):
         popup = gtk.Menu()
         def set_attr_value(*args, **kwargs):
             print '[set_attr_value] args=%s kwargs=%s' % (args, kwargs)
-            self._set_rows_attr(row_ids, column_title, value=value)
+            self._set_rows_attr(row_ids, column_title, value)
         def set_attr(*args, **kwargs):
             print '[set_attr] args=%s kwargs=%s' % (args, kwargs)
-            self._set_rows_attr(row_ids, column_title)
+            self._set_rows_attr(row_ids, column_title, value, prompt=True)
         menu_items = [(gtk.MenuItem('''Set selected [%s] to "%s"'''\
                         % (column_title, value)), set_attr_value),
                 (gtk.MenuItem('''Set selected [%s] to...''' % column_title),
