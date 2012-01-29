@@ -128,6 +128,13 @@ class CombinedFields(ObjectList):
         self._on_multiple_changed(attr)
         return True
 
+    def _deselect_all(self, *args, **kwargs):
+        s = self.get_selection()
+        s.unselect_all()
+
+    def _select_all(self, *args, **kwargs):
+        s = self.get_selection()
+        s.select_all()
 
     def _get_popup_menu(self, item, column_title, value, row_ids):
         popup = gtk.Menu()
@@ -137,10 +144,23 @@ class CombinedFields(ObjectList):
         def set_attr(*args, **kwargs):
             logging.debug('[set_attr] args=%s kwargs=%s' % (args, kwargs))
             self._set_rows_attr(row_ids, column_title, value, prompt=True)
-        menu_items = [(gtk.MenuItem('''Set selected [%s] to "%s"'''\
-                        % (column_title, value)), set_attr_value),
+        menu_items = []
+        if len(row_ids) < len(self):
+            menu_items += [(gtk.MenuItem('Select all rows'), self._select_all), ]
+        if len(row_ids) > 0:
+            menu_items += [(gtk.MenuItem('Deselect all rows'), self._deselect_all), ]
+
+        item_id = [r for r in self].index(item)
+        if item_id not in row_ids:
+            logging.debug('[ProtocolGridController] _on_right_clicked(): '\
+                            'clicked item is not selected')
+        elif len(row_ids) > 1:
+            menu_items += [
+                (gtk.MenuItem('''Set selected [%s] to "%s"'''\
+                            % (column_title, value)), set_attr_value),
                 (gtk.MenuItem('''Set selected [%s] to...''' % column_title),
-                set_attr), ]
+                set_attr),
+            ]
         for item, callback in menu_items:
             popup.add(item)
             item.connect('activate', callback)
@@ -170,12 +190,9 @@ class CombinedFields(ObjectList):
         attr = title_map.get(column_title)
         selection = self.get_selection()
         model, rows = selection.get_selected_rows()
-        row_ids = zip(*rows)[0]
-        item_id = [r for r in self].index(item)
-        if item_id not in row_ids:
-            logging.debug('[ProtocolGridController] _on_right_clicked(): '\
-                            'clicked item is not selected')
+        if not rows:
             return False
+        row_ids = zip(*rows)[0]
         value = getattr(item, attr)
 
         self.grab_focus()
