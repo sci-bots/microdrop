@@ -136,6 +136,12 @@ class CombinedFields(ObjectList):
         s = self.get_selection()
         s.select_all()
 
+    def _invert_rows(self, row_ids):
+        self._select_all()
+        s = self.get_selection()
+        for i in row_ids:
+            s.unselect_path(i)
+
     def _get_popup_menu(self, item, column_title, value, row_ids):
         popup = gtk.Menu()
         def set_attr_value(*args, **kwargs):
@@ -144,7 +150,10 @@ class CombinedFields(ObjectList):
         def set_attr(*args, **kwargs):
             logging.debug('[set_attr] args=%s kwargs=%s' % (args, kwargs))
             self._set_rows_attr(row_ids, column_title, value, prompt=True)
+        def invert_rows(*args, **kwargs):
+            self._invert_rows(row_ids)
         menu_items = []
+        menu_items += [(gtk.MenuItem('Invert row selection'), invert_rows), ]
         if len(row_ids) < len(self):
             menu_items += [(gtk.MenuItem('Select all rows'), self._select_all), ]
         if len(row_ids) > 0:
