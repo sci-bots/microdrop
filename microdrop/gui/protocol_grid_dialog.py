@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
+import logging
 
 import gtk
 from path import path
@@ -48,8 +49,8 @@ class ProtocolGridDialog(object):
         self.window.show_all()
         response = self.window.run()
         self.window.hide()
-        print '[ProtocolGridDialog] response=%s value=%s'\
-                % (response, proxy.get_widget_value())
+        logging.debug('[ProtocolGridDialog] response=%s value=%s'\
+                % (response, proxy.get_widget_value()))
         return (response == 0), proxy.get_widget_value()
 
 

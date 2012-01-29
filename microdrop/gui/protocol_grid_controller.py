@@ -123,8 +123,8 @@ class CombinedFields(ObjectList):
 
         for i in row_ids:
             setattr(self[i], attr, value)
-        print 'Set rows attr: row_ids=%s column_title=%s value=%s'\
-            % (row_ids, column_title, value)
+        logging.debug('Set rows attr: row_ids=%s column_title=%s value=%s'\
+            % (row_ids, column_title, value))
         self._on_multiple_changed(attr)
         return True
 
@@ -132,10 +132,10 @@ class CombinedFields(ObjectList):
     def _get_popup_menu(self, item, column_title, value, row_ids):
         popup = gtk.Menu()
         def set_attr_value(*args, **kwargs):
-            print '[set_attr_value] args=%s kwargs=%s' % (args, kwargs)
+            logging.debug('[set_attr_value] args=%s kwargs=%s' % (args, kwargs))
             self._set_rows_attr(row_ids, column_title, value)
         def set_attr(*args, **kwargs):
-            print '[set_attr] args=%s kwargs=%s' % (args, kwargs)
+            logging.debug('[set_attr] args=%s kwargs=%s' % (args, kwargs))
             self._set_rows_attr(row_ids, column_title, value, prompt=True)
         menu_items = [(gtk.MenuItem('''Set selected [%s] to "%s"'''\
                         % (column_title, value)), set_attr_value),
@@ -173,7 +173,8 @@ class CombinedFields(ObjectList):
         row_ids = zip(*rows)[0]
         item_id = [r for r in self].index(item)
         if item_id not in row_ids:
-            print 'clicked item is not selected'
+            logging.debug('[ProtocolGridController] _on_right_clicked(): '\
+                            'clicked item is not selected')
             return False
         value = getattr(item, attr)
 
@@ -202,18 +203,15 @@ class CombinedFields(ObjectList):
         attrs = service.get_step_values(step_number=step_number)
         for attr, value in attrs.items():
             setattr(form_step, attr, value)
-        #import pudb; pudb.set_trace()
         self.update(combined_step)
-        print '[CombinedFields] _on_step_options_changed(): '\
-                'plugin_name=%s step_number=%s attrs=%s' % (plugin_name, step_number, attrs)
-        #logging.info('[CombinedFields] _on_step_options_changed(): '\
-                #'plugin_name=%s step_number=%s attrs=%s' % (plugin_name, step_number, attrs))
+        logging.debug('[CombinedFields] _on_step_options_changed(): '\
+                'plugin_name=%s step_number=%s attrs=%s' % (plugin_name, step_number, attrs))
 
     def _on_multiple_changed(self, attr, **kwargs):
         selection = self.get_selection()
         model, rows = selection.get_selected_rows()
         row_ids = zip(*rows)[0]
-        logging.info('[CombinedFields] _on_multiple_changed(): attr=%s selected_rows=%s' % (attr, row_ids))
+        logging.debug('[CombinedFields] _on_multiple_changed(): attr=%s selected_rows=%s' % (attr, row_ids))
         app = get_app()
         for step_number, step in [(i, self[i]) for i in row_ids]:
             for form_name, uuid_code in self.uuid_mapping.iteritems():
@@ -226,27 +224,28 @@ class CombinedFields(ObjectList):
 
     def _on_selection_changed(self, selection, *args, **kwargs):
         model, rows = selection.get_selected_rows()
+        if not rows:
+            return
         row_ids = zip(*rows)[0]
-        logging.info('[CombinedFields] selection changed: %s %s' % (selection, row_ids))
+        logging.debug('[CombinedFields] selection changed: %s %s' % (selection, row_ids))
         if len(row_ids) == 1:
             # A single row is selected
             selected_row_id = row_ids[0]
             app = get_app()
             options = app.protocol.get_data('microdrop.gui.protocol_controller')
             if selected_row_id != options.current_step_number:
-                logging.info('[CombinedFields] selected_row_id=%d' % selected_row_id)
+                logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
                 app.protocol.goto_step(selected_row_id)
                 emit_signal('on_protocol_options_changed', interface=IPlugin)
                 #emit_signal("on_protocol_update", None)
 
     def _on_item_changed(self, widget, step_data, name, value, **kwargs):
-        logging.info('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
+        logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
         for form_name, uuid_code in self.uuid_mapping.iteritems():
             field_set_prefix = self.field_set_prefix % uuid_code
             step_number = [r for r in self].index(step_data)
             if name.startswith(field_set_prefix):
                 form_step = step_data.get_fields_step(form_name)
-                #print '%s, %s, %s attrs=%s' % (form_name, uuid_code, name, form_step.attrs)
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(form_name)
                 service.set_step_values(form_step.attrs, step_number=step_number)
@@ -316,6 +315,9 @@ class ProtocolGridController(SingletonPlugin):
     def on_app_init(self):
         app = get_app()
         self.parent = app.builder.get_object("vbox2")
+        self.window = gtk.ScrolledWindow()
+        self.window.show_all()
+        self.parent.add(self.window)
         
     def test(self, *args, **kwargs):
         print 'args=%s, kwargs=%s' % (args, kwargs)
@@ -352,7 +354,7 @@ class ProtocolGridController(SingletonPlugin):
             c = CombinedStep(combined_fields, attributes=attributes)
             combined_fields.append(c)
         if self.widget:
-            self.parent.remove(self.widget)
+            self.window.remove(self.widget)
             del self.widget
         self.widget = combined_fields
         s = self.widget.get_selection()
@@ -365,7 +367,7 @@ class ProtocolGridController(SingletonPlugin):
         if selected_row_id != protocol_options.current_step_number:
             s.select_path(protocol_options.current_step_number)
         self.widget.show_all()
-        self.parent.add(self.widget)
+        self.window.add(self.widget)
 
 
 PluginGlobals.pop_env()
