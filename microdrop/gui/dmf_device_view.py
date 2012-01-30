@@ -67,6 +67,8 @@ class DmfDeviceView:
             alpha = 0.75
         else:
             alpha = 1.
+            self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
+                                   True, 0, 0, width, height)
         self.draw_on_pixmap(self.pixmap, alpha=alpha)
 
     def draw_on_pixmap(self, pixmap, alpha=1.0):
