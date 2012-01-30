@@ -45,6 +45,7 @@ import gui.experiment_log_controller
 import gui.config_controller
 import gui.main_window_controller
 import gui.dmf_device_controller
+import gui.video_controller
 import gui.protocol_controller
 import gui.protocol_grid_controller
 

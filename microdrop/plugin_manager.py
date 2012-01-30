@@ -132,11 +132,19 @@ if not utility.PROGRAM_LAUNCHED:
     class IPlugin(object):    
         __interface_namespace__ = None
 
+
     class IWaveformGenerator(object):
         __interface_namespace__ = None
 
+
     class ILoggingPlugin(object):
         __interface_namespace__ = None
+
+
+    class IVideoPlugin(object):    
+        __interface_namespace__ = None
+
+
 else:
     class ILoggingPlugin(Interface):
         def on_debug(self, record):
@@ -286,6 +294,11 @@ else:
                 plugin : plugin instance for which the step options changed
                 step_number : step number that the options changed for
             """
+            pass
+
+
+    class IVideoPlugin(Interface):
+        def on_new_frame(self, frame):
             pass
 
 

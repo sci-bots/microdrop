@@ -30,7 +30,7 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
-    implements, emit_signal, PluginGlobals
+    implements, emit_signal, PluginGlobals, IVideoPlugin
 from utility import is_float
 from app_context import get_app
 from logger import logger
@@ -49,6 +49,7 @@ class DmfDeviceOptions(object):
 
 class DmfDeviceController(SingletonPlugin):
     implements(IPlugin)
+    implements(IVideoPlugin)
     
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"        
@@ -322,5 +323,15 @@ class DmfDeviceController(SingletonPlugin):
                 self.view.electrode_color[id] = (1,0,0)
         self.view.update()
 
+    def on_new_frame(self, frame, depth):
+        from opencv.safe_cv import cv
+        x, y, width, height = self.view.widget.get_allocation()
+        resized = cv.CreateMat(width, height, cv.CV_8UC3)
+        cv.Resize(frame, resized)
+        self.pixbuf = gtk.gdk.pixbuf_new_from_data(
+            resized.tostring(), gtk.gdk.COLORSPACE_RGB, False,
+            depth, width, height, resized.step)
+        self.view.background = self.pixbuf
+        self.view.update()
 
 PluginGlobals.pop_env()

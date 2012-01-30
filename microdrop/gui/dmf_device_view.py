@@ -27,11 +27,12 @@ class DmfDeviceView:
         self.widget = widget
         x, y, width, height = self.widget.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
-        self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
-                                   True, 0, 0, width, height)
+        #self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
+                                   #True, 0, 0, width, height)
         self.scale = 1
         self.offset = (0,0)
         self.electrode_color = {}
+        self.background = None
 
     def fit_device(self, padding=None):
         app = get_app()
@@ -60,19 +61,25 @@ class DmfDeviceView:
         return False
 
     def update(self):
-        app = get_app()
         x, y, width, height = self.widget.get_allocation()
-        self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
-                                   True, 0, 0, width, height)
+        if self.background is not None:
+            self.pixmap, mask = self.background.render_pixmap_and_mask()
+            alpha = 0.75
+        else:
+            alpha = 1.
+        self.draw_on_pixmap(self.pixmap, alpha=alpha)
+
+    def draw_on_pixmap(self, pixmap, alpha=1.0):
+        app = get_app()
         for id, electrode in app.dmf_device.electrodes.iteritems():
             if self.electrode_color.keys().count(id):
-                cr = self.pixmap.cairo_create()
+                cr = pixmap.cairo_create()
                 x,y = self.offset
                 cr.scale(self.scale, self.scale)
                 cr.translate(x,y)
                 self.draw_electrode(electrode, cr)
                 r, g, b = self.electrode_color[id]
-                cr.set_source_rgb(r, g, b)
+                cr.set_source_rgba(r, g, b, alpha)
                 cr.fill()
         self.widget.queue_draw()
 
