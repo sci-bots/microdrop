@@ -166,6 +166,8 @@ if __name__ == "__main__":
               ("sympy", "exe", "http://sympy.googlecode.com/files/sympy-0.7.1.win32.exe"),
               ("pyparsing", "pip"),
               ("pyutilib", "pip"),
+              ("flatland", "pip"),
+              ("pygtkhelpers", "pip"),
               ):
         try:
             exec("import " + p[0])
