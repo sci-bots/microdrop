@@ -327,7 +327,7 @@ def emit_signal(function, args=[], interface=IPlugin, by_observer=False):
                             # that will result in infinite recursion.  Instead,
                             # just continute onto the next plugin.
                             continue
-                        print >> message, '%s plugin crashed.' % observer.name
+                        print >> message, '%s plugin crashed processing %s signal.' % (observer.name, function)
                     print >> message, 'Reason:', str(why)
                     logging.error(message.getvalue().strip())
                 logging.debug(''.join(traceback.format_stack()))
