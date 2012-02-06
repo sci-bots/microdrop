@@ -262,8 +262,7 @@ class CombinedFields(ObjectList):
             if selected_row_id != options.current_step_number:
                 logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
                 app.protocol.goto_step(selected_row_id)
-                emit_signal('on_protocol_options_changed', interface=IPlugin)
-                #emit_signal("on_protocol_update", None)
+                emit_signal('on_protocol_update')
 
     def _on_item_changed(self, widget, step_data, name, value, **kwargs):
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
@@ -354,7 +353,7 @@ class ProtocolGridController(SingletonPlugin):
             return
         self.widget._on_step_options_changed(plugin, step_number)
 
-    def on_protocol_update(self, data=None):
+    def on_protocol_update(self):
         """
         Handler called whenever the current step options change.
         """

@@ -86,10 +86,6 @@ class DmfDeviceController(SingletonPlugin):
         If none exists yet, create a new one.
         """
         app = get_app()
-        protocol_options = app.protocol.get_data('microdrop.gui.protocol_controller')
-        if step is None:
-            step = protocol_options.current_step_number
-        
         options = app.protocol.current_step().get_data(self.name)
         if options is None:
             # No data is registered for this plugin (for this step).
@@ -297,9 +293,9 @@ class DmfDeviceController(SingletonPlugin):
         protocol_options = app.protocol.get_data('microdrop.gui.protocol_controller')
         if protocol_options.current_step_number == step_number\
                 and plugin_name == self.name:
-            self.update()
+            self.on_dmf_device_update()
 
-    def update(self):
+    def on_dmf_device_update(self):
         app = get_app()
         options = self.get_step_options()
         state_of_all_channels = options.state_of_channels

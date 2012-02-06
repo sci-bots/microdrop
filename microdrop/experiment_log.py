@@ -44,7 +44,7 @@ class ExperimentLog():
             if val:
                 return val
         start_time = time.time()
-        self.add_data({"start time":start_time})
+        self.data.append({"start time":start_time})
         return start_time
 
     def get_next_id(self):
@@ -68,8 +68,13 @@ class ExperimentLog():
             os.mkdir(log_path)
         return log_path
 
+    def add_step(self, step_number):
+        self.data.append({"step": step_number, 
+                         "time": time.time() - self.start_time()})
+
     def add_data(self, data):
-        self.data.append(data)
+        for k, v in data.items():
+            self.data[-1][k]=v
         
     def save(self, filename=None):
         if filename==None:

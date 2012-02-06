@@ -211,28 +211,13 @@ else:
             """
             pass
 
-        def on_protocol_update(self, data):
+        def on_protocol_update(self):
             """
             Handler called whenever views of the protocol need to update.
-
-            Parameters:
-                data : dictionary to store experiment log data for the current step
 
             Returns:
                 True if the protocol should be updated again (e.g., if a feedback
                 plugin wants to signal that the step should be repeated)
-            """
-            pass
-
-        def on_delete_protocol_step(self):
-            """
-            Handler called whenever a protocol step is deleted.
-            """
-            pass
-
-        def on_insert_protocol_step(self):
-            """
-            Handler called whenever a protocol step is inserted.
             """
             pass
 
@@ -267,6 +252,12 @@ else:
             """
             pass
 
+        def on_dmf_device_update(self):
+            """
+            Handler called whenever views of the DMF device need to update.
+            """
+            pass
+        
         def on_experiment_log_changed(self):
             """
             Handler called when the experiment log changes (e.g., when a protocol

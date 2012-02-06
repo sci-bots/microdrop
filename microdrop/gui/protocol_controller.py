@@ -85,7 +85,7 @@ class ProtocolController(SingletonPlugin):
                                                   % (filename, why))
         if p:
             emit_signal("on_protocol_changed", p)
-        emit_signal('on_protocol_options_changed')
+        emit_signal('on_protocol_update')
 
     def on_protocol_load(self, data):
         pass
@@ -171,53 +171,43 @@ class ProtocolController(SingletonPlugin):
     def on_insert_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.insert_step()
-        emit_signal("on_insert_protocol_step")
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
-        #app.main_window_controller.update()
+        emit_signal('on_protocol_update')
 
     def on_copy_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.copy_step()
-        emit_signal("on_insert_protocol_step")
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
-        #app.main_window_controller.update()
+        emit_signal('on_protocol_update')
 
     def on_delete_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.delete_step()
-        emit_signal("on_delete_protocol_step")
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
-        #app.main_window_controller.update()
+        emit_signal('on_protocol_update')
 
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.first_step()
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
-        #app.main_window_controller.update()
+        emit_signal('on_protocol_update')
 
     def on_prev_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.prev_step()
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
-        #app.main_window_controller.update()
+        emit_signal('on_protocol_update')
 
     def on_next_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.next_step()
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
-        #app.main_window_controller.update()
-
+        emit_signal('on_protocol_update')
+        
     def on_last_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.last_step()
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
-        #app.main_window_controller.update()
+        emit_signal('on_protocol_update')
 
     def on_new_protocol(self, widget=None, data=None):
         app = get_app()
         emit_signal("on_protocol_changed",
                     Protocol(app.dmf_device.max_channel() + 1))
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        emit_signal('on_protocol_update')
 
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()
@@ -236,7 +226,6 @@ class ProtocolController(SingletonPlugin):
             filename = dialog.get_filename()
             self.load_protocol(filename)
         dialog.destroy()
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
 
     def on_rename_protocol(self, widget=None, data=None):
         app = get_app()
@@ -330,7 +319,7 @@ class ProtocolController(SingletonPlugin):
             check_textentry(self.textentry_protocol_repeats,
                 options.n_repeats,
                 int)
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
+        emit_signal('on_protocol_update')
 
     def on_run_protocol(self, widget=None, data=None):
         app = get_app()
@@ -360,10 +349,26 @@ class ProtocolController(SingletonPlugin):
         
     def run_step(self):
         app = get_app()
-        emit_signal('on_protocol_options_changed', interface=IPlugin)
-        #app.main_window_controller.update()
-        options = self.get_protocol_options()
-        
+        options = self.get_protocol_options()        
+        if app.realtime_mode or app.running:
+            attempt=0
+            while True:
+                app.experiment_log.add_step(options.current_step_number)
+                if attempt > 0:
+                    app.experiment_log.add_data({"attempt", attempt})
+                return_codes = emit_signal("on_protocol_update")
+                if 'Fail' in return_codes:
+                    self.pause_protocol()
+                    app.main_window_controller.error("Protocol failed.")
+                    break
+                elif 'Repeat' in return_codes:
+                    attempt+=1
+                else:
+                    break
+        else:
+            data = {}
+            emit_signal("on_protocol_update", data)
+
         if options.current_step_number < len(app.protocol) - 1:
             app.protocol.next_step()
         elif options.current_repetition < options.n_repeats - 1:
@@ -386,33 +391,6 @@ class ProtocolController(SingletonPlugin):
             options = self.get_default_options()
             step.set_data(self.name, options)
         return options
-
-    def update(self):
-        app = get_app()
-
-        protocol_options = self.get_protocol_options()
-
-        if app.realtime_mode or app.running:
-            attempt=0
-            while True:
-                data = {"step": protocol_options.current_step_number, 
-                        "time": time.time() - app.experiment_log.start_time()}
-                if attempt > 0:
-                    data["attempt"] = attempt                
-                return_codes = emit_signal("on_protocol_update", data)
-                if 'Fail' in return_codes:
-                    self.pause_protocol()
-                    app.main_window_controller.error("Protocol failed.")
-                    break
-                elif 'Repeat' in return_codes:
-                    app.experiment_log.add_data(data)
-                    attempt+=1
-                else:
-                    app.experiment_log.add_data(data)
-                    break
-        else:
-            data = {}
-            emit_signal("on_protocol_update", data)
 
     def on_step_options_changed(self, plugin, step_number):
         logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, step_number=%s'\
@@ -477,12 +455,6 @@ class ProtocolController(SingletonPlugin):
             options = self.get_default_protocol_options()
             protocol.set_data(self.name, options)
         return options
-
-    def on_protocol_options_changed(self):
-        app = get_app()
-        self._update_labels()
-        self.update()
-        emit_signal("on_protocol_update", app.protocol)
 
 
 PluginGlobals.pop_env()
