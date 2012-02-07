@@ -119,10 +119,12 @@ class MainWindowController(SingletonPlugin):
 
     def on_destroy(self, widget, data=None):
         gtk.main_quit()
+        """
         observers = ExtensionPoint(IPlugin)
         service = observers.service('microdrop.gui.video_controller')
         service.on_plugin_disable()
         service.__del__()
+        """
 
     def on_about(self, widget, data=None):
         app = get_app()
@@ -219,7 +221,6 @@ class MainWindowController(SingletonPlugin):
     def update(self):
         app = get_app()
         app.realtime_mode = self.checkbutton_realtime_mode.get_active()
-        emit_signal("on_dmf_device_update")
         emit_signal("on_protocol_update")
         
         if app.dmf_device.name:
