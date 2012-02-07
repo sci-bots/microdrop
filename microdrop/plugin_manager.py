@@ -293,23 +293,16 @@ else:
             pass
 
 
-def emit_signal(function, args=[], interface=IPlugin, by_observer=False):
+def emit_signal(function, args=[], interface=IPlugin):
     observers = ExtensionPoint(interface)
-    if by_observer:
-        return_codes = {}
-    else:
-        return_codes = []
+    return_codes = {}
     for observer in observers:
         if hasattr(observer, function):
             try:
                 if type(args) is not list:
                     args = [args]
                 f = getattr(observer, function)
-                if by_observer:
-                    return_codes[observer.name] = f(*args)
-                else:
-                    return_code = f(*args)
-                    return_codes.append(return_code)
+                return_codes[observer.name] = f(*args)
             except Exception, why:
                 with closing(StringIO()) as message:
                     if hasattr(observer, "name"):

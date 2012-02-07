@@ -92,7 +92,7 @@ class ProtocolController(SingletonPlugin):
 
     def on_protocol_changed(self, protocol):
         options = self.get_protocol_options()
-        protocol.plugin_fields = emit_signal('get_step_fields', by_observer=True)
+        protocol.plugin_fields = emit_signal('get_step_fields')
         logging.info('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
         
     def on_app_init(self):
@@ -357,11 +357,11 @@ class ProtocolController(SingletonPlugin):
                 if attempt > 0:
                     app.experiment_log.add_data({"attempt", attempt})
                 return_codes = emit_signal("on_protocol_update")
-                if 'Fail' in return_codes:
+                if 'Fail' in return_codes.values():
                     self.pause_protocol()
                     app.main_window_controller.error("Protocol failed.")
                     break
-                elif 'Repeat' in return_codes:
+                elif 'Repeat' in return_codes.values():
                     attempt+=1
                 else:
                     break

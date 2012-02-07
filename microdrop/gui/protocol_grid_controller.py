@@ -358,7 +358,7 @@ class ProtocolGridController(SingletonPlugin):
         Handler called whenever the current step options change.
         """
         app = get_app()
-        forms = emit_signal('get_step_form_class', by_observer=True)
+        forms = emit_signal('get_step_form_class')
 
         steps = app.protocol.steps
         logging.debug('[ProtocolGridController] on_protocol_update():')
@@ -368,7 +368,7 @@ class ProtocolGridController(SingletonPlugin):
         combined_fields = CombinedFields(forms)
 
         for i, step in enumerate(steps):
-            values = emit_signal('get_step_values', [i], by_observer=True)
+            values = emit_signal('get_step_values', [i])
             logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s' % (i, step, values))
 
             attributes = dict()
