@@ -251,12 +251,6 @@ else:
             loaded).
             """
             pass
-
-        def on_dmf_device_update(self):
-            """
-            Handler called whenever views of the DMF device need to update.
-            """
-            pass
         
         def on_experiment_log_changed(self):
             """

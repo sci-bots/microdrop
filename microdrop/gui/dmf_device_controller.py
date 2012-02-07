@@ -289,9 +289,12 @@ class DmfDeviceController(SingletonPlugin):
         app = get_app()
         if app.protocol.current_step_number == step_number\
                 and plugin_name == self.name:
-            self.on_dmf_device_update()
+            self.update()
 
-    def on_dmf_device_update(self):
+    def on_protocol_update(self):
+        self.update()
+
+    def update(self):
         app = get_app()
         options = self.get_step_options()
         state_of_all_channels = options.state_of_channels
