@@ -122,11 +122,8 @@ class DmfDeviceController(SingletonPlugin):
                                      event.time, data=None)
                 break
         if state_updated:
-            protocol_options = app.protocol\
-                .get_data('microdrop.gui.protocol_controller')
-            #app.main_window_controller.update()
             emit_signal('on_step_options_changed',
-                        [self.name, protocol_options.current_step_number],
+                        [self.name, app.protocol.current_step_number],
                         interface=IPlugin)
         return True
 
@@ -290,8 +287,7 @@ class DmfDeviceController(SingletonPlugin):
         If the change was to options affecting this plugin, update state.
         '''
         app = get_app()
-        protocol_options = app.protocol.get_data('microdrop.gui.protocol_controller')
-        if protocol_options.current_step_number == step_number\
+        if app.protocol.current_step_number == step_number\
                 and plugin_name == self.name:
             self.on_dmf_device_update()
 

@@ -258,8 +258,7 @@ class CombinedFields(ObjectList):
             # A single row is selected
             selected_row_id = row_ids[0]
             app = get_app()
-            options = app.protocol.get_data('microdrop.gui.protocol_controller')
-            if selected_row_id != options.current_step_number:
+            if selected_row_id != app.protocol.current_step_number:
                 logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
                 app.protocol.goto_step(selected_row_id)
                 emit_signal('on_protocol_update')
@@ -388,9 +387,8 @@ class ProtocolGridController(SingletonPlugin):
             selected_row_id = rows[0][0]
         else:
             selected_row_id = -1
-        protocol_options = app.protocol.get_data('microdrop.gui.protocol_controller')
-        if selected_row_id != protocol_options.current_step_number:
-            s.select_path(protocol_options.current_step_number)
+        if selected_row_id != app.protocol.current_step_number:
+            s.select_path(app.protocol.current_step_number)
         self.widget.show_all()
         self.window.add(self.widget)
 

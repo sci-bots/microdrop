@@ -41,6 +41,9 @@ class Protocol():
         self.name = None
         self.plugin_data = {}
         self.plugin_fields = {}
+        self.n_repeats=1
+        self.current_step_number = 0
+        self.current_repetition = 0
 
     @property
     def plugins(self):
@@ -77,57 +80,48 @@ class Protocol():
         self.n_channels = n_channels
 
     def current_step(self):
-        options = self.get_data('microdrop.gui.protocol_controller')
-        return self.steps[options.current_step_number]
+        return self.steps[self.current_step_number]
 
     def insert_step(self):
-        options = self.get_data('microdrop.gui.protocol_controller')
-        self.steps.insert(options.current_step_number,
+        self.steps.insert(self.current_step_number,
                           Step())
 
     def copy_step(self):
-        options = self.get_data('microdrop.gui.protocol_controller')
-        self.steps.insert(options.current_step_number,
+        self.steps.insert(self.current_step_number,
             Step(plugin_data=deepcopy(self.current_step().plugin_data)))
         self.next_step()
 
     def delete_step(self):
         if len(self.steps) > 1:
-            options = self.get_data('microdrop.gui.protocol_controller')
-            del self.steps[options.current_step_number]
-            if options.current_step_number == len(self.steps):
-                options.current_step_number -= 1
+            del self.steps[self.current_step_number]
+            if self.current_step_number == len(self.steps):
+                self.current_step_number -= 1
         else: # reset first step
             self.steps = [Step()]
 
     def next_step(self):
-        options = self.get_data('microdrop.gui.protocol_controller')
-        if options.current_step_number == len(self.steps) - 1:
+        if self.current_step_number == len(self.steps) - 1:
             self.steps.append(Step())
-        self.goto_step(options.current_step_number + 1)
+        self.goto_step(self.current_step_number + 1)
         
     def next_repetition(self):
-        options = self.get_data('microdrop.gui.protocol_controller')
-        if options.current_repetition < options.n_repeats - 1:
-            options.current_repetition += 1
+        if self.current_repetition < self.n_repeats - 1:
+            self.current_repetition += 1
             self.goto_step(0)
             
     def prev_step(self):
-        options = self.get_data('microdrop.gui.protocol_controller')
-        if options.current_step_number > 0:
-            self.goto_step(options.current_step_number - 1)
+        if self.current_step_number > 0:
+            self.goto_step(self.current_step_number - 1)
 
     def first_step(self):
-        options = self.get_data('microdrop.gui.protocol_controller')
-        options.current_repetition = 0
+        self.current_repetition = 0
         self.goto_step(0)
 
     def last_step(self):
         self.goto_step(len(self.steps) - 1)
 
     def goto_step(self, step):
-        options = self.get_data('microdrop.gui.protocol_controller')
-        options.current_step_number = step
+        self.current_step_number = step
         
 
 class Step(object):
