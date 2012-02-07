@@ -409,7 +409,7 @@
             <child>
               <object class="GtkDrawingArea" id="dmf_device_view">
                 <property name="width_request">500</property>
-                <property name="height_request">500</property>
+                <property name="height_request">800</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="events">GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK</property>
@@ -418,8 +418,8 @@
                 <signal name="key-press-event" handler="on_dmf_device_view_key_press_event" swapped="no"/>
               </object>
               <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">0</property>
               </packing>
             </child>
