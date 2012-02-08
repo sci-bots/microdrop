@@ -25,10 +25,11 @@ except ImportError:
 import numpy as np
 
 from logger import logger
+from utility import Version
 
 
 class DmfDevice():
-    class_version = '0.1'
+    class_version = str(Version(0,1,0))
     def __init__(self):
         self.electrodes = {}
         self.x_min = np.Inf
@@ -39,24 +40,30 @@ class DmfDevice():
         self.scale = None
         self.version = self.__class__.class_version
 
-    @staticmethod
-    def load(filename):
+    @classmethod
+    def load(cls, filename):
+        logger.debug("[DmfDevice].load")
         f = open(filename, 'rb')
         out = pickle.load(f)
         f.close()
+        # check type
+        if out.__class__!=cls:
+            raise TypeError
         if not hasattr(out, 'version'):
-            out.version = '0.0'
-        if out.version != out.class_version:
+            out.version = '0'
+        logger.info('[DmfDevice] version %s' % str(out.version))
+        if Version.fromstring(out.version) != \
+            Version.fromstring(out.class_version):
             out.upgrade()
         return out
 
     def upgrade(self):
-        version = float(self.version)
-        logger.info('upgrade from version %s' % self.version)
-        if version < 0.1:
+        logger.debug("[DmfDevice].upgrade")
+        version = Version.fromstring(self.version)
+        if version < Version(0,1):
             self.version = '0.1'
             self.scale = None
-            logger.info('upgrade to version 0.1')
+            logger.info('[DmfDevice] upgrade to version 0.1')
 
     def save(self, filename):
         f = open(filename, 'wb')
