@@ -77,18 +77,17 @@ def base_path():
         script = path(sys.argv[0])
     return script.parent.parent
 
+
 class InvalidVersionString(Exception):
     pass
 
-class InvalidVersion(Exception):
-    pass
 
 class Version:
     InvalidVersionString(Exception)
     
     def __init__(self, major=0, minor=0, micro=0):
         if type(major)!=int or type(minor)!=int or type(micro)!=int:
-            raise InvalidVersion
+            raise TypeError
         self.major = major
         self.minor = minor
         self.micro = micro
