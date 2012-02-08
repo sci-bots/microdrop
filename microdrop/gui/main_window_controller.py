@@ -89,7 +89,7 @@ class MainWindowController(SingletonPlugin):
                 self.on_realtime_mode_toggled
         app.signals["on_menu_options_activate"] = self.on_menu_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
-        app.signals["on_menu_debug_activate"] = self.on_menu_debug_activate
+        #app.signals["on_menu_debug_activate"] = self.on_menu_debug_activate
 
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui",
@@ -142,6 +142,7 @@ class MainWindowController(SingletonPlugin):
         pmd = PluginManagerDialog()
         response = pmd.run()
 
+    """
     def on_menu_debug_activate(self, widget, data=None):
         app = get_app()
         step = app.protocol.current_step()
@@ -155,7 +156,8 @@ class MainWindowController(SingletonPlugin):
                 'frequency': random.randint(1e3, 100e3),
                 'feedback_enabled': True})
         self.update()
-
+    """
+    
     def on_menu_experiment_logs_activate(self, widget, data=None):
         app = get_app()
         app.experiment_log_controller.on_window_show(widget, data)
