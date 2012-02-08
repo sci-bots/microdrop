@@ -144,6 +144,9 @@ class Version:
             return True
         else:
             return False
+
+    def __ne__(self, x):
+        return not self==x
         
     def __le__(self, x):
         return self<x or self==x
