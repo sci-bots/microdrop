@@ -30,3 +30,32 @@ def register_shortcuts(window, shortcuts, enabled_widgets=None,
     window.add_accel_group(accelgroup)
     logger.info('DONE')
     return accelgroup
+
+def combobox_set_model_from_list(cb, items):
+    """Setup a ComboBox or ComboBoxEntry based on a list of strings."""
+    cb.clear()           
+    model = gtk.ListStore(str)
+    for i in items:
+        model.append([i])
+    cb.set_model(model)
+    if type(cb) == gtk.ComboBoxEntry:
+        cb.set_text_column(0)
+    elif type(cb) == gtk.ComboBox:
+        cell = gtk.CellRendererText()
+        cb.pack_start(cell, True)
+        cb.add_attribute(cell, 'text', 0)
+
+
+def combobox_get_active_text(cb):
+    model = cb.get_model()
+    active = cb.get_active()
+    if active < 0:
+        return None
+    return model[active][0]
+
+
+def textview_get_text(textview):
+    buffer = textview.get_buffer()
+    start = buffer.get_start_iter()
+    end = buffer.get_end_iter()
+    return buffer.get_text(start, end)

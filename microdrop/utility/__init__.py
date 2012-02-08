@@ -17,7 +17,6 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import gtk
 import sys
 import re
 
@@ -77,36 +76,6 @@ def base_path():
     except NameError:
         script = path(sys.argv[0])
     return script.parent.parent
-
-
-def combobox_set_model_from_list (cb, items):
-    """Setup a ComboBox or ComboBoxEntry based on a list of strings."""
-    cb.clear()           
-    model = gtk.ListStore(str)
-    for i in items:
-        model.append([i])
-    cb.set_model(model)
-    if type(cb) == gtk.ComboBoxEntry:
-        cb.set_text_column(0)
-    elif type(cb) == gtk.ComboBox:
-        cell = gtk.CellRendererText()
-        cb.pack_start(cell, True)
-        cb.add_attribute(cell, 'text', 0)
-
-
-def combobox_get_active_text(cb):
-    model = cb.get_model()
-    active = cb.get_active()
-    if active < 0:
-        return None
-    return model[active][0]
-
-
-def textview_get_text(textview):
-    buffer = textview.get_buffer()
-    start = buffer.get_start_iter()
-    end = buffer.get_end_iter()
-    return buffer.get_text(start, end)
 
 class InvalidVersionString(Exception):
     pass

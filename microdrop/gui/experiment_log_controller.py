@@ -25,7 +25,7 @@ import gtk
 from path import path
 
 from experiment_log import ExperimentLog, load as load_experiment_log
-from utility import combobox_set_model_from_list, \
+from utility.gui import combobox_set_model_from_list, \
     combobox_get_active_text, textview_get_text
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
     ExtensionPoint, emit_signal, PluginGlobals
