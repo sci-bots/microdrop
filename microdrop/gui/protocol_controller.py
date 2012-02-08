@@ -341,7 +341,7 @@ class ProtocolController(SingletonPlugin):
             while True:
                 app.experiment_log.add_step(app.protocol.current_step_number)
                 if attempt > 0:
-                    app.experiment_log.add_data({"attempt", attempt})
+                    app.experiment_log.add_data({"attempt":attempt})
                 return_codes = emit_signal("on_protocol_update")
                 if 'Fail' in return_codes.values():
                     self.pause_protocol()
