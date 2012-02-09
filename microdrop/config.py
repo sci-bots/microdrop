@@ -21,7 +21,7 @@ import os
 from shutil import ignore_patterns
 
 from path import path
-from configobj import ConfigObj, flatten_errors
+from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
 
 from logger import logger, logging
@@ -63,7 +63,7 @@ class Config():
         # directory containing DMF device files 
         directory = string(default=None)
 
-        # name of the most recently used protocol
+        # name of the most recently used DMF device
         name = string(default=None)
 
         [protocol]
@@ -136,6 +136,15 @@ class Config():
             self.data.write(outfile=f)
 
     def _validate(self):
+        # set all str values that are 'None' to None
+        def set_str_to_none(d):
+            for k, v in d.items():
+                if type(v)==Section:
+                    set_str_to_none(v)
+                else:
+                    if type(v)==str and v=='None':
+                        d[k]=None
+        set_str_to_none(self.data)
         validator = Validator()
         results = self.data.validate(validator, copy=True)
         if results != True:
