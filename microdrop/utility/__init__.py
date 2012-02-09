@@ -82,6 +82,10 @@ class InvalidVersionStringError(Exception):
     pass
 
 
+class VersionError(Exception):
+    pass
+
+
 class FutureVersionError(Exception):
     def __init__(self, current_version, future_version, *args, **kwargs):
         super(FutureVersionError, self).__init__(*args, **kwargs)
