@@ -34,7 +34,7 @@ from utility import Version, VersionError, FutureVersionError
 
 
 class Protocol():
-    class_version = str(Version(0, 1))
+    class_version = str(Version(0))
     
     def __init__(self, n_channels=0, name=None):
         self.n_channels = n_channels
@@ -70,8 +70,6 @@ class Protocol():
             raise TypeError
         if not hasattr(out, 'version'):
             out.version = str(Version(0))
-        elif not isinstance(out.version, str):
-            out.version = str(out.version)
         out._upgrade()
         return out
 
@@ -86,32 +84,10 @@ class Protocol():
         logger.debug("[Protocol]._upgrade()")
         version = Version.fromstring(self.version)
         logger.debug('[Protocol] version=%s, class_version=%s' % (str(version), self.class_version))
-        version_010 = Version(major=0, minor=1)
-        class_version = Version.fromstring(self.class_version)
-        if version > class_version:
+        if version > Version.fromstring(self.class_version):
             logger.debug('[Protocol] version>class_version')
             raise FutureVersionError(Version.fromstring(self.class_version), version)
-        elif version < version_010:
-            # TODO: [cfobel] move gtk code out of protocol...
-            response = yesno('Upgrade protocol from version %s to %s?'\
-                    % (str(version), str(class_version)))
-            if response == gtk.RESPONSE_YES:
-                if hasattr(self, 'filename'):
-                    backup_path = '%s.%s' % (self.filename, self.version)
-                    self.save(backup_path)
-                    logger.info('[Protocol] backed up protocol version '\
-                            '%s to %s' % (self.version, backup_path))
-                # We need to convert plugin_data to pickled strings
-                for k, v in self.plugin_data.iteritems():
-                    if v:
-                        self.plugin_data[k] = pickle.dumps(v)
-                for step in self.steps:
-                    for k, v in step.plugin_data.iteritems():
-                        step.plugin_data[k] = pickle.dumps(v)
-                self.version = str(version_010)
-            else:
-                raise VersionError
-        elif version < class_version:
+        elif version < Version.fromstring(self.class_version):
             pass
         # else the versions are equal and don't need to be upgraded
 
@@ -130,13 +106,10 @@ class Protocol():
 
     def get_data(self, plugin_name):
         logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
-        value = self.plugin_data.get(plugin_name)
-        if value:
-            return pickle.loads(value)
-        return None
+        return self.plugin_data.get(plugin_name)
 
     def set_data(self, plugin_name, data):
-        self.plugin_data[plugin_name] = pickle.dumps(data)
+        self.plugin_data[plugin_name] = data
 
     def __len__(self):
         return len(self.steps)
@@ -148,7 +121,6 @@ class Protocol():
         if hasattr(self, 'filename'):
             del self.filename
         f = open(filename, 'wb')
-        #import pudb; pudb.set_trace()
         pickle.dump(self, f, -1)
         f.close()
 
@@ -222,10 +194,7 @@ class Step(object):
 
     def get_data(self, plugin_name):
         logging.debug('[Step] plugin_data=%s' % self.plugin_data)
-        value = self.plugin_data.get(plugin_name)
-        if value:
-            return pickle.loads(value)
-        return None
+        return self.plugin_data.get(plugin_name)
 
     def set_data(self, plugin_name, data):
-        self.plugin_data[plugin_name] = pickle.dumps(data)
+        self.plugin_data[plugin_name] = data

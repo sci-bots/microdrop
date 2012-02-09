@@ -81,7 +81,6 @@ class ExperimentLogController(SingletonPlugin):
 
             self.results = self.Results(load_experiment_log(log),
                                         Protocol.load(protocol))
-            self.results.protocol.save(protocol)
 
             self.builder.get_object("button_load_device").set_sensitive(True)        
             self.builder.get_object("button_load_protocol").set_sensitive(True)    
