@@ -53,6 +53,7 @@ class DmfDevice():
                 software.
         """
         logger.debug("[DmfDevice].load(\"%s\")" % filename)
+        logger.info("Loading DmfDevice from %s" % filename)
         f = open(filename, 'rb')
         out = pickle.load(f)
         f.close()

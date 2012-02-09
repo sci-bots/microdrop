@@ -27,14 +27,13 @@ except ImportError:
 
 import numpy as np
 
+from logger import logger
+from utility import Version, FutureVersionError
 
-def load(filename):
-    f = open(filename, 'rb')
-    protocol = pickle.load(f)
-    f.close()
-    return protocol
 
 class Protocol():
+    class_version = str(Version(0))
+    
     def __init__(self, n_channels=0, name=None):
         self.n_channels = n_channels
         self.steps = [Step()]
@@ -44,6 +43,50 @@ class Protocol():
         self.n_repeats=1
         self.current_step_number = 0
         self.current_repetition = 0
+        self.version = self.class_version
+
+    @classmethod
+    def load(cls, filename):
+        """
+        Load a Protocol from a file.
+
+        Args:
+            filename: path to file.
+        Raises:
+            TypeError: file is not a Protocol.
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[Protocol].load(\"%s\")" % filename)
+        logger.info("Loading Protocol from %s" % filename)
+        f = open(filename, 'rb')
+        out = pickle.load(f)
+        f.close()
+        # check type
+        if out.__class__!=cls:
+            raise TypeError
+        if not hasattr(out, 'version'):
+            out.version = str(Version(0))
+        out._upgrade()
+        return out
+
+    def _upgrade(self):
+        """
+        Upgrade the serialized object if necessary.
+
+        Raises:
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[Protocol]._upgrade()")
+        version = Version.fromstring(self.version)
+        logger.debug('[Protocol] version=%s, class_version=%s' % (str(version), self.class_version))
+        if version > Version.fromstring(self.class_version):
+            logger.debug('[Protocol] version>class_version')
+            raise FutureVersionError
+        elif version < Version.fromstring(self.class_version):
+            pass
+        # else the versions are equal and don't need to be upgraded
 
     @property
     def plugins(self):

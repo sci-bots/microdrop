@@ -62,7 +62,7 @@ class ProtocolController(SingletonPlugin):
         app = get_app()
         p = None
         try:
-            p = protocol.load(filename)
+            p = Protocol.load(filename)
             for name, data in p.plugin_data.items():
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)

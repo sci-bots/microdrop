@@ -29,7 +29,7 @@ from utility.gui import combobox_set_model_from_list, \
     combobox_get_active_text, textview_get_text
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
     ExtensionPoint, emit_signal, PluginGlobals
-from protocol import load as load_protocol
+from protocol import Protocol
 from dmf_device import DmfDevice
 from app_context import get_app
 from logger import logger
@@ -80,7 +80,7 @@ class ExperimentLogController(SingletonPlugin):
             protocol = path(app.experiment_log.directory) / path(id) / path("protocol")
 
             self.results = self.Results(load_experiment_log(log),
-                                        load_protocol(protocol))
+                                        Protocol.load(protocol))
 
             self.builder.get_object("button_load_device").set_sensitive(True)        
             self.builder.get_object("button_load_protocol").set_sensitive(True)    
@@ -265,9 +265,9 @@ class ExperimentLogController(SingletonPlugin):
             log_files.sort()
         self.combobox_log_files.clear()
         combobox_set_model_from_list(self.combobox_log_files, log_files)
+        # changing the combobox log files will force an update
         if len(log_files):
             self.combobox_log_files.set_active(len(log_files)-1)
-        self.update()
     
     def on_treeview_selection_changed(self, widget, data=None):
         selection = self.protocol_view.get_selection().get_selected_rows()
