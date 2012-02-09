@@ -97,7 +97,7 @@ class OptionsController:
         self.btn_log_file_browse = builder.get_object('btn_log_file_browse')
         self.txt_log_file = builder.get_object('txt_log_file')
         self.chk_log_file_enabled = builder.get_object('chk_log_file_enabled')
-        if app.config['logging']['file']!="None":
+        if app.config['logging']['file'] != None:
             self.txt_log_file.set_text(path(app.config['logging']['file']).abspath())
         if app.config['logging']['enabled']:
             self.chk_log_file_enabled.set_active(True)

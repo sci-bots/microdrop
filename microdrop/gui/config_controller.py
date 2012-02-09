@@ -143,7 +143,7 @@ class ConfigController(SingletonPlugin):
         dmf_device = None
 
         # try what's specified in config file
-        if self.app.config['dmf_device']['name']!="None":
+        if self.app.config['dmf_device']['name'] != None:
             path = os.path.join(self.app.config['dmf_device']['directory'],
                                 self.app.config['dmf_device']['name'],
                                 "device")
@@ -159,7 +159,7 @@ class ConfigController(SingletonPlugin):
 
     def load_protocol(self):
         # try what's specified in config file
-        if self.app.config['protocol']['name']!="None":
+        if self.app.config['protocol']['name'] != None:
             filename = os.path.join(self.app.config['dmf_device']['directory'],
                                     self.app.config['dmf_device']['name'],
                                     "protocols",

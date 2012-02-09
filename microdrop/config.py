@@ -56,7 +56,8 @@ class ValidationError(Exception):
 
 
 class Config():
-    default_filename = app_data_dir() / path('microdrop') / path('microdrop.ini')
+    default_directory = app_data_dir() / [path('.microdrop'), path('microdrop')][os.name == 'nt']
+    default_filename = default_directory / path('microdrop.ini')
     spec = """
         [dmf_device]
         # directory containing DMF device files 
