@@ -63,11 +63,11 @@ class ProtocolController(SingletonPlugin):
         p = None
         try:
             p = Protocol.load(filename)
-            for name, data in p.plugin_data.items():
+            for name in p.plugin_data:
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)
                 if service:
-                    service.on_protocol_load(data)
+                    service.on_protocol_load(p.get_data(name))
                 else:
                     app.main_window_controller.warning("Protocol "
                         "requires the %s plugin, however this plugin is "
