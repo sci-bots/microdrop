@@ -56,7 +56,11 @@ class ValidationError(Exception):
 
 
 class Config():
-    default_directory = app_data_dir() / [path('.microdrop'), path('microdrop')][os.name == 'nt']
+    default_directory = app_data_dir()
+    if [os.name == 'nt']:
+        default_directory /= path('microdrop')
+    else:
+        default_directory /= path('.microdrop')
     default_filename = default_directory / path('microdrop.ini')
     spec = """
         [dmf_device]
