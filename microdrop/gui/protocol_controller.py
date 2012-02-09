@@ -216,7 +216,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(os.path.join(app.config.dmf_device_directory,
+        dialog.set_current_folder(os.path.join(app.config['dmf_device']['directory'],
                                                app.dmf_device.name,
                                                "protocols"))
         response = dialog.run()

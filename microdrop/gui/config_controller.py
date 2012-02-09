@@ -51,10 +51,10 @@ class ConfigController(SingletonPlugin):
     def process_config_file(self):
         # save the protocol name from the config file because it is
         # automatically overwritten when we load a new device
-        protocol_name = self.app.config.protocol_name
+        protocol_name = self.app.config['protocol']['name']
         self.load_dmf_device()
         # reapply the protocol name to the config file
-        self.app.config.protocol_name = protocol_name
+        self.app.config['protocol']['name'] = protocol_name
         self.load_protocol()
 
     def dmf_device_name_dialog(self, name=None):
@@ -82,9 +82,9 @@ class ConfigController(SingletonPlugin):
         if name:
             # current file name
             if self.app.dmf_device.name:
-                src = os.path.join(self.app.config.dmf_device_directory,
+                src = os.path.join(self.app.config['dmf_device']['directory'],
                                    self.app.dmf_device.name)
-            dest = os.path.join(self.app.config.dmf_device_directory,name)
+            dest = os.path.join(self.app.config['dmf_device']['directory'],name)
 
             # if we're renaming, move the old directory
             if rename and os.path.isdir(src):
@@ -104,7 +104,7 @@ class ConfigController(SingletonPlugin):
             self.app.dmf_device.save(os.path.join(dest,"device"))
             
             # update config
-            self.app.config.dmf_device_name = name
+            self.app.config['dmf_device']['name'] = name
             self.app.main_window_controller.update()
         
     def save_protocol(self, save_as=False, rename=False):
@@ -116,7 +116,7 @@ class ConfigController(SingletonPlugin):
                 name = self.app.protocol.name
 
             if name:
-                path = os.path.join(self.app.config.dmf_device_directory,
+                path = os.path.join(self.app.config['dmf_device']['directory'],
                                     self.app.dmf_device.name,
                                     "protocols")
                 if os.path.isdir(path) == False:
@@ -136,16 +136,16 @@ class ConfigController(SingletonPlugin):
                     self.app.protocol.save(dest)
     
                 # update config
-                self.app.config.protocol_name = name
+                self.app.config['protocol']['name'] = name
                 self.app.main_window_controller.update()
     
     def load_dmf_device(self):
         dmf_device = None
 
         # try what's specified in config file
-        if self.app.config.dmf_device_name:
-            path = os.path.join(self.app.config.dmf_device_directory,
-                                self.app.config.dmf_device_name,
+        if self.app.config['dmf_device']['name']!="None":
+            path = os.path.join(self.app.config['dmf_device']['directory'],
+                                self.app.config['dmf_device']['name'],
                                 "device")
             try:
                 dmf_device = DmfDevice.load(path)
@@ -159,11 +159,11 @@ class ConfigController(SingletonPlugin):
 
     def load_protocol(self):
         # try what's specified in config file
-        if self.app.config.protocol_name:
-            filename = os.path.join(self.app.config.dmf_device_directory,
-                                    self.app.config.dmf_device_name,
+        if self.app.config['protocol']['name']!="None":
+            filename = os.path.join(self.app.config['dmf_device']['directory'],
+                                    self.app.config['dmf_device']['name'],
                                     "protocols",
-                                    self.app.config.protocol_name)
+                                    self.app.config['protocol']['name'])
             self.app.protocol_controller.load_protocol(filename)
         # otherwise, return a new object
         else:
@@ -171,10 +171,10 @@ class ConfigController(SingletonPlugin):
             emit_signal("on_protocol_changed", protocol)
                 
     def on_dmf_device_changed(self, dmf_device):
-        self.app.config.dmf_device_name = dmf_device.name
+        self.app.config['dmf_device']['name'] = dmf_device.name
         
     def on_protocol_changed(self, protocol):
-        self.app.config.protocol_name = protocol.name
+        self.app.config['protocol']['name'] = protocol.name
 
 
 PluginGlobals.pop_env()

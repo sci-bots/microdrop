@@ -18,20 +18,18 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 from shutil import ignore_patterns
 
 from path import path
+from configobj import ConfigObj, flatten_errors
+from validate import Validator
 
 from logger import logger, logging
 from utility.user_paths import home_dir, app_data_dir, common_app_data_dir
-from utility import Version
 
 
 def get_skeleton_path(dir_name):
+    logger.debug('get_skeleton_path(%s)' % dir_name)
     if os.name == 'nt':
         source_dir = common_app_data_dir().joinpath('Microdrop', dir_name)
         if not source_dir.isdir():
@@ -53,147 +51,130 @@ def plugins_skeleton_path():
     return get_skeleton_path('plugins')
 
 
-class LogFileConfig(object):
-    class_version = '0.1'
-
-    def __init__(self, log_file=None, file_enabled=False,
-                    level=logging.DEBUG):
-        self.file = log_file
-        self.enabled = file_enabled
-        self._level = level
-        self.version = self.class_version
-
-    def __repr__(self):
-        return '''LogFileConfig(%s, %s, %s)''' % (self._file,
-                            self._enabled, self._level)
-
-    def upgrade(self):
-        upgraded = False
-        if not hasattr(self, 'version'):
-            self.version = '0.0'
-        version = float(self.version)
-        logger.info('[LogFileConfig] upgrade from version %s' % self.version)
-        if version < 0.1:
-            self.version = '0.1'
-            self.file = self._file
-            self.enabled = self._enabled
-            self.level = self._level
-            logger.info('[LogFileConfig] upgrade to version 0.1')
-            upgraded = True
-        return upgraded
+class ValidationError(Exception):
+    pass
 
 
 class Config():
-    class_version = str(Version(0, 11))
-    filename = app_data_dir().joinpath('.microdroprc')
-    
-    def __init__(self):
-        self.version = self.class_version
+    default_filename = app_data_dir() / path('microdrop') / path('microdrop.ini')
+    spec = """
+        [dmf_device]
+        # directory containing DMF device files 
+        directory = string(default=None)
+
+        # name of the most recently used protocol
+        name = string(default=None)
+
+        [protocol]
+        # name of the most recently used protocol
+        name = string(default=None)
+
+        [plugins]
+        # directory containing microdrop plugins
+        directory = string(default=None)
         
-        self.init_devices_dir()
-        self.init_plugins_dir()
-        self.dmf_device_name = None
-        self.protocol_name = None
-        self.enabled_plugins = []
+        # list of enabled plugins
+        enabled = string_list(default=list())
 
-        # Added in version 0.1
-        self.log_file_config = LogFileConfig()
+        [logging]
+        # enable logging to a file
+        enabled = boolean(default=False)
 
-    @classmethod
-    def load(cls, filename=None):
+        # path to the log file
+        file = string(default=None)
+
+        # log level (valid options are "debug", "info", "warning", and "error")
+        level = option('debug', 'info', 'warning', 'error', default='warning')
+        """
+
+    def __init__(self):
+        self.filename = self.default_filename
+        self.load()
+
+    def __getitem__(self, i):
+        return self.data[i]
+
+    def load(self, filename=None):
         """
         Load a Config object from a file.
 
         Args:
-            filename: path to file. If None, create a Config object with the
-                default options.
+            filename: path to file. If None, try loading from the default
+                location, and if there's no file, create a Config object
+                with the default options.
         Raises:
-            TypeError: file is not a Config object.
-            FutureVersionError: file was written by a future version of the
-                software.
+            IOError: The file does not exist.
+            ConfigObjError: There was a problem parsing the config file.
+            ValidationError: There was a problem validating one or more fields.
         """
-        if filename is None:
-            filename = Config.filename
-            logger.debug("[Config].load()")
-        else:
+        if filename:
             logger.debug("[Config].load(%f)" % filename)
-        if os.path.isfile(filename):
-            logger.info("Loading config file from %s" % filename)
-            f = open(filename, 'rb')
-            out = pickle.load(f)
-            f.close()
-            # check type
-            if out.__class__!=cls:
-                raise TypeError
-            if not hasattr(out, 'version'):
-                out.version = '0'
-            out._upgrade()
+            logger.info("Loading config file from %s" % self.filename)
+            if not path(filename).exists():
+                raise IOError
+            self.filename = path(filename)
         else:
-            logger.info("Use default config")
-            out = Config()
-        return out
+            logger.debug("[Config].load()")
+            if self.filename.exists():
+                logger.info("Loading config file from %s" % self.filename)
+            else:
+                logger.info("Using default configuration.")
 
-    def init_devices_dir(self):
-        if os.name == 'nt':
-            self.dmf_device_directory = home_dir().joinpath('Microdrop', 'devices')
-        else:
-            self.dmf_device_directory = home_dir().joinpath('.microdrop', 'devices')
-        self.dmf_device_directory.parent.makedirs_p()
-        devices = device_skeleton_path()
-        if not self.dmf_device_directory.isdir():
-            devices.copytree(self.dmf_device_directory)
-
-    def init_plugins_dir(self):
-        if os.name == 'nt':
-            self.plugins_directory = home_dir().joinpath('Microdrop', 'plugins')
-        else:
-            self.plugins_directory = home_dir().joinpath('.microdrop', 'plugins')
-        self.plugins_directory.parent.makedirs_p()
-        plugins = plugins_skeleton_path()
-        if not self.plugins_directory.isdir():
-            # Copy plugins directory to app data directory, keeping symlinks
-            # intact.  If we don't keep symlinks as they are, we might end up
-            # with infinite recursion.
-            plugins.copytree(self.plugins_directory, symlinks=True,
-                ignore=ignore_patterns('*.pyc'))
+        self.data = ConfigObj(self.filename, configspec=self.spec.split("\n"))
+        self._validate()
 
     def set_plugins(self, plugins):
         self.enabled_plugins = plugins
 
-    def get_data_dir(self):
-        return self.dmf_device_directory.parent
-        
-    def _upgrade(self):
-        """
-        Upgrade the serialized object if necessary.
-
-        Raises:
-            FutureVersionError: file was written by a future version of the
-                software.
-        """
-        logger.debug("[Config]._upgrade()")
-        version = Version.fromstring(self.version)
-        logger.debug('[Config] version=%s, class_version=%s' % (str(version), self.class_version))
-        if version > Version.fromstring(self.class_version):
-            logger.debug('[Config] version>class_version')
-            raise FutureVersionError
-        elif version < Version.fromstring(self.class_version): 
-            if version < Version(0, 1):
-                self.version = str(Version(0, 1))
-                self.enabled_plugins = []
-                self.log_file_config = LogFileConfig()
-                logger.debug('[Config] file upgrade to version %s' % self.version)
-            if version < Version(0, 11):
-                self.version = str(Version(0, 11))
-                self.init_plugins_dir()
-                logger.debug('[Config] self.plugins_directory = %s' % self.plugins_directory)
-                logger.debug('[Config] file upgrade to version %s' % self.version)
-            self.log_file_config.upgrade()
-        # else the versions are equal and don't need to be upgraded
-
     def save(self, filename=None):
         if filename == None:
-            filename = Config.filename
-        f = open(filename, 'wb')
-        pickle.dump(self, f, -1)
-        f.close()
+            filename = self.filename
+        # make sure that the parent directory exists
+        path(filename).parent.makedirs_p()
+        with open(filename, 'w') as f:
+            self.data.write(outfile=f)
+
+    def _validate(self):
+        validator = Validator()
+        results = self.data.validate(validator, copy=True)
+        if results != True:
+            logger.error('Config file validation failed!')
+            for (section_list, key, _) in flatten_errors(self.data, results):
+                if key is not None:
+                    logger.error('The "%s" key in the section "%s" failed '
+                                 'validation' % (key, ', '.join(section_list)))
+                else:
+                    logger.error('The following section was missing:%s ' % 
+                                 ', '.join(section_list))
+            raise ValidationError
+        self.data.filename = self.filename
+        self._init_devices_dir()
+        self._init_plugins_dir()
+
+    def _init_devices_dir(self):
+        if self.data['dmf_device']['directory'] is None:
+            if os.name == 'nt':
+                self.data['dmf_device']['directory'] = home_dir().joinpath('Microdrop', 'devices')
+            else:
+                self.data['dmf_device']['directory'] = home_dir().joinpath('.microdrop', 'devices')
+        dmf_device_directory = path(self.data['dmf_device']['directory'])
+        dmf_device_directory.parent.makedirs_p()
+        devices = device_skeleton_path()
+        if not dmf_device_directory.isdir():
+            devices.copytree(dmf_device_directory)
+
+    def _init_plugins_dir(self):
+        if self.data['plugins']['directory'] is None:
+            if os.name == 'nt':
+                self.data['plugins']['directory'] = home_dir().joinpath('Microdrop', 'plugins')
+            else:
+                self.data['plugins']['directory'] = home_dir().joinpath('.microdrop', 'plugins')
+        plugins_directory = path(self.data['plugins']['directory'])            
+        plugins_directory.parent.makedirs_p()
+        plugins = plugins_skeleton_path()
+        if not plugins_directory.isdir():
+            # Copy plugins directory to app data directory, keeping symlinks
+            # intact.  If we don't keep symlinks as they are, we might end up
+            # with infinite recursion.
+            plugins.copytree(plugins_directory, symlinks=True,
+                ignore=ignore_patterns('*.pyc'))

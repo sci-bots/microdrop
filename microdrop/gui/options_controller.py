@@ -92,14 +92,14 @@ class OptionsController:
 
         self.txt_data_dir = builder.get_object('txt_data_dir')
         self.btn_data_dir_browse = builder.get_object('btn_data_dir_browse')
-        self.txt_data_dir.set_text(path(app.config.dmf_device_directory).abspath())
+        self.txt_data_dir.set_text(path(app.config['dmf_device']['directory']).abspath())
 
         self.btn_log_file_browse = builder.get_object('btn_log_file_browse')
         self.txt_log_file = builder.get_object('txt_log_file')
         self.chk_log_file_enabled = builder.get_object('chk_log_file_enabled')
-        if app.config.log_file_config.file:
-            self.txt_log_file.set_text(app.config.log_file_config.file.abspath())
-        if app.config.log_file_config.enabled:
+        if app.config['logging']['file']!="None":
+            self.txt_log_file.set_text(path(app.config['logging']['file']).abspath())
+        if app.config['logging']['enabled']:
             self.chk_log_file_enabled.set_active(True)
 
         self.btn_ok = builder.get_object('btn_ok')
@@ -133,7 +133,7 @@ class OptionsController:
     def apply_data_dir(self):
         app = get_app()
         data_dir = path(self.txt_data_dir.get_text())
-        if data_dir == app.config.dmf_device_directory:
+        if data_dir == app.config['dmf_device']['directory']:
             # If the data directory hasn't changed, we do nothing
             return False
 
@@ -146,13 +146,13 @@ class OptionsController:
             if not result == gtk.RESPONSE_OK:
                 return False
 
-        for d in app.config.dmf_device_directory.dirs():
+        for d in app.config['dmf_device']['directory'].dirs():
             copytree(d, data_dir.joinpath(d.name))
-        for f in app.config.dmf_device_directory.files():
+        for f in app.config['dmf_device']['directory'].files():
             f.copyfile(data_dir.joinpath(f.name))
-        app.config.dmf_device_directory.rmtree()
+        app.config['dmf_device']['directory'].rmtree()
         
-        app.config.dmf_device_directory = data_dir
+        app.config['dmf_device']['directory'] = data_dir
         return True
 
     def on_chk_log_file_enabled_clicked(self, widget, data=None):
@@ -169,8 +169,8 @@ class OptionsController:
         if enabled and not log_file:
             logger.error('Log file can only be enabled if a path is selected.')
             return False
-        app.config.log_file_config.file = log_file
-        app.config.log_file_config.enabled = enabled
+        app.config['logging']['file'] = log_file
+        app.config['logging']['enabled'] = enabled
         app.update_log_file()
         return True
 

@@ -89,7 +89,7 @@ class App(Plugin):
         self.log_file_handler = None
 
         # config model
-        self.config = Config.load()
+        self.config = Config()
         
         # dmf device
         self.dmf_device = DmfDevice()
@@ -98,7 +98,7 @@ class App(Plugin):
         self.protocol = Protocol()
 
     def run(self):
-        plugin_manager.load_plugins(self.config.plugins_directory)
+        plugin_manager.load_plugins(self.config['plugins']['directory'])
         self.update_log_file()
 
         # Initialize main window controller and dmf device
@@ -128,19 +128,19 @@ class App(Plugin):
         self.config_controller.process_config_file()
         
         # Load optional plugins marked as enabled in config
-        for p in self.config.enabled_plugins:
+        for p in self.config['plugins']['enabled']:
             try:
                 plugin_manager.enable(p)
             except KeyError:
                 logger.warning('Requested plugin (%s) is not available.\n\n'
                     'Please check that it exists in the plugins '
-                    'directory:\n\n    %s' % (p, self.config.plugins_directory))
+                    'directory:\n\n    %s' % (p, self.config['plugins']['directory']))
         plugin_manager.log_summary()
 
         # experiment logs
         device_path = None
         if self.dmf_device.name:
-            device_path = os.path.join(self.config.dmf_device_directory,
+            device_path = os.path.join(self.config['dmf_device']['directory'],
                                        self.dmf_device.name, "logs")
         self.experiment_log = ExperimentLog(device_path)
         
@@ -158,7 +158,7 @@ class App(Plugin):
     def _set_log_file_handler(self):
         if self.log_file_handler:
             self._destroy_log_file_handler()
-        log_file = self.config.log_file_config.file
+        log_file = self.config['logging']['file']
         self.log_file_handler = logging.FileHandler(log_file)
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         self.log_file_handler.setFormatter(formatter)
@@ -175,13 +175,13 @@ class App(Plugin):
 
     def update_log_file(self):
         if self.log_file_handler is None:
-            if self.config.log_file_config.enabled:
+            if self.config['logging']['enabled']:
                 self._set_log_file_handler()
                 logger.info('[App] logging enabled')
         else:
             # Log file handler already exists
-            if self.config.log_file_config.enabled:
-                log_file = self.config.log_file_config.file
+            if self.config['logging']['enabled']:
+                log_file = self.config['logging']['file']
                 if log_file != self.log_file_handler.baseFilename:
                     # Requested log file path has been changed
                     self._set_log_file_handler()
