@@ -28,6 +28,7 @@ from path import path
 
 from logger import logger, logging
 from utility.user_paths import home_dir, app_data_dir, common_app_data_dir
+from utility import Version
 
 
 def get_skeleton_path(dir_name):
@@ -50,20 +51,6 @@ def device_skeleton_path():
 
 def plugins_skeleton_path():
     return get_skeleton_path('plugins')
-
-
-def load(filename=None):
-    if filename is None:
-        filename = Config.filename
-    if os.path.isfile(filename):
-        f = open(filename, 'rb')
-        config = pickle.load(f)
-        f.close()
-    else:
-        config = Config()
-    if config.upgrade():
-        config.save()
-    return config
 
 
 class LogFileConfig(object):
@@ -97,7 +84,7 @@ class LogFileConfig(object):
 
 
 class Config():
-    class_version = '0.11'
+    class_version = str(Version(0, 11))
     filename = app_data_dir().joinpath('.microdroprc')
     
     def __init__(self):
@@ -111,6 +98,40 @@ class Config():
 
         # Added in version 0.1
         self.log_file_config = LogFileConfig()
+
+    @classmethod
+    def load(cls, filename=None):
+        """
+        Load a Config object from a file.
+
+        Args:
+            filename: path to file. If None, create a Config object with the
+                default options.
+        Raises:
+            TypeError: file is not a Config object.
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        if filename is None:
+            filename = Config.filename
+            logger.debug("[Config].load()")
+        else:
+            logger.debug("[Config].load(%f)" % filename)
+        if os.path.isfile(filename):
+            logger.info("Loading config file from %s" % filename)
+            f = open(filename, 'rb')
+            out = pickle.load(f)
+            f.close()
+            # check type
+            if out.__class__!=cls:
+                raise TypeError
+            if not hasattr(out, 'version'):
+                out.version = '0'
+            out._upgrade()
+        else:
+            logger.info("Use default config")
+            out = Config()
+        return out
 
     def init_devices_dir(self):
         if os.name == 'nt':
@@ -142,26 +163,33 @@ class Config():
     def get_data_dir(self):
         return self.dmf_device_directory.parent
         
-    def upgrade(self):
-        upgraded = False
-        if not hasattr(self, 'version'):
-            self.version = '0.0'
-        version = float(self.version)
-        logger.info('upgrade from version %s' % self.version)
-        if version < 0.1:
-            self.version = '0.1'
-            self.enabled_plugins = []
-            self.log_file_config = LogFileConfig()
-            logger.info('upgrade to version 0.1')
-            upgraded = True
-        if version < 0.11:
-            self.version = '0.11'
-            self.init_plugins_dir()
-            print '[Config] self.plugins_directory = %s' % self.plugins_directory
-            logger.info('upgrade to version 0.11')
-            upgraded = True
-        self.log_file_config.upgrade()
-        return upgraded
+    def _upgrade(self):
+        """
+        Upgrade the serialized object if necessary.
+
+        Raises:
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[Config]._upgrade()")
+        version = Version.fromstring(self.version)
+        logger.debug('[Config] version=%s, class_version=%s' % (str(version), self.class_version))
+        if version > Version.fromstring(self.class_version):
+            logger.debug('[Config] version>class_version')
+            raise FutureVersionError
+        elif version < Version.fromstring(self.class_version): 
+            if version < Version(0, 1):
+                self.version = str(Version(0, 1))
+                self.enabled_plugins = []
+                self.log_file_config = LogFileConfig()
+                logger.debug('[Config] file upgrade to version %s' % self.version)
+            if version < Version(0, 11):
+                self.version = str(Version(0, 11))
+                self.init_plugins_dir()
+                logger.debug('[Config] self.plugins_directory = %s' % self.plugins_directory)
+                logger.debug('[Config] file upgrade to version %s' % self.version)
+            self.log_file_config.upgrade()
+        # else the versions are equal and don't need to be upgraded
 
     def save(self, filename=None):
         if filename == None:

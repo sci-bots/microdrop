@@ -78,13 +78,15 @@ def base_path():
     return script.parent.parent
 
 
-class InvalidVersionString(Exception):
+class InvalidVersionStringError(Exception):
+    pass
+
+
+class FutureVersionError(Exception):
     pass
 
 
 class Version:
-    InvalidVersionString(Exception)
-    
     def __init__(self, major=0, minor=0, micro=0):
         if type(major)!=int or type(minor)!=int or type(micro)!=int:
             raise TypeError
@@ -94,7 +96,14 @@ class Version:
 
     @classmethod
     def fromstring(cls, string):
-        "Initialize Version from a string"
+        """
+        Initialize a Version object from a string of the form "x", "x.y", or
+        "x.y.z" where x, y and z are integers representing the major, minor
+        and micro versions.
+        
+        Raises:
+            InvalidVersionStringError
+        """
         major, minor, micro = ('0','0','0')
         match = False
         
@@ -112,7 +121,7 @@ class Version:
             match = True
             
         if match == False:
-            raise InvalidVersionString
+            raise InvalidVersionStringError
 
         return cls(int(major), int(minor), int(micro))
     

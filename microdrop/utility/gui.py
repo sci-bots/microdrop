@@ -5,7 +5,7 @@ from logger import logger
 
 def register_shortcuts(window, shortcuts, enabled_widgets=None,
                         disabled_widgets=None):
-    logger.info('register_shortcuts()...')
+    logger.debug('register_shortcuts()...')
     if enabled_widgets and disabled_widgets:
         raise ValueError, '''Only an enabled list OR a disabled list of'''\
                             ''' widgets is permitted.'''
@@ -28,7 +28,7 @@ def register_shortcuts(window, shortcuts, enabled_widgets=None,
             lambda a, b, c, d, action=action: \
                 action_wrapper(action, enabled_widgets, disabled_widgets))
     window.add_accel_group(accelgroup)
-    logger.info('DONE')
+    logger.debug('DONE')
     return accelgroup
 
 def combobox_set_model_from_list(cb, items):

@@ -25,7 +25,7 @@ except ImportError:
 import numpy as np
 
 from logger import logger
-from utility import Version
+from utility import Version, FutureVersionError
 
 
 class DmfDevice():
@@ -38,11 +38,21 @@ class DmfDevice():
         self.y_max = 0
         self.name = None
         self.scale = None
-        self.version = self.__class__.class_version
+        self.version = self.class_version
 
     @classmethod
     def load(cls, filename):
-        logger.debug("[DmfDevice].load")
+        """
+        Load a DmfDevice from a file.
+
+        Args:
+            filename: path to file.
+        Raises:
+            TypeError: file is not a DmfDevice.
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[DmfDevice].load(\"%s\")" % filename)
         f = open(filename, 'rb')
         out = pickle.load(f)
         f.close()
@@ -51,19 +61,29 @@ class DmfDevice():
             raise TypeError
         if not hasattr(out, 'version'):
             out.version = '0'
-        logger.info('[DmfDevice] version %s' % str(out.version))
-        if Version.fromstring(out.version) != \
-            Version.fromstring(out.class_version):
-            out.upgrade()
+        out._upgrade()
         return out
 
-    def upgrade(self):
-        logger.debug("[DmfDevice].upgrade")
+    def _upgrade(self):
+        """
+        Upgrade the serialized object if necessary.
+
+        Raises:
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[DmfDevice]._upgrade()")
         version = Version.fromstring(self.version)
-        if version < Version(0,1):
-            self.version = '0.1'
-            self.scale = None
-            logger.info('[DmfDevice] upgrade to version 0.1')
+        logger.debug('[DmfDevice] version=%s, class_version=%s' % (str(version), self.class_version))
+        if version > Version.fromstring(self.class_version):
+            logger.debug('[DmfDevice] version>class_version')
+            raise FutureVersionError
+        elif version < Version.fromstring(self.class_version): 
+            if version < Version(0,1):
+                self.version = str(Version(0,1))
+                self.scale = None
+                logger.info('[DmfDevice] upgrade to version %s' % self.version)
+        # else the versions are equal and don't need to be upgraded
 
     def save(self, filename):
         f = open(filename, 'wb')

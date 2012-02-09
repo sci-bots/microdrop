@@ -29,7 +29,7 @@ from path import path
 from utility import base_path, PROGRAM_LAUNCHED
 from dmf_device import DmfDevice
 from protocol import Protocol
-from config import load as load_config
+from config import Config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
     IPlugin, implements, PluginGlobals, Plugin
@@ -89,7 +89,7 @@ class App(Plugin):
         self.log_file_handler = None
 
         # config model
-        self.config = load_config()
+        self.config = Config.load()
         
         # dmf device
         self.dmf_device = DmfDevice()

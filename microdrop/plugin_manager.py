@@ -51,7 +51,7 @@ class PluginManager():
             if package.isdir(): 
                 logging.info('\t %s' % package.abspath())
                 import_statement = 'import %s.%s.microdrop' % (plugins_dir.name, d.name)
-                logging.info(import_statement)
+                logging.debug(import_statement)
                 exec(import_statement)
 
     def log_summary(self):
