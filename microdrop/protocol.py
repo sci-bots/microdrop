@@ -83,7 +83,7 @@ class Protocol():
         logger.debug('[Protocol] version=%s, class_version=%s' % (str(version), self.class_version))
         if version > Version.fromstring(self.class_version):
             logger.debug('[Protocol] version>class_version')
-            raise FutureVersionError
+            raise FutureVersionError(Version.fromstring(self.class_version), version)
         elif version < Version.fromstring(self.class_version):
             pass
         # else the versions are equal and don't need to be upgraded

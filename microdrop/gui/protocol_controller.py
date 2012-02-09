@@ -31,7 +31,7 @@ import numpy as np
 
 import protocol
 from protocol import Protocol
-from utility import check_textentry, is_float, is_int
+from utility import check_textentry, is_float, is_int, FutureVersionError
 from utility.gui import register_shortcuts
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal, PluginGlobals
@@ -72,6 +72,13 @@ class ProtocolController(SingletonPlugin):
                     app.main_window_controller.warning("Protocol "
                         "requires the %s plugin, however this plugin is "
                         "not available." % (name))
+        except FutureVersionError, why:
+            logging.error('''\
+Could not open protocol:
+    %s
+It was created with a newer version of the software.
+Protocol is version %s, but only up to version %s is supported with this version of the software.'''\
+    % (filename, why.future_version, why.current_version))
         except Exception, why:
             app.main_window_controller.error("Could not open %s. %s" \
                                                   % (filename, why))
