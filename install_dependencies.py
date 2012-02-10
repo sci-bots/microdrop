@@ -168,6 +168,7 @@ if __name__ == "__main__":
               ("pyutilib", "pip"),
               ("flatland", "pip"),
               ("pygtkhelpers", "pip"),
+              ("configobj", "pip"),
               ):
         try:
             exec("import " + p[0])
