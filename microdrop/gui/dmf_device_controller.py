@@ -321,11 +321,11 @@ class DmfDeviceController(SingletonPlugin):
     def on_new_frame(self, frame, depth):
         from opencv.safe_cv import cv
         x, y, width, height = self.view.widget.get_allocation()
-        resized = cv.CreateMat(width, height, cv.CV_8UC3)
+        resized = cv.CreateMat(height, width, cv.CV_8UC3)
         cv.Resize(frame, resized)
         self.pixbuf = gtk.gdk.pixbuf_new_from_data(
             resized.tostring(), gtk.gdk.COLORSPACE_RGB, False,
-            depth, height, width, 3 * height)
+            depth, width, height, resized.step)
         self.view.background = self.pixbuf
         self.view.update()
 
