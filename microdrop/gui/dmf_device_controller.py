@@ -325,7 +325,7 @@ class DmfDeviceController(SingletonPlugin):
         cv.Resize(frame, resized)
         self.pixbuf = gtk.gdk.pixbuf_new_from_data(
             resized.tostring(), gtk.gdk.COLORSPACE_RGB, False,
-            depth, width, height, resized.step)
+            depth, height, width, 3 * height)
         self.view.background = self.pixbuf
         self.view.update()
 
