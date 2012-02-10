@@ -166,7 +166,7 @@ if __name__ == "__main__":
               ("sympy", "exe", "http://sympy.googlecode.com/files/sympy-0.7.1.win32.exe"),
               ("pyparsing", "pip"),
               ("pyutilib", "pip"),
-              ("flatland", "pip"),
+              ("flatland", "pip", "http://microfluidics.utoronto.ca/git/flatland.git/snapshot/beb7d06bd9f7b65ad3f25184ee05b808f893cfda.zip"),
               ("pygtkhelpers", "pip"),
               ("configobj", "pip"),
               ):
