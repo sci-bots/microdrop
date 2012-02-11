@@ -24,8 +24,8 @@ import gtk
 
 from dmf_device import DmfDevice
 from protocol import Protocol
-from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
-    implements, emit_signal, PluginGlobals
+from plugin_manager import IPlugin, SingletonPlugin, implements, \
+    emit_signal, PluginGlobals
 from app_context import get_app
 
 
@@ -132,7 +132,6 @@ class ConfigController(SingletonPlugin):
                 if rename and os.path.isfile(src):
                     shutil.move(src, dest)
                 else: # save the file
-                    emit_signal("on_protocol_save")
                     self.app.protocol.save(dest)
     
                 # update config

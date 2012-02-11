@@ -66,9 +66,7 @@ class ProtocolController(SingletonPlugin):
             for name, data in p.plugin_data.items():
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)
-                if service:
-                    service.on_protocol_load(data)
-                else:
+                if not service:
                     app.main_window_controller.warning("Protocol "
                         "requires the %s plugin, however this plugin is "
                         "not available." % (name))
@@ -78,16 +76,13 @@ Could not open protocol:
     %s
 It was created with a newer version of the software.
 Protocol is version %s, but only up to version %s is supported with this version of the software.'''\
-    % (filename, why.future_version, why.current_version))
+            % (filename, why.future_version, why.current_version))
         except Exception, why:
             app.main_window_controller.error("Could not open %s. %s" \
                                                   % (filename, why))
         if p:
             emit_signal("on_protocol_changed", p)
-        emit_signal('on_protocol_update')
-
-    def on_protocol_load(self, data):
-        pass
+        emit_signal('on_run_step')
 
     def on_protocol_changed(self, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
@@ -169,43 +164,43 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_insert_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.insert_step()
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
 
     def on_copy_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.copy_step()
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
 
     def on_delete_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.delete_step()
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
 
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.first_step()
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
 
     def on_prev_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.prev_step()
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
 
     def on_next_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.next_step()
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
         
     def on_last_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.last_step()
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
 
     def on_new_protocol(self, widget=None, data=None):
         app = get_app()
         emit_signal("on_protocol_changed",
                     Protocol(app.dmf_device.max_channel() + 1))
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
 
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()
@@ -313,7 +308,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             check_textentry(self.textentry_protocol_repeats,
                 app.protocol.n_repeats,
                 int)
-        emit_signal('on_protocol_update')
+        emit_signal('on_run_step')
 
     def on_run_protocol(self, widget=None, data=None):
         app = get_app()
@@ -349,7 +344,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 app.experiment_log.add_step(app.protocol.current_step_number)
                 if attempt > 0:
                     app.experiment_log.add_data({"attempt":attempt})
-                return_codes = emit_signal("on_protocol_update")
+                return_codes = emit_signal("on_run_step")
                 if 'Fail' in return_codes.values():
                     self.pause_protocol()
                     app.main_window_controller.error("Protocol failed.")
@@ -360,7 +355,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                     break
         else:
             data = {}
-            emit_signal("on_protocol_update", data)
+            emit_signal("on_run_step")
 
         if app.protocol.current_step_number < len(app.protocol) - 1:
             app.protocol.next_step()
@@ -374,20 +369,15 @@ Protocol is version %s, but only up to version %s is supported with this version
             % (plugin, step_number))
         app = get_app()
         step = app.protocol.steps[step_number]
-        #if '_Step' == plugin:
         if(re.search(r'wheelerlab.dmf_control_board_', plugin)):
             dmf_plugin_name = step.plugin_name_lookup(
                 r'wheelerlab.dmf_control_board_', re_pattern=True)
             options = step.get_data(dmf_plugin_name)
             self.textentry_voltage.set_text(str(options.voltage))
             self.textentry_frequency.set_text(str(options.frequency / 1e3))
-            #for i, tstep in enumerate(app.protocol.steps):
-                #print '[on_step_duration_changed] step[%d%s].duration: %.2f'\
-                    #% (i, ['', '*'][options.current_step_number == i],
-                        #tstep.duration)
             self.textentry_step_duration.set_text(str(options.duration))
 
-    def on_protocol_update(self, data=None):
+    def on_run_step(self):
         self._update_labels()
         app = get_app()
         step = app.protocol.current_step()

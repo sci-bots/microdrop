@@ -33,8 +33,8 @@ import microdrop
 from opencv.safe_cv import cv
 from opencv.frame_grabber import FrameGrabber
 from opencv.camera_capture import CameraCapture
-from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal, IVideoPlugin
+from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
+    IVideoPlugin
 
 
 def array2cv(a):

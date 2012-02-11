@@ -27,8 +27,8 @@ from path import path
 from experiment_log import ExperimentLog, load as load_experiment_log
 from utility.gui import combobox_set_model_from_list, \
     combobox_get_active_text, textview_get_text
-from plugin_manager import IPlugin, SingletonPlugin, implements, \
-    ExtensionPoint, emit_signal, PluginGlobals
+from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
+    PluginGlobals
 from protocol import Protocol
 from dmf_device import DmfDevice
 from app_context import get_app
@@ -201,7 +201,6 @@ class ExperimentLogController(SingletonPlugin):
         log_path = app.experiment_log.save()
 
         # save the protocol and device
-        emit_signal("on_protocol_save")
         app.protocol.save(os.path.join(log_path,"protocol"))
         app.dmf_device.save(os.path.join(log_path,"device"))
         app.experiment_log.clear()
