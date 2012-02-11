@@ -179,7 +179,8 @@ if __name__ == "__main__":
     if PYTHON_VERSION=="2.7":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.7.msi"),
                   ("numpy", "exe", "http://sourceforge.net/projects/numpy/files/NumPy/1.6.1/numpy-1.6.1-win32-superpack-python2.7.exe/download"),
-                  ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.win32-py2.7.exe/download")):
+                  ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.win32-py2.7.exe/download"),
+                  ("PIL", "exe", "http://effbot.org/downloads/PIL-1.1.7.win32-py2.7.exe")):
             try:
                 exec("import " + p[0])
             except:
@@ -189,7 +190,8 @@ if __name__ == "__main__":
     elif PYTHON_VERSION=="2.6":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.6.msi"),
                   ("numpy", "exe", "http://sourceforge.net/projects/numpy/files/NumPy/1.3.0/numpy-1.3.0-win32-superpack-python2.6.exe/download"),
-                  ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.0.1/matplotlib-1.0.1.win32-py2.6.exe/download")):
+                  ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.0.1/matplotlib-1.0.1.win32-py2.6.exe/download"),
+                  ("PIL", "exe", "http://effbot.org/downloads/PIL-1.1.7.win32-py2.6.exe")):
             try:
                 exec("import " + p[0])
             except:
