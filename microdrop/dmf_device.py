@@ -59,18 +59,16 @@ class DmfDevice():
         with open(filename, 'rb') as f:
             try:
                 out = pickle.load(f)
-                logger.info("Loaded object from pickle.")
-            except Exception, why:
-                print why
-                logger.info("Not a pickle file.")
+                logger.debug("Loaded object from pickle.")
+            except Exception, e:
+                logger.debug("Not a valid pickle file. %s." % e)
         if out==None:
             with open(filename, 'rb') as f:
                 try:
                     out = yaml.load(f)
-                    logger.info("Loaded object from YAML file.")
-                except Exception, why:
-                    print why
-                    logger.info("Not a YAML file.")
+                    logger.debug("Loaded object from YAML file.")
+                except Exception, e:
+                    logger.debug("Not a valid YAML file. %s." % e)
         if out==None:
             raise TypeError
         # check type

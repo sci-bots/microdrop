@@ -67,15 +67,15 @@ class Protocol():
             try:
                 out = pickle.load(f)
                 logger.debug("Loaded object from pickle.")
-            except:
-                logger.debug("Not a pickle file.")
+            except Exception, e:
+                logger.debug("Not a valid pickle file. %s." % e)
         if out==None:
             with open(filename, 'rb') as f:
                 try:
                     out = yaml.load(f)
                     logger.debug("Loaded object from YAML file.")
-                except:
-                    logger.info("Not a YAML file.")
+                except Exception, e:
+                    logger.debug("Not a valid YAML file. %s." % e)
         if out==None:
             raise TypeError
         out.filename = filename
