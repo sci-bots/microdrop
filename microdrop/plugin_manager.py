@@ -211,16 +211,6 @@ else:
             """
             pass
 
-        def on_protocol_update(self):
-            """
-            Handler called whenever views of the protocol need to update.
-
-            Returns:
-                True if the protocol should be updated again (e.g., if a feedback
-                plugin wants to signal that the step should be repeated)
-            """
-            pass
-        
         def on_protocol_run(self):
             """
             Handler called when a protocol starts running.
@@ -269,6 +259,21 @@ else:
             """
             pass
 
+        def on_step_run(self):
+            """
+            Handler called whenever a step is executed.
+
+            Returns:
+                True if the step should be run again (e.g., if a feedback
+                plugin wants to signal that the step should be repeated)
+            """
+            pass
+
+        def get_step_form_class(self):
+            pass
+
+        def get_step_values(self, step_number=None):
+            pass
 
     class IVideoPlugin(Interface):
         def on_new_frame(self, frame):
