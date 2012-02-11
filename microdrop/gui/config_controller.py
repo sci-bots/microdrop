@@ -132,7 +132,6 @@ class ConfigController(SingletonPlugin):
                 if rename and os.path.isfile(src):
                     shutil.move(src, dest)
                 else: # save the file
-                    emit_signal("on_protocol_save")
                     self.app.protocol.save(dest)
     
                 # update config

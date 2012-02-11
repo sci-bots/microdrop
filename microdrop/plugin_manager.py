@@ -220,19 +220,7 @@ else:
                 plugin wants to signal that the step should be repeated)
             """
             pass
-
-        def on_protocol_save(self):
-            """
-            Handler called when a protocol is saved.
-            """
-            pass
         
-        def on_protocol_load(self, version, data):
-            """
-            Handler called when a protocol is loaded.
-            """
-            pass
-
         def on_protocol_run(self):
             """
             Handler called when a protocol starts running.

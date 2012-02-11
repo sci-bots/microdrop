@@ -66,9 +66,7 @@ class ProtocolController(SingletonPlugin):
             for name, data in p.plugin_data.items():
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)
-                if service:
-                    service.on_protocol_load(data)
-                else:
+                if not service:
                     app.main_window_controller.warning("Protocol "
                         "requires the %s plugin, however this plugin is "
                         "not available." % (name))
@@ -78,16 +76,13 @@ Could not open protocol:
     %s
 It was created with a newer version of the software.
 Protocol is version %s, but only up to version %s is supported with this version of the software.'''\
-    % (filename, why.future_version, why.current_version))
+            % (filename, why.future_version, why.current_version))
         except Exception, why:
             app.main_window_controller.error("Could not open %s. %s" \
                                                   % (filename, why))
         if p:
             emit_signal("on_protocol_changed", p)
         emit_signal('on_protocol_update')
-
-    def on_protocol_load(self, data):
-        pass
 
     def on_protocol_changed(self, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
@@ -374,17 +369,12 @@ Protocol is version %s, but only up to version %s is supported with this version
             % (plugin, step_number))
         app = get_app()
         step = app.protocol.steps[step_number]
-        #if '_Step' == plugin:
         if(re.search(r'wheelerlab.dmf_control_board_', plugin)):
             dmf_plugin_name = step.plugin_name_lookup(
                 r'wheelerlab.dmf_control_board_', re_pattern=True)
             options = step.get_data(dmf_plugin_name)
             self.textentry_voltage.set_text(str(options.voltage))
             self.textentry_frequency.set_text(str(options.frequency / 1e3))
-            #for i, tstep in enumerate(app.protocol.steps):
-                #print '[on_step_duration_changed] step[%d%s].duration: %.2f'\
-                    #% (i, ['', '*'][options.current_step_number == i],
-                        #tstep.duration)
             self.textentry_step_duration.set_text(str(options.duration))
 
     def on_protocol_update(self, data=None):

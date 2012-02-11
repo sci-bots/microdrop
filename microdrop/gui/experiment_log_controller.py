@@ -201,7 +201,6 @@ class ExperimentLogController(SingletonPlugin):
         log_path = app.experiment_log.save()
 
         # save the protocol and device
-        emit_signal("on_protocol_save")
         app.protocol.save(os.path.join(log_path,"protocol"))
         app.dmf_device.save(os.path.join(log_path,"device"))
         app.experiment_log.clear()
