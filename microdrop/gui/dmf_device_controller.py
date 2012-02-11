@@ -25,7 +25,7 @@ import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 
-from dmf_device_view import DmfDeviceView
+from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
 from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
@@ -34,6 +34,7 @@ from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
 from utility import is_float
 from app_context import get_app
 from logger import logger
+from opencv.safe_cv import cv
 
 
 PluginGlobals.push_env('microdrop')
@@ -56,6 +57,7 @@ class DmfDeviceController(SingletonPlugin):
         self.view = None
         self.popup = None
         self.last_electrode_clicked = None
+        self.last_frame = None
         
     def on_app_init(self):        
         app = get_app()
@@ -64,6 +66,12 @@ class DmfDeviceController(SingletonPlugin):
                                    "glade",
                                    "right_click_popup.glade"))
         self.popup = app.builder.get_object("popup")
+
+        self.register_menu = gtk.MenuItem("Register device")
+        self.popup.append(self.register_menu)
+        self.register_menu.connect("activate", self.on_register)
+        self.register_menu.show()
+
         app.signals["on_dmf_device_view_button_press_event"] = self.on_button_press
         app.signals["on_dmf_device_view_key_press_event"] = self.on_key_press
         app.signals["on_dmf_device_view_expose_event"] = self.view.on_expose
@@ -76,6 +84,33 @@ class DmfDeviceController(SingletonPlugin):
         app.signals["on_menu_edit_electrode_channels_activate"] = self.on_edit_electrode_channels
         app.signals["on_menu_edit_electrode_area_activate"] = self.on_edit_electrode_area
         app.dmf_device_controller = self
+
+    def on_register(self, *args, **kwargs):
+        print '[DmfDeviceController] on_register args=%s kwargs=%s'\
+            % (args, kwargs)
+        if self.last_frame is None:
+            print '  no video frame grabbed'
+            return
+        import cairo
+
+        size = self.view.pixmap.get_size()
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, *size)
+        cr = cairo.Context(surface)
+        self.view.draw_on_cairo(cr)
+        alpha_image = cv.CreateImageHeader(size, cv.IPL_DEPTH_8U, 4)
+        device_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
+        cv.SetData(alpha_image, surface.get_data(), 4 * size[0])
+        cv.CvtColor(alpha_image, device_image, cv.CV_RGBA2BGR)
+        video_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
+        cv.SetData(video_image, device_image.tostring(), 3 * size[0])
+        #cv.SetData(video_image, device_image)
+        dialog = DeviceRegistrationDialog(device_image, video_image)
+        print dialog.get_original_image()
+        print dialog.get_rotated_image()
+        results = dialog.run()
+        import numpy as np
+        if results:
+            print np.asarray(results)
 
     def get_default_options(self):
         return DmfDeviceOptions()
@@ -318,7 +353,7 @@ class DmfDeviceController(SingletonPlugin):
         self.view.update()
 
     def on_new_frame(self, frame, depth):
-        from opencv.safe_cv import cv
+        self.last_frame = frame
         x, y, width, height = self.view.widget.get_allocation()
         resized = cv.CreateMat(height, width, cv.CV_8UC3)
         cv.Resize(frame, resized)

@@ -73,17 +73,21 @@ class DmfDeviceView:
 
     def draw_on_pixmap(self, pixmap, alpha=1.0):
         app = get_app()
+        cr = pixmap.cairo_create()
+        self.draw_on_cairo(cr, alpha)
+        self.widget.queue_draw()
+
+    def draw_on_cairo(self, cr, alpha=1.0):
+        app = get_app()
+        x,y = self.offset
+        cr.scale(self.scale, self.scale)
+        cr.translate(x,y)
         for id, electrode in app.dmf_device.electrodes.iteritems():
             if self.electrode_color.keys().count(id):
-                cr = pixmap.cairo_create()
-                x,y = self.offset
-                cr.scale(self.scale, self.scale)
-                cr.translate(x,y)
                 self.draw_electrode(electrode, cr)
                 r, g, b = self.electrode_color[id]
                 cr.set_source_rgba(r, g, b, alpha)
                 cr.fill()
-        self.widget.queue_draw()
 
     def draw_electrode(self, electrode, cr):
         cairo_commands = ""
@@ -104,3 +108,23 @@ class DmfDeviceView:
             if step['command'] == "Z":
                 cairo_commands += "cr.close_path();"
         exec(cairo_commands)
+
+
+from opencv.registration_dialog import RegistrationDialog
+
+
+class DeviceRegistrationDialog(RegistrationDialog):
+    def __init__(self, device_image, video_image, *args, **kwargs):
+        super(DeviceRegistrationDialog, self).__init__(*args, **kwargs)
+        self.device_image = device_image
+        self.video_image = video_image
+
+    def get_glade_path(self):
+        from utility import base_path
+        return base_path().joinpath('opencv', 'glade', 'registration_demo.glade')
+
+    def get_original_image(self):
+        return self.device_image
+
+    def get_rotated_image(self):
+        return self.video_image
