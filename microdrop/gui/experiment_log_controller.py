@@ -27,8 +27,8 @@ from path import path
 from experiment_log import ExperimentLog, load as load_experiment_log
 from utility.gui import combobox_set_model_from_list, \
     combobox_get_active_text, textview_get_text
-from plugin_manager import IPlugin, SingletonPlugin, implements, \
-    ExtensionPoint, emit_signal, PluginGlobals
+from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
+    PluginGlobals
 from protocol import Protocol
 from dmf_device import DmfDevice
 from app_context import get_app

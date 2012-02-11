@@ -291,7 +291,7 @@ def emit_signal(function, args=[], interface=IPlugin):
                         if interface == ILoggingPlugin:
                             # If this is a logging plugin, do not try to log since
                             # that will result in infinite recursion.  Instead,
-                            # just continute onto the next plugin.
+                            # just continue onto the next plugin.
                             continue
                         print >> message, '%s plugin crashed processing %s signal.' % (observer.name, function)
                     print >> message, 'Reason:', str(why)

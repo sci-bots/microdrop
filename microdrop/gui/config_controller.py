@@ -24,8 +24,8 @@ import gtk
 
 from dmf_device import DmfDevice
 from protocol import Protocol
-from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
-    implements, emit_signal, PluginGlobals
+from plugin_manager import IPlugin, SingletonPlugin, implements, \
+    emit_signal, PluginGlobals
 from app_context import get_app
 
 

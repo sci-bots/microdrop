@@ -29,8 +29,8 @@ from dmf_device_view import DmfDeviceView
 from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
-from plugin_manager import IPlugin, SingletonPlugin, ExtensionPoint, \
-    implements, emit_signal, PluginGlobals, IVideoPlugin
+from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
+    PluginGlobals, IVideoPlugin
 from utility import is_float
 from app_context import get_app
 from logger import logger
