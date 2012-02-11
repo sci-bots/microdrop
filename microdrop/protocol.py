@@ -24,6 +24,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import yaml
 
 import numpy as np
 from pygtkhelpers.ui.dialogs import yesno
@@ -61,9 +62,22 @@ class Protocol():
         """
         logger.debug("[Protocol].load(\"%s\")" % filename)
         logger.info("Loading Protocol from %s" % filename)
-        f = open(filename, 'rb')
-        out = pickle.load(f)
-        f.close()
+        out = None
+        with open(filename, 'rb') as f:
+            try:
+                out = pickle.load(f)
+                logger.debug("Loaded object from pickle.")
+            except:
+                logger.debug("Not a pickle file.")
+        if out==None:
+            with open(filename, 'rb') as f:
+                try:
+                    out = yaml.load(f)
+                    logger.debug("Loaded object from YAML file.")
+                except:
+                    logger.info("Not a YAML file.")
+        if out==None:
+            raise TypeError
         out.filename = filename
         # check type
         if out.__class__!=cls:
@@ -117,12 +131,16 @@ class Protocol():
     def __getitem__(self, i):
         return self.steps[i]
 
-    def save(self, filename):
+    def save(self, filename, format='pickle'):
         if hasattr(self, 'filename'):
             del self.filename
-        f = open(filename, 'wb')
-        pickle.dump(self, f, -1)
-        f.close()
+        with open(filename, 'wb') as f:
+            if format=='pickle':
+                pickle.dump(self, f, -1)
+            elif format=='yaml':
+                yaml.dump(self, f)
+            else:
+                raise TypeError
 
     def set_number_of_channels(self, n_channels):
         self.n_channels = n_channels

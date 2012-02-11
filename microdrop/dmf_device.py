@@ -21,6 +21,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import yaml
 
 import numpy as np
 
@@ -29,7 +30,7 @@ from utility import Version, FutureVersionError
 
 
 class DmfDevice():
-    class_version = str(Version(0,1,0))
+    class_version = str(Version(0,2,0))
     def __init__(self):
         self.electrodes = {}
         self.x_min = np.Inf
@@ -54,9 +55,24 @@ class DmfDevice():
         """
         logger.debug("[DmfDevice].load(\"%s\")" % filename)
         logger.info("Loading DmfDevice from %s" % filename)
-        f = open(filename, 'rb')
-        out = pickle.load(f)
-        f.close()
+        out=None
+        with open(filename, 'rb') as f:
+            try:
+                out = pickle.load(f)
+                logger.info("Loaded object from pickle.")
+            except Exception, why:
+                print why
+                logger.info("Not a pickle file.")
+        if out==None:
+            with open(filename, 'rb') as f:
+                try:
+                    out = yaml.load(f)
+                    logger.info("Loaded object from YAML file.")
+                except Exception, why:
+                    print why
+                    logger.info("Not a YAML file.")
+        if out==None:
+            raise TypeError
         # check type
         if out.__class__!=cls:
             raise TypeError
@@ -84,12 +100,22 @@ class DmfDevice():
                 self.version = str(Version(0,1))
                 self.scale = None
                 logger.info('[DmfDevice] upgrade to version %s' % self.version)
+            if version < Version(0,2):
+                self.version = str(Version(0,2))
+                for id, e in self.electrodes.items():
+                    if hasattr(e, "state"):
+                        del self.electrodes[id].state
+                logger.info('[DmfDevice] upgrade to version %s' % self.version)
         # else the versions are equal and don't need to be upgraded
 
-    def save(self, filename):
-        f = open(filename, 'wb')
-        pickle.dump(self, f, -1)
-        f.close()
+    def save(self, filename, format='pickle'):
+        with open(filename, 'wb') as f:
+            if format=='pickle':
+                pickle.dump(self, f, -1)
+            elif format=='yaml':
+                yaml.dump(self, f)
+            else:
+                raise TypeError
 
     def geometry(self):
         return (self.x_min, self.y_min,
@@ -144,7 +170,6 @@ class Electrode:
         self.id = Electrode.next_id
         Electrode.next_id += 1
         self.path = path
-        self.state = 0
         self.channels = []
         self.x_min = np.Inf
         self.y_min = np.Inf

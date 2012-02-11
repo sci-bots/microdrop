@@ -306,7 +306,6 @@ class DmfDeviceController(SingletonPlugin):
     
                 # if all of the states are the same
                 if len(np.nonzero(states == states[0])[0]) == len(states):
-                    electrode.state = states[0]
                     if states[0] > 0:
                         self.view.electrode_color[id] = (1,1,1)
                     else:
