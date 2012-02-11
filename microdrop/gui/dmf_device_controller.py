@@ -102,8 +102,7 @@ class DmfDeviceController(SingletonPlugin):
         cv.SetData(alpha_image, surface.get_data(), 4 * size[0])
         cv.CvtColor(alpha_image, device_image, cv.CV_RGBA2BGR)
         video_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
-        cv.SetData(video_image, device_image.tostring(), 3 * size[0])
-        #cv.SetData(video_image, device_image)
+        cv.Resize(self.last_frame, video_image)
         dialog = DeviceRegistrationDialog(device_image, video_image)
         print dialog.get_original_image()
         print dialog.get_rotated_image()
@@ -111,6 +110,7 @@ class DmfDeviceController(SingletonPlugin):
         import numpy as np
         if results:
             print np.asarray(results)
+            self.view.transform_matrix = results
 
     def get_default_options(self):
         return DmfDeviceOptions()
@@ -357,9 +357,15 @@ class DmfDeviceController(SingletonPlugin):
         x, y, width, height = self.view.widget.get_allocation()
         resized = cv.CreateMat(height, width, cv.CV_8UC3)
         cv.Resize(frame, resized)
+        if self.view.transform_matrix is None:
+            warped = resized
+        else:
+            warped = cv.CreateMat(height, width, cv.CV_8UC3)
+            cv.WarpPerspective(resized, warped, self.view.transform_matrix,
+                    flags=cv.CV_WARP_INVERSE_MAP)
         self.pixbuf = gtk.gdk.pixbuf_new_from_data(
-            resized.tostring(), gtk.gdk.COLORSPACE_RGB, False,
-            depth, width, height, resized.step)
+            warped.tostring(), gtk.gdk.COLORSPACE_RGB, False,
+            depth, width, height, warped.step)
         self.view.background = self.pixbuf
         self.view.update()
 

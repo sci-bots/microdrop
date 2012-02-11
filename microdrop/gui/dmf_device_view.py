@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import gtk
 
 from app_context import get_app
+from opencv.safe_cv import cv
 
 
 class DmfDeviceView:
@@ -33,6 +34,7 @@ class DmfDeviceView:
         self.offset = (0,0)
         self.electrode_color = {}
         self.background = None
+        self.transform_matrix = None
 
     def fit_device(self, padding=None):
         app = get_app()
@@ -64,7 +66,7 @@ class DmfDeviceView:
         x, y, width, height = self.widget.get_allocation()
         if self.background is not None:
             self.pixmap, mask = self.background.render_pixmap_and_mask()
-            alpha = 0.75
+            alpha = 0.3
         else:
             alpha = 1.
             self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
