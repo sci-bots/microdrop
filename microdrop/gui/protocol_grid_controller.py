@@ -352,7 +352,7 @@ class ProtocolGridController(SingletonPlugin):
             return
         self.widget._on_step_options_changed(plugin, step_number)
 
-    def on_step_run(self):
+    def on_run_step(self):
         """
         Handler called whenever a step is executed.
 
@@ -361,11 +361,11 @@ class ProtocolGridController(SingletonPlugin):
             plugin wants to signal that the step should be repeated)
         """
         app = get_app()
+        logging.debug('[ProtocolGridController] on_run_step():')
+        logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
         forms = emit_signal('get_step_form_class')
 
         steps = app.protocol.steps
-        logging.debug('[ProtocolGridController] on_step_run():')
-        logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
             
         combined_fields = CombinedFields(forms)

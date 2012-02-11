@@ -326,7 +326,7 @@ class DmfDeviceController(SingletonPlugin):
                 and plugin_name == self.name:
             self.update()
 
-    def on_step_run(self):
+    def on_run_step(self):
         self.update()
 
     def update(self):
