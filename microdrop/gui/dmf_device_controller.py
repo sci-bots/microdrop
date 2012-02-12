@@ -25,6 +25,8 @@ import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 import cairo
+from flatland import Form, Integer
+from flatland.validation import ValueAtLeast, ValueAtMost
 
 from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
 from dmf_device import DmfDevice
@@ -36,6 +38,7 @@ from utility import is_float
 from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
+from plugin_helpers import AppDataController
 
 
 PluginGlobals.push_env('microdrop')
@@ -49,10 +52,15 @@ class DmfDeviceOptions(object):
             self.state_of_channels = deepcopy(state_of_channels)
 
 
-class DmfDeviceController(SingletonPlugin):
+class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
     implements(IVideoPlugin)
     
+    AppFields = Form.of(
+        Integer.named('overlay_opacity').using(default=30, optional=True,
+            validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
+    )
+
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"        
         self.view = None
@@ -62,7 +70,10 @@ class DmfDeviceController(SingletonPlugin):
         
     def on_app_options_changed(self, plugin_name):
         app = get_app()
-        if plugin_name == 'microdrop.gui.video_controller':
+        if plugin_name == self.name:
+            values = self.get_app_values()
+            self.view.overlay_opacity = values.get('overlay_opacity')
+        elif plugin_name == 'microdrop.gui.video_controller':
             observers = ExtensionPoint(IPlugin)
             service = observers.service(plugin_name)
             values = service.get_app_values()
@@ -101,6 +112,9 @@ class DmfDeviceController(SingletonPlugin):
         app.signals["on_menu_edit_electrode_channels_activate"] = self.on_edit_electrode_channels
         app.signals["on_menu_edit_electrode_area_activate"] = self.on_edit_electrode_area
         app.dmf_device_controller = self
+        data = self.get_default_app_options()
+        app.set_data(self.name, data)
+        emit_signal('on_app_options_changed', [self.name])
 
     def on_register(self, *args, **kwargs):
         if self.last_frame is None:

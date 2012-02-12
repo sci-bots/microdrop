@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from __future__ import division
 import gtk
 
 from app_context import get_app
@@ -35,6 +36,7 @@ class DmfDeviceView:
         self.electrode_color = {}
         self.background = None
         self.transform_matrix = None
+        self.overlay_opacity = None
 
     def fit_device(self, padding=None):
         app = get_app()
@@ -66,7 +68,10 @@ class DmfDeviceView:
         x, y, width, height = self.widget.get_allocation()
         if self.background is not None:
             self.pixmap, mask = self.background.render_pixmap_and_mask()
-            alpha = 0.3
+            if self.overlay_opacity:
+                alpha = self.overlay_opacity / 100
+            else:
+                alpha = 1.
         else:
             alpha = 1.
             self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
