@@ -261,7 +261,7 @@ class CombinedFields(ObjectList):
             if selected_row_id != app.protocol.current_step_number:
                 logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
                 app.protocol.goto_step(selected_row_id)
-                emit_signal('on_run_step')
+                emit_signal('on_step_run')
 
     def _on_item_changed(self, widget, step_data, name, value, **kwargs):
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
@@ -352,7 +352,7 @@ class ProtocolGridController(SingletonPlugin):
             return
         self.widget._on_step_options_changed(plugin, step_number)
 
-    def on_run_step(self):
+    def on_step_run(self):
         """
         Handler called whenever a step is executed.
 
@@ -361,7 +361,7 @@ class ProtocolGridController(SingletonPlugin):
             plugin wants to signal that the step should be repeated)
         """
         app = get_app()
-        logging.debug('[ProtocolGridController] on_run_step():')
+        logging.debug('[ProtocolGridController] on_step_run():')
         logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
         forms = emit_signal('get_step_form_class')
 
