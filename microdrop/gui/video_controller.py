@@ -28,6 +28,8 @@ import numpy as np
 import gtk
 import gobject
 from path import path
+from flatland import Form, Dict, String, Integer, Boolean, Float
+from flatland.validation import ValueAtLeast, ValueAtMost
 
 import microdrop
 from opencv.safe_cv import cv
@@ -35,6 +37,7 @@ from opencv.frame_grabber import FrameGrabber
 from opencv.camera_capture import CameraCapture
 from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
     IVideoPlugin
+from app_context import get_app
 
 
 def array2cv(a):
@@ -59,6 +62,11 @@ def array2cv(a):
 class VideoController(SingletonPlugin):
     implements(IPlugin)
 
+    AppFields = Form.of(
+        Integer.named('fps_limit').using(default=5, optional=True,
+            validators=[ValueAtLeast(minimum=0), ValueAtMost(maximum=100)]),
+    )
+
     def __init__(self):
         self.name = 'microdrop.gui.video_controller'
         self.cam_cap = CameraCapture(auto_init=False)
@@ -67,7 +75,36 @@ class VideoController(SingletonPlugin):
         self.grabber.start()
         self.video_enabled = False
 
+    def get_default_app_options(self):
+        return dict([(k, v.value) for k,v in self.AppFields.from_defaults().iteritems()])
+
+    def get_app_form_class(self):
+        return self.AppFields
+
+    def get_app_fields(self):
+        return self.AppFields.field_schema_mapping.keys()
+
+    def set_app_values(self, values_dict):
+        logging.debug('[VideoController] set_app_values(): '\
+                    'values_dict=%s' % (values_dict,))
+        el = self.AppFields(value=values_dict)
+        if not el.validate():
+            raise ValueError('Invalid values: %s' % el.errors)
+        values = values_dict
+        if 'fps_limit' in values:
+            self.grabber.set_fps_limit(values['fps_limit'])
+        app = get_app()
+        app.set_data(self.name, values)
+        emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
+
+    def get_app_values(self):
+        app = get_app()
+        return app.get_data(self.name)
+
     def on_app_init(self, *args, **kwargs):
+        app = get_app()
+        data = self.get_default_app_options()
+        app.set_data(self.name, data)
         self.on_plugin_enable()
 
     def on_plugin_enable(self, *args, **kwargs):

@@ -19,9 +19,12 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import sys
-import gtk
 import time
 import webbrowser
+
+import gtk
+from flatland import Form, Boolean
+from pygtkhelpers.proxy import proxy_for
 
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
@@ -41,6 +44,10 @@ PluginGlobals.push_env('microdrop')
 class MainWindowController(SingletonPlugin):
     implements(IPlugin)
     implements(ILoggingPlugin)
+
+    AppFields = Form.of(
+        Boolean.named('realtime_mode').using(default=False, optional=True),
+    )
 
     def __init__(self):
         self.name = "microdrop.gui.main_window_controller"
@@ -63,6 +70,34 @@ class MainWindowController(SingletonPlugin):
         self.text_input_dialog.textentry = builder.get_object("textentry")
         self.text_input_dialog.label = builder.get_object("label")
         
+    def get_default_app_options(self):
+        return dict([(k, v.value) for k,v in self.AppFields.from_defaults().iteritems()])
+
+    def get_app_form_class(self):
+        return self.AppFields
+
+    def get_app_fields(self):
+        return self.AppFields.field_schema_mapping.keys()
+
+    def get_app_values(self):
+        app = get_app()
+        return app.get_data(self.name)
+
+    def set_app_values(self, values_dict):
+        logger.debug('[MainWindowController] set_app_values(): '\
+                    'values_dict=%s' % (values_dict,))
+        el = self.AppFields(value=values_dict)
+        if not el.validate():
+            raise ValueError('Invalid values: %s' % el.errors)
+        values = values_dict
+        app = get_app()
+        app_data = app.get_data(self.name)
+        if app_data:
+            app_data.update(values)
+        else:
+            app.set_data(self.name, values)
+        emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
+
     def on_app_init(self):
         #print '[MainWindowController] %s' % get_app()
         app = get_app()
@@ -88,6 +123,7 @@ class MainWindowController(SingletonPlugin):
         app.signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
         app.signals["on_menu_options_activate"] = self.on_menu_options_activate
+        app.signals["on_menu_app_options_activate"] = self.on_menu_app_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
         #app.signals["on_menu_debug_activate"] = self.on_menu_debug_activate
 
@@ -163,6 +199,12 @@ class MainWindowController(SingletonPlugin):
     def on_realtime_mode_toggled(self, widget, data=None):
         self.update()
 
+    def on_menu_app_options_activate(self, widget, data=None):
+        from app_options_controller import AppOptionsController
+
+        AppOptionsController().run()
+        self.update()
+
     def on_menu_options_activate(self, widget, data=None):
         from options_controller import OptionsController
 
@@ -218,12 +260,24 @@ class MainWindowController(SingletonPlugin):
         dialog.destroy()
         return result
 
-    def update(self):
-        app = get_app()
-        app.realtime_mode = self.checkbutton_realtime_mode.get_active()
+    def on_realtime_mode_changed(self):
+        realtime_mode = self.checkbutton_realtime_mode.get_active()
+        app.set_data(self.name, {'realtime_mode': realtime_mode})
+        emit_signal("on_app_options_changed", [self.name], interface=IPlugin)
         emit_signal("on_step_options_changed", ["microdrop.gui.dmf_device_controller",
                                                 app.protocol.current_step_number],
                     interface=IPlugin)
+
+    def on_app_options_changed(self, plugin_name):
+        app = get_app()
+        if plugin_name == self.name:
+            data = app.get_data(self.name)
+            app.realtime_mode = data['realtime_mode']
+            proxy = proxy_for(self.checkbutton_realtime_mode)
+            proxy.set_widget_value(app.realtime_mode)
+
+    def update(self):
+        app = get_app()
         
         if app.dmf_device.name:
             experiment_id = app.experiment_log.get_next_id()

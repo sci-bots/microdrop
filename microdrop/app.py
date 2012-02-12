@@ -48,6 +48,7 @@ import gui.dmf_device_controller
 import gui.video_controller
 import gui.protocol_controller
 import gui.protocol_grid_controller
+import gui.app_options_controller
 
 class App(Plugin):
     implements(IPlugin)
@@ -96,6 +97,27 @@ class App(Plugin):
 
         # protocol
         self.protocol = Protocol()
+        self.plugin_data = {}
+
+    def get_data(self, plugin_name):
+        logging.debug('[App] plugin_data=%s' % self.plugin_data)
+        return self.plugin_data.get(plugin_name)
+
+    def set_data(self, plugin_name, data):
+        self.plugin_data[plugin_name] = data
+
+    @property
+    def plugins(self):
+        return set(self.plugin_data.keys())
+
+    def plugin_name_lookup(self, name, re_pattern=False):
+        if not re_pattern:
+            return name
+
+        for plugin_name in self.plugins:
+            if re.search(name, plugin_name):
+                return plugin_name
+        return None
 
     def run(self):
         plugin_manager.load_plugins(self.config['plugins']['directory'])

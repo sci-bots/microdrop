@@ -377,6 +377,19 @@ Protocol is version %s, but only up to version %s is supported with this version
             self.textentry_frequency.set_text(str(options.frequency / 1e3))
             self.textentry_step_duration.set_text(str(options.duration))
 
+    def set_app_values(self, values_dict):
+        logging.debug('[ProtocolController] set_app_values(): '\
+                    'values_dict=%s' % (values_dict,))
+        el = self.AppFields(value=values_dict)
+        if not el.validate():
+            raise ValueError('Invalid values: %s' % el.errors)
+        values = values_dict
+        if 'fps_limit' in values:
+            self.grabber.set_fps_limit(values['fps_limit'])
+        app = get_app()
+        app.set_data(self.name, values)
+        emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
+
     def on_run_step(self):
         self._update_labels()
         app = get_app()
