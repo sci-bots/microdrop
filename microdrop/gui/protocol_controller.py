@@ -82,7 +82,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                                                   % (filename, why))
         if p:
             emit_signal("on_protocol_changed", p)
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_protocol_changed(self, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
@@ -164,43 +164,43 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_insert_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.insert_step()
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_copy_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.copy_step()
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_delete_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.delete_step()
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.first_step()
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_prev_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.prev_step()
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_next_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.next_step()
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
         
     def on_last_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.last_step()
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_new_protocol(self, widget=None, data=None):
         app = get_app()
         emit_signal("on_protocol_changed",
                     Protocol(app.dmf_device.max_channel() + 1))
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()
@@ -308,7 +308,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             check_textentry(self.textentry_protocol_repeats,
                 app.protocol.n_repeats,
                 int)
-        emit_signal('on_run_step')
+        emit_signal('on_step_run')
 
     def on_run_protocol(self, widget=None, data=None):
         app = get_app()
@@ -344,7 +344,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 app.experiment_log.add_step(app.protocol.current_step_number)
                 if attempt > 0:
                     app.experiment_log.add_data({"attempt":attempt})
-                return_codes = emit_signal("on_run_step")
+                return_codes = emit_signal("on_step_run")
                 if 'Fail' in return_codes.values():
                     self.pause_protocol()
                     app.main_window_controller.error("Protocol failed.")
@@ -355,7 +355,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                     break
         else:
             data = {}
-            emit_signal("on_run_step")
+            emit_signal("on_step_run")
 
         if app.protocol.current_step_number < len(app.protocol) - 1:
             app.protocol.next_step()
@@ -377,7 +377,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             self.textentry_frequency.set_text(str(options.frequency / 1e3))
             self.textentry_step_duration.set_text(str(options.duration))
 
-    def on_run_step(self):
+    def on_step_run(self):
         self._update_labels()
         app = get_app()
         step = app.protocol.current_step()
