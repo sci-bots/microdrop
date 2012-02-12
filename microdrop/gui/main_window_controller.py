@@ -32,6 +32,7 @@ from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
 from gui.plugin_manager_dialog import PluginManagerDialog
 from app_context import get_app
 from logger import logger
+from plugin_helpers import AppDataController
 
 
 class MicroDropError(Exception):
@@ -41,7 +42,7 @@ class MicroDropError(Exception):
 PluginGlobals.push_env('microdrop')
 
 
-class MainWindowController(SingletonPlugin):
+class MainWindowController(SingletonPlugin, AppDataController):
     implements(IPlugin)
     implements(ILoggingPlugin)
 
@@ -70,33 +71,10 @@ class MainWindowController(SingletonPlugin):
         self.text_input_dialog.textentry = builder.get_object("textentry")
         self.text_input_dialog.label = builder.get_object("label")
         
-    def get_default_app_options(self):
-        return dict([(k, v.value) for k,v in self.AppFields.from_defaults().iteritems()])
-
-    def get_app_form_class(self):
-        return self.AppFields
-
-    def get_app_fields(self):
-        return self.AppFields.field_schema_mapping.keys()
-
-    def get_app_values(self):
-        app = get_app()
-        return app.get_data(self.name)
-
     def set_app_values(self, values_dict):
         logger.debug('[MainWindowController] set_app_values(): '\
                     'values_dict=%s' % (values_dict,))
-        el = self.AppFields(value=values_dict)
-        if not el.validate():
-            raise ValueError('Invalid values: %s' % el.errors)
-        values = values_dict
-        app = get_app()
-        app_data = app.get_data(self.name)
-        if app_data:
-            app_data.update(values)
-        else:
-            app.set_data(self.name, values)
-        emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
+        super(MainWindowController, self).set_app_values(values_dict)
 
     def on_app_init(self):
         #print '[MainWindowController] %s' % get_app()
@@ -262,7 +240,7 @@ class MainWindowController(SingletonPlugin):
 
     def on_realtime_mode_changed(self):
         realtime_mode = self.checkbutton_realtime_mode.get_active()
-        app.set_data(self.name, {'realtime_mode': realtime_mode})
+        self.set_app_values(self.name, {'realtime_mode': realtime_mode})
         emit_signal("on_app_options_changed", [self.name], interface=IPlugin)
         emit_signal("on_step_options_changed", ["microdrop.gui.dmf_device_controller",
                                                 app.protocol.current_step_number],

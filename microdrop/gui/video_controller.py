@@ -38,6 +38,7 @@ from opencv.camera_capture import CameraCapture
 from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
     IVideoPlugin
 from app_context import get_app
+from plugin_helpers import AppDataController
 
 
 def array2cv(a):
@@ -59,12 +60,13 @@ def array2cv(a):
     return cv_im
 
 
-class VideoController(SingletonPlugin):
+class VideoController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
     AppFields = Form.of(
+        Boolean.named('video_enabled').using(default=True, optional=True),
         Integer.named('fps_limit').using(default=5, optional=True,
-            validators=[ValueAtLeast(minimum=0), ValueAtMost(maximum=100)]),
+            validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
     )
 
     def __init__(self):
@@ -75,31 +77,14 @@ class VideoController(SingletonPlugin):
         self.grabber.start()
         self.video_enabled = False
 
-    def get_default_app_options(self):
-        return dict([(k, v.value) for k,v in self.AppFields.from_defaults().iteritems()])
-
-    def get_app_form_class(self):
-        return self.AppFields
-
-    def get_app_fields(self):
-        return self.AppFields.field_schema_mapping.keys()
-
-    def set_app_values(self, values_dict):
-        logging.debug('[VideoController] set_app_values(): '\
-                    'values_dict=%s' % (values_dict,))
-        el = self.AppFields(value=values_dict)
-        if not el.validate():
-            raise ValueError('Invalid values: %s' % el.errors)
-        values = values_dict
-        if 'fps_limit' in values:
-            self.grabber.set_fps_limit(values['fps_limit'])
+    def on_app_options_changed(self, plugin_name):
         app = get_app()
-        app.set_data(self.name, values)
-        emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
-
-    def get_app_values(self):
-        app = get_app()
-        return app.get_data(self.name)
+        if plugin_name == self.name:
+            app_data = app.get_data(self.name)
+            if 'fps_limit' in app_data:
+                self.grabber.set_fps_limit(app_data['fps_limit'])
+            if 'video_enabled' in app_data:
+                self.video_enabled = app_data['video_enabled']
 
     def on_app_init(self, *args, **kwargs):
         app = get_app()
