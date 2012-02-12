@@ -24,6 +24,7 @@ import gtk
 import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
+import cairo
 
 from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
 from dmf_device import DmfDevice
@@ -86,13 +87,8 @@ class DmfDeviceController(SingletonPlugin):
         app.dmf_device_controller = self
 
     def on_register(self, *args, **kwargs):
-        print '[DmfDeviceController] on_register args=%s kwargs=%s'\
-            % (args, kwargs)
         if self.last_frame is None:
-            print '  no video frame grabbed'
             return
-        import cairo
-
         size = self.view.pixmap.get_size()
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, *size)
         cr = cairo.Context(surface)
@@ -104,12 +100,8 @@ class DmfDeviceController(SingletonPlugin):
         video_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
         cv.Resize(self.last_frame, video_image)
         dialog = DeviceRegistrationDialog(device_image, video_image)
-        print dialog.get_original_image()
-        print dialog.get_rotated_image()
         results = dialog.run()
-        import numpy as np
         if results:
-            print np.asarray(results)
             self.view.transform_matrix = results
 
     def get_default_options(self):
