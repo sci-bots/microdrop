@@ -30,8 +30,8 @@ from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
 from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
-from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
-    PluginGlobals, IVideoPlugin
+from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
+        implements, emit_signal, PluginGlobals, IVideoPlugin
 from utility import is_float
 from app_context import get_app
 from logger import logger
@@ -60,6 +60,22 @@ class DmfDeviceController(SingletonPlugin):
         self.last_electrode_clicked = None
         self.last_frame = None
         
+    def on_app_options_changed(self, plugin_name):
+        app = get_app()
+        if plugin_name == 'microdrop.gui.video_controller':
+            observers = ExtensionPoint(IPlugin)
+            service = observers.service(plugin_name)
+            values = service.get_app_values()
+            video_enabled = values.get('video_enabled')
+            if not video_enabled:
+                self.disable_video_background()
+
+    def disable_video_background(self):
+        app = get_app()
+        self.last_frame = None
+        self.view.background = None
+        self.view.update()
+
     def on_app_init(self):        
         app = get_app()
         self.view = DmfDeviceView(app.builder.get_object("dmf_device_view"))
