@@ -198,8 +198,7 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def on_new_protocol(self, widget=None, data=None):
         app = get_app()
-        emit_signal("on_protocol_changed",
-                    Protocol(app.dmf_device.max_channel() + 1))
+        emit_signal("on_protocol_changed", Protocol())
         emit_signal('on_step_run')
 
     def on_load_protocol(self, widget=None, data=None):
@@ -417,7 +416,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
                 
     def on_dmf_device_changed(self, dmf_device):
-        emit_signal("on_protocol_changed", Protocol(dmf_device.max_channel() + 1))
+        emit_signal("on_protocol_changed", Protocol())
 
 
 PluginGlobals.pop_env()

@@ -37,8 +37,7 @@ from utility import Version, VersionError, FutureVersionError
 class Protocol():
     class_version = str(Version(0))
     
-    def __init__(self, n_channels=0, name=None):
-        self.n_channels = n_channels
+    def __init__(self, name=None):
         self.steps = [Step()]
         self.name = None
         self.plugin_data = {}
@@ -141,9 +140,6 @@ class Protocol():
                 yaml.dump(self, f)
             else:
                 raise TypeError
-
-    def set_number_of_channels(self, n_channels):
-        self.n_channels = n_channels
 
     def current_step(self):
         return self.steps[self.current_step_number]

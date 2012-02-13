@@ -313,8 +313,15 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                         channels[i] = int(channels[i])
                 else:
                     channels = []
-                if channels and max(channels) >= app.protocol.n_channels:
-                    app.protocol.set_number_of_channels(max(channels)+1)
+                state = app.protocol[i].get_data(self.name).state_of_channels
+                if channels and max(channels) >= len(state):
+                    # zero-pad channel states for all steps
+                    for i in range(len(app.protocol)):
+                        options = app.protocol[i].get_data(self.name)
+                        options.state_of_channels = \
+                            np.concatenate([options.state_of_channels,
+                            np.zeros(max(channels) - \
+                            len(options.state_of_channels)+1, int)])
                 self.last_electrode_clicked.channels = channels
             except:
                 app.main_window_controller.error("Invalid channel.")
