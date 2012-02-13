@@ -35,7 +35,7 @@ from utility import Version, VersionError, FutureVersionError
 
 
 class Protocol():
-    class_version = str(Version(0))
+    class_version = str(Version(0,1))
     
     def __init__(self, name=None):
         self.steps = [Step()]
@@ -84,6 +84,16 @@ class Protocol():
         if not hasattr(out, 'version'):
             out.version = str(Version(0))
         out._upgrade()
+        """
+        Convert plugin data objects from strings (need to nest load
+        statements because including a yaml file as string inside of
+        another yaml file will create extra escape characters).
+        """
+        for k, v in out.plugin_data.items():
+            out.plugin_data[k] = yaml.load(yaml.load(v))
+        for i in range(len(out)):
+            for k, v in out[i].plugin_data.items():
+                out[i].plugin_data[k] = yaml.load(yaml.load(v))
         return out
 
     def _upgrade(self):
@@ -101,7 +111,19 @@ class Protocol():
             logger.debug('[Protocol] version>class_version')
             raise FutureVersionError(Version.fromstring(self.class_version), version)
         elif version < Version.fromstring(self.class_version):
-            pass
+            if version < Version(0,1):
+                """
+                Convert plugin data objects to strings (need to nest dump
+                statements because including a yaml file as string inside of
+                another yaml file will create extra escape characters).
+                """
+                for k, v in self.plugin_data.items():
+                    self.plugin_data[k] = yaml.dump(yaml.dump(v))
+                for step in self.steps:
+                    for k, v in step.plugin_data.items():
+                        step.plugin_data[k] = yaml.dump(yaml.dump(v))
+                self.version = str(Version(0,1))
+                logger.info('[Protocol] upgrade to version %s' % self.version)
         # else the versions are equal and don't need to be upgraded
 
     @property
@@ -130,9 +152,18 @@ class Protocol():
     def __getitem__(self, i):
         return self.steps[i]
 
-    def save(self, filename, format='pickle'):
+    def save(self, filename, format='yaml'):
         if hasattr(self, 'filename'):
             del self.filename
+
+        # convert plugin data objects to strings
+        for k, v in self.plugin_data.items():
+            self.plugin_data[k] = yaml.dump(v)
+        
+        for step in self.steps:
+            for k, v in step.plugin_data.items():
+                step.plugin_data[k] = yaml.dump(v)
+
         with open(filename, 'wb') as f:
             if format=='pickle':
                 pickle.dump(self, f, -1)
