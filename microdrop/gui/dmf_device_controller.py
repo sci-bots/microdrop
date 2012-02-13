@@ -161,30 +161,39 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         '''
         app = get_app()
         self.view.widget.grab_focus()
-        options = self.get_step_options()
-        state_updated = False
+        # Determine which electrode was clicked (if any)
+        electrode = self.get_clicked_electrode(event)
+        if electrode:
+            self.on_electrode_click(electrode, event)
+        return True
+
+    def get_clicked_electrode(self, event):
+        app = get_app()
         for electrode in app.dmf_device.electrodes.values():
             if electrode.contains(
                     event.x / self.view.scale - self.view.offset[0],
                     event.y / self.view.scale - self.view.offset[1]):
-                self.last_electrode_clicked = electrode
-                if event.button == 1:
-                    state = options.state_of_channels
-                    if len(electrode.channels): 
-                        for channel in electrode.channels:
-                            if state[channel] > 0:
-                                state[channel] = 0
-                            else:
-                                state[channel] = 1
-                            state_updated = True
+                return electrode
+        return None
+
+    def on_electrode_click(self, electrode, event):
+        app = get_app()
+        options = self.get_step_options()
+        self.last_electrode_clicked = electrode
+        if event.button == 1:
+            state = options.state_of_channels
+            if len(electrode.channels): 
+                for channel in electrode.channels:
+                    if state[channel] > 0:
+                        state[channel] = 0
                     else:
-                        logger.error("no channel assigned to electrode.")
-                elif event.button == 3:
-                    self.popup.popup(None, None, None, event.button,
-                                     event.time, data=None)
-                break
-        if state_updated:
-            self._notify_observers_step_options_changed()
+                        state[channel] = 1
+                self._notify_observers_step_options_changed()
+            else:
+                logger.error("no channel assigned to electrode.")
+        elif event.button == 3:
+            self.popup.popup(None, None, None, event.button,
+                                event.time, data=None)
         return True
 
     def on_key_press(self, widget, data=None):
@@ -336,10 +345,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     
     def on_edit_electrode_channels(self, widget, data=None):
         # TODO: set default value
-        channel_list = ""
-        for i in self.last_electrode_clicked.channels:
-            channel_list += str(i) + ','
-        channel_list = channel_list[:-1]
+        channel_list = ','.join([str(i) for i in self.last_electrode_clicked.channels])
         app = get_app()
         channel_list = app.main_window_controller.get_text_input(
             "Edit electrode channels",

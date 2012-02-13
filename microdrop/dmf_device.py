@@ -145,16 +145,6 @@ class DmfDevice():
         path.append({'command':'Z'})
         return self.add_electrode_path(path)
     
-    def connect(self, id, channel):
-        if self.electrodes[id].channels.count(channel):
-            pass
-        else:
-            self.electrodes[id].channels.append(channel)
-            
-    def disconnect(self, id, channel):
-        if self.electrodes[id].channels.count(channel):
-            self.electrodes[id].channels.remove(channel)
-            
     def max_channel(self):
         max_channel = 0
         for electrode in self.electrodes.values():
