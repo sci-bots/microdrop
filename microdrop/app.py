@@ -168,15 +168,6 @@ class App(Plugin):
         
         self.main_window_controller.main()
 
-    def on_dmf_device_changed(self, dmf_device):
-        self.dmf_device = dmf_device
-
-    def on_protocol_changed(self, protocol):
-        self.protocol = protocol
-
-    def on_experiment_log_changed(self, experiment_log):
-        self.experiment_log = experiment_log
-
     def _set_log_file_handler(self):
         if self.log_file_handler:
             self._destroy_log_file_handler()

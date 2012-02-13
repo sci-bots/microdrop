@@ -139,22 +139,15 @@ class ConfigController(SingletonPlugin):
                 self.app.main_window_controller.update()
     
     def load_dmf_device(self):
-        dmf_device = None
-
         # try what's specified in config file
         if self.app.config['dmf_device']['name'] != None:
             path = os.path.join(self.app.config['dmf_device']['directory'],
                                 self.app.config['dmf_device']['name'],
                                 "device")
             try:
-                dmf_device = DmfDevice.load(path)
+                self.app.dmf_device_controller.load_device(path)
             except:
                 self.app.main_window_controller.error("Could not open %s" % path)
-
-        # otherwise, return a new object
-        if dmf_device==None:
-            dmf_device = DmfDevice()
-        emit_signal("on_dmf_device_changed", dmf_device)
 
     def load_protocol(self):
         if self.app.config['dmf_device']['name']:
@@ -165,10 +158,6 @@ class ConfigController(SingletonPlugin):
                                         "protocols",
                                         self.app.config['protocol']['name'])
                 self.app.protocol_controller.load_protocol(filename)
-            # otherwise, return a new object
-            else:
-                protocol = Protocol(self.app.dmf_device.max_channel()+1)
-                emit_signal("on_protocol_changed", protocol)
                 
     def on_dmf_device_changed(self, dmf_device):
         self.app.config['dmf_device']['name'] = dmf_device.name

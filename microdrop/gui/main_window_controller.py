@@ -242,9 +242,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
         realtime_mode = self.checkbutton_realtime_mode.get_active()
         self.set_app_values(self.name, {'realtime_mode': realtime_mode})
         emit_signal("on_app_options_changed", [self.name], interface=IPlugin)
-        emit_signal("on_step_options_changed", ["microdrop.gui.dmf_device_controller",
-                                                app.protocol.current_step_number],
-                    interface=IPlugin)
 
     def on_app_options_changed(self, plugin_name):
         app = get_app()
@@ -256,7 +253,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
 
     def update(self):
         app = get_app()
-        
         if app.dmf_device.name:
             experiment_id = app.experiment_log.get_next_id()
         else:

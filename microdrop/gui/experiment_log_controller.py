@@ -223,7 +223,7 @@ class ExperimentLogController(SingletonPlugin):
                                      str(self.results.log.experiment_id),
                                      'device')) 
         try:
-            emit_signal("on_dmf_device_changed", [DmfDevice.load(filename)])
+            app.dmf_device_controller.load_device(filename)
         except:
             app.main_window_controller.error("Could not open %s" % filename)
         app.main_window_controller.update()
@@ -251,8 +251,8 @@ class ExperimentLogController(SingletonPlugin):
         if dmf_device.name:
             device_path = os.path.join(app.config['dmf_device']['directory'],
                                        dmf_device.name, "logs")
-        experiment_log = ExperimentLog(device_path)
-        emit_signal("on_experiment_log_changed", [experiment_log])
+        app.experiment_log = ExperimentLog(device_path)
+        emit_signal("on_experiment_log_changed", app.experiment_log)
         
     def on_experiment_log_changed(self, dmf_device):
         app = get_app()

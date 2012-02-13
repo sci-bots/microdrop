@@ -334,7 +334,6 @@ Protocol is version %s, but only up to version %s is supported with this version
             "image_play"))
         emit_signal("on_protocol_pause")
         app.experiment_log_controller.save()
-        emit_signal("on_experiment_log_changed", app.experiment_log)        
         
     def run_step(self):
         app = get_app()

@@ -47,7 +47,7 @@ class DmfDeviceOptions(object):
     def __init__(self, state_of_channels=None):
         app = get_app()
         if state_of_channels is None:
-            self.state_of_channels = np.zeros(app.protocol.n_channels)
+            self.state_of_channels = np.zeros(app.dmf_device.max_channel()+1)
         else:
             self.state_of_channels = deepcopy(state_of_channels)
 
@@ -87,7 +87,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.view.background = None
         self.view.update()
 
-    def on_app_init(self):        
+    def on_app_init(self):
         app = get_app()
         self.view = DmfDeviceView(app.builder.get_object("dmf_device_view"))
         app.builder.add_from_file(os.path.join("gui",
@@ -115,7 +115,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         data = self.get_default_app_options()
         app.set_data(self.name, data)
         emit_signal('on_app_options_changed', [self.name])
-
+        
     def on_register(self, *args, **kwargs):
         if self.last_frame is None:
             return
@@ -179,13 +179,16 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                                      event.time, data=None)
                 break
         if state_updated:
-            emit_signal('on_step_options_changed',
-                        [self.name, app.protocol.current_step_number],
-                        interface=IPlugin)
+            self._notify_observers_step_options_changed()
         return True
 
     def on_key_press(self, widget, data=None):
         pass
+    
+    def load_device(self, filename):
+        app = get_app()
+        app.dmf_device = DmfDevice.load(filename)
+        emit_signal("on_dmf_device_changed", app.dmf_device)
     
     def on_load_dmf_device(self, widget, data=None):
         app = get_app()
@@ -199,10 +202,10 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         dialog.set_current_folder(app.config['dmf_device']['directory'])
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
-            self.filename = dialog.get_filename()
-            emit_signal("on_dmf_device_changed", [DmfDevice.load(self.filename)])
+            filename = dialog.get_filename()
+            self.load_device(filename)
         dialog.destroy()
-        app.main_window_controller.update()
+        self._notify_observers_step_options_changed()
         
     def on_import_dmf_device(self, widget, data=None):
         app = get_app()
@@ -237,7 +240,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             svgcommand = M_command | C_command | L_command | Z_command
             phrase = OneOrMore(Group(svgcommand))
             
-            dmf_device = DmfDevice()
+            app.dmf_device = DmfDevice()
             try:
                 tree = et.parse(filename)
 
@@ -272,13 +275,13 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                                     path.append({'command':step[0]})
                                 else:
                                     logger.error("error")
-                            dmf_device.add_electrode_path(path)
-                emit_signal("on_dmf_device_changed", [dmf_device])
+                            app.dmf_device.add_electrode_path(path)
+                emit_signal("on_dmf_device_changed", app.dmf_device)
             except Exception, why:
                 app.main_window_controller.error(why)
         dialog.destroy()
-        app.main_window_controller.update()
-
+        self._notify_observers_step_options_changed()
+        
     def on_rename_dmf_device(self, widget, data=None):
         app = get_app()
         app.config_controller.save_dmf_device(rename=True)
@@ -315,7 +318,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 self.last_electrode_clicked.channels = channels
             except:
                 app.main_window_controller.error("Invalid channel.")
-        app.main_window_controller.update()
+        self._notify_observers_step_options_changed()
         
     def on_edit_electrode_area(self, widget, data=None):
         app = get_app()
@@ -337,6 +340,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     
     def on_dmf_device_changed(self, dmf_device):
         self.view.fit_device()
+        self._notify_observers_step_options_changed()
 
     def on_step_options_changed(self, plugin_name, step_number):
         '''
@@ -346,12 +350,18 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         app = get_app()
         if app.protocol.current_step_number == step_number\
                 and plugin_name == self.name:
-            self.update()
+            self._update()
 
     def on_step_run(self):
-        self.update()
+        self._update()
 
-    def update(self):
+    def _notify_observers_step_options_changed(self):
+        app = get_app()
+        emit_signal('on_step_options_changed',
+                    [self.name, app.protocol.current_step_number],
+                    interface=IPlugin)
+
+    def _update(self):
         app = get_app()
         options = self.get_step_options()
         state_of_all_channels = options.state_of_channels
