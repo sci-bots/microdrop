@@ -23,6 +23,7 @@ import sys
 import multiprocessing
 
 import matplotlib
+import pymunk
 
 try:
     import utility as utility

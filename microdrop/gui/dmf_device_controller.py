@@ -256,13 +256,13 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                         tokens = phrase.parseString(p.upper())
                         
                         # check if the path is closed
-                        if tokens[-1][0]=='Z':
+                        if tokens[-1][0] == 'Z':
                             is_closed = True
                         else: # or if the start/end points are the same
                             try:
                                 start_point = tokens[0][1].asList()
                                 end_point = tokens[-1][1].asList()
-                                if start_point==end_point:
+                                if start_point == end_point:
                                     is_closed = True
                             except ValueError:
                                 logger.error("ValueError")
@@ -270,11 +270,11 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                             path = []
                             for step in tokens:
                                 command = step[0]
-                                if command=="M" or command=="L":
+                                if command == "M" or command == "L":
                                     x,y = step[1].asList()
                                     path.append({'command':step[0],
                                                  'x':x, 'y':y})
-                                elif command=="Z":
+                                elif command == "Z":
                                     path.append({'command':step[0]})
                                 else:
                                     logger.error("error")

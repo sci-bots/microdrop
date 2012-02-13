@@ -173,6 +173,7 @@ if __name__ == "__main__":
               ("yaml", "pip", "pyyaml"),
               ("nose", "pip"),
               ("nose-pathmunge", "pip"),
+              ("pymunk", "exe", "http://pymunk.googlecode.com/files/pymunk-2.1.0.win32.exe"),
               ):
         try:
             exec("import " + p[0])
