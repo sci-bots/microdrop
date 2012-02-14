@@ -86,7 +86,7 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def on_protocol_changed(self, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
-        logging.info('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
+        logging.debug('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
         
     def on_app_init(self):
         app = get_app()
