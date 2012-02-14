@@ -106,6 +106,9 @@ class App(Plugin):
     def set_data(self, plugin_name, data):
         self.plugin_data[plugin_name] = data
 
+    def on_protocol_changed(self, protocol):
+        self.protocol = protocol
+
     @property
     def plugins(self):
         return set(self.plugin_data.keys())
