@@ -24,7 +24,7 @@ from collections import namedtuple
 import gtk
 from path import path
 
-from experiment_log import ExperimentLog, load as load_experiment_log
+from experiment_log import ExperimentLog
 from utility.gui import combobox_set_model_from_list, \
     combobox_get_active_text, textview_get_text
 from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
@@ -78,11 +78,8 @@ class ExperimentLogController(SingletonPlugin):
             id = combobox_get_active_text(self.combobox_log_files)
             log = path(app.experiment_log.directory) / path(id) / path("data")
             protocol = path(app.experiment_log.directory) / path(id) / path("protocol")
-
-            self.results = self.Results(load_experiment_log(log),
+            self.results = self.Results(ExperimentLog.load(log),
                                         Protocol.load(protocol))
-            self.results.protocol.save(protocol)
-
             self.builder.get_object("button_load_device").set_sensitive(True)        
             self.builder.get_object("button_load_protocol").set_sensitive(True)    
             self.builder.get_object("textview_notes").set_sensitive(True)

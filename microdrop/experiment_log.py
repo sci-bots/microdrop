@@ -22,21 +22,94 @@ import pickle
 import time
 
 import numpy as np
+from path import path
+import yaml
 
-from utility import is_int, path
+from utility import is_int, Version, VersionError, FutureVersionError
+from logger import logger
 
-
-def load(filename):
-    f = open(filename,"rb")
-    log = pickle.load(f)
-    f.close()
-    return log
 
 class ExperimentLog():
+    class_version = str(Version(0))
+
+    @classmethod
+    def load(cls, filename):
+        """
+        Load an experiment log from a file.
+
+        Args:
+            filename: path to file.
+        Raises:
+            TypeError: file is not an experiment log.
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[ExperimentLog].load(\"%s\")" % filename)
+        logger.info("Loading Experiment log from %s" % filename)
+        out = None
+        with open(filename, 'rb') as f:
+            try:
+                out = pickle.load(f)
+                logger.debug("Loaded object from pickle.")
+            except Exception, e:
+                logger.debug("Not a valid pickle file. %s." % e)
+        if out==None:
+            with open(filename, 'rb') as f:
+                try:
+                    out = yaml.load(f)
+                    logger.debug("Loaded object from YAML file.")
+                except Exception, e:
+                    logger.debug("Not a valid YAML file. %s." % e)
+        if out==None:
+            raise TypeError
+        out.filename = filename
+        # check type
+        if out.__class__!=cls:
+            raise TypeError
+        if not hasattr(out, 'version'):
+            out.version = str(Version(0))
+        out._upgrade()
+        return out
+    
     def __init__(self, directory=None):
         self.directory = directory
         self.experiment_id = None
         self.data = []
+        self.version = self.class_version
+
+    def _upgrade(self):
+        """
+        Upgrade the serialized object if necessary.
+
+        Raises:
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[ExperimentLog]._upgrade()")
+        version = Version.fromstring(self.version)
+        logger.debug('[ExperimentLog] version=%s, class_version=%s' % (str(version), self.class_version))
+        if version > Version.fromstring(self.class_version):
+            logger.debug('[ExperimentLog] version>class_version')
+            raise FutureVersionError
+        elif version < Version.fromstring(self.class_version): 
+            pass
+        # else the versions are equal and don't need to be upgraded
+        
+    def save(self, filename=None, format='pickle'):
+        if filename==None:
+            log_path = self.get_log_path()
+            filename = os.path.join(log_path,"data")
+        else:
+            log_path = path(filename).parent 
+        if self.data:
+            with open(filename, 'wb') as f:
+                if format=='pickle':
+                    pickle.dump(self, f, -1)
+                elif format=='yaml':
+                    yaml.dump(self, f)
+                else:
+                    raise TypeError
+        return log_path
 
     def start_time(self):
         data = self.get("start time")
@@ -75,18 +148,6 @@ class ExperimentLog():
     def add_data(self, data):
         for k, v in data.items():
             self.data[-1][k]=v
-        
-    def save(self, filename=None):
-        if filename==None:
-            log_path = self.get_log_path()
-            filename = os.path.join(log_path,"data")
-        else:
-            log_path = path(filename).parent 
-        if self.data:
-            output = open(filename, 'wb')
-            pickle.dump(self, output, -1)
-            output.close()
-        return log_path
 
     def get(self, name):
         var = []
