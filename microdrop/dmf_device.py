@@ -27,10 +27,12 @@ import numpy as np
 
 from logger import logger
 from utility import Version, FutureVersionError
+from svg_model.path_group import PathGroup
+from svg_model.body_group import BodyGroup
 
 
 class DmfDevice():
-    class_version = str(Version(0,2,0))
+    class_version = str(Version(0,3,0))
     def __init__(self):
         self.electrodes = {}
         self.x_min = np.Inf
@@ -39,7 +41,39 @@ class DmfDevice():
         self.y_max = 0
         self.name = None
         self.scale = None
+        self.path_group = None
         self.version = self.class_version
+        self.body_group = None
+        self.electrode_name_map = None
+        self.name_electrode_map = None
+
+    def init_body_group(self):
+        if self.path_group is None:
+            return
+        # Initialize a BodyGroup() containing a 2D pymunk space to detect events
+        # and perform point queries based on device.
+        # Note that we cannot (can't be pickled) and do not want to save a
+        # pymunk space, since it represents state information from the device.
+        self.body_group = BodyGroup(self.path_group.paths)
+        self.electrode_name_map = {}
+        self.name_electrode_map = {}
+        for name, p in self.path_group.paths.iteritems():
+            eid = self.add_electrode_path(p)
+            self.electrode_name_map[eid] = name
+            self.name_electrode_map[name] = eid
+
+    def get_electrode_from_body(self, body):
+        name = self.body_group.get_name(body)
+        eid = self.name_electrode_map[name]
+        return self.electrodes[eid]
+
+    @classmethod
+    def load_svg(cls, svg_path):
+        path_group = PathGroup.load_svg(svg_path)
+        dmf_device = DmfDevice()
+        dmf_device.path_group = path_group
+        dmf_device.init_body_group()
+        return dmf_device
 
     @classmethod
     def load(cls, filename):
@@ -77,6 +111,7 @@ class DmfDevice():
         if not hasattr(out, 'version'):
             out.version = '0'
         out._upgrade()
+        out.init_body_group()
         return out
 
     def _upgrade(self):
@@ -107,31 +142,25 @@ class DmfDevice():
         # else the versions are equal and don't need to be upgraded
 
     def save(self, filename, format='pickle'):
-        with open(filename, 'wb') as f:
-            if format=='pickle':
-                pickle.dump(self, f, -1)
-            elif format=='yaml':
-                yaml.dump(self, f)
-            else:
-                raise TypeError
-
-    def geometry(self):
-        return (self.x_min, self.y_min,
-                self.x_max-self.x_min,
-                self.y_max-self.y_min) 
+        body_group = self.body_group
+        try:
+            del self.body_group
+            with open(filename, 'wb') as f:
+                if format=='pickle':
+                    pickle.dump(self, f, -1)
+                elif format=='yaml':
+                    yaml.dump(self, f)
+                else:
+                    raise TypeError
+        finally:
+            self.body_group = body_group
+        
+    def get_bounding_box(self):
+        return self.path_group.get_bounding_box()
 
     def add_electrode_path(self, path):
         e = Electrode(path)
         self.electrodes[e.id] = e
-        for electrode in self.electrodes.values():
-            if electrode.x_min < self.x_min:
-                self.x_min = electrode.x_min 
-            if electrode.x_max > self.x_max:
-                self.x_max = electrode.x_max 
-            if electrode.y_min < self.y_min:
-                self.y_min = electrode.y_min
-            if electrode.y_max > self.y_max:
-                self.y_max = electrode.y_max
         return e.id
 
     def add_electrode_rect(self, x, y, width, height=None):
@@ -159,26 +188,7 @@ class Electrode:
         Electrode.next_id += 1
         self.path = path
         self.channels = []
-        self.x_min = np.Inf
-        self.y_min = np.Inf
-        self.x_max = 0
-        self.y_max = 0
-        for step in path:
-            if step.has_key('x') and step.has_key('y'):
-                if float(step['x']) < self.x_min:
-                    self.x_min = float(step['x'])
-                if float(step['x']) > self.x_max:
-                    self.x_max = float(step['x'])
-                if float(step['y']) < self.y_min:
-                    self.y_min = float(step['y'])
-                if float(step['y']) > self.y_max:
-                    self.y_max = float(step['y'])
 
     def area(self):
-        return (self.x_max-self.x_min)*(self.y_max-self.y_min)
-
-    def contains(self, x, y):
-        if self.x_min < x < self.x_max and self.y_min < y < self.y_max:
-            return True
-        else:
-            return False
+        #return (self.x_max-self.x_min)*(self.y_max-self.y_min)
+        return self.path.get_area()

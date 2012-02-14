@@ -18,10 +18,15 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from __future__ import division
+from collections import namedtuple
+
 import gtk
 
 from app_context import get_app
 from opencv.safe_cv import cv
+
+
+Dims = namedtuple('Dims', 'x y width height')
 
 
 class DmfDeviceView:
@@ -43,19 +48,22 @@ class DmfDeviceView:
         if len(app.dmf_device.electrodes):
             if padding is None:
                 padding = 10
-            widget = self.widget.get_allocation()
-            device = app.dmf_device.geometry()
-            scale_x = (widget[2]-2*padding)/device[2]
-            scale_y = (widget[3]-2*padding)/device[3]
+
+            widget = Dims(*self.widget.get_allocation())
+            device = Dims(*app.dmf_device.get_bounding_box())
+            scale_x = (widget.width - 2 * padding) / device.width
+            scale_y = (widget.height - 2 * padding) / device.height
             self.scale = min(scale_x, scale_y)
             if scale_x < scale_y: # center device vertically
-                self.offset = (-device[0]+padding/self.scale,
-                               -device[1]+padding/self.scale+ \
-                               ((widget[3]-2*padding)/self.scale-device[3])/2)
+                self.offset = (-device.x + padding / self.scale,
+                               -device.y + padding / self.scale + \
+                               ((widget.height - 2 * padding)\
+                                        / self.scale - device.height) / 2)
             else:  # center device horizontally
-                self.offset = (-device[0]+padding/self.scale+ \
-                               ((widget[2]-2*padding)/self.scale-device[2])/2,
-                               -device[1]+padding/self.scale)
+                self.offset = (-device.x + padding / self.scale +  \
+                               ((widget.width - 2 * padding)\
+                                    / self.scale - device.width) / 2,
+                                - device.y + padding / self.scale)
 
     # device view events
     def on_expose(self, widget, event):
@@ -91,30 +99,24 @@ class DmfDeviceView:
         cr.translate(x,y)
         for id, electrode in app.dmf_device.electrodes.iteritems():
             if self.electrode_color.keys().count(id):
-                self.draw_electrode(electrode, cr)
                 r, g, b = self.electrode_color[id]
-                cr.set_source_rgba(r, g, b, alpha)
-                cr.fill()
+                self.draw_electrode(electrode, cr, (r, g, b, alpha))
 
-    def draw_electrode(self, electrode, cr):
-        cairo_commands = ""
-
-        # TODO: make this work for relative paths (small letter commands)
-        for step in electrode.path:
-            if step['command'] == "M":
-                cairo_commands += "cr.move_to(%s,%s);" % (step['x'],step['y'])
-            #TODO: curves
-            """
-            if step['command'] == "C":
-                 
-                cairo_commands += "cr.curve_to(%s,%s,%s,%s,%s,%s);" % (c[0],c[1],c[2],c[3],c[4],c[5])
-                pass
-            """
-            if step['command'] == "L":
-                cairo_commands += "cr.line_to(%s,%s);" % (step['x'],step['y'])
-            if step['command'] == "Z":
-                cairo_commands += "cr.close_path();"
-        exec(cairo_commands)
+    def draw_electrode(self, electrode, cr, color=None):
+        p = electrode.path
+        cr.save()
+        if color is None:
+            color = [v / 255. for v in p.color]
+        if len(color) < 4:
+            color += [1.] * (len(color) - 4)
+        cr.set_source_rgba(*color)
+        for loop in p.loops:
+            cr.move_to(*loop.verts[0])
+            for v in loop.verts[1:]:
+                cr.line_to(*v)
+            cr.close_path()
+            cr.fill()
+        cr.restore()
 
 
 from opencv.registration_dialog import RegistrationDialog

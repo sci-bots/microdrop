@@ -167,13 +167,15 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             self.on_electrode_click(electrode, event)
         return True
 
+    def translate_coords(self, x, y):
+        return (x / self.view.scale - self.view.offset[0], y / self.view.scale - self.view.offset[1])
+
     def get_clicked_electrode(self, event):
         app = get_app()
-        for electrode in app.dmf_device.electrodes.values():
-            if electrode.contains(
-                    event.x / self.view.scale - self.view.offset[0],
-                    event.y / self.view.scale - self.view.offset[1]):
-                return electrode
+        shape = app.dmf_device.body_group.space.point_query_first(
+                self.translate_coords(*event.get_coords()))
+        if shape:
+            return app.dmf_device.get_electrode_from_body(shape.body)
         return None
 
     def on_electrode_click(self, electrode, event):
@@ -236,61 +238,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            
-            # Pyparsing grammar for svg:
-            #
-            # This code is based on Don C. Ingle's svg2py program, available at:
-            # http://annarchy.cairographics.org/svgtopycairo/
-            dot = Literal(".")
-            comma = Literal(",").suppress()
-            floater = Combine(Optional("-") + Word(nums) + dot + Word(nums))
-            couple = floater + comma + floater
-            M_command = "M" + Group(couple)
-            C_command = "C" + Group(couple + couple + couple)
-            L_command = "L" + Group(couple)
-            Z_command = "Z"
-            svgcommand = M_command | C_command | L_command | Z_command
-            phrase = OneOrMore(Group(svgcommand))
-            
-            dmf_device = DmfDevice()
-            try:
-                tree = et.parse(filename)
-
-                ns = "http://www.w3.org/2000/svg" # The XML namespace.
-                for group in tree.getiterator('{%s}g' % ns):
-                    for e in group.getiterator('{%s}path' % ns):
-                        is_closed = False
-                        p = e.get("d")
-
-                        tokens = phrase.parseString(p.upper())
-                        
-                        # check if the path is closed
-                        if tokens[-1][0] == 'Z':
-                            is_closed = True
-                        else: # or if the start/end points are the same
-                            try:
-                                start_point = tokens[0][1].asList()
-                                end_point = tokens[-1][1].asList()
-                                if start_point == end_point:
-                                    is_closed = True
-                            except ValueError:
-                                logger.error("ValueError")
-                        if is_closed:
-                            path = []
-                            for step in tokens:
-                                command = step[0]
-                                if command == "M" or command == "L":
-                                    x,y = step[1].asList()
-                                    path.append({'command':step[0],
-                                                 'x':x, 'y':y})
-                                elif command == "Z":
-                                    path.append({'command':step[0]})
-                                else:
-                                    logger.error("error")
-                            dmf_device.add_electrode_path(path)
-                emit_signal("on_dmf_device_changed", dmf_device)
-            except Exception, why:
-                app.main_window_controller.error(why)
+            app.dmf_device = DmfDevice.load_svg(filename)
+            emit_signal("on_dmf_device_changed", [app.dmf_device])
         dialog.destroy()
         self._notify_observers_step_options_changed()
         

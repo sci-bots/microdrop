@@ -7,3 +7,6 @@
 [submodule "microdrop/opencv"]
 	path = microdrop/opencv
 	url = http://microfluidics.utoronto.ca/git/python___opencv_examples.git
+[submodule "microdrop/svg_model"]
+	path = microdrop/svg_model
+	url = http://github.com/cfobel/python___svg_model.git
