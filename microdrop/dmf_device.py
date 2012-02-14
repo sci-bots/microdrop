@@ -55,6 +55,9 @@ class DmfDevice():
         # Note that we cannot (can't be pickled) and do not want to save a
         # pymunk space, since it represents state information from the device.
         self.body_group = BodyGroup(self.path_group.paths)
+
+    def add_path_group(self, path_group):
+        self.path_group = path_group
         self.electrode_name_map = {}
         self.name_electrode_map = {}
         for name, p in self.path_group.paths.iteritems():
@@ -71,7 +74,7 @@ class DmfDevice():
     def load_svg(cls, svg_path):
         path_group = PathGroup.load_svg(svg_path)
         dmf_device = DmfDevice()
-        dmf_device.path_group = path_group
+        dmf_device.add_path_group(path_group)
         dmf_device.init_body_group()
         return dmf_device
 

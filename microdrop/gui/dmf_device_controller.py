@@ -378,7 +378,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     if states[0] > 0:
                         self.view.electrode_color[id] = (1,1,1)
                     else:
-                        self.view.electrode_color[id] = (0,0,1)
+                        color = app.dmf_device.electrodes[id].path.color
+                        self.view.electrode_color[id] = [c / 255. for c in color]
                 else:
                     #TODO: this could be used for resistive heating 
                     logger.error("not supported yet")
