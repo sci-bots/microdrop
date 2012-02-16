@@ -39,7 +39,6 @@ from pygtkhelpers.ui.objectlist.column import Column
 import protocol
 from protocol import Protocol
 from utility import check_textentry, is_float, is_int
-from utility.gui import register_shortcuts
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal, PluginGlobals
 from gui.textbuffer_with_undo import UndoableBuffer

@@ -145,10 +145,10 @@ Protocol is version %s, but only up to version %s is supported with this version
         view = app.main_window_controller.view
         shortcuts = {
             'space': self.on_run_protocol,
-            '<Control>Left': self.on_prev_step,
-            '<Control>Right': self.on_next_step,
-            'Home': self.on_first_step,
-            'End': self.on_last_step,
+            'A': self.on_first_step,
+            'S': self.on_prev_step,
+            'D': self.on_next_step,
+            'F': self.on_last_step,
             'Delete': self.on_delete_step,
         }
         register_shortcuts(view, shortcuts,
