@@ -285,6 +285,7 @@ def emit_signal(function, args=[], interface=IPlugin):
     return_codes = {}
     for observer in observers:
         if hasattr(observer, function):
+            logging.debug('emit_signal: %s.%s()' % (observer.name, function))                    
             try:
                 if type(args) is not list:
                     args = [args]
