@@ -113,6 +113,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
         self.protocol_list_view = None
         
     def main(self):
+        emit_signal("on_step_run")
         self.update()
         gtk.main()
 
@@ -175,7 +176,9 @@ class MainWindowController(SingletonPlugin, AppDataController):
         app.experiment_log_controller.on_window_show(widget, data)
 
     def on_realtime_mode_toggled(self, widget, data=None):
-        self.update()
+        realtime_mode = self.checkbutton_realtime_mode.get_active()
+        self.set_app_values({'realtime_mode': realtime_mode})
+        emit_signal("on_app_options_changed", [self.name], interface=IPlugin)
 
     def on_menu_app_options_activate(self, widget, data=None):
         from app_options_controller import AppOptionsController
@@ -237,11 +240,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
         result = dialog.run()
         dialog.destroy()
         return result
-
-    def on_realtime_mode_changed(self):
-        realtime_mode = self.checkbutton_realtime_mode.get_active()
-        self.set_app_values(self.name, {'realtime_mode': realtime_mode})
-        emit_signal("on_app_options_changed", [self.name], interface=IPlugin)
 
     def on_app_options_changed(self, plugin_name):
         app = get_app()
