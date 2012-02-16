@@ -169,7 +169,7 @@ if __name__ == "__main__":
               ("flatland", "pip", "http://microfluidics.utoronto.ca/git/flatland.git/snapshot/beb7d06bd9f7b65ad3f25184ee05b808f893cfda.zip"),
               ("pygtkhelpers", "pip"),
               ("configobj", "pip"),
-              ("pyyaml", "pip"),
+              ("yaml", "pip", "pyyaml"),
               ):
         try:
             exec("import " + p[0])
