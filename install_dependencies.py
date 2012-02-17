@@ -170,6 +170,8 @@ if __name__ == "__main__":
               ("pygtkhelpers", "pip"),
               ("configobj", "pip"),
               ("yaml", "pip", "pyyaml"),
+              ("nose", "pip"),
+              ("nose-pathmunge", "pip"),
               ):
         try:
             exec("import " + p[0])
