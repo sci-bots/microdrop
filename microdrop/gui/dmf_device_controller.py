@@ -19,6 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import traceback
+import shutil
 
 import gtk
 import numpy as np
@@ -115,6 +116,10 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         data = self.get_default_app_options()
         app.set_data(self.name, data)
         emit_signal('on_app_options_changed', [self.name])
+
+    def on_app_exit(self):
+        #TODO: prompt to save if device has changed
+        self.save_dmf_device()
         
     def on_register(self, *args, **kwargs):
         if self.last_frame is None:
@@ -281,17 +286,54 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self._notify_observers_step_options_changed()
         
     def on_rename_dmf_device(self, widget, data=None):
-        app = get_app()
-        app.config_controller.save_dmf_device(rename=True)
+        self.save_dmf_device(rename=True)
 
     def on_save_dmf_device(self, widget, data=None):
-        app = get_app()
-        app.config_controller.save_dmf_device()
+        self.save_dmf_device()
 
     def on_save_dmf_device_as(self, widget, data=None):
+        self.save_dmf_device(save_as=True)
+
+    def save_dmf_device(self, save_as=False, rename=False):
         app = get_app()
-        app.config_controller.save_dmf_device(save_as=True)
-        
+
+        name = app.dmf_device.name
+        # if the device has no name, try to get one
+        if save_as or rename or name is None:
+            if name is None:
+                name = ""
+            name = app.main_window_controller.get_text_input("Save device",
+                                                             "Device name",
+                                                             name)
+
+        if name:
+            # current file name
+            if app.dmf_device.name:
+                src = os.path.join(app.config['dmf_device']['directory'],
+                                   app.dmf_device.name)
+            dest = os.path.join(app.config['dmf_device']['directory'], name)
+
+            # if we're renaming, move the old directory
+            if rename and os.path.isdir(src):
+                if src == dest:
+                    return
+                if os.path.isdir(dest):
+                    app.main_window_controller.error("A device with that "
+                        "name already exists.")
+                    return
+                shutil.move(src, dest)
+
+            if os.path.isdir(dest) == False:
+                os.mkdir(dest)
+
+            # if the device name has changed
+            if name != app.dmf_device.name:
+                app.dmf_device.name = name
+                emit_signal("on_dmf_device_changed", app.dmf_device)
+            
+            # save the device
+            app.dmf_device.save(os.path.join(dest,"device"))
+                    
     def on_edit_electrode_channels(self, widget, data=None):
         # TODO: set default value
         channel_list = ""

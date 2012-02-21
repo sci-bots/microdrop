@@ -201,7 +201,6 @@ class OptionsController:
         if response == gtk.RESPONSE_OK:
             logger.info('got new options_dir: %s' % options_dir)
             self.txt_data_dir.set_text(options_dir)
-        app.main_window_controller.update()
 
     def on_btn_log_file_browse_clicked(self, widget, data=None):
         app = get_app()
@@ -210,4 +209,3 @@ class OptionsController:
         if response == gtk.RESPONSE_OK:
             logger.info('got new log file path: %s' % log_file)
             self.txt_log_file.set_text(log_file)
-        app.main_window_controller.update()

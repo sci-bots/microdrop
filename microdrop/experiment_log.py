@@ -145,7 +145,8 @@ class ExperimentLog():
 
     def _get_next_id(self):
         if self.directory is None:
-            raise Exception("No device directory set.")
+            self.experiment_id = None
+            return
         if(os.path.isdir(self.directory)==False):
             os.mkdir(self.directory)
         logs = os.listdir(self.directory)

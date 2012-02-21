@@ -24,6 +24,7 @@ import logging
 from StringIO import StringIO
 from contextlib import closing
 import re
+import shutil
 
 import gtk
 import gobject
@@ -219,16 +220,48 @@ Protocol is version %s, but only up to version %s is supported with this version
         dialog.destroy()
 
     def on_rename_protocol(self, widget=None, data=None):
-        app = get_app()
-        app.config_controller.save_protocol(rename=True)
+        self.save_protocol(rename=True)
     
     def on_save_protocol(self, widget=None, data=None):
-        app = get_app()
-        app.config_controller.save_protocol()
+        self.save_protocol()
     
     def on_save_protocol_as(self, widget=None, data=None):
+        self.save_protocol(save_as=True)
+
+    def save_protocol(self, save_as=False, rename=False):
         app = get_app()
-        app.config_controller.save_protocol(save_as=True)
+        name = app.protocol.name
+        if app.dmf_device.name:
+            if save_as or rename or app.protocol.name is None:
+                # if the dialog is cancelled, name = ""
+                if name is None:
+                    name=""
+                name = app.main_window_controller.get_text_input("Save protocol",
+                                                                 "Protocol name",
+                                                                 name)
+
+            if name:
+                path = os.path.join(app.config['dmf_device']['directory'],
+                                    app.dmf_device.name,
+                                    "protocols")
+                if os.path.isdir(path) == False:
+                    os.mkdir(path)
+
+                # current file name
+                if app.protocol.name:
+                    src = os.path.join(path, app.protocol.name)
+                dest = os.path.join(path, name)
+
+                # if the protocol name has changed
+                if name != app.protocol.name:
+                    app.protocol.name = name
+                    emit_signal("on_protocol_changed", app.protocol)
+
+                # if we're renaming
+                if rename and os.path.isfile(src):
+                    shutil.move(src, dest)
+                else: # save the file
+                    app.protocol.save(dest)
     
     def on_textentry_step_duration_focus_out(self, widget=None, data=None):
         self.on_step_duration_changed()
@@ -417,5 +450,8 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_dmf_device_changed(self, dmf_device):
         emit_signal("on_protocol_changed", Protocol())
 
+    def on_app_exit(self):
+        #TODO: prompt to save if protocol has changed
+        self.save_protocol()
 
 PluginGlobals.pop_env()

@@ -18,7 +18,6 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-import shutil
 
 import gtk
 
@@ -43,9 +42,6 @@ class ConfigController(SingletonPlugin):
         self.app.config_controller = self
 
     def on_app_exit(self):
-        # TODO: prompt to save if these have been changed 
-        self.save_dmf_device()
-        self.save_protocol()
         self.app.config.save()
         
     def process_config_file(self):
@@ -56,87 +52,6 @@ class ConfigController(SingletonPlugin):
         # reapply the protocol name to the config file
         self.app.config['protocol']['name'] = protocol_name
         self.load_protocol()
-
-    def dmf_device_name_dialog(self, name=None):
-        if name is None:
-            name=""
-        return self.app.main_window_controller.get_text_input("Save device",
-                                                              "Device name",
-                                                              name)
-    
-    def protocol_name_dialog(self, name=None):
-        if name is None:
-            name=""
-        return self.app.main_window_controller.get_text_input("Save protocol",
-                                                              "Protocol name",
-                                                              name)
-
-    def save_dmf_device(self, save_as=False, rename=False):
-        # if the device has no name, try to get one
-        if save_as or rename or self.app.dmf_device.name is None:
-            # if the dialog is canceled, name = ""
-            name = self.dmf_device_name_dialog(self.app.dmf_device.name)
-        else:
-            name = self.app.dmf_device.name
-
-        if name:
-            # current file name
-            if self.app.dmf_device.name:
-                src = os.path.join(self.app.config['dmf_device']['directory'],
-                                   self.app.dmf_device.name)
-            dest = os.path.join(self.app.config['dmf_device']['directory'],name)
-
-            # if we're renaming, move the old directory
-            if rename and os.path.isdir(src):
-                if src == dest:
-                    return
-                if os.path.isdir(dest):
-                    self.app.main_window_controller.error("A device with that "
-                        "name already exists.")
-                    return
-                shutil.move(src, dest)
-
-            if os.path.isdir(dest) == False:
-                os.mkdir(dest)
-
-            # save the device            
-            self.app.dmf_device.name = name
-            self.app.dmf_device.save(os.path.join(dest,"device"))
-            
-            # update config
-            self.app.config['dmf_device']['name'] = name
-            self.app.main_window_controller.update()
-        
-    def save_protocol(self, save_as=False, rename=False):
-        if self.app.dmf_device.name:
-            if save_as or rename or self.app.protocol.name is None:
-                # if the dialog is canceled, name = ""
-                name = self.protocol_name_dialog(self.app.protocol.name)
-            else:
-                name = self.app.protocol.name
-
-            if name:
-                path = os.path.join(self.app.config['dmf_device']['directory'],
-                                    self.app.dmf_device.name,
-                                    "protocols")
-                if os.path.isdir(path) == False:
-                    os.mkdir(path)
-
-                # current file name
-                if self.app.protocol.name:
-                    src = os.path.join(path, self.app.protocol.name)
-                dest = os.path.join(path,name)
-                self.app.protocol.name = name
-
-                # if we're renaming
-                if rename and os.path.isfile(src):
-                    shutil.move(src, dest)
-                else: # save the file
-                    self.app.protocol.save(dest)
-    
-                # update config
-                self.app.config['protocol']['name'] = name
-                self.app.main_window_controller.update()
     
     def load_dmf_device(self):
         # try what's specified in config file
