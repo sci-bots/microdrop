@@ -64,7 +64,7 @@ class VideoController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
     AppFields = Form.of(
-        Boolean.named('video_enabled').using(default=True, optional=True),
+        Boolean.named('video_enabled').using(default=False, optional=True),
         Integer.named('fps_limit').using(default=5, optional=True,
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
     )
@@ -90,13 +90,12 @@ class VideoController(SingletonPlugin, AppDataController):
         app = get_app()
         data = self.get_default_app_options()
         app.set_data(self.name, data)
-        self.on_plugin_enable()
 
     def on_plugin_enable(self, *args, **kwargs):
-        self.video_enabled = True
+        pass
 
     def on_plugin_disable(self, *args, **kwargs):
-        self.video_enabled = False
+        pass
 
     def update_frame_data(self, frame):
         if self.video_enabled:
