@@ -186,9 +186,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         pass
     
     def load_device(self, filename):
-        app = get_app()
-        app.dmf_device = DmfDevice.load(filename)
-        emit_signal("on_dmf_device_changed", app.dmf_device)
+        emit_signal("on_dmf_device_changed", DmfDevice.load(filename))
     
     def on_load_dmf_device(self, widget, data=None):
         app = get_app()
@@ -240,7 +238,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             svgcommand = M_command | C_command | L_command | Z_command
             phrase = OneOrMore(Group(svgcommand))
             
-            app.dmf_device = DmfDevice()
+            dmf_device = DmfDevice()
             try:
                 tree = et.parse(filename)
 
@@ -275,8 +273,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                                     path.append({'command':step[0]})
                                 else:
                                     logger.error("error")
-                            app.dmf_device.add_electrode_path(path)
-                emit_signal("on_dmf_device_changed", app.dmf_device)
+                            dmf_device.add_electrode_path(path)
+                emit_signal("on_dmf_device_changed", dmf_device)
             except Exception, why:
                 app.main_window_controller.error(why)
         dialog.destroy()

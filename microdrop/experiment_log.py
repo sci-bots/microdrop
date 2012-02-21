@@ -73,9 +73,9 @@ class ExperimentLog():
     
     def __init__(self, directory=None):
         self.directory = directory
-        self.experiment_id = None
         self.data = []
         self.version = self.class_version
+        self._get_next_id()
 
     def _upgrade(self):
         """
@@ -120,23 +120,8 @@ class ExperimentLog():
         self.data.append({"start time":start_time})
         return start_time
 
-    def get_next_id(self):
-        if self.directory is None:
-            raise Exception("No device directory set.")
-        elif self.experiment_id is None:
-            if(os.path.isdir(self.directory)==False):
-                os.mkdir(self.directory)
-            logs = os.listdir(self.directory)
-            self.experiment_id = 0
-            for i in logs:
-                if is_int(i):
-                    if int(i) >= self.experiment_id:
-                        self.experiment_id = int(i) + 1
-        return self.experiment_id 
-
     def get_log_path(self):
-        self.experiment_id = None
-        log_path = os.path.join(self.directory,str(self.get_next_id()))
+        log_path = os.path.join(self.directory, str(self.experiment_id))
         if(os.path.isdir(log_path)==False):
             os.mkdir(log_path)
         return log_path
@@ -158,7 +143,14 @@ class ExperimentLog():
                 var.append(None)
         return var
 
-    def clear(self):
-        # reset the log data
-        self.experiment_id = None
-        self.data = []
+    def _get_next_id(self):
+        if self.directory is None:
+            raise Exception("No device directory set.")
+        if(os.path.isdir(self.directory)==False):
+            os.mkdir(self.directory)
+        logs = os.listdir(self.directory)
+        self.experiment_id = 0
+        for i in logs:
+            if is_int(i):
+                if int(i) >= self.experiment_id:
+                    self.experiment_id = int(i) + 1

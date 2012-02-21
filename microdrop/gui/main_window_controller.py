@@ -114,7 +114,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
         
     def main(self):
         emit_signal("on_step_run")
-        self.update()
         gtk.main()
 
     def get_text_input(self, title, label, default_value=""):
@@ -168,7 +167,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
         service.set_step_values({'voltage': random.randint(10, 100),
                 'frequency': random.randint(1e3, 100e3),
                 'feedback_enabled': True})
-        self.update()
     """
     
     def on_menu_experiment_logs_activate(self, widget, data=None):
@@ -184,13 +182,11 @@ class MainWindowController(SingletonPlugin, AppDataController):
         from app_options_controller import AppOptionsController
 
         AppOptionsController().run()
-        self.update()
 
     def on_menu_options_activate(self, widget, data=None):
         from options_controller import OptionsController
 
         OptionsController().run()
-        self.update()
 
     def on_warning(self, record):
         self.warning(record.message)
@@ -249,26 +245,19 @@ class MainWindowController(SingletonPlugin, AppDataController):
             proxy = proxy_for(self.checkbutton_realtime_mode)
             proxy.set_widget_value(app.realtime_mode)
 
-    def update(self):
-        app = get_app()
-        if app.dmf_device.name:
-            experiment_id = app.experiment_log.get_next_id()
-        else:
-            experiment_id = None
-        self.label_experiment_id.set_text("Experiment: %s" % str(experiment_id))
-        self.label_device_name.set_text("Device: %s" % app.dmf_device.name)
-        self.label_protocol_name.set_text(
-                wrap_string("Protocol: %s" % app.protocol.name, 30, "\n\t"))
-        
-        # process all gtk events
-        while gtk.events_pending():
-            gtk.main_iteration()
-
     def on_url_clicked(self, widget, data):
         logger.debug("URL clicked: %s" % data)
         webbrowser.open_new_tab(data)
 
     def on_protocol_changed(self, protocol):
-        self.update()
+        self.label_protocol_name.set_text(
+                wrap_string("Protocol: %s" % protocol.name, 30, "\n\t"))
+
+    def on_experiment_log_changed(self, experiment_log):
+        self.label_experiment_id.set_text("Experiment: %s" % str(experiment_log.experiment_id))
+
+    def on_dmf_device_changed(self, dmf_device):
+        self.label_device_name.set_text("Device: %s" % dmf_device.name)
+
 
 PluginGlobals.pop_env()

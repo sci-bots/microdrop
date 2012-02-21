@@ -197,7 +197,6 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_step_run')
 
     def on_new_protocol(self, widget=None, data=None):
-        app = get_app()
         emit_signal("on_protocol_changed", Protocol())
         emit_signal('on_step_run')
 

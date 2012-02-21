@@ -201,6 +201,16 @@ class App(Plugin):
             else:
                 self._destroy_log_file_handler()
 
+    def on_dmf_device_changed(self, dmf_device):
+        self.dmf_device = dmf_device
+    
+    def on_protocol_changed(self, protocol):
+        self.protocol = protocol
+    
+    def on_experiment_log_changed(self, experiment_log):
+        self.experiment_log = experiment_log
+
+
 PluginGlobals.pop_env()
 
 

@@ -200,9 +200,10 @@ class ExperimentLogController(SingletonPlugin):
         # save the protocol and device
         app.protocol.save(os.path.join(log_path,"protocol"))
         app.dmf_device.save(os.path.join(log_path,"device"))
-        app.experiment_log.clear()
-        emit_signal("on_experiment_log_changed", app.experiment_log)
-        app.main_window_controller.update()
+        
+        # create a new log
+        experiment_log = ExperimentLog(app.experiment_log.directory)
+        emit_signal("on_experiment_log_changed", experiment_log)
 
     def on_window_show(self, widget, data=None):
         self.window.show()
@@ -223,7 +224,6 @@ class ExperimentLogController(SingletonPlugin):
             app.dmf_device_controller.load_device(filename)
         except:
             app.main_window_controller.error("Could not open %s" % filename)
-        app.main_window_controller.update()
         
     def on_button_load_protocol_clicked(self, widget, data=None):
         app = get_app()
@@ -248,8 +248,8 @@ class ExperimentLogController(SingletonPlugin):
         if dmf_device.name:
             device_path = os.path.join(app.config['dmf_device']['directory'],
                                        dmf_device.name, "logs")
-        app.experiment_log = ExperimentLog(device_path)
-        emit_signal("on_experiment_log_changed", app.experiment_log)
+        experiment_log = ExperimentLog(device_path)
+        emit_signal("on_experiment_log_changed", experiment_log)
         
     def on_experiment_log_changed(self, dmf_device):
         app = get_app()
