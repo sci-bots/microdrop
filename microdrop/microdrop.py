@@ -22,6 +22,8 @@ import os
 import sys
 import multiprocessing
 
+import matplotlib
+
 try:
     import utility as utility
 except ImportError:
