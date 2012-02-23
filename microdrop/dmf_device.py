@@ -27,6 +27,8 @@ import numpy as np
 
 from logger import logger
 from utility import Version, FutureVersionError
+from svg_model.geo_path import Path, ColoredPath, Loop
+from svg_model.svgload.path_parser import LoopTracer, ParseError
 from svg_model.path_group import PathGroup
 from svg_model.body_group import BodyGroup
 
@@ -141,6 +143,40 @@ class DmfDevice():
                 for id, e in self.electrodes.items():
                     if hasattr(e, "state"):
                         del self.electrodes[id].state
+                logger.info('[DmfDevice] upgrade to version %s' % self.version)
+            if version < Version(0,3):
+                # Upgrade to use pymunk
+                self.version = str(Version(0,3))
+
+                x_min = min([e.x_min for e in self.electrodes.values()])
+                x_max = max([e.x_max for e in self.electrodes.values()])
+                y_min = min([e.y_min for e in self.electrodes.values()])
+                y_max = max([e.y_max for e in self.electrodes.values()])
+
+                boundary = Path([Loop([(x_min, y_min), (x_min, y_max),
+                        (x_max, y_max), (x_max, y_min)])])
+
+                traced_paths = {}
+                tracer = LoopTracer()
+                for id, e in self.electrodes.iteritems():
+                    try:
+                        loops = tracer.to_loops([(l['command'], float(l['x']),
+                                float(l['y'])) for l in e.path] + ['z'])
+                        p = ColoredPath(loops)
+                        p.color = (0, 0, 255)
+                        traced_paths[str(id)] = p
+                    except ParseError:
+                        pass
+                path_group = PathGroup(traced_paths, boundary)
+                electrodes = self.electrodes
+                self.electrodes = {}
+                self.add_path_group(path_group)
+
+                for id, e in electrodes.iteritems():
+                    if str(id) in self.name_electrode_map:
+                        eid = self.name_electrode_map[str(id)]
+                        self.electrodes[eid].channels = e.channels
+                del electrodes
                 logger.info('[DmfDevice] upgrade to version %s' % self.version)
         # else the versions are equal and don't need to be upgraded
 
