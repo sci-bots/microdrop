@@ -1,6 +1,7 @@
 import gtk
 
 from logger import logger
+from . import is_float, is_int
 
 
 def register_shortcuts(window, shortcuts, enabled_widgets=None,
@@ -30,6 +31,19 @@ def register_shortcuts(window, shortcuts, enabled_widgets=None,
     window.add_accel_group(accelgroup)
     logger.debug('DONE')
     return accelgroup
+
+
+def textentry_validate(textentry, prev_value, type):
+    val = textentry.get_text()
+    if val and type is float:
+        if is_float(val):
+            return float(val)
+    elif val and type is int:
+        if is_int(val):
+            return int(val)
+    textentry.set_text(str(prev_value))
+    return prev_value
+
 
 def combobox_set_model_from_list(cb, items):
     """Setup a ComboBox or ComboBoxEntry based on a list of strings."""
