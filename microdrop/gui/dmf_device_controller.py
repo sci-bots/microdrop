@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import traceback
 import shutil
+from datetime import datetime
 
 import gtk
 import numpy as np
@@ -60,6 +61,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     AppFields = Form.of(
         Integer.named('overlay_opacity').using(default=30, optional=True,
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
+        Integer.named('display_fps').using(default=10, optional=True,
+            validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)]),
     )
 
     def __init__(self):
@@ -68,12 +71,17 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.popup = None
         self.last_electrode_clicked = None
         self.last_frame = None
+        self.last_frame_time = datetime.now()
+        self.display_fps_inv = 0.1
         
     def on_app_options_changed(self, plugin_name):
         app = get_app()
         if plugin_name == self.name:
             values = self.get_app_values()
             self.view.overlay_opacity = values.get('overlay_opacity')
+            fps = values.get('display_fps')
+            if fps:
+                self.display_fps_inv = 1. / fps
         elif plugin_name == 'microdrop.gui.video_controller':
             observers = ExtensionPoint(IPlugin)
             service = observers.service(plugin_name)
@@ -131,7 +139,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         alpha_image = cv.CreateImageHeader(size, cv.IPL_DEPTH_8U, 4)
         device_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
         cv.SetData(alpha_image, surface.get_data(), 4 * size[0])
-        cv.CvtColor(alpha_image, device_image, cv.CV_RGBA2BGR)
+        cv.CvtColor(alpha_image, device_image, cv.CV_RGBA2RGB)
         video_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
         cv.Resize(self.last_frame, video_image)
         dialog = DeviceRegistrationDialog(device_image, video_image)
@@ -388,7 +396,11 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.view.update()
 
     def on_new_frame(self, frame, depth):
-        self.last_frame = frame
+        now = datetime.now()
+
+        if (now - self.last_frame_time).total_seconds() < self.display_fps_inv:
+            # Wait to respect display FPS.
+            return
         x, y, width, height = self.view.widget.get_allocation()
         resized = cv.CreateMat(height, width, cv.CV_8UC3)
         cv.Resize(frame, resized)
@@ -403,5 +415,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             depth, width, height, warped.step)
         self.view.background = self.pixbuf
         self.view.update()
+        self.last_frame_time = now
 
 PluginGlobals.pop_env()
