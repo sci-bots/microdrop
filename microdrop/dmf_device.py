@@ -160,13 +160,27 @@ class DmfDevice():
                 tracer = LoopTracer()
                 for id, e in self.electrodes.iteritems():
                     try:
-                        loops = tracer.to_loops([(l['command'], float(l['x']),
-                                float(l['y'])) for l in e.path] + ['z'])
+                        path_tuples = []
+                        for command in e.path:
+                            keys_ok = True
+                            for k in ['command', 'x', 'y']:
+                                if k not in command:
+                                    # Missing a parameter, skip
+                                    keys_ok = False
+                            if not keys_ok:
+                                continue
+                            path_tuples.append(
+                                (command['command'], float(command['x']),
+                                float(command['y'])))
+                        path_tuples.append(('Z',))
+                        loops = tracer.to_loops(path_tuples)
                         p = ColoredPath(loops)
                         p.color = (0, 0, 255)
                         traced_paths[str(id)] = p
                     except ParseError:
                         pass
+                    except KeyError:
+                        import pudb; pudb.set_trace()
                 path_group = PathGroup(traced_paths, boundary)
                 electrodes = self.electrodes
                 self.electrodes = {}
