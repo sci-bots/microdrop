@@ -210,7 +210,11 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         pass
     
     def load_device(self, filename):
-        emit_signal("on_dmf_device_changed", DmfDevice.load(filename))
+        try:
+            emit_signal("on_dmf_device_changed", DmfDevice.load(filename))
+        except Exception, e:
+            logger.error('Error loading device. %s: %s.' % (type(e), e))
+            logger.debug(''.join(traceback.format_stack()))
     
     def on_load_dmf_device(self, widget, data=None):
         app = get_app()

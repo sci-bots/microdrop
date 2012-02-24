@@ -59,10 +59,7 @@ class ConfigController(SingletonPlugin):
             path = os.path.join(self.app.config['dmf_device']['directory'],
                                 self.app.config['dmf_device']['name'],
                                 "device")
-            try:
-                self.app.dmf_device_controller.load_device(path)
-            except:
-                self.app.main_window_controller.error("Could not open %s" % path)
+            self.app.dmf_device_controller.load_device(path)
 
     def load_protocol(self):
         if self.app.config['dmf_device']['name']:
