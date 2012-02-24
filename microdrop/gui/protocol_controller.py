@@ -410,10 +410,10 @@ Protocol is version %s, but only up to version %s is supported with this version
     def set_app_values(self, values_dict):
         logging.debug('[ProtocolController] set_app_values(): '\
                     'values_dict=%s' % (values_dict,))
-        el = self.AppFields(value=values_dict)
-        if not el.validate():
+        elements = self.AppFields(value=values_dict)
+        if not elements.validate():
             raise ValueError('Invalid values: %s' % el.errors)
-        values = values_dict
+        values = dict([(k, v.value) for k, v in elements.iteritems()])
         if 'fps_limit' in values:
             self.grabber.set_fps_limit(values['fps_limit'])
         app = get_app()

@@ -78,8 +78,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         app = get_app()
         if plugin_name == self.name:
             values = self.get_app_values()
-            self.view.overlay_opacity = values.get('overlay_opacity')
-            fps = values.get('display_fps')
+            self.view.overlay_opacity = int(values.get('overlay_opacity'))
+            fps = int(values.get('display_fps'))
             if fps:
                 self.display_fps_inv = 1. / fps
         elif plugin_name == 'microdrop.gui.video_controller':

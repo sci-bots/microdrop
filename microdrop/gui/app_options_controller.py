@@ -101,8 +101,7 @@ class AppOptionsController:
             fields = form_view.form.fields.keys()
             attrs = {}
             for field in fields:
-                proxy = proxy_for(getattr(form_view, field))
-                attrs[field] = proxy.get_widget_value()
+                attrs[field] = form_view.form.fields[field].element.value
             observers = ExtensionPoint(IPlugin)
             service = observers.service(name)
             service.set_app_values(attrs)

@@ -20,12 +20,12 @@ class AppDataController(object):
     def set_app_values(self, values_dict):
         if not hasattr(self, 'name'):
             raise NotImplementedError
-        el = self.AppFields(value=values_dict)
-        if not el.validate():
-            raise ValueError('Invalid values: %s' % el.errors)
-        values = values_dict
+        elements = self.AppFields(value=values_dict)
+        if not elements.validate():
+            raise ValueError('Invalid values: %s' % elements.errors)
         app = get_app()
         app_data = app.get_data(self.name)
+        values = dict([(k, v.value) for k, v in elements.iteritems()])
         if app_data:
             app_data.update(values)
         else:
