@@ -57,7 +57,7 @@ class ValidationError(Exception):
 
 class Config():
     default_directory = app_data_dir()
-    if [os.name == 'nt']:
+    if os.name == 'nt':
         default_directory /= path('microdrop')
     else:
         default_directory /= path('.microdrop')
