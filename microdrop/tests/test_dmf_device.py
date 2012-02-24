@@ -10,13 +10,13 @@ def test_load_dmf_device():
     """
 
     # version 0.2.0 files
-    for i in [0,1]:
+    for i in [0, 1]:
         yield load_device, (path(__file__).parent /
                             path('devices') /
                             path('device %d v%s' % (i, Version(0,2,0))))
 
     # version 0.3.0 files
-    for i in [1]:
+    for i in [0, 1]:
         yield load_device, (path(__file__).parent /
                             path('devices') /
                             path('device %d v%s' % (i, Version(0,3,0))))
