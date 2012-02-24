@@ -161,30 +161,41 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         '''
         app = get_app()
         self.view.widget.grab_focus()
+        # Determine which electrode was clicked (if any)
+        electrode = self.get_clicked_electrode(event)
+        if electrode:
+            self.on_electrode_click(electrode, event)
+        return True
+
+    def translate_coords(self, x, y):
+        return (x / self.view.scale - self.view.offset[0], y / self.view.scale - self.view.offset[1])
+
+    def get_clicked_electrode(self, event):
+        app = get_app()
+        shape = app.dmf_device.body_group.space.point_query_first(
+                self.translate_coords(*event.get_coords()))
+        if shape:
+            return app.dmf_device.get_electrode_from_body(shape.body)
+        return None
+
+    def on_electrode_click(self, electrode, event):
+        app = get_app()
         options = self.get_step_options()
-        state_updated = False
-        for electrode in app.dmf_device.electrodes.values():
-            if electrode.contains(
-                    event.x / self.view.scale - self.view.offset[0],
-                    event.y / self.view.scale - self.view.offset[1]):
-                self.last_electrode_clicked = electrode
-                if event.button == 1:
-                    state = options.state_of_channels
-                    if len(electrode.channels): 
-                        for channel in electrode.channels:
-                            if state[channel] > 0:
-                                state[channel] = 0
-                            else:
-                                state[channel] = 1
-                            state_updated = True
+        self.last_electrode_clicked = electrode
+        if event.button == 1:
+            state = options.state_of_channels
+            if len(electrode.channels): 
+                for channel in electrode.channels:
+                    if state[channel] > 0:
+                        state[channel] = 0
                     else:
-                        logger.error("no channel assigned to electrode.")
-                elif event.button == 3:
-                    self.popup.popup(None, None, None, event.button,
-                                     event.time, data=None)
-                break
-        if state_updated:
-            self._notify_observers_step_options_changed()
+                        state[channel] = 1
+                self._notify_observers_step_options_changed()
+            else:
+                logger.error("no channel assigned to electrode.")
+        elif event.button == 3:
+            self.popup.popup(None, None, None, event.button,
+                                event.time, data=None)
         return True
 
     def on_key_press(self, widget, data=None):
@@ -227,61 +238,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            
-            # Pyparsing grammar for svg:
-            #
-            # This code is based on Don C. Ingle's svg2py program, available at:
-            # http://annarchy.cairographics.org/svgtopycairo/
-            dot = Literal(".")
-            comma = Literal(",").suppress()
-            floater = Combine(Optional("-") + Word(nums) + dot + Word(nums))
-            couple = floater + comma + floater
-            M_command = "M" + Group(couple)
-            C_command = "C" + Group(couple + couple + couple)
-            L_command = "L" + Group(couple)
-            Z_command = "Z"
-            svgcommand = M_command | C_command | L_command | Z_command
-            phrase = OneOrMore(Group(svgcommand))
-            
-            dmf_device = DmfDevice()
-            try:
-                tree = et.parse(filename)
-
-                ns = "http://www.w3.org/2000/svg" # The XML namespace.
-                for group in tree.getiterator('{%s}g' % ns):
-                    for e in group.getiterator('{%s}path' % ns):
-                        is_closed = False
-                        p = e.get("d")
-
-                        tokens = phrase.parseString(p.upper())
-                        
-                        # check if the path is closed
-                        if tokens[-1][0]=='Z':
-                            is_closed = True
-                        else: # or if the start/end points are the same
-                            try:
-                                start_point = tokens[0][1].asList()
-                                end_point = tokens[-1][1].asList()
-                                if start_point==end_point:
-                                    is_closed = True
-                            except ValueError:
-                                logger.error("ValueError")
-                        if is_closed:
-                            path = []
-                            for step in tokens:
-                                command = step[0]
-                                if command=="M" or command=="L":
-                                    x,y = step[1].asList()
-                                    path.append({'command':step[0],
-                                                 'x':x, 'y':y})
-                                elif command=="Z":
-                                    path.append({'command':step[0]})
-                                else:
-                                    logger.error("error")
-                            dmf_device.add_electrode_path(path)
-                emit_signal("on_dmf_device_changed", dmf_device)
-            except Exception, why:
-                app.main_window_controller.error(why)
+            app.dmf_device = DmfDevice.load_svg(filename)
+            emit_signal("on_dmf_device_changed", [app.dmf_device])
         dialog.destroy()
         self._notify_observers_step_options_changed()
         
@@ -336,10 +294,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     
     def on_edit_electrode_channels(self, widget, data=None):
         # TODO: set default value
-        channel_list = ""
-        for i in self.last_electrode_clicked.channels:
-            channel_list += str(i) + ','
-        channel_list = channel_list[:-1]
+        channel_list = ','.join([str(i) for i in self.last_electrode_clicked.channels])
         app = get_app()
         channel_list = app.main_window_controller.get_text_input(
             "Edit electrode channels",
@@ -423,7 +378,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     if states[0] > 0:
                         self.view.electrode_color[id] = (1,1,1)
                     else:
-                        self.view.electrode_color[id] = (0,0,1)
+                        color = app.dmf_device.electrodes[id].path.color
+                        self.view.electrode_color[id] = [c / 255. for c in color]
                 else:
                     #TODO: this could be used for resistive heating 
                     logger.error("not supported yet")

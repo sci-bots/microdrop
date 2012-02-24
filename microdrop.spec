@@ -2,9 +2,20 @@
 from path import path
 import pygtkhelpers
 
+try:
+    import pymunk
+    chipmunk_path = path(pymunk.__file__).parent.joinpath('chipmunk.dll')
+    if not chipmunk_path.isfile():
+        chipmunk_path = None
+except ImportError:
+    chipmunk_path = None
+    print 'Could not import pymunk'
+
 extra_py = []
-a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'), os.path.join(HOMEPATH,'support\\useUnicode.py'), 'microdrop\\microdrop.py'] + extra_py,
-             excludes=['opencv'])
+a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
+            os.path.join(HOMEPATH,'support\\useUnicode.py'),
+            'microdrop\\microdrop.py'] + extra_py,
+            excludes=['opencv'])
 
 for mod in [pygtkhelpers]:
 	mod_path = path(mod.__file__).parent
@@ -13,6 +24,10 @@ for mod in [pygtkhelpers]:
 
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\opencv').walkfiles(ignore=[r'\.git', r'site_scons', r'.*\.pyc'])]
+
+if chipmunk_path:
+    print 'adding %s to data' % chipmunk_path
+    a.datas += [(chipmunk_path.name, str(chipmunk_path), 'DATA')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\gui').walkfiles('*.glade')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
