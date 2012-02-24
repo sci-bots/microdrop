@@ -23,7 +23,7 @@ import sys
 import multiprocessing
 
 import matplotlib
-import pymunk
+import blinker
 
 try:
     import utility as utility

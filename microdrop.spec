@@ -15,7 +15,7 @@ extra_py = []
 a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
             'microdrop\\microdrop.py'] + extra_py,
-            excludes=['opencv'])
+            excludes=['opencv', 'flatland'])
 
 for mod in [pygtkhelpers]:
 	mod_path = path(mod.__file__).parent
@@ -29,9 +29,13 @@ if chipmunk_path:
     print 'adding %s to data' % chipmunk_path
     a.datas += [(chipmunk_path.name, str(chipmunk_path), 'DATA')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
+            for p in path('microdrop\\flatland')\
+                    .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
+a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\gui').walkfiles('*.glade')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
-            for p in path('microdrop\\plugins').walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
+            for p in path('microdrop\\plugins')\
+                    .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\devices').walkfiles()]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\

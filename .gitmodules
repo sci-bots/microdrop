@@ -10,3 +10,6 @@
 [submodule "microdrop/svg_model"]
 	path = microdrop/svg_model
 	url = http://github.com/cfobel/python___svg_model.git
+[submodule "microdrop/flatland"]
+	path = microdrop/flatland
+	url = http://microfluidics.utoronto.ca/git/flatland.git

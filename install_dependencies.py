@@ -167,7 +167,6 @@ if __name__ == "__main__":
               ("pyparsing", "pip"),
               ("pyutilib", "pip"),
               ("blinker", "pip"),
-              ("flatland", "pip", "http://microfluidics.utoronto.ca/git/flatland.git/snapshot/beb7d06bd9f7b65ad3f25184ee05b808f893cfda.zip"),
               ("pygtkhelpers", "pip"),
               ("configobj", "pip"),
               ("yaml", "pip", "pyyaml"),
