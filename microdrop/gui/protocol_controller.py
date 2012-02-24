@@ -32,8 +32,8 @@ import numpy as np
 
 import protocol
 from protocol import Protocol
-from utility import check_textentry, is_float, is_int, FutureVersionError
-from utility.gui import register_shortcuts
+from utility import is_float, is_int, FutureVersionError
+from utility.gui import register_shortcuts, textentry_validate
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal, PluginGlobals
 from gui.textbuffer_with_undo import UndoableBuffer
@@ -278,7 +278,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             r'wheelerlab.dmf_control_board_', re_pattern=True)
         options = step.get_data(dmf_plugin_name)
         options.duration = \
-            check_textentry(self.textentry_step_duration, options.duration, int)
+            textentry_validate(self.textentry_step_duration, options.duration, int)
         emit_signal('on_step_options_changed',
                     [dmf_plugin_name, app.protocol.current_step_number],
                     interface=IPlugin)
@@ -298,7 +298,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             r'wheelerlab.dmf_control_board_', re_pattern=True)
         options = step.get_data(dmf_plugin_name)
         options.voltage = \
-            check_textentry(self.textentry_voltage, options.voltage, float)
+            textentry_validate(self.textentry_voltage, options.voltage, float)
         emit_signal('on_step_options_changed',
                     [dmf_plugin_name, app.protocol.current_step_number],
                     interface=IPlugin)
@@ -318,7 +318,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             r'wheelerlab.dmf_control_board_', re_pattern=True)
         options = step.get_data(dmf_plugin_name)
         options.frequency = \
-            check_textentry(self.textentry_frequency,
+            textentry_validate(self.textentry_frequency,
                             options.frequency / 1e3,
                             float) * 1e3
         emit_signal('on_step_options_changed',
@@ -336,7 +336,7 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_protocol_repeats_changed(self):
         app = get_app()
         app.protocol.n_repeats = \
-            check_textentry(self.textentry_protocol_repeats,
+            textentry_validate(self.textentry_protocol_repeats,
                 app.protocol.n_repeats,
                 int)
         emit_signal('on_step_run')
