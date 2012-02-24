@@ -139,11 +139,8 @@ class OptionsController:
 
         data_dir.makedirs_p()
         if data_dir.listdir():
-            from standalone_message_dialog import MessageDialog
-
-            m = MessageDialog()
-            result = m.ques('Target directory is not empty.  Merge contents with current devices (overwriting common paths in the target directory)?')
-            if not result == gtk.RESPONSE_OK:
+            result = app.main_window_controller.question('Target directory is not empty.  Merge contents with current devices (overwriting common paths in the target directory)?')
+            if not result == gtk.RESPONSE_YES:
                 return False
 
         for d in app.config['dmf_device']['directory'].dirs():
