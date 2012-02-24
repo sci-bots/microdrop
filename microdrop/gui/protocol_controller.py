@@ -413,7 +413,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         elements = self.AppFields(value=values_dict)
         if not elements.validate():
             raise ValueError('Invalid values: %s' % el.errors)
-        values = dict([(k, v.value) for k, v in elements.iteritems()])
+        values = dict([(k, v.value) for k, v in elements.iteritems() if v.value])
         if 'fps_limit' in values:
             self.grabber.set_fps_limit(values['fps_limit'])
         app = get_app()

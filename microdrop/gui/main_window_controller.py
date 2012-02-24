@@ -240,9 +240,10 @@ class MainWindowController(SingletonPlugin, AppDataController):
         app = get_app()
         if plugin_name == self.name:
             data = app.get_data(self.name)
-            app.realtime_mode = data['realtime_mode']
-            proxy = proxy_for(self.checkbutton_realtime_mode)
-            proxy.set_widget_value(app.realtime_mode)
+            if 'realtime_mode' in data:
+                app.realtime_mode = data['realtime_mode']
+                proxy = proxy_for(self.checkbutton_realtime_mode)
+                proxy.set_widget_value(app.realtime_mode)
 
     def on_url_clicked(self, widget, data):
         logger.debug("URL clicked: %s" % data)
