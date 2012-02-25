@@ -33,6 +33,7 @@ from config import Config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
     IPlugin, implements, PluginGlobals, Plugin
+from plugin_helpers import AppDataController
 from logger import logger, CustomHandler, logging
 from app_context import plugin_manager
 
@@ -124,7 +125,6 @@ class App(Plugin):
 
     def run(self):
         plugin_manager.load_plugins(self.config['plugins']['directory'])
-        self.update_log_file()
 
         # Initialize main window controller and dmf device
         # controller first (necessary for other plugins to add items to the
@@ -134,6 +134,7 @@ class App(Plugin):
                                     'microdrop.gui.dmf_device_controller']
         for plugin in preinit_plugins:
             observers(plugin)[0].on_app_init()
+        self.update_log_file()
         
         # initialize other plugins
         for observer in observers:
@@ -173,10 +174,9 @@ class App(Plugin):
         
         self.main_window_controller.main()
 
-    def _set_log_file_handler(self):
+    def _set_log_file_handler(self, log_file):
         if self.log_file_handler:
             self._destroy_log_file_handler()
-        log_file = self.config['logging']['file']
         self.log_file_handler = logging.FileHandler(log_file)
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         self.log_file_handler.setFormatter(formatter)
@@ -192,17 +192,25 @@ class App(Plugin):
         self.log_file_handler = None
 
     def update_log_file(self):
+        plugin_name = 'microdrop.gui.main_window_controller'
+        values = AppDataController.get_plugin_app_values(plugin_name)
+        logger.debug('[App] update_log_file %s' % values)
+        required = set(['log_enabled', 'log_file'])
+        if values is None or required.intersection(values.keys()) != required:
+            return
+        # values contains both log_enabled and log_file
+        log_file = values['log_file']
+        log_enabled = values['log_enabled']
         if self.log_file_handler is None:
-            if self.config['logging']['enabled']:
-                self._set_log_file_handler()
+            if log_enabled:
+                self._set_log_file_handler(log_file)
                 logger.info('[App] logging enabled')
         else:
             # Log file handler already exists
-            if self.config['logging']['enabled']:
-                log_file = self.config['logging']['file']
+            if log_enabled:
                 if log_file != self.log_file_handler.baseFilename:
                     # Requested log file path has been changed
-                    self._set_log_file_handler()
+                    self._set_log_file_handler(log_file)
             else:
                 self._destroy_log_file_handler()
 

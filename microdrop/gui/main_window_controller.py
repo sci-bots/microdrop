@@ -250,8 +250,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
         if enabled and not log_file:
             logger.error('Log file can only be enabled if a path is selected.')
             return False
-        app.config['logging']['file'] = log_file
-        app.config['logging']['enabled'] = enabled
         app.update_log_file()
         return True
 

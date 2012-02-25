@@ -65,7 +65,6 @@ class ConfigController(SingletonPlugin):
         # try what's specified in config file
         if self.app.config['dmf_device']['name'] != None:
             directory = self.app.get_device_directory()
-            print '[ConfigController] load_dmf_device directory=%s' % directory
             if directory:
                 device_path = os.path.join(directory,
                                     self.app.config['dmf_device']['name'],
@@ -89,6 +88,7 @@ class ConfigController(SingletonPlugin):
         
     def on_protocol_changed(self, protocol):
         self.app.config['protocol']['name'] = protocol.name
+        self.app.config.save()
 
     def on_app_options_changed(self, plugin_name):
         if self.app is None:
