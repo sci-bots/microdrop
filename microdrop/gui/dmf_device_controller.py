@@ -29,6 +29,8 @@ from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 import cairo
 from flatland import Form, Integer
 from flatland.validation import ValueAtLeast, ValueAtMost
+from pygtkhelpers.ui.dialogs import yesno
+from path import path
 
 from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
 from dmf_device import DmfDevice
@@ -36,12 +38,12 @@ from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
         implements, emit_signal, PluginGlobals, IVideoPlugin
-from utility import is_float
 from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
 from plugin_helpers import AppDataController
 from utility.pygtkhelpers_widgets import Directory
+from utility import is_float, copytree
 
 
 PluginGlobals.push_env('microdrop')
@@ -84,6 +86,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             fps = int(values.get('display_fps'))
             if fps:
                 self.display_fps_inv = 1. / fps
+            if 'device_directory' in values:
+                self.apply_device_dir(values['device_directory'])
         elif plugin_name == 'microdrop.gui.video_controller':
             observers = ExtensionPoint(IPlugin)
             service = observers.service(plugin_name)
@@ -91,6 +95,33 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             video_enabled = values.get('video_enabled')
             if not video_enabled:
                 self.disable_video_background()
+
+    def apply_device_dir(self, device_directory):
+        app = get_app()
+        if not device_directory or \
+                device_directory == app.config['dmf_device']['directory']:
+            # If the data directory hasn't changed, we do nothing
+            return False
+
+        device_directory = path(device_directory)
+        device_directory.makedirs_p()
+        if device_directory.listdir():
+            result = yesno('Merge?',
+                    'Target directory is not empty.  Merge contents with '\
+                    'current devices (overwriting common paths in the target '\
+                    'directory)?')
+            if not result == gtk.RESPONSE_YES:
+                return False
+
+        original_directory = path(app.config['dmf_device']['directory'])
+        for d in original_directory.dirs():
+            copytree(d, device_directory.joinpath(d.name))
+        for f in original_directory.files():
+            f.copyfile(device_directory.joinpath(f.name))
+        original_directory.rmtree()
+        
+        app.config['dmf_device']['directory'] = device_directory
+        return True
 
     def disable_video_background(self):
         app = get_app()

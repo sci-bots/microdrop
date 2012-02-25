@@ -271,18 +271,6 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="menu_options">
-                        <property name="label">_Options...</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="image">image2</property>
-                        <property name="use_stock">False</property>
-                        <signal name="activate" handler="on_menu_options_activate" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkImageMenuItem" id="menu_app_options">
                         <property name="label">App options...</property>
                         <property name="visible">True</property>

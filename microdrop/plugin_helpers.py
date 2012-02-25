@@ -25,8 +25,8 @@ class AppDataController(object):
             raise ValueError('Invalid values: %s' % elements.errors)
         app = get_app()
         app_data = app.get_data(self.name)
-        values = dict([(k, v.value) for k, v in elements.iteritems() if v.value])
-        #print '[AppDataController] values_dict=%s values=%s' % (values_dict, values)
+        values = dict([(k, v.value) for k, v in elements.iteritems()\
+                if v.value is not None])
         if app_data:
             app_data.update(values)
         else:
