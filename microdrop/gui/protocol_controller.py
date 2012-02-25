@@ -210,7 +210,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(os.path.join(app.config['dmf_device']['directory'],
+        dialog.set_current_folder(os.path.join(app.get_device_directory(),
                                                app.dmf_device.name,
                                                "protocols"))
         response = dialog.run()
@@ -241,7 +241,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                                                                  name)
 
             if name:
-                path = os.path.join(app.config['dmf_device']['directory'],
+                path = os.path.join(app.get_device_directory(),
                                     app.dmf_device.name,
                                     "protocols")
                 if os.path.isdir(path) == False:

@@ -76,6 +76,7 @@ class App(Plugin):
         self.running = False
         self.builder = gtk.Builder()
         self.signals = {}
+        self.plugin_data = {}
 
         # these members are initialized by plugins
         self.control_board = None
@@ -97,7 +98,6 @@ class App(Plugin):
 
         # protocol
         self.protocol = Protocol()
-        self.plugin_data = {}
 
     def get_data(self, plugin_name):
         logging.debug('[App] plugin_data=%s' % self.plugin_data)
@@ -165,8 +165,10 @@ class App(Plugin):
         # experiment logs
         device_path = None
         if self.dmf_device.name:
-            device_path = os.path.join(self.config['dmf_device']['directory'],
-                                       self.dmf_device.name, "logs")
+            directory = self.get_device_directory()
+            if directory:
+                device_path = os.path.join(directory,
+                        self.dmf_device.name, "logs")
         self.experiment_log = ExperimentLog(device_path)
         
         self.main_window_controller.main()
@@ -212,6 +214,17 @@ class App(Plugin):
     
     def on_experiment_log_changed(self, experiment_log):
         self.experiment_log = experiment_log
+
+    def get_device_directory(self):
+        observers = ExtensionPoint(IPlugin)
+        plugin_name = 'microdrop.gui.dmf_device_controller'
+        service = observers.service(plugin_name)
+        values = service.get_app_values()
+        if values and 'device_directory' in values:
+            directory = path(values['device_directory'])
+            if directory.isdir():
+                return directory
+        return None
 
 
 PluginGlobals.pop_env()

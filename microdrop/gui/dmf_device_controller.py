@@ -77,15 +77,16 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.last_frame = None
         self.last_frame_time = datetime.now()
         self.display_fps_inv = 0.1
+        self.previous_device_dir = None
         
     def on_app_options_changed(self, plugin_name):
         app = get_app()
         if plugin_name == self.name:
             values = self.get_app_values()
-            self.view.overlay_opacity = int(values.get('overlay_opacity'))
-            fps = int(values.get('display_fps'))
-            if fps:
-                self.display_fps_inv = 1. / fps
+            if 'overlay_opacity' in values:
+                self.view.overlay_opacity = int(values.get('overlay_opacity'))
+            if 'display_fps' in values:
+                self.display_fps_inv = 1. / int(values['display_fps'])
             if 'device_directory' in values:
                 self.apply_device_dir(values['device_directory'])
         elif plugin_name == 'microdrop.gui.video_controller':
@@ -99,28 +100,29 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     def apply_device_dir(self, device_directory):
         app = get_app()
         if not device_directory or \
-                device_directory == app.config['dmf_device']['directory']:
+                (self.previous_device_dir and\
+                device_directory == self.previous_device_dir):
             # If the data directory hasn't changed, we do nothing
             return False
 
         device_directory = path(device_directory)
         device_directory.makedirs_p()
-        if device_directory.listdir():
-            result = yesno('Merge?',
-                    'Target directory is not empty.  Merge contents with '\
-                    'current devices (overwriting common paths in the target '\
-                    'directory)?')
-            if not result == gtk.RESPONSE_YES:
-                return False
+        if self.previous_device_dir:
+            if device_directory.listdir():
+                result = yesno('Merge?', '''\
+Target directory [%s] is not empty.  Merge contents with
+current devices [%s] (overwriting common paths in the target
+directory)?''' % (device_directory, self.previous_device_dir))
+                if not result == gtk.RESPONSE_YES:
+                    return False
 
-        original_directory = path(app.config['dmf_device']['directory'])
-        for d in original_directory.dirs():
-            copytree(d, device_directory.joinpath(d.name))
-        for f in original_directory.files():
-            f.copyfile(device_directory.joinpath(f.name))
-        original_directory.rmtree()
-        
-        app.config['dmf_device']['directory'] = device_directory
+            original_directory = path(self.previous_device_dir)
+            for d in original_directory.dirs():
+                copytree(d, device_directory.joinpath(d.name))
+            for f in original_directory.files():
+                f.copyfile(device_directory.joinpath(f.name))
+            original_directory.rmtree()
+        self.previous_device_dir = device_directory
         return True
 
     def disable_video_background(self):
@@ -251,6 +253,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     
     def on_load_dmf_device(self, widget, data=None):
         app = get_app()
+        directory = app.get_device_directory()
         dialog = gtk.FileChooserDialog(title="Load device",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
@@ -258,7 +261,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(app.config['dmf_device']['directory'])
+        if directory:
+            dialog.set_current_folder(directory)
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
@@ -312,9 +316,9 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         if name:
             # current file name
             if app.dmf_device.name:
-                src = os.path.join(app.config['dmf_device']['directory'],
+                src = os.path.join(app.get_device_directory(),
                                    app.dmf_device.name)
-            dest = os.path.join(app.config['dmf_device']['directory'], name)
+            dest = os.path.join(app.get_device_directory(), name)
 
             # if we're renaming, move the old directory
             if rename and os.path.isdir(src):
