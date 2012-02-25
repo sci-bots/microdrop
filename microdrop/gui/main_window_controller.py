@@ -33,6 +33,7 @@ from gui.plugin_manager_dialog import PluginManagerDialog
 from app_context import get_app
 from logger import logger
 from plugin_helpers import AppDataController
+from utility.pygtkhelpers_widgets import Filepath
 
 
 class MicroDropError(Exception):
@@ -48,6 +49,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
 
     AppFields = Form.of(
         Boolean.named('realtime_mode').using(default=False, optional=True),
+        Filepath.named('log_file').using(default='', optional=True),
     )
 
     def __init__(self):

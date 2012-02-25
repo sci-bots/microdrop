@@ -41,6 +41,7 @@ from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
 from plugin_helpers import AppDataController
+from utility.pygtkhelpers_widgets import Directory
 
 
 PluginGlobals.push_env('microdrop')
@@ -63,6 +64,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
         Integer.named('display_fps').using(default=10, optional=True,
             validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)]),
+        Directory.named('device_directory').using(default='', optional=True),
     )
 
     def __init__(self):

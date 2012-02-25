@@ -26,6 +26,7 @@ class AppDataController(object):
         app = get_app()
         app_data = app.get_data(self.name)
         values = dict([(k, v.value) for k, v in elements.iteritems() if v.value])
+        #print '[AppDataController] values_dict=%s values=%s' % (values_dict, values)
         if app_data:
             app_data.update(values)
         else:

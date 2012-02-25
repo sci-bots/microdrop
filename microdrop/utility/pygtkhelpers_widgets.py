@@ -171,5 +171,7 @@ if __name__ == '__main__':
     view = FormView()
     for field in view.form.fields.values():
         field.proxy.set_widget_value(field.element.default_value)
-    window.add(view.widget)
+    expander = gtk.Expander()
+    expander.add(view.widget)
+    window.add(expander)
     window.show_all()

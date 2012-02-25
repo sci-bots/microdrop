@@ -76,7 +76,11 @@ class AppOptionsController:
             # onto the end of the plugin vbox
             FormView.schema_type = form
             self.form_views[name] = FormView()
-            self.plugin_form_vbox.pack_start(self.form_views[name].widget)
+            expander = gtk.Expander()
+            expander.set_label(name)
+            expander.set_expanded(True)
+            expander.add(self.form_views[name].widget)
+            self.plugin_form_vbox.pack_start(expander)
         for form_name, form in self.forms.iteritems():
             form_view = self.form_views[form_name]
             values = self._get_app_values(form_name)
