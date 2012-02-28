@@ -15,7 +15,7 @@ def test_load_protocol():
                             path('protocols') /
                             path('protocol %d v%s' % (i, Version(0,0,0))))
 
-    # version 0.0.0 files
+    # version 0.1.0 files
     for i in [0]:
         yield load_protocol, (path(__file__).parent /
                             path('protocols') /
