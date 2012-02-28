@@ -1,7 +1,37 @@
-from protocol import Protocol
+from path import path
+from nose.tools import raises
 
-def test_protocol_upgrade():
+from protocol import Protocol
+from utility import Version
+
+def test_load_protocol():
     """
-    Test upgrading protocol from version 0
+    test loading protocol files
     """
+
+    # version 0.0.0 files
+    for i in [0]:
+        yield load_protocol, (path(__file__).parent /
+                            path('protocols') /
+                            path('protocol %d v%s' % (i, Version(0,0,0))))
+
+    # version 0.0.0 files
+    for i in [0]:
+        yield load_protocol, (path(__file__).parent /
+                            path('protocols') /
+                            path('protocol %d v%s' % (i, Version(0,1,0))))
+
+
+def load_protocol(name):
+    Protocol.load(name)
     assert True
+
+
+@raises(IOError)
+def test_load_non_existant_protocol():
+    """
+    test loading Protocol file that doesn't exist
+    """
+    Protocol.load(path(__file__).parent /
+                   path('protocols') /
+                   path('no device'))
