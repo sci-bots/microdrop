@@ -29,6 +29,8 @@ from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 import cairo
 from flatland import Form, Integer
 from flatland.validation import ValueAtLeast, ValueAtMost
+from pygtkhelpers.ui.dialogs import yesno
+from path import path
 
 from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
 from dmf_device import DmfDevice
@@ -36,11 +38,12 @@ from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
         implements, emit_signal, PluginGlobals, IVideoPlugin
-from utility import is_float
 from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
 from plugin_helpers import AppDataController
+from utility.pygtkhelpers_widgets import Directory
+from utility import is_float, copytree
 
 
 PluginGlobals.push_env('microdrop')
@@ -63,6 +66,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
         Integer.named('display_fps').using(default=10, optional=True,
             validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)]),
+        Directory.named('device_directory').using(default='', optional=True),
     )
 
     def __init__(self):
@@ -73,15 +77,18 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.last_frame = None
         self.last_frame_time = datetime.now()
         self.display_fps_inv = 0.1
+        self.previous_device_dir = None
         
     def on_app_options_changed(self, plugin_name):
         app = get_app()
         if plugin_name == self.name:
             values = self.get_app_values()
-            self.view.overlay_opacity = values.get('overlay_opacity')
-            fps = values.get('display_fps')
-            if fps:
-                self.display_fps_inv = 1. / fps
+            if 'overlay_opacity' in values:
+                self.view.overlay_opacity = int(values.get('overlay_opacity'))
+            if 'display_fps' in values:
+                self.display_fps_inv = 1. / int(values['display_fps'])
+            if 'device_directory' in values:
+                self.apply_device_dir(values['device_directory'])
         elif plugin_name == 'microdrop.gui.video_controller':
             observers = ExtensionPoint(IPlugin)
             service = observers.service(plugin_name)
@@ -89,6 +96,34 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             video_enabled = values.get('video_enabled')
             if not video_enabled:
                 self.disable_video_background()
+
+    def apply_device_dir(self, device_directory):
+        app = get_app()
+        if not device_directory or \
+                (self.previous_device_dir and\
+                device_directory == self.previous_device_dir):
+            # If the data directory hasn't changed, we do nothing
+            return False
+
+        device_directory = path(device_directory)
+        device_directory.makedirs_p()
+        if self.previous_device_dir:
+            if device_directory.listdir():
+                result = yesno('Merge?', '''\
+Target directory [%s] is not empty.  Merge contents with
+current devices [%s] (overwriting common paths in the target
+directory)?''' % (device_directory, self.previous_device_dir))
+                if not result == gtk.RESPONSE_YES:
+                    return False
+
+            original_directory = path(self.previous_device_dir)
+            for d in original_directory.dirs():
+                copytree(d, device_directory.joinpath(d.name))
+            for f in original_directory.files():
+                f.copyfile(device_directory.joinpath(f.name))
+            original_directory.rmtree()
+        self.previous_device_dir = device_directory
+        return True
 
     def disable_video_background(self):
         app = get_app()
@@ -218,6 +253,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     
     def on_load_dmf_device(self, widget, data=None):
         app = get_app()
+        directory = app.get_device_directory()
         dialog = gtk.FileChooserDialog(title="Load device",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
@@ -225,7 +261,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(app.config['dmf_device']['directory'])
+        if directory:
+            dialog.set_current_folder(directory)
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
@@ -279,9 +316,9 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         if name:
             # current file name
             if app.dmf_device.name:
-                src = os.path.join(app.config['dmf_device']['directory'],
+                src = os.path.join(app.get_device_directory(),
                                    app.dmf_device.name)
-            dest = os.path.join(app.config['dmf_device']['directory'], name)
+            dest = os.path.join(app.get_device_directory(), name)
 
             # if we're renaming, move the old directory
             if rename and os.path.isdir(src):

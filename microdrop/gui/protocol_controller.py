@@ -210,7 +210,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(os.path.join(app.config['dmf_device']['directory'],
+        dialog.set_current_folder(os.path.join(app.get_device_directory(),
                                                app.dmf_device.name,
                                                "protocols"))
         response = dialog.run()
@@ -241,7 +241,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                                                                  name)
 
             if name:
-                path = os.path.join(app.config['dmf_device']['directory'],
+                path = os.path.join(app.get_device_directory(),
                                     app.dmf_device.name,
                                     "protocols")
                 if os.path.isdir(path) == False:
@@ -410,10 +410,10 @@ Protocol is version %s, but only up to version %s is supported with this version
     def set_app_values(self, values_dict):
         logging.debug('[ProtocolController] set_app_values(): '\
                     'values_dict=%s' % (values_dict,))
-        el = self.AppFields(value=values_dict)
-        if not el.validate():
+        elements = self.AppFields(value=values_dict)
+        if not elements.validate():
             raise ValueError('Invalid values: %s' % el.errors)
-        values = values_dict
+        values = dict([(k, v.value) for k, v in elements.iteritems() if v.value])
         if 'fps_limit' in values:
             self.grabber.set_fps_limit(values['fps_limit'])
         app = get_app()

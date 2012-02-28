@@ -246,7 +246,7 @@ class ExperimentLogController(SingletonPlugin):
         app = get_app()
         device_path = None
         if dmf_device.name:
-            device_path = os.path.join(app.config['dmf_device']['directory'],
+            device_path = os.path.join(app.get_device_directory(),
                                        dmf_device.name, "logs")
         experiment_log = ExperimentLog(device_path)
         emit_signal("on_experiment_log_changed", experiment_log)

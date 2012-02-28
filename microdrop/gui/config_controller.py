@@ -21,10 +21,11 @@ import os
 
 import gtk
 
+from logger import logger
 from dmf_device import DmfDevice
 from protocol import Protocol
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
-    emit_signal, PluginGlobals
+    emit_signal, PluginGlobals, ExtensionPoint
 from app_context import get_app
 
 
@@ -36,6 +37,7 @@ class ConfigController(SingletonPlugin):
         
     def __init__(self):
         self.name = "microdrop.gui.config_controller"
+        self.app = None
 
     def on_app_init(self):
         self.app = get_app()
@@ -45,6 +47,12 @@ class ConfigController(SingletonPlugin):
         self.app.config.save()
         
     def process_config_file(self):
+        observers = ExtensionPoint(IPlugin)
+        for section_name, values_dict in self.app.config.data.iteritems():
+            service = observers.service(section_name)
+            if service:
+                service.set_app_values(values_dict)
+        self.app.config._init_devices_dir()
         # save the protocol name from the config file because it is
         # automatically overwritten when we load a new device
         protocol_name = self.app.config['protocol']['name']
@@ -56,26 +64,47 @@ class ConfigController(SingletonPlugin):
     def load_dmf_device(self):
         # try what's specified in config file
         if self.app.config['dmf_device']['name'] != None:
-            path = os.path.join(self.app.config['dmf_device']['directory'],
-                                self.app.config['dmf_device']['name'],
-                                "device")
-            self.app.dmf_device_controller.load_device(path)
+            directory = self.app.get_device_directory()
+            if directory:
+                device_path = os.path.join(directory,
+                                    self.app.config['dmf_device']['name'],
+                                    'device')
+                self.app.dmf_device_controller.load_device(device_path)
 
     def load_protocol(self):
         if self.app.config['dmf_device']['name']:
             # try what's specified in config file
             if self.app.config['protocol']['name'] != None:
-                filename = os.path.join(self.app.config['dmf_device']['directory'],
-                                        self.app.config['dmf_device']['name'],
-                                        "protocols",
-                                        self.app.config['protocol']['name'])
-                self.app.protocol_controller.load_protocol(filename)
+                directory = self.app.get_device_directory()
+                if directory:
+                    filename = os.path.join(directory,
+                                            self.app.config['dmf_device']['name'],
+                                            "protocols",
+                                            self.app.config['protocol']['name'])
+                    self.app.protocol_controller.load_protocol(filename)
                 
     def on_dmf_device_changed(self, dmf_device):
         self.app.config['dmf_device']['name'] = dmf_device.name
         
     def on_protocol_changed(self, protocol):
         self.app.config['protocol']['name'] = protocol.name
+        self.app.config.save()
+
+    def on_app_options_changed(self, plugin_name):
+        if self.app is None:
+            return
+        logger.debug('[ConfigController] on_app_options_changed: %s' % plugin_name)
+        observers = ExtensionPoint(IPlugin)
+        service = observers.service(plugin_name)
+        if service:
+            if not hasattr(service, 'get_app_values'):
+                return
+            app_options = service.get_app_values()
+            if app_options:
+                if not plugin_name in self.app.config.data:
+                    self.app.config.data[plugin_name] = {}
+                self.app.config.data[plugin_name].update(app_options)
+                self.app.config.save()
 
 
 PluginGlobals.pop_env()

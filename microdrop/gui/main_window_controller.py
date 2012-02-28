@@ -33,6 +33,7 @@ from gui.plugin_manager_dialog import PluginManagerDialog
 from app_context import get_app
 from logger import logger
 from plugin_helpers import AppDataController
+from utility.pygtkhelpers_widgets import Filepath
 
 
 class MicroDropError(Exception):
@@ -48,6 +49,8 @@ class MainWindowController(SingletonPlugin, AppDataController):
 
     AppFields = Form.of(
         Boolean.named('realtime_mode').using(default=False, optional=True),
+        Filepath.named('log_file').using(default='', optional=True),
+        Boolean.named('log_enabled').using(default=False, optional=True),
     )
 
     def __init__(self):
@@ -99,7 +102,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
         app.signals["on_window_delete_event"] = self.on_delete_event
         app.signals["on_checkbutton_realtime_mode_toggled"] = \
                 self.on_realtime_mode_toggled
-        app.signals["on_menu_options_activate"] = self.on_menu_options_activate
         app.signals["on_menu_app_options_activate"] = self.on_menu_app_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
         #app.signals["on_menu_debug_activate"] = self.on_menu_debug_activate
@@ -182,11 +184,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
 
         AppOptionsController().run()
 
-    def on_menu_options_activate(self, widget, data=None):
-        from options_controller import OptionsController
-
-        OptionsController().run()
-
     def on_warning(self, record):
         self.warning(record.message)
 
@@ -240,9 +237,21 @@ class MainWindowController(SingletonPlugin, AppDataController):
         app = get_app()
         if plugin_name == self.name:
             data = app.get_data(self.name)
-            app.realtime_mode = data['realtime_mode']
-            proxy = proxy_for(self.checkbutton_realtime_mode)
-            proxy.set_widget_value(app.realtime_mode)
+            if 'realtime_mode' in data:
+                app.realtime_mode = data['realtime_mode']
+                proxy = proxy_for(self.checkbutton_realtime_mode)
+                proxy.set_widget_value(app.realtime_mode)
+            if 'log_file' in data and 'log_enabled' in data:
+                self.apply_log_file_config(data['log_file'],
+                        data['log_enabled'])
+
+    def apply_log_file_config(self, log_file, enabled):
+        app = get_app()
+        if enabled and not log_file:
+            logger.error('Log file can only be enabled if a path is selected.')
+            return False
+        app.update_log_file()
+        return True
 
     def on_url_clicked(self, widget, data):
         logger.debug("URL clicked: %s" % data)

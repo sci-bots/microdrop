@@ -26,6 +26,8 @@ from validate import Validator
 
 from logger import logger, logging
 from utility.user_paths import home_dir, app_data_dir, common_app_data_dir
+from app_context import get_app
+from plugin_manager import ExtensionPoint, IPlugin
 
 
 def get_skeleton_path(dir_name):
@@ -57,16 +59,13 @@ class ValidationError(Exception):
 
 class Config():
     default_directory = app_data_dir()
-    if [os.name == 'nt']:
+    if os.name == 'nt':
         default_directory /= path('microdrop')
     else:
         default_directory /= path('.microdrop')
     default_filename = default_directory / path('microdrop.ini')
     spec = """
         [dmf_device]
-        # directory containing DMF device files 
-        directory = string(default=None)
-
         # name of the most recently used DMF device
         name = string(default=None)
 
@@ -82,12 +81,6 @@ class Config():
         enabled = string_list(default=list())
 
         [logging]
-        # enable logging to a file
-        enabled = boolean(default=False)
-
-        # path to the log file
-        file = string(default=None)
-
         # log level (valid options are "debug", "info", "warning", and "error")
         level = option('debug', 'info', 'warning', 'error', default='warning')
         """
@@ -162,16 +155,22 @@ class Config():
                                  ', '.join(section_list))
             raise ValidationError
         self.data.filename = self.filename
-        self._init_devices_dir()
+        #self._init_devices_dir()
         self._init_plugins_dir()
 
     def _init_devices_dir(self):
-        if self.data['dmf_device']['directory'] is None:
+        app = get_app()
+        observers = ExtensionPoint(IPlugin)
+        plugin_name = 'microdrop.gui.dmf_device_controller'
+        service = observers.service(plugin_name)
+        directory = app.get_device_directory()
+        if directory is None:
             if os.name == 'nt':
-                self.data['dmf_device']['directory'] = home_dir().joinpath('Microdrop', 'devices')
+                directory = home_dir().joinpath('Microdrop', 'devices')
             else:
-                self.data['dmf_device']['directory'] = home_dir().joinpath('.microdrop', 'devices')
-        dmf_device_directory = path(self.data['dmf_device']['directory'])
+                directory = home_dir().joinpath('.microdrop', 'devices')
+            service.set_app_values({'device_directory': directory})
+        dmf_device_directory = path(directory)
         dmf_device_directory.parent.makedirs_p()
         devices = device_skeleton_path()
         if not dmf_device_directory.isdir():
