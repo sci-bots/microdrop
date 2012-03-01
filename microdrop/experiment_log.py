@@ -95,7 +95,7 @@ class ExperimentLog():
             pass
         # else the versions are equal and don't need to be upgraded
         
-    def save(self, filename=None, format='pickle'):
+    def save(self, filename=None, format='yaml'):
         if filename==None:
             log_path = self.get_log_path()
             filename = os.path.join(log_path,"data")
