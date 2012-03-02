@@ -30,7 +30,7 @@ from logger import logger
 
 
 class ExperimentLog():
-    class_version = str(Version(0))
+    class_version = str(Version(0,1,0))
 
     @classmethod
     def load(cls, filename):
@@ -91,8 +91,10 @@ class ExperimentLog():
         if version > Version.fromstring(self.class_version):
             logger.debug('[ExperimentLog] version>class_version')
             raise FutureVersionError
-        elif version < Version.fromstring(self.class_version): 
+        if version < Version(0,1,0):
             pass
+            #TODO
+            #self.version = str(Version(0,1,0))
         # else the versions are equal and don't need to be upgraded
         
     def save(self, filename=None, format='yaml'):
@@ -117,7 +119,7 @@ class ExperimentLog():
             if val:
                 return val
         start_time = time.time()
-        self.data.append({"start time":start_time})
+        self.add_data({"start time":start_time})
         return start_time
 
     def get_log_path(self):
@@ -127,18 +129,22 @@ class ExperimentLog():
         return log_path
 
     def add_step(self, step_number):
-        self.data.append({"step": step_number, 
-                         "time": time.time() - self.start_time()})
+        self.data.append({'core':{"step": step_number, 
+                         "time": time.time() - self.start_time()}})
 
-    def add_data(self, data):
+    def add_data(self, data, plugin_name='core'):
+        if len(self.data)==0:
+            self.data.append({})
+        if not plugin_name in self.data[-1]:
+            self.data[-1][plugin_name] = {}
         for k, v in data.items():
-            self.data[-1][k]=v
+            self.data[-1][plugin_name][k]=v
 
-    def get(self, name):
+    def get(self, name, plugin_name='core'):
         var = []
         for d in self.data:
-            if d.keys().count(name):
-                var.append(d[name])
+            if plugin_name in d and d[plugin_name].keys().count(name):
+                var.append(d[plugin_name][name])
             else:
                 var.append(None)
         return var
