@@ -34,4 +34,4 @@ def test_load_non_existant_protocol():
     """
     Protocol.load(path(__file__).parent /
                    path('protocols') /
-                   path('no device'))
+                   path('no protocol'))
