@@ -32,6 +32,7 @@ import utility
 if utility.PROGRAM_LAUNCHED:
     from pyutilib.component.core import SingletonPlugin, Plugin, PluginGlobals
 else:
+    from pyutilib.component.core import Plugin
     from pyutilib.component.config import ManagedPlugin as SingletonPlugin
 
 PluginGlobals.push_env('microdrop.managed')
