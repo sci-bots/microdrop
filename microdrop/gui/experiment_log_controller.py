@@ -154,17 +154,17 @@ class ExperimentLogController(SingletonPlugin):
             protocol_list = gtk.ListStore(*types)
             self.protocol_view.set_model(protocol_list)
             for d in self.results.log.data:
-                if d.keys().count("step") and d.keys().count("time"):
-                    step = self.results.protocol[d["step"]]
+                if 'step' in d['core'].keys() and 'time' in d['core'].keys():
+                    step = self.results.protocol[d['core']['step']]
                     dmf_plugin_name = step.plugin_name_lookup(
                         r'wheelerlab.dmf_control_board_', re_pattern=True)
                     options = step.get_data(dmf_plugin_name)
                     vals = []
                     for i, c in enumerate(self.columns):
                         if c.name=="Time (s)":
-                            vals.append(d["time"])
+                            vals.append(d['core']['time'])
                         elif c.name=="Step #":
-                            vals.append(d["step"] + 1)
+                            vals.append(d['core']['step'] + 1)
                         elif c.name=="Duration (s)":
                             vals.append(options.duration / 1000.0)
                         elif c.name=="Voltage (VRMS)":
@@ -272,8 +272,8 @@ class ExperimentLogController(SingletonPlugin):
         list_store = selection[0]
         for row in selection[1]:
             for d in self.results.log.data:
-                if d.keys().count("time"):
-                    if d["time"]==selection[0][row][0]:
+                if 'time' in d['core'].keys():
+                    if d['core']['time']==selection[0][row][0]:
                         selected_data.append(d)
         emit_signal("on_experiment_log_selection_changed", [selected_data])
 
