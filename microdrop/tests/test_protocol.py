@@ -30,7 +30,7 @@ def load_protocol(name):
 @raises(IOError)
 def test_load_non_existant_protocol():
     """
-    test loading Protocol file that doesn't exist
+    test loading protocol file that doesn't exist
     """
     Protocol.load(path(__file__).parent /
                    path('protocols') /

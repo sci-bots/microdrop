@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import pickle
 import time
+from copy import deepcopy
 
 import numpy as np
 from path import path
@@ -30,7 +31,7 @@ from logger import logger
 
 
 class ExperimentLog():
-    class_version = str(Version(0))
+    class_version = str(Version(0,1,0))
 
     @classmethod
     def load(cls, filename):
@@ -69,6 +70,14 @@ class ExperimentLog():
         if not hasattr(out, 'version'):
             out.version = str(Version(0))
         out._upgrade()
+        # load objects from yaml strings
+        for i in range(len(out.data)):
+            for plugin_name, plugin_data in out.data[i].items():
+                try:
+                    out.data[i][plugin_name] = yaml.load(plugin_data)
+                except Exception, e:
+                    logger.debug("Couldn't load experiment log data for "
+                                 "plugin: %s. %s." % (plugin_name, e))
         return out
     
     def __init__(self, directory=None):
@@ -91,8 +100,36 @@ class ExperimentLog():
         if version > Version.fromstring(self.class_version):
             logger.debug('[ExperimentLog] version>class_version')
             raise FutureVersionError
-        elif version < Version.fromstring(self.class_version): 
-            pass
+        if version < Version(0,1,0):
+            new_data = []
+            plugin_name = None
+            for step_data in self.data:
+                if "control board hardware version" in step_data.keys():
+                    plugin_name = "wheelerlab.dmf_control_board_" + \
+                        step_data["control board hardware version"]
+            for i in range(len(self.data)):
+                new_data.append({})
+                for k, v in self.data[i].items():
+                    if plugin_name and (k=="FeedbackResults" or \
+                    k=="SweepFrequencyResults" or k=="SweepVoltageResults"):
+                        try:
+                            new_data[i][plugin_name] = \
+                                {k:pickle.loads(v)}
+                        except Exception, e:
+                            logger.debug("Couldn't load experiment log data "
+                                         "for plugin: %s. %s." % \
+                                         (plugin_name, e))
+                    else:
+                        if not "core" in new_data[i]:
+                            new_data[i]["core"] = {}
+                        new_data[i]["core"][k] = v
+
+            # serialize objects to yaml strings
+            for i in range(len(self.data)):
+                for plugin_name, plugin_data in new_data[i].items():
+                    new_data[i][plugin_name] = yaml.dump(plugin_data)
+            self.data = new_data
+            self.version = str(Version(0,1,0))
         # else the versions are equal and don't need to be upgraded
         
     def save(self, filename=None, format='yaml'):
@@ -101,12 +138,18 @@ class ExperimentLog():
             filename = os.path.join(log_path,"data")
         else:
             log_path = path(filename).parent 
+
         if self.data:
+            out = deepcopy(self)
+            # serialize plugin dictionaries to yaml strings
+            for i in range(len(out.data)):
+                for plugin_name, plugin_data in out.data[i].items():
+                    out.data[i][plugin_name] = yaml.dump(plugin_data)
             with open(filename, 'wb') as f:
                 if format=='pickle':
-                    pickle.dump(self, f, -1)
+                    pickle.dump(out, f, -1)
                 elif format=='yaml':
-                    yaml.dump(self, f)
+                    yaml.dump(out, f)
                 else:
                     raise TypeError
         return log_path
@@ -117,7 +160,7 @@ class ExperimentLog():
             if val:
                 return val
         start_time = time.time()
-        self.data.append({"start time":start_time})
+        self.add_data({"start time":start_time})
         return start_time
 
     def get_log_path(self):
@@ -127,18 +170,22 @@ class ExperimentLog():
         return log_path
 
     def add_step(self, step_number):
-        self.data.append({"step": step_number, 
-                         "time": time.time() - self.start_time()})
+        self.data.append({'core':{"step": step_number, 
+                         "time": time.time() - self.start_time()}})
 
-    def add_data(self, data):
+    def add_data(self, data, plugin_name='core'):
+        if len(self.data)==0:
+            self.data.append({})
+        if not plugin_name in self.data[-1]:
+            self.data[-1][plugin_name] = {}
         for k, v in data.items():
-            self.data[-1][k]=v
+            self.data[-1][plugin_name][k]=v
 
-    def get(self, name):
+    def get(self, name, plugin_name='core'):
         var = []
         for d in self.data:
-            if d.keys().count(name):
-                var.append(d[name])
+            if plugin_name in d and d[plugin_name].keys().count(name):
+                var.append(d[plugin_name][name])
             else:
                 var.append(None)
         return var
