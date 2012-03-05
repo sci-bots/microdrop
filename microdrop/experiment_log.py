@@ -48,6 +48,7 @@ class ExperimentLog():
         logger.debug("[ExperimentLog].load(\"%s\")" % filename)
         logger.info("Loading Experiment log from %s" % filename)
         out = None
+        start_time = time.time()
         with open(filename, 'rb') as f:
             try:
                 out = pickle.load(f)
@@ -78,6 +79,8 @@ class ExperimentLog():
                 except Exception, e:
                     logger.debug("Couldn't load experiment log data for "
                                  "plugin: %s. %s." % (plugin_name, e))
+        logger.debug("[ExperimentLog].load() loaded in %f s." % \
+                     (time.time()-start_time))
         return out
     
     def __init__(self, directory=None):

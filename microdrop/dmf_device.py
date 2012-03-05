@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import time
 try:
     import cPickle as pickle
 except ImportError:
@@ -94,6 +95,7 @@ class DmfDevice():
         """
         logger.debug("[DmfDevice].load(\"%s\")" % filename)
         logger.info("Loading DmfDevice from %s" % filename)
+        start_time = time.time()
         out=None
         with open(filename, 'rb') as f:
             try:
@@ -117,6 +119,8 @@ class DmfDevice():
             out.version = '0'
         out._upgrade()
         out.init_body_group()
+        logger.debug("[DmfDevice].load() loaded in %f s." % \
+                     (time.time()-start_time))
         return out
 
     def _upgrade(self):

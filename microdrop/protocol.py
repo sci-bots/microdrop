@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import time
 from copy import deepcopy
 import re
 import logging
@@ -57,6 +58,7 @@ class Protocol():
         """
         logger.debug("[Protocol].load(\"%s\")" % filename)
         logger.info("Loading Protocol from %s" % filename)
+        start_time = time.time()
         out = None
         with open(filename, 'rb') as f:
             try:
@@ -85,6 +87,8 @@ class Protocol():
         for i in range(len(out)):
             for k, v in out[i].plugin_data.items():
                 out[i].plugin_data[k] = yaml.load(v)
+        logger.debug("[Protocol].load() loaded in %f s." % \
+                     (time.time()-start_time))
         return out
 
     def _upgrade(self):
