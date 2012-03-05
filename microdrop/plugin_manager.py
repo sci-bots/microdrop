@@ -22,7 +22,8 @@ import sys
 from StringIO import StringIO
 from contextlib import closing
 
-from pyutilib.component.core import Interface, ExtensionPoint, implements, PluginGlobals
+from pyutilib.component.core import Interface, ExtensionPoint, implements, \
+    PluginGlobals
 import pyutilib.component.loader
 from path import path
 import logging
@@ -51,7 +52,8 @@ class PluginManager():
             package = (d / path('microdrop'))
             if package.isdir(): 
                 logging.info('\t %s' % package.abspath())
-                import_statement = 'import %s.%s.microdrop' % (plugins_dir.name, d.name)
+                import_statement = 'import %s.%s.microdrop' % \
+                    (plugins_dir.name, d.name)
                 logging.debug(import_statement)
                 exec(import_statement)
 
@@ -103,9 +105,11 @@ class PluginManager():
                 with closing(StringIO()) as message:
                     if service_instance:
                             if hasattr(service_instance, "name"):
-                                print >> message, '%s plugin crashed during initialization:' % str(PluginClass),
-                            # Deactivate in plugin registry since the plugin was not
-                            # initialized properly.
+                                print >> message, \
+                                '%s plugin crashed during initialization:' % \
+                                str(PluginClass),
+                            # Deactivate in plugin registry since the plugin
+                            # was not initialized properly.
                             service_instance.deactivate()
                     print >> message, str(why)
                     logging.error(message.getvalue().strip())
@@ -226,15 +230,15 @@ else:
 
         def on_dmf_device_changed(self):
             """
-            Handler called when the DMF device changes (e.g., when a new device is
-            loaded).
+            Handler called when the DMF device changes (e.g., when a new device
+            is loaded).
             """
             pass
         
         def on_experiment_log_changed(self):
             """
-            Handler called when the experiment log changes (e.g., when a protocol
-            finishes running.
+            Handler called when the experiment log changes (e.g., when a
+            protocol finishes running.
             """
             pass
         
@@ -296,11 +300,13 @@ def emit_signal(function, args=[], interface=IPlugin):
                 with closing(StringIO()) as message:
                     if hasattr(observer, "name"):
                         if interface == ILoggingPlugin:
-                            # If this is a logging plugin, do not try to log since
-                            # that will result in infinite recursion.  Instead,
-                            # just continue onto the next plugin.
+                            # If this is a logging plugin, do not try to log
+                            # since that will result in infinite recursion. 
+                            # Instead, just continue onto the next plugin.
                             continue
-                        print >> message, '%s plugin crashed processing %s signal.' % (observer.name, function)
+                        print >> message, \
+                            '%s plugin crashed processing %s signal.' % \
+                            (observer.name, function)
                     print >> message, 'Reason:', str(why)
                     logging.error(message.getvalue().strip())
                 logging.debug(''.join(traceback.format_stack()))

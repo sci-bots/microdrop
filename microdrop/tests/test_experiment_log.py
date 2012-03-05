@@ -15,6 +15,11 @@ def test_load_experiment_log():
                             path('experiment_logs') /
                             path('experiment log %d v%s' % (i, Version(0,0,0))))
 
+    # version 0.1.0 files
+    for i in [0]:
+        yield load_experiment_log, (path(__file__).parent /
+                            path('experiment_logs') /
+                            path('experiment log %d v%s' % (i, Version(0,1,0))))
 
 def load_experiment_log(name):
     ExperimentLog.load(name)

@@ -1,0 +1,461 @@
+!!python/object:experiment_log.ExperimentLog
+data:
+- {core: '{start time: 1329419608.676}
+
+    '}
+- {core: '{step: 0, time: 0.0}
+
+    '}
+- {core: '{step: 1, time: 1.1689999103546143}
+
+    '}
+- {core: '{step: 2, time: 2.3989999294281006}
+
+    '}
+- {core: '{step: 3, time: 3.552999973297119}
+
+    '}
+- {core: '{step: 4, time: 4.675999879837036}
+
+    '}
+- {core: '{step: 5, time: 5.861999988555908}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.19334951048069657, 0.196802180310709, 0.196802180310709, 0.196802180310709,\n\
+    \    0.196802180310709, 0.196802180310709, 0.19852851522571524, 0.1950758453957028,\n\
+    \    0.196802180310709, 0.196802180310709]\n  V_hv: [1.1462863835641297, 1.148012718479136,\
+    \ 1.148012718479136, 1.148012718479136,\n    1.1393810439041048, 1.148012718479136,\
+    \ 1.1462863835641297, 1.1462863835641297,\n    1.148012718479136, 1.148012718479136]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 6.179999828338623}
+
+    '}
+- {core: '{step: 7, time: 7.302999973297119}
+
+    '}
+- {core: '{step: 8, time: 8.429999828338623}
+
+    '}
+- {core: '{step: 9, time: 9.55899977684021}
+
+    '}
+- {core: '{step: 10, time: 10.680999994277954}
+
+    '}
+- {core: '{step: 0, time: 11.78499984741211}
+
+    '}
+- {core: '{step: 1, time: 12.944999933242798}
+
+    '}
+- {core: '{step: 2, time: 14.13099980354309}
+
+    '}
+- {core: '{step: 3, time: 15.247999906539917}
+
+    '}
+- {core: '{step: 4, time: 16.35099983215332}
+
+    '}
+- {core: '{step: 5, time: 17.47599983215332}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.196802180310709, 0.20025485014072145, 0.20025485014072145, 0.20025485014072145,\n\
+    \    0.20025485014072145, 0.20025485014072145, 0.20025485014072145, 0.196802180310709,\n\
+    \    0.20025485014072145, 0.20025485014072145]\n  V_hv: [1.148012718479136, 1.1462863835641297,\
+    \ 1.141107378819111, 1.1462863835641297,\n    1.148012718479136, 1.148012718479136,\
+    \ 1.1462863835641297, 1.148012718479136, 1.148012718479136,\n    1.1462863835641297]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 17.884999990463257}
+
+    '}
+- {core: '{step: 7, time: 19.01199984550476}
+
+    '}
+- {core: '{step: 8, time: 20.149999856948853}
+
+    '}
+- {core: '{step: 9, time: 21.286999940872192}
+
+    '}
+- {core: '{step: 10, time: 22.41599988937378}
+
+    '}
+- {core: '{step: 0, time: 23.58999991416931}
+
+    '}
+- {core: '{step: 1, time: 24.6969997882843}
+
+    '}
+- {core: '{step: 2, time: 25.805999994277954}
+
+    '}
+- {core: '{step: 3, time: 26.985999822616577}
+
+    '}
+- {core: '{step: 4, time: 28.145999908447266}
+
+    '}
+- {core: '{step: 5, time: 29.256999969482422}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.20543385488574012, 0.20543385488574012, 0.20198118505572768, 0.20543385488574012,\n\
+    \    0.20543385488574012, 0.20543385488574012, 0.20198118505572768, 0.20543385488574012,\n\
+    \    0.20543385488574012, 0.20543385488574012]\n  V_hv: [1.1462863835641297, 1.148012718479136,\
+    \ 1.1462863835641297, 1.1428337137341174,\n    1.1428337137341174, 1.149739053394142,\
+    \ 1.148012718479136, 1.1445600486491234,\n    1.148012718479136, 1.1462863835641297]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 29.51199984550476}
+
+    '}
+- {core: '{step: 7, time: 30.66099977493286}
+
+    '}
+- {core: '{step: 8, time: 31.810999870300293}
+
+    '}
+- {core: '{step: 9, time: 32.93999981880188}
+
+    '}
+- {core: '{step: 10, time: 34.08399987220764}
+
+    '}
+- {core: '{step: 0, time: 35.20099997520447}
+
+    '}
+- {core: '{step: 1, time: 36.323999881744385}
+
+    '}
+- {core: '{step: 2, time: 37.525999784469604}
+
+    '}
+- {core: '{step: 3, time: 38.67799997329712}
+
+    '}
+- {core: '{step: 4, time: 39.811999797821045}
+
+    '}
+- {core: '{step: 5, time: 40.94099998474121}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.20888652471575256, 0.2140655294607712, 0.2140655294607712, 0.2140655294607712,\n\
+    \    0.2140655294607712, 0.2140655294607712, 0.2140655294607712, 0.2140655294607712,\n\
+    \    0.2140655294607712, 0.2140655294607712]\n  V_hv: [1.148012718479136, 1.1462863835641297,\
+    \ 1.1462863835641297, 1.1428337137341174,\n    1.148012718479136, 1.148012718479136,\
+    \ 1.1462863835641297, 1.1462863835641297,\n    1.148012718479136, 1.141107378819111]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 41.269999980926514}
+
+    '}
+- {core: '{step: 7, time: 42.41499996185303}
+
+    '}
+- {core: '{step: 8, time: 43.59699988365173}
+
+    '}
+- {core: '{step: 9, time: 44.70699977874756}
+
+    '}
+- {core: '{step: 10, time: 45.81699991226196}
+
+    '}
+- {core: '{step: 0, time: 46.95799994468689}
+
+    '}
+- {core: '{step: 1, time: 48.12299990653992}
+
+    '}
+- {core: '{step: 2, time: 49.251999855041504}
+
+    '}
+- {core: '{step: 3, time: 50.3529999256134}
+
+    '}
+- {core: '{step: 4, time: 51.538999795913696}
+
+    '}
+- {core: '{step: 5, time: 52.68599987030029}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.23305521352583963, 0.23305521352583963, 0.23305521352583963, 0.23305521352583963,\n\
+    \    0.2313288786108334, 0.23305521352583963, 0.23305521352583963, 0.23305521352583963,\n\
+    \    0.23305521352583963, 0.23305521352583963]\n  V_hv: [1.148012718479136, 1.1445600486491234,\
+    \ 1.148012718479136, 1.148012718479136,\n    1.1462863835641297, 1.1428337137341174,\
+    \ 1.1462863835641297, 1.148012718479136,\n    1.148012718479136, 1.148012718479136]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 53.03599977493286}
+
+    '}
+- {core: '{step: 7, time: 54.1969997882843}
+
+    '}
+- {core: '{step: 8, time: 55.30399990081787}
+
+    '}
+- {core: '{step: 9, time: 56.460999965667725}
+
+    '}
+- {core: '{step: 10, time: 57.61699986457825}
+
+    '}
+- {core: '{step: 0, time: 58.77799987792969}
+
+    '}
+- {core: '{step: 1, time: 59.98399996757507}
+
+    '}
+- {core: '{step: 2, time: 61.120999813079834}
+
+    '}
+- {core: '{step: 3, time: 62.25399994850159}
+
+    '}
+- {core: '{step: 4, time: 63.35699987411499}
+
+    '}
+- {core: '{step: 5, time: 64.52999997138977}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.2399605531858645, 0.2399605531858645, 0.2399605531858645, 0.2399605531858645,\n\
+    \    0.2399605531858645, 0.2399605531858645, 0.2399605531858645, 0.2399605531858645,\n\
+    \    0.2399605531858645, 0.2399605531858645]\n  V_hv: [1.148012718479136, 1.148012718479136,\
+    \ 1.148012718479136, 1.148012718479136,\n    1.1462863835641297, 1.1462863835641297,\
+    \ 1.148012718479136, 1.1462863835641297,\n    1.148012718479136, 1.148012718479136]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 64.90999984741211}
+
+    '}
+- {core: '{step: 7, time: 66.08799982070923}
+
+    '}
+- {core: '{step: 8, time: 67.23599982261658}
+
+    '}
+- {core: '{step: 9, time: 68.38599991798401}
+
+    '}
+- {core: '{step: 10, time: 69.6729998588562}
+
+    '}
+- {core: '{step: 0, time: 70.77999997138977}
+
+    '}
+- {core: '{step: 1, time: 71.90199995040894}
+
+    '}
+- {core: '{step: 2, time: 73.0479998588562}
+
+    '}
+- {core: '{step: 3, time: 74.18099999427795}
+
+    '}
+- {core: '{step: 4, time: 75.32299995422363}
+
+    '}
+- {core: '{step: 5, time: 76.43899989128113}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.22442353895080852, 0.22614987386581475, 0.22614987386581475, 0.22442353895080852,\n\
+    \    0.22614987386581475, 0.22787620878082096, 0.22614987386581475, 0.22787620878082096,\n\
+    \    0.22614987386581475, 0.22442353895080852]\n  V_hv: [1.148012718479136, 1.148012718479136,\
+    \ 1.148012718479136, 1.148012718479136,\n    1.148012718479136, 1.1462863835641297,\
+    \ 1.148012718479136, 1.148012718479136, 1.148012718479136,\n    1.1462863835641297]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 76.79099988937378}
+
+    '}
+- {core: '{step: 7, time: 77.96199989318848}
+
+    '}
+- {core: '{step: 8, time: 79.10799980163574}
+
+    '}
+- {core: '{step: 9, time: 80.25799989700317}
+
+    '}
+- {core: '{step: 10, time: 81.38099980354309}
+
+    '}
+- {core: '{step: 0, time: 82.51399993896484}
+
+    '}
+- {core: '{step: 1, time: 83.69599986076355}
+
+    '}
+- {core: '{step: 2, time: 84.82599997520447}
+
+    '}
+- {core: '{step: 3, time: 85.98299980163574}
+
+    '}
+- {core: '{step: 4, time: 87.1729998588562}
+
+    '}
+- {core: '{step: 5, time: 88.27899980545044}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.21751819929078364, 0.2140655294607712, 0.21751819929078364, 0.2140655294607712,\n\
+    \    0.21751819929078364, 0.2140655294607712, 0.2140655294607712, 0.21751819929078364,\n\
+    \    0.2140655294607712, 0.2140655294607712]\n  V_hv: [1.148012718479136, 1.148012718479136,\
+    \ 1.148012718479136, 1.148012718479136,\n    1.1462863835641297, 1.1462863835641297,\
+    \ 1.1462863835641297, 1.148012718479136,\n    1.148012718479136, 1.1462863835641297]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 88.6969997882843}
+
+    '}
+- {core: '{step: 7, time: 89.82299995422363}
+
+    '}
+- {core: '{step: 8, time: 90.99199986457825}
+
+    '}
+- {core: '{step: 9, time: 92.15899991989136}
+
+    '}
+- {core: '{step: 10, time: 93.2979998588562}
+
+    '}
+- {core: '{step: 0, time: 94.46199989318848}
+
+    '}
+- {core: '{step: 1, time: 95.617999792099}
+
+    '}
+- {core: '{step: 2, time: 96.72899985313416}
+
+    '}
+- {core: '{step: 3, time: 97.85399985313416}
+
+    '}
+- {core: '{step: 4, time: 99.07599997520447}
+
+    '}
+- {core: '{step: 5, time: 100.242999792099}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.20716018980074632, 0.20716018980074632, 0.20716018980074632, 0.2140655294607712,\n\
+    \    0.20716018980074632, 0.20716018980074632, 0.20716018980074632, 0.2140655294607712,\n\
+    \    0.2140655294607712, 0.2140655294607712]\n  V_hv: [1.1462863835641297, 1.148012718479136,\
+    \ 1.141107378819111, 1.1462863835641297,\n    1.148012718479136, 1.148012718479136,\
+    \ 1.1462863835641297, 1.148012718479136, 1.1445600486491234,\n    1.148012718479136]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 100.60399985313416}
+
+    '}
+- {core: '{step: 7, time: 101.71699976921082}
+
+    '}
+- {core: '{step: 8, time: 102.83199977874756}
+
+    '}
+- {core: '{step: 9, time: 103.98299980163574}
+
+    '}
+- {core: '{step: 10, time: 105.15599989891052}
+
+    '}
+- {core: '{step: 0, time: 106.26099991798401}
+
+    '}
+- {core: '{step: 1, time: 107.38299989700317}
+
+    '}
+- {core: '{step: 2, time: 108.55599999427795}
+
+    '}
+- {core: '{step: 3, time: 109.6859998703003}
+
+    '}
+- {core: '{step: 4, time: 110.79999995231628}
+
+    '}
+- {core: '{step: 5, time: 111.95099997520447}
+
+    ', wheelerlab.dmf_control_board_1.2: "FeedbackResults: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackResults\n\
+    \  V_fb: [0.2140655294607712, 0.21579186437577744, 0.2140655294607712, 0.21579186437577744,\n\
+    \    0.21751819929078364, 0.2140655294607712, 0.2140655294607712, 0.2140655294607712,\n\
+    \    0.2140655294607712, 0.21579186437577744]\n  V_hv: [1.148012718479136, 1.148012718479136,\
+    \ 1.148012718479136, 1.148012718479136,\n    1.1462863835641297, 1.1462863835641297,\
+    \ 1.148012718479136, 1.148012718479136,\n    1.1462863835641297, 1.1462863835641297]\n\
+    \  _V_total: 100.0\n  area: 46.354886469239425\n  fb_resistor: [0, 0, 0, 0, 0,\
+    \ 0, 0, 0, 0, 0]\n  frequency: 10000.0\n  hv_resistor: [0, 0, 0, 0, 0, 0, 0, 0,\
+    \ 0, 0]\n  options: !!python/object:plugins.dmf_control_board.microdrop.feedback.FeedbackOptions\n\
+    \    action: !!python/object:plugins.dmf_control_board.microdrop.feedback.RetryAction\
+    \ {\n      capacitance_threshold: 0.0, increase_voltage: 0, max_repeats: 3}\n\
+    \    delay_between_samples_ms: 0\n    feedback_enabled: true\n    n_samples: 10\n\
+    \    sampling_time_ms: 10\n  time: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]\n"}
+- {core: '{step: 6, time: 112.36999988555908}
+
+    '}
+- {core: '{step: 7, time: 113.54499983787537}
+
+    '}
+- {core: '{step: 8, time: 114.67699980735779}
+
+    '}
+- {core: '{step: 9, time: 115.7979998588562}
+
+    '}
+- {core: "{control board hardware version: '1.2', control board name: Arduino DMF\
+    \ Controller,\n  control board software version: 0.1.162, device name: DMF-Abbott-90-pin\
+    \ (Wheelerlab\n    Connector), notes: Wash buffer dispensing experiment, protocol\
+    \ name: dispense\n    up, software version: 0.1.321, step: 10, time: 116.95199990272522}\n"}
+directory: C:\Users\ryan\Documents\Microdrop\devices\DMF-Abbott-90-pin (Wheelerlab
+  Connector)\logs
+experiment_id: 87
+filename: tests/experiment_logs/experiment log 0 v0.0.0
+version: 0.1.0
