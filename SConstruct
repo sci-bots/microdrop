@@ -5,8 +5,8 @@ import sys
 from git_util import GitUtil
 from path_find import path_find
 
-AddOption('--wix-seval',
-          dest='wix_seval',
+AddOption('--wix-sval',
+          dest='wix_sval',
           action="store_true",
           help='Skip WiX ICE validation')
 
@@ -40,8 +40,8 @@ if os.name == 'nt':
     env.Clean(wixobj, 'microdrop.wixpdb') 
     
     # option to skip ICE validation (buildbot fails without this option) 
-    if GetOption('wix_seval'):
-        SEVAL = '-seval'
+    if GetOption('wix_sval'):
+        SEVAL = '-sval'
     else:
         SEVAL = ''
 
