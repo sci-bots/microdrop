@@ -5,6 +5,11 @@ import sys
 from git_util import GitUtil
 from path_find import path_find
 
+AddOption('--wix-seval',
+          dest='wix_seval',
+          action="store_true",
+          help='Skip WiX ICE validation')
+
 env = Environment(ENV=os.environ)
 Export('env')
 
@@ -33,9 +38,16 @@ if os.name == 'nt':
     env.Clean(exe, 'dist') 
     env.Clean(exe, 'build') 
     env.Clean(wixobj, 'microdrop.wixpdb') 
+    
+    # option to skip ICE validation (buildbot fails without this option) 
+    if GetOption('wix_seval'):
+        SEVAL = '-seval'
+    else:
+        SEVAL = ''
 
     msi = env.Command('microdrop-%s.msi' % SOFTWARE_VERSION, wixobj,
-            'light -ext WixUIExtension -cultures:en-us $SOURCE -out $TARGET')
+            'light %s -ext WixUIExtension -cultures:en-us $SOURCE '
+            '-out $TARGET' % SEVAL)
     AlwaysBuild(version_target)
     Depends(exe, version_target)
     Depends(wxs, exe)
