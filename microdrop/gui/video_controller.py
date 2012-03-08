@@ -96,7 +96,7 @@ class VideoController(SingletonPlugin, AppDataController):
     def on_plugin_disable(self, *args, **kwargs):
         pass
 
-    def update_frame_data(self, frame):
+    def update_frame_data(self, frame, frame_time):
         if self.video_enabled:
             # Process NumPy array frame data
             height, width, channels = frame.shape
@@ -106,7 +106,7 @@ class VideoController(SingletonPlugin, AppDataController):
                 % (type(frame), (height, width, channels, depth)))
             gtk_frame = array2cv(frame)
             cv.CvtColor(gtk_frame, gtk_frame, cv.CV_BGR2RGB)
-            emit_signal('on_new_frame', [gtk_frame, depth],
+            emit_signal('on_new_frame', [gtk_frame, depth, frame_time],
                             interface=IVideoPlugin)
         return True
 

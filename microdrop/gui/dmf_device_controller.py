@@ -436,7 +436,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 self.view.electrode_color[id] = (1,0,0)
         self.view.update()
 
-    def on_new_frame(self, frame, depth):
+    def on_new_frame(self, frame, depth, frame_time):
         now = datetime.now()
 
         if (now - self.last_frame_time).total_seconds() < self.display_fps_inv:
