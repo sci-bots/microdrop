@@ -437,6 +437,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.view.update()
 
     def on_new_frame(self, frame, depth, frame_time):
+        self.last_frame = frame
         now = datetime.now()
 
         if (now - self.last_frame_time).total_seconds() < self.display_fps_inv:
