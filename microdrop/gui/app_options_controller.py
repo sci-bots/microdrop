@@ -19,6 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 from copy import deepcopy
+import re
 
 import gtk
 from path import path
@@ -33,6 +34,26 @@ from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
 
 
 class AppOptionsController:
+    '''
+INFO:  <Plugin App 'microdrop.app'>
+INFO:  <Plugin ConfigController 'microdrop.gui.config_controller'>
+INFO:  <Plugin DmfControlBoardPlugin 'wheelerlab.dmf_control_board_1.2'>
+INFO:  <Plugin DmfDeviceController 'microdrop.gui.dmf_device_controller'>
+INFO:  <Plugin ExperimentLogController 'microdrop.gui.experiment_log_controller'>
+INFO:  <Plugin MainWindowController 'microdrop.gui.main_window_controller'>
+INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
+INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
+INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
+    '''
+    core_plugins = ['microdrop.app',
+            'microdrop.gui.config_controller',
+            'microdrop.gui.dmf_device_controller',
+            'microdrop.gui.experiment_log_controller',
+            'microdrop.gui.main_window_controller',
+            'microdrop.gui.protocol_controller',
+            'microdrop.gui.protocol_grid_controller',
+            'microdrop.gui.video_controller',]
+
     def __init__(self):
         app = get_app()
         builder = gtk.Builder()
@@ -40,6 +61,8 @@ class AppOptionsController:
                                            "glade",
                                            "app_options_dialog.glade"))
         self.dialog = builder.get_object("app_options_dialog")
+        self.frame_core_plugins = builder.get_object("frame_core_plugins")
+        self.core_plugins_vbox = builder.get_object("core_plugins_vbox")
         self.plugin_form_vbox = builder.get_object("plugin_form_vbox")
         self.dialog.set_transient_for(app.main_window_controller.view)
 
@@ -63,8 +86,12 @@ class AppOptionsController:
         else:
             return values
 
+    def remove_plugin_form(self, x):
+        if x != self.frame_core_plugins:
+            self.plugin_form_vbox.remove(x)
+
     def clear_form(self):
-        self.plugin_form_vbox.foreach(lambda x: self.plugin_form_vbox.remove(x))
+        self.plugin_form_vbox.foreach(lambda x: self.remove_plugin_form(x))
 
     def run(self):
         # Empty plugin form vbox
@@ -83,11 +110,16 @@ class AppOptionsController:
             gui_form = Form.of(*schema_entries)
             FormView.schema_type = gui_form
             self.form_views[name] = FormView()
-            expander = gtk.Expander()
-            expander.set_label(name)
-            expander.set_expanded(True)
-            expander.add(self.form_views[name].widget)
-            self.plugin_form_vbox.pack_start(expander)
+            if name in self.core_plugins:
+                self.core_plugins_vbox.pack_start(self.form_views[name].widget)
+                self.frame_core_plugins.show()
+            else:
+                expander = gtk.Expander()
+                expander.set_label(name)
+                expander.set_expanded(True)
+                expander.add(self.form_views[name].widget)
+                self.plugin_form_vbox.pack_start(expander)
+        #import pudb; pudb.set_trace()
         for form_name, form in self.forms.iteritems():
             form_view = self.form_views[form_name]
             values = self._get_app_values(form_name)
@@ -96,6 +128,10 @@ class AppOptionsController:
                 value = values[field]
                 proxy = proxy_for(getattr(form_view, field))
                 proxy.set_widget_value(value)
+                form_field = form_view.form.fields[field]
+                form_field.label_widget.set_text(
+                        re.sub(r'_',  ' ', field).title())
+
         self.dialog.show_all()
 
         response = self.dialog.run()

@@ -27,7 +27,7 @@ class FilepathWidget(gtk.HBox):
     def __init__(self):
         gtk.HBox.__init__(self, spacing=3)
         self.set_border_width(6)
-        self.set_size_request(250, 250)
+        self.set_size_request(250, -1)
         self.filepath_entry = gtk.Entry()
         self.filepath_entry.set_editable(False)
         self.browse_button = gtk.Button(label='Browse...')
@@ -117,7 +117,7 @@ class FilepathBuilder(ElementBuilder):
 
     def build(self, widget, style, element, options):
         if style == 'browse':
-            widget.set_size_request(-1, 100)
+            widget.set_size_request(-1, -1)
         return widget
 
 
