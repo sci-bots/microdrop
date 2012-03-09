@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import re
 import logging
 from shutil import ignore_patterns
 from zipfile import ZipFile
@@ -48,7 +49,8 @@ PluginMetaData.from_dict = staticmethod(from_dict)
 
 
 class PluginController(object):
-    def __init__(self, name):
+    def __init__(self, dialog, name):
+        self.dialog = dialog
         self.name = name
         self.e = PluginGlobals.env('microdrop.managed')
         self.plugin_class = self.e.plugin_registry[name]
@@ -56,15 +58,24 @@ class PluginController(object):
         self.box = gtk.HBox()
         self.label = gtk.Label('%s' % self.name)
         self.label.set_alignment(0, 0.5)
-        self.version = gtk.Label('v0.1')
-        self.version.set_alignment(0, 0.5)
+        self.label_version = gtk.Label(str(self.version))
+        self.label_version.set_alignment(0, 0.5)
+        self.button_uninstall = gtk.Button('uninstall')
+        self.button_uninstall.connect('clicked',
+                self.on_button_uninstall_clicked, None)
         self.button = gtk.Button('disabled')
         self.button.connect('clicked', self.on_button_clicked, None)
         self.box.pack_start(self.label, expand=True, fill=True)
         self.box.pack_end(self.button, expand=False, fill=False, padding=5)
-        self.box.pack_end(self.version, expand=True, fill=False)
+        self.box.pack_end(self.button_uninstall, expand=False, fill=False,
+                padding=5)
+        self.box.pack_end(self.label_version, expand=True, fill=False)
         self.update()
         self.box.show_all()
+
+    @property
+    def version(self):
+        return getattr(self.plugin_class, 'version', None)
 
     def enabled(self):
         return not(self.service is None or not self.service.enabled())
@@ -85,6 +96,34 @@ class PluginController(object):
 
     def get_widget(self):
         return self.box
+
+    def on_button_uninstall_clicked(self, widget, data=None):
+        plugin_name = self.get_plugin_module_name()
+        yesno('Uninstall plugin %s?' % plugin_name)
+
+        plugin_path = self.get_plugin_path()
+        if plugin_path.isdir():
+            self.dialog.uninstall_plugin(plugin_path)
+            self.dialog.restart_required = True
+            self.dialog.update()
+
+    def get_plugin_module_name(self):
+        cre_plugin_name = re.compile(r'^plugins\.(?P<name>.*?)\.')
+        match = cre_plugin_name.search(self.plugin_class.__module__)
+        if match is None:
+            logging.error('Could not determine plugin name from: %s'\
+                    % self.plugin_class.__module__)
+            return True
+        return match.group('name')
+
+    def get_plugin_path(self, plugin_name=None):
+        if plugin_name is None:
+            plugin_name = self.get_plugin_module_name()
+        app = get_app()
+
+        app.config.data['plugins']['directory']
+        return path(app.config.data['plugins']['directory'])\
+                .joinpath(plugin_name)
 
     def on_button_clicked(self, widget, data=None):
         self.toggle_enabled()
@@ -110,7 +149,9 @@ class PluginManagerDialog(object):
         del self.plugins
         self.plugins = []
         for name in plugin_names:
-            p = PluginController(name)
+            p = PluginController(self, name)
+            if not p.get_plugin_path().isdir():
+                continue
             self.plugins.append(p)
             self.vbox_plugins.pack_start(p.get_widget())
 
@@ -196,31 +237,38 @@ version?''' % message)
                 if response == gtk.RESPONSE_NO:
                     return
                 else:
-                    # Remove the old version.
-                    copy_finished = False
                     try:
-                        # Temporarily copy old plugin to /tmp
-                        temp_dir = path(tempfile.mkdtemp(prefix='microdrop_backup'))
-                        installed_plugin_path.copytree(
-                                temp_dir.joinpath(installed_plugin_path.name),
-                                symlinks=True,
-                                ignore=ignore_patterns('*.pyc'))
-                        copy_finished = True
-                        installed_plugin_path.rmtree()
+                        self.uninstall_plugin(installed_plugin_path)
                     except:
-                        if copy_finished:
-                            logging.error('''\
-Error uninstalling %s from %s.
-Please try removing the directory manually and try again.
-Note: originally installed version available in %s''' % (installed_metadata.name,
-                                    installed_plugin_path, temp_dir))
+                        raise
                         return
-                    else:
-                        temp_dir.rmtree()
         else:
             # There is no valid version of this plugin currently installed.
             logging.info('%s is not currently installed' % plugin_root.name)
         self.install_plugin(plugin_root, installed_plugin_path)
+
+    def uninstall_plugin(self, plugin_path):
+        # Remove the old version.
+        copy_finished = False
+        try:
+            # Temporarily copy old plugin to /tmp
+            temp_dir = path(tempfile.mkdtemp(prefix='microdrop_backup'))
+            plugin_path.copytree(
+                    temp_dir.joinpath(plugin_path.name),
+                    symlinks=True,
+                    ignore=ignore_patterns('*.pyc'))
+            copy_finished = True
+            plugin_path.rmtree()
+        except:
+            if copy_finished:
+                logging.error('''\
+Error uninstalling %s from %s.
+Please try removing the directory manually and try again.
+Note: originally installed version available in %s''' % (plugin_path.name,
+                        plugin_path, temp_dir))
+            raise
+        else:
+            temp_dir.rmtree()
 
     def install_plugin(self, plugin_root, install_path):
         plugin_root.copytree(install_path, symlinks=True,
