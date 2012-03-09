@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import logging
 from shutil import ignore_patterns
 from zipfile import ZipFile
+import tarfile
 import tempfile
 
 import gtk
@@ -109,16 +110,25 @@ class PluginManagerDialog(object):
     def on_button_install_clicked(self, *args, **kwargs):
         response = open_filechooser('Select plugin file',
                 action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                patterns=['*.tgz', '*.zip'])
+                patterns=['*.tar.gz', '*.tgz', '*.zip'])
         if response is None:
             return True
 
         temp_dir = path(tempfile.mkdtemp(prefix='microdrop_'))
+        logging.debug('extracting to: %s' % temp_dir)
+        response = path(response)
 
         try:
-            zip_file = ZipFile(response)
-            zip_file.extractall(temp_dir)
-
+            if response.ext == '.zip':
+                zip_file = ZipFile(response)
+                zip_file.extractall(temp_dir)
+                zip_file.close()
+            else:
+                # extension must be .tar.gz or .tgz
+                tar_file = tarfile.open(response, 'r:gz')
+                tar_file.extractall(temp_dir)
+                tar_file.close()
+            
             assert(len(temp_dir.dirs()) == 1)
 
             plugin_root = path(temp_dir.dirs()[0])
@@ -141,9 +151,8 @@ class PluginManagerDialog(object):
                 logging.warning('Plugin %s already exists. '\
                         'Skipping installation.' % plugin_root.name)
         finally:
-            temp_dir.rmdir_p()
+            temp_dir.rmtree()
         return True
-
 
 
 if __name__ == '__main__':
