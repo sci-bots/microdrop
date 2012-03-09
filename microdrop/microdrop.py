@@ -22,8 +22,8 @@ import os
 import sys
 import multiprocessing
 
-import matplotlib
 import blinker
+import matplotlib
 
 try:
     import utility as utility

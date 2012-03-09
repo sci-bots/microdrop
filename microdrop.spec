@@ -1,6 +1,7 @@
 # -*- mode: python -*-
 from path import path
 import pygtkhelpers
+import matplotlib
 
 try:
     import pymunk
@@ -21,6 +22,13 @@ for mod in [pygtkhelpers]:
 	mod_path = path(mod.__file__).parent
 	a.datas += [(str(mod_path.parent.relpathto(p)), str(p.abspath()), 'DATA')\
 		    for p in mod_path.walkfiles(ignore=[r'\.git', r'site_scons', r'.*\.pyc'])]
+
+
+# Copy matplotlib mpl-data files to dist directory.
+matplotlib_path = path(matplotlib.__file__).parent
+a.datas += [(str(matplotlib_path.relpathto(p)), str(p.abspath()), 'DATA')\
+        for p in matplotlib_path.joinpath('mpl-data').walkfiles(ignore=[r'\.git', r'site_scons', r'.*\.pyc'])]
+
 
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\opencv').walkfiles(ignore=[r'\.git', r'site_scons', r'.*\.pyc'])]

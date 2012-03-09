@@ -175,15 +175,15 @@ class DirectoryWalker(object):
 def generate_wxs(root_path, version):
     dw = DirectoryWalker()
     root = dw.xml_tree(root_path)
-    etc = dw.xml_tree(root_path.joinpath('etc'), recursive=True)
-    devices = dw.xml_tree(root_path.joinpath('devices'), recursive=True)
-    gui = dw.xml_tree(root_path.joinpath('gui'), recursive=True)
-    #mpl_data = dw.xml_tree(root_path.joinpath('mpl-data'), recursive=True)
-    plugins = dw.xml_tree(root_path.joinpath('plugins'), recursive=True)
-    share = dw.xml_tree(root_path.joinpath('share'), recursive=True)
 
-    #children = dict(etc=etc, gui=gui, mpl_data=mpl_data, share=share)
-    children = dict(etc=etc, gui=gui, share=share)
+    extra_dirs = ['etc', 'gui', 'mpl-data', 'share', 'pygtkhelpers', 'opencv',
+        'flatland']
+    children = dict([(name, dw.xml_tree(root_path.joinpath(name),
+            recursive=True)) for name in extra_dirs])
+
+    devices = dw.xml_tree(root_path.joinpath('devices'), recursive=True)
+    plugins = dw.xml_tree(root_path.joinpath('plugins'), recursive=True)
+
     for c in children.itervalues():
         root[0].appendChild(c[0])
 
