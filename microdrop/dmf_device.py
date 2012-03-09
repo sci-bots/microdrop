@@ -184,7 +184,7 @@ class DmfDevice():
                     except ParseError:
                         pass
                     except KeyError:
-                        import pudb; pudb.set_trace()
+                        pass
                 path_group = PathGroup(traced_paths, boundary)
                 electrodes = self.electrodes
                 self.electrodes = {}
