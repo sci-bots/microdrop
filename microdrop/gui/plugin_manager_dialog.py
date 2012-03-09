@@ -17,7 +17,13 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import logging
+from shutil import ignore_patterns
+from zipfile import ZipFile
+import tempfile
+
 import gtk
+from pygtkhelpers.ui.dialogs import open_filechooser, info
 from path import path
 
 from plugin_manager import PluginGlobals
@@ -72,6 +78,7 @@ class PluginManagerDialog(object):
         self.vbox_plugins = builder.get_object('vbox_plugins')
         self.e = PluginGlobals.env('microdrop.managed')
         self.plugins = []
+        builder.connect_signals(self)
 
     def clear_plugin_list(self):
         self.vbox_plugins.foreach(lambda x: self.vbox_plugins.remove(x))
@@ -98,6 +105,45 @@ class PluginManagerDialog(object):
         app.config.set_plugins(enabled_plugins)
         app.config.save()
         return response
+
+    def on_button_install_clicked(self, *args, **kwargs):
+        response = open_filechooser('Select plugin file',
+                action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                patterns=['*.tgz', '*.zip'])
+        if response is None:
+            return True
+
+        temp_dir = path(tempfile.mkdtemp(prefix='microdrop_'))
+
+        try:
+            zip_file = ZipFile(response)
+            zip_file.extractall(temp_dir)
+
+            assert(len(temp_dir.dirs()) == 1)
+
+            plugin_root = path(temp_dir.dirs()[0])
+            microdrop_path = path('microdrop').joinpath('__init__.py')
+            if not (plugin_root / microdrop_path).isfile():
+                logging.error('%s does not contain a valid plugin' % response)
+                return True
+            app = get_app()
+            new_plugin_path = path(app.config.data['plugins']['directory'])\
+                    .joinpath(plugin_root.name)
+            if not (new_plugin_path / microdrop_path).isfile():
+                plugin_root.copytree(new_plugin_path, symlinks=True,
+                        ignore=ignore_patterns('*.pyc'))
+                # Reload plugins to include newly installed plugin.
+                plugin_manager.load_plugins()
+                self.update()
+                logging.info('%s installed successfully' % plugin_root.name)
+                info('%s installed successfully' % plugin_root.name)
+            else:
+                logging.warning('Plugin %s already exists. '\
+                        'Skipping installation.' % plugin_root.name)
+        finally:
+            temp_dir.rmdir_p()
+        return True
+
 
 
 if __name__ == '__main__':
