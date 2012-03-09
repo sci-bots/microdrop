@@ -18,6 +18,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
+from copy import deepcopy
 
 import gtk
 from path import path
@@ -74,7 +75,13 @@ class AppOptionsController:
         for name, form in self.forms.iteritems():
             # For each form, generate a pygtkhelpers formview and append the view
             # onto the end of the plugin vbox
-            FormView.schema_type = form
+
+            # Only include fields that do not have show_in_gui set to False in
+            # 'properties' dictionary
+            schema_entries = [f for f in form.field_schema\
+                    if f.properties.get('show_in_gui', True)]
+            gui_form = Form.of(*schema_entries)
+            FormView.schema_type = gui_form
             self.form_views[name] = FormView()
             expander = gtk.Expander()
             expander.set_label(name)
@@ -84,7 +91,9 @@ class AppOptionsController:
         for form_name, form in self.forms.iteritems():
             form_view = self.form_views[form_name]
             values = self._get_app_values(form_name)
-            for field, value in values.iteritems():
+            fields = set(values.keys()).intersection(form_view.form.fields)
+            for field in fields:
+                value = values[field]
                 proxy = proxy_for(getattr(form_view, field))
                 proxy.set_widget_value(value)
         self.dialog.show_all()

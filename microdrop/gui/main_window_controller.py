@@ -48,7 +48,8 @@ class MainWindowController(SingletonPlugin, AppDataController):
     implements(ILoggingPlugin)
 
     AppFields = Form.of(
-        Boolean.named('realtime_mode').using(default=False, optional=True),
+        Boolean.named('realtime_mode').using(default=False, optional=True,
+            properties=dict(show_in_gui=False)),
         Filepath.named('log_file').using(default='', optional=True),
         Boolean.named('log_enabled').using(default=False, optional=True),
     )
