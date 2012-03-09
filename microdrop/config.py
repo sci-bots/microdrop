@@ -122,7 +122,8 @@ class Config():
         self._validate()
 
     def set_plugins(self, plugins):
-        self.enabled_plugins = plugins
+        self.data["plugins"]["enabled"] = plugins
+        self.save()
 
     def save(self, filename=None):
         if filename == None:
