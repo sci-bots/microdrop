@@ -99,13 +99,13 @@ class PluginController(object):
 
     def on_button_uninstall_clicked(self, widget, data=None):
         plugin_name = self.get_plugin_module_name()
-        yesno('Uninstall plugin %s?' % plugin_name)
-
-        plugin_path = self.get_plugin_path()
-        if plugin_path.isdir():
-            self.dialog.uninstall_plugin(plugin_path)
-            self.dialog.restart_required = True
-            self.dialog.update()
+        response = yesno('Uninstall plugin %s?' % plugin_name)
+        if response == gtk.RESPONSE_YES:
+            plugin_path = self.get_plugin_path()
+            if plugin_path.isdir():
+                self.dialog.uninstall_plugin(plugin_path)
+                self.dialog.restart_required = True
+                self.dialog.update()
 
     def get_plugin_module_name(self):
         cre_plugin_name = re.compile(r'^plugins\.(?P<name>.*?)\.')
@@ -137,6 +137,8 @@ class PluginManagerDialog(object):
         self.vbox_plugins = builder.get_object('vbox_plugins')
         self.e = PluginGlobals.env('microdrop.managed')
         self.plugins = []
+        # Maintain a list of path deletions to be processed on next app launch
+        self.requested_deletions = []
         self.restart_required = False
         builder.connect_signals(self)
 
@@ -150,10 +152,21 @@ class PluginManagerDialog(object):
         self.plugins = []
         for name in plugin_names:
             p = PluginController(self, name)
-            if not p.get_plugin_path().isdir():
+            # Skip the plugin if it has been marked for uninstall, or no
+            # longer exists
+            if p.get_plugin_path().abspath() in self.requested_deletions\
+                    or not p.get_plugin_path().isdir():
                 continue
             self.plugins.append(p)
             self.vbox_plugins.pack_start(p.get_widget())
+
+        # Save the list of path deletions to be processed on next app launch
+        app = get_app()
+        requested_deletion_path = path(app.config.data['plugins']['directory'])\
+                .joinpath('requested_deletions.yml')
+        requested_deletion_path.write_bytes(yaml.dump(
+                [p.abspath() for p in self.requested_deletions]))
+
 
     def get_plugin_names(self):
         return list(self.e.plugin_registry.keys())
@@ -198,7 +211,9 @@ Please start program again for changes to take effect.''')
                 tar_file.close()
             self.verify_new_plugin(temp_dir)
         finally:
-            temp_dir.rmtree()
+            # Post-pone deletion until next program launch
+            self.requested_deletions.append(temp_dir)
+            self.update()
         return True
 
     def verify_new_plugin(self, extracted_path):
@@ -207,7 +222,7 @@ Please start program again for changes to take effect.''')
         plugin_metadata = self.get_plugin_info(plugin_root)
         if plugin_metadata is None:
             logging.error('%s does not contain a valid plugin.\n'\
-                    '(missing %s)' % (response, p))
+                    '(missing %s)' % (p))
             return False
         logging.info('Installing: %s' % (plugin_metadata, ))
 
@@ -258,7 +273,8 @@ version?''' % message)
                     symlinks=True,
                     ignore=ignore_patterns('*.pyc'))
             copy_finished = True
-            plugin_path.rmtree()
+            # Post-pone deletion until next program launch
+            self.requested_deletions.append(plugin_path)
         except:
             if copy_finished:
                 logging.error('''\
@@ -268,19 +284,24 @@ Note: originally installed version available in %s''' % (plugin_path.name,
                         plugin_path, temp_dir))
             raise
         else:
-            temp_dir.rmtree()
+            # Post-pone deletion until next program launch
+            self.requested_deletions.append(temp_dir)
+        self.update()
 
     def install_plugin(self, plugin_root, install_path):
         plugin_root.copytree(install_path, symlinks=True,
                 ignore=ignore_patterns('*.pyc'))
+        app = get_app()
         # Reload plugins to include newly installed plugin.
-        plugin_manager.load_plugins()
+        plugin_manager.load_plugins(
+                app.config.data['plugins']['directory'])
         self.update()
         logging.info('%s installed successfully' % plugin_root.name)
         info('%s installed successfully' % plugin_root.name)
         self.restart_required = True
 
-    def get_plugin_info(self, plugin_root):
+    @staticmethod
+    def get_plugin_info(plugin_root):
         '''
         Return a tuple:
             (installed_version, metadata)

@@ -25,6 +25,7 @@ import traceback
 import gtk
 import numpy as np
 from path import path
+import yaml
 
 from utility import base_path, PROGRAM_LAUNCHED
 from dmf_device import DmfDevice
@@ -36,6 +37,7 @@ from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
 from plugin_helpers import AppDataController
 from logger import logger, CustomHandler, logging
 from app_context import plugin_manager
+from gui.plugin_manager_dialog import PluginManagerDialog
 
 
 PluginGlobals.push_env('microdrop')
@@ -50,6 +52,7 @@ import gui.video_controller
 import gui.protocol_controller
 import gui.protocol_grid_controller
 import gui.app_options_controller
+
 
 class App(Plugin):
     implements(IPlugin)
@@ -93,7 +96,38 @@ class App(Plugin):
 
         # config model
         self.config = Config()
-        
+
+        # Delete paths that were marked during the uninstallation of a plugin.
+        # It is necessary to delay the deletion until here due to Windows file
+        # locking preventing the deletion of files that are in use.
+        deletions_path = path(self.config.data['plugins']['directory'])\
+                .joinpath('requested_deletions.yml')
+        if deletions_path.isfile():
+            requested_deletions = yaml.load(deletions_path.bytes())
+            requested_deletions = map(path, requested_deletions)
+            logger.info('[App] processing requested deletions.')
+            for p in requested_deletions:
+                try:
+                    if p != p.abspath():
+                        logger.info('    (warning) ignoring path %s since it is '\
+                                'not absolute' % p)
+                        continue
+                    if p.isdir():
+                        # Test to make sure this looks like a plugin
+                        if p.joinpath('microdrop').isdir():
+                            plugin_root = p
+                        elif len(p.dirs()) == 1:
+                            plugin_root = path(p.dirs()[0])
+                        info = PluginManagerDialog.get_plugin_info(plugin_root)
+                        if info:
+                            logger.info('  deleting %s' % p)
+                            p.rmtree()
+                            requested_deletions.remove(p)
+                except (AssertionError,):
+                    logger.info('  NOT deleting %s info=%s' % (p, info))
+                    continue
+            deletions_path.write_bytes(yaml.dump(requested_deletions))
+
         # dmf device
         self.dmf_device = DmfDevice()
 
