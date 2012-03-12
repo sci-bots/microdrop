@@ -16,13 +16,12 @@ extra_py = []
 a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
             'microdrop\\microdrop.py'] + extra_py,
-            excludes=['opencv', 'flatland'])
+            excludes=['opencv', 'flatland', 'gui_pure',])
 
 for mod in [pygtkhelpers]:
 	mod_path = path(mod.__file__).parent
 	a.datas += [(str(mod_path.parent.relpathto(p)), str(p.abspath()), 'DATA')\
 		    for p in mod_path.walkfiles(ignore=[r'\.git', r'site_scons', r'.*\.pyc'])]
-
 
 # Copy matplotlib mpl-data files to dist directory.
 matplotlib_path = path(matplotlib.__file__).parent
@@ -39,6 +38,9 @@ if chipmunk_path:
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\flatland')\
                     .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
+a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
+            for p in [path('microdrop\\gui_pure').joinpath(pfile)\
+                for pfile in ('protocol_grid_controller.py', '__init__.py')]]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\gui').walkfiles('*.glade')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
@@ -59,10 +61,10 @@ exe = EXE(pyz,
             a.scripts,
             exclude_binaries=True,
             name=os.path.join('build\\pyi.win32\\microdrop', 'microdrop.exe'),
-            debug=False,
+            debug=True,
             strip=False,
             upx=True,
-            console=False,
+            console=True,
             icon='microdrop.ico')
 coll = COLLECT(exe,
                 a.datas,

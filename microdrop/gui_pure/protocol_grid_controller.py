@@ -25,7 +25,6 @@ import time
 import logging
 from StringIO import StringIO
 from contextlib import closing
-import uuid
 import re
 
 import numpy as np
@@ -40,6 +39,7 @@ import protocol
 from protocol import Protocol
 from utility import is_float, is_int
 from utility.gui import textentry_validate
+import utility.uuid_minimal as uuid
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, emit_signal, PluginGlobals
 from gui.textbuffer_with_undo import UndoableBuffer

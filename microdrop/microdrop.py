@@ -22,9 +22,6 @@ import os
 import sys
 import multiprocessing
 
-import blinker
-import matplotlib
-
 try:
     import utility as utility
 except ImportError:
@@ -33,6 +30,14 @@ except ImportError:
 
     sys.path.append(path(microdrop.__file__).parent)
     import utility as utility
+
+# The following imports ensure that the corresponding modules are processed
+# by PyInstaller when generating an EXE.
+import blinker
+import matplotlib
+from PIL import Image, ImageFont, ImageDraw
+import utility.uuid_minimal
+
 
 
 def except_handler(*args, **kwargs):
@@ -44,6 +49,7 @@ def except_handler(*args, **kwargs):
 
 if __name__ == '__main__':
     if hasattr(sys, 'frozen'):
+        print 'Enabling multiprocessing freeze support.'
         multiprocessing.freeze_support()
     utility.PROGRAM_LAUNCHED = True
     # Change directory to where microdrop.py resides, so this program can be

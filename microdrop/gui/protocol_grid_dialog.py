@@ -20,6 +20,8 @@ import logging
 
 import gtk
 from path import path
+from pygtkhelpers.forms import FormView
+from pygtkhelpers.proxy import proxy_for
 
 from plugin_manager import PluginGlobals
 from app_context import get_app, plugin_manager
@@ -36,9 +38,6 @@ class ProtocolGridDialog(object):
         self.vbox_form.foreach(lambda x: self.vbox_form.remove(x))
 
     def run(self, form, value=None):
-        from pygtkhelpers.forms import FormView
-        from pygtkhelpers.proxy import proxy_for
-
         FormView.schema_type = form
         form_view = FormView()
         proxy = proxy_for(getattr(form_view, form_view.form.fields.keys()[0]))
