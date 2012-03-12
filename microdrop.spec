@@ -16,7 +16,7 @@ extra_py = []
 a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
             'microdrop\\microdrop.py'] + extra_py,
-            excludes=['opencv', 'flatland', 'gui_pure',])
+            excludes=['opencv', 'flatland',])
 
 for mod in [pygtkhelpers]:
 	mod_path = path(mod.__file__).parent
@@ -38,9 +38,6 @@ if chipmunk_path:
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\flatland')\
                     .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
-a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
-            for p in [path('microdrop\\gui_pure').joinpath(pfile)\
-                for pfile in ('protocol_grid_controller.py', '__init__.py')]]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\gui').walkfiles('*.glade')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
