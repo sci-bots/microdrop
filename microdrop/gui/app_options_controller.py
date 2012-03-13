@@ -34,26 +34,6 @@ from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
 
 
 class AppOptionsController:
-    '''
-INFO:  <Plugin App 'microdrop.app'>
-INFO:  <Plugin ConfigController 'microdrop.gui.config_controller'>
-INFO:  <Plugin DmfControlBoardPlugin 'wheelerlab.dmf_control_board_1.2'>
-INFO:  <Plugin DmfDeviceController 'microdrop.gui.dmf_device_controller'>
-INFO:  <Plugin ExperimentLogController 'microdrop.gui.experiment_log_controller'>
-INFO:  <Plugin MainWindowController 'microdrop.gui.main_window_controller'>
-INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
-INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
-INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
-    '''
-    core_plugins = ['microdrop.app',
-            'microdrop.gui.config_controller',
-            'microdrop.gui.dmf_device_controller',
-            'microdrop.gui.experiment_log_controller',
-            'microdrop.gui.main_window_controller',
-            'microdrop.gui.protocol_controller',
-            'microdrop.gui.protocol_grid_controller',
-            'microdrop.gui.video_controller',]
-
     def __init__(self):
         app = get_app()
         builder = gtk.Builder()
@@ -99,6 +79,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
         self.forms = emit_signal('get_app_form_class')
         self.form_views = {}
         self.clear_form()
+        app = get_app()
         for name, form in self.forms.iteritems():
             # For each form, generate a pygtkhelpers formview and append the view
             # onto the end of the plugin vbox
@@ -110,7 +91,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
             gui_form = Form.of(*schema_entries)
             FormView.schema_type = gui_form
             self.form_views[name] = FormView()
-            if name in self.core_plugins:
+            if name in app.core_plugins:
                 self.core_plugins_vbox.pack_start(self.form_views[name].widget)
                 self.frame_core_plugins.show()
             else:
