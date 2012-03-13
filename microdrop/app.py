@@ -140,7 +140,15 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                         info = PluginManagerDialog.get_plugin_info(plugin_root)
                         if info:
                             logger.info('  deleting %s' % p)
-                            p.rmtree()
+                            cwd = os.getcwd()
+                            os.chdir(p.parent)
+                            try:
+                                path(p.name).rmtree() #ignore_errors=True)
+                            except Exception, why:
+                                logger.warning('Error deleting path %s (%s)'\
+                                        % (p, why))
+                                raise
+                            os.chdir(cwd)
                             requested_deletions.remove(p)
                 except (AssertionError,):
                     logger.info('  NOT deleting %s info=%s' % (p, info))
