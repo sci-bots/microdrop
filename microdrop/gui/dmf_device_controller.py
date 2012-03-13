@@ -37,7 +37,7 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
-        implements, emit_signal, PluginGlobals, IVideoPlugin
+        implements, emit_signal, PluginGlobals, IVideoPlugin, ScheduleRequest
 from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
@@ -458,5 +458,14 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.view.background = self.pixbuf
         self.view.update()
         self.last_frame_time = now
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_app_init':
+            return [ScheduleRequest('microdrop.gui.main_window_controller', 'microdrop.gui.dmf_device_controller')]
+        return []
 
 PluginGlobals.pop_env()

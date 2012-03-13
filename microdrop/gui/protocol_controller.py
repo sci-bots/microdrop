@@ -35,7 +35,7 @@ from protocol import Protocol
 from utility import is_float, is_int, FutureVersionError
 from utility.gui import register_shortcuts, textentry_validate
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal, PluginGlobals
+    implements, emit_signal, PluginGlobals, ScheduleRequest
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
 
@@ -453,5 +453,14 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_app_exit(self):
         #TODO: prompt to save if protocol has changed
         self.save_protocol()
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_app_init':
+            return [ScheduleRequest('microdrop.gui.main_window_controller', 'microdrop.gui.protocol_controller')]
+        return []
 
 PluginGlobals.pop_env()

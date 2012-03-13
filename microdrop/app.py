@@ -33,7 +33,7 @@ from protocol import Protocol
 from config import Config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
-    IPlugin, implements, PluginGlobals, Plugin
+    IPlugin, implements, PluginGlobals, Plugin, ScheduleRequest
 from plugin_helpers import AppDataController
 from logger import logger, CustomHandler, logging
 from app_context import plugin_manager
@@ -187,27 +187,8 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
     def run(self):
         plugin_manager.load_plugins(self.config['plugins']['directory'])
 
-        # Initialize main window controller and dmf device
-        # controller first (necessary for other plugins to add items to the
-        # menus, etc.)
-        observers = ExtensionPoint(IPlugin)
-        preinit_plugins = ['microdrop.gui.main_window_controller',
-                                    'microdrop.gui.dmf_device_controller']
-        for plugin in preinit_plugins:
-            observers(plugin)[0].on_app_init()
+        plugin_manager.emit_signal('on_app_init')
         self.update_log_file()
-        
-        # initialize other plugins
-        for observer in observers:
-            if observer.name not in preinit_plugins and \
-                hasattr(observer,"on_app_init"):
-                logger.info("Initialize %s plugin" % observer.name)
-                try:
-                    observer.on_app_init()
-                except Exception, why:
-                    logger.error("Could not Initialize %s plugin" % observer.name)
-                    logger.error(str(why))
-                    logger.error(''.join(traceback.format_stack()))
                 
         self.builder.connect_signals(self.signals)
 
@@ -295,6 +276,14 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                 return directory
         return None
 
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_app_init':
+            return [ScheduleRequest('microdrop.app', 'microdrop.gui.main_window_controller')]
+        return []
 
 PluginGlobals.pop_env()
 

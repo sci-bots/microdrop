@@ -41,7 +41,7 @@ from utility import is_float, is_int
 from utility.gui import textentry_validate
 import utility.uuid_minimal as uuid
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal, PluginGlobals
+    implements, emit_signal, PluginGlobals, ScheduleRequest
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
 
@@ -395,6 +395,15 @@ class ProtocolGridController(SingletonPlugin):
             s.select_path(app.protocol.current_step_number)
         self.widget.show_all()
         self.window.add(self.widget)
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_app_init':
+            return [ScheduleRequest('microdrop.gui.main_window_controller', 'microdrop.gui.protocol_grid_controller')]
+        return []
 
 
 PluginGlobals.pop_env()
