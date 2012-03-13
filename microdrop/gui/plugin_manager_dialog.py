@@ -221,8 +221,7 @@ Please start program again for changes to take effect.''')
         plugin_root = path(extracted_path.dirs()[0])
         plugin_metadata = self.get_plugin_info(plugin_root)
         if plugin_metadata is None:
-            logging.error('%s does not contain a valid plugin.\n'\
-                    '(missing %s)' % (p))
+            logging.error('%s does not contain a valid plugin.' % (plugin_root))
             return False
         logging.info('Installing: %s' % (plugin_metadata, ))
 
@@ -292,10 +291,6 @@ Note: originally installed version available in %s''' % (plugin_path.name,
         plugin_root.copytree(install_path, symlinks=True,
                 ignore=ignore_patterns('*.pyc'))
         app = get_app()
-        # Reload plugins to include newly installed plugin.
-        plugin_manager.load_plugins(
-                app.config.data['plugins']['directory'])
-        self.update()
         logging.info('%s installed successfully' % plugin_root.name)
         info('%s installed successfully' % plugin_root.name)
         self.restart_required = True
