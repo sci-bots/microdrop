@@ -27,11 +27,10 @@ from path import path
 from experiment_log import ExperimentLog
 from utility.gui import combobox_set_model_from_list, \
     combobox_get_active_text, textview_get_text
-from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
-    PluginGlobals
+from plugin_manager import IPlugin, SingletonPlugin, implements, PluginGlobals
 from protocol import Protocol
 from dmf_device import DmfDevice
-from app_context import get_app
+from app_context import get_app, plugin_manager
 from logger import logger
 
 class ExperimentLogColumn():
@@ -199,7 +198,7 @@ class ExperimentLogController(SingletonPlugin):
         
         # create a new log
         experiment_log = ExperimentLog(app.experiment_log.directory)
-        emit_signal("on_experiment_log_changed", experiment_log)
+        plugin_manager.emit_signal("on_experiment_log_changed", experiment_log)
 
     def on_window_show(self, widget, data=None):
         self.window.show()
@@ -245,13 +244,12 @@ class ExperimentLogController(SingletonPlugin):
             device_path = os.path.join(app.get_device_directory(),
                                        dmf_device.name, "logs")
         experiment_log = ExperimentLog(device_path)
-        emit_signal("on_experiment_log_changed", experiment_log)
+        plugin_manager.emit_signal("on_experiment_log_changed", experiment_log)
         
-    def on_experiment_log_changed(self, dmf_device):
-        app = get_app()
+    def on_experiment_log_changed(self, experiment_log):
         log_files = []
-        if path(app.experiment_log.directory).isdir():
-            for d in path(app.experiment_log.directory).dirs():
+        if path(experiment_log.directory).isdir():
+            for d in path(experiment_log.directory).dirs():
                 f = d / path("data")
                 if f.isfile():
                     log_files.append(int(d.name))
@@ -271,7 +269,7 @@ class ExperimentLogController(SingletonPlugin):
                 if 'time' in d['core'].keys():
                     if d['core']['time']==selection[0][row][0]:
                         selected_data.append(d)
-        emit_signal("on_experiment_log_selection_changed", [selected_data])
+        plugin_manager.emit_signal("on_experiment_log_selection_changed", [selected_data])
 
     def _clear_list_columns(self):
         while len(self.protocol_view.get_columns()):

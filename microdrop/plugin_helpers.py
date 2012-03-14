@@ -1,5 +1,5 @@
-from app_context import get_app
-from plugin_manager import emit_signal, IPlugin, ExtensionPoint
+from app_context import get_app, plugin_manager
+from plugin_manager import IPlugin, ExtensionPoint
 
 class AppDataController(object):
     def get_default_app_options(self):
@@ -31,7 +31,7 @@ class AppDataController(object):
             app_data.update(values)
         else:
             app.set_data(self.name, values)
-        emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
+        plugin_manager.emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
 
     @staticmethod
     def get_plugin_app_values(plugin_name):

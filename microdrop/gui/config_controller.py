@@ -25,7 +25,7 @@ from logger import logger
 from dmf_device import DmfDevice
 from protocol import Protocol
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
-    emit_signal, PluginGlobals, ExtensionPoint
+    PluginGlobals, ExtensionPoint
 from app_context import get_app
 
 

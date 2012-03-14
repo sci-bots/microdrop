@@ -41,9 +41,9 @@ from utility import is_float, is_int
 from utility.gui import textentry_validate
 import utility.uuid_minimal as uuid
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal, PluginGlobals
+    implements, PluginGlobals, ScheduleRequest
 from gui.textbuffer_with_undo import UndoableBuffer
-from app_context import get_app
+from app_context import get_app, plugin_manager
 
 
 class FieldsStep(object):
@@ -261,7 +261,7 @@ class CombinedFields(ObjectList):
             if selected_row_id != app.protocol.current_step_number:
                 logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
                 app.protocol.goto_step(selected_row_id)
-                emit_signal('on_step_run')
+                plugin_manager.emit_signal('on_step_run')
 
     def _on_item_changed(self, widget, step_data, name, value, **kwargs):
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
@@ -363,7 +363,7 @@ class ProtocolGridController(SingletonPlugin):
         app = get_app()
         logging.debug('[ProtocolGridController] on_step_run():')
         logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
-        forms = emit_signal('get_step_form_class')
+        forms = plugin_manager.emit_signal('get_step_form_class')
 
         steps = app.protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
@@ -371,7 +371,7 @@ class ProtocolGridController(SingletonPlugin):
         combined_fields = CombinedFields(forms)
 
         for i, step in enumerate(steps):
-            values = emit_signal('get_step_values', [i])
+            values = plugin_manager.emit_signal('get_step_values', [i])
             logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s' % (i, step, values))
 
             attributes = dict()
@@ -395,6 +395,15 @@ class ProtocolGridController(SingletonPlugin):
             s.select_path(app.protocol.current_step_number)
         self.widget.show_all()
         self.window.add(self.widget)
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_app_init':
+            return [ScheduleRequest('microdrop.gui.main_window_controller', self.name)]
+        return []
 
 
 PluginGlobals.pop_env()

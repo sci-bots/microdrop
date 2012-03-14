@@ -35,9 +35,9 @@ from protocol import Protocol
 from utility import is_float, is_int, FutureVersionError
 from utility.gui import register_shortcuts, textentry_validate
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, emit_signal, PluginGlobals
+    implements, PluginGlobals, ScheduleRequest
 from gui.textbuffer_with_undo import UndoableBuffer
-from app_context import get_app
+from app_context import get_app, plugin_manager
 
 
 PluginGlobals.push_env('microdrop')
@@ -82,11 +82,11 @@ Protocol is version %s, but only up to version %s is supported with this version
             app.main_window_controller.error("Could not open %s. %s" \
                                                   % (filename, why))
         if p:
-            emit_signal("on_protocol_changed", p)
-        emit_signal('on_step_run')
+            plugin_manager.emit_signal("on_protocol_changed", p)
+        plugin_manager.emit_signal('on_step_run')
 
     def on_protocol_changed(self, protocol):
-        protocol.plugin_fields = emit_signal('get_step_fields')
+        protocol.plugin_fields = plugin_manager.emit_signal('get_step_fields')
         logging.debug('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
         
     def on_app_init(self):
@@ -165,41 +165,41 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_insert_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.insert_step()
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal('on_step_run')
 
     def on_copy_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.copy_step()
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal('on_step_run')
 
     def on_delete_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.delete_step()
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal('on_step_run')
 
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.first_step()
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal('on_step_run')
 
     def on_prev_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.prev_step()
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal('on_step_run')
 
     def on_next_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.next_step()
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal('on_step_run')
         
     def on_last_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.last_step()
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal('on_step_run')
 
     def on_new_protocol(self, widget=None, data=None):
-        emit_signal("on_protocol_changed", Protocol())
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal("on_protocol_changed", Protocol())
+        plugin_manager.emit_signal('on_step_run')
 
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()
@@ -255,7 +255,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 # if the protocol name has changed
                 if name != app.protocol.name:
                     app.protocol.name = name
-                    emit_signal("on_protocol_changed", app.protocol)
+                    plugin_manager.emit_signal("on_protocol_changed", app.protocol)
 
                 # if we're renaming
                 if rename and os.path.isfile(src):
@@ -279,7 +279,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         options = step.get_data(dmf_plugin_name)
         options.duration = \
             textentry_validate(self.textentry_step_duration, options.duration, int)
-        emit_signal('on_step_options_changed',
+        plugin_manager.emit_signal('on_step_options_changed',
                     [dmf_plugin_name, app.protocol.current_step_number],
                     interface=IPlugin)
 
@@ -299,7 +299,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         options = step.get_data(dmf_plugin_name)
         options.voltage = \
             textentry_validate(self.textentry_voltage, options.voltage, float)
-        emit_signal('on_step_options_changed',
+        plugin_manager.emit_signal('on_step_options_changed',
                     [dmf_plugin_name, app.protocol.current_step_number],
                     interface=IPlugin)
         
@@ -321,7 +321,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             textentry_validate(self.textentry_frequency,
                             options.frequency / 1e3,
                             float) * 1e3
-        emit_signal('on_step_options_changed',
+        plugin_manager.emit_signal('on_step_options_changed',
                     [dmf_plugin_name, app.protocol.current_step_number],
                     interface=IPlugin)
 
@@ -339,7 +339,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             textentry_validate(self.textentry_protocol_repeats,
                 app.protocol.n_repeats,
                 int)
-        emit_signal('on_step_run')
+        plugin_manager.emit_signal('on_step_run')
 
     def on_run_protocol(self, widget=None, data=None):
         app = get_app()
@@ -353,7 +353,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         app.running = True
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_pause"))
-        emit_signal("on_protocol_run")
+        plugin_manager.emit_signal("on_protocol_run")
         
         while app.running:
             self.run_step()
@@ -363,7 +363,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         app.running = False
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_play"))
-        emit_signal("on_protocol_pause")
+        plugin_manager.emit_signal("on_protocol_pause")
         app.experiment_log_controller.save()
         
     def run_step(self):
@@ -374,7 +374,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 app.experiment_log.add_step(app.protocol.current_step_number)
                 if attempt > 0:
                     app.experiment_log.add_data({"attempt":attempt})
-                return_codes = emit_signal("on_step_run")
+                return_codes = plugin_manager.emit_signal("on_step_run")
                 if 'Fail' in return_codes.values():
                     self.pause_protocol()
                     app.main_window_controller.error("Protocol failed.")
@@ -385,7 +385,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                     break
         else:
             data = {}
-            emit_signal("on_step_run")
+            plugin_manager.emit_signal("on_step_run")
 
         if app.protocol.current_step_number < len(app.protocol) - 1:
             app.protocol.next_step()
@@ -418,14 +418,14 @@ Protocol is version %s, but only up to version %s is supported with this version
             self.grabber.set_fps_limit(values['fps_limit'])
         app = get_app()
         app.set_data(self.name, values)
-        emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
+        plugin_manager.emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
 
     def on_step_run(self):
         self._update_labels()
         app = get_app()
         step = app.protocol.current_step()
         for plugin_name in step.plugins:
-            emit_signal('on_step_options_changed',
+            plugin_manager.emit_signal('on_step_options_changed',
                     [plugin_name,
                     app.protocol.current_step_number],
                     interface=IPlugin)
@@ -448,10 +448,19 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
                 
     def on_dmf_device_changed(self, dmf_device):
-        emit_signal("on_protocol_changed", Protocol())
+        plugin_manager.emit_signal("on_protocol_changed", Protocol())
 
     def on_app_exit(self):
         #TODO: prompt to save if protocol has changed
         self.save_protocol()
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_app_init':
+            return [ScheduleRequest('microdrop.gui.main_window_controller', self.name)]
+        return []
 
 PluginGlobals.pop_env()
