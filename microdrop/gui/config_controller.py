@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 
 import gtk
+from path import path
 
 from logger import logger
 from dmf_device import DmfDevice
@@ -27,6 +28,8 @@ from protocol import Protocol
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
     emit_signal, PluginGlobals, ExtensionPoint
 from app_context import get_app
+from utility.user_paths import home_dir
+from config import get_skeleton_path
 
 
 PluginGlobals.push_env('microdrop')
@@ -47,19 +50,42 @@ class ConfigController(SingletonPlugin):
         self.app.config.save()
         
     def process_config_file(self):
+        # load all app options from the config file
         observers = ExtensionPoint(IPlugin)
         for section_name, values_dict in self.app.config.data.iteritems():
             service = observers.service(section_name)
             if service:
                 service.set_app_values(values_dict)
-        self.app.config._init_devices_dir()
+
+        # initialize the device directory
+        self._init_devices_dir()
+
         # save the protocol name from the config file because it is
         # automatically overwritten when we load a new device
         protocol_name = self.app.config['protocol']['name']
         self.load_dmf_device()
+        
         # reapply the protocol name to the config file
         self.app.config['protocol']['name'] = protocol_name
         self.load_protocol()
+    
+    def _init_devices_dir(self):
+        app = get_app()
+        directory = app.get_device_directory()
+        if directory is None:
+            if os.name == 'nt':
+                directory = home_dir().joinpath('Microdrop', 'devices')
+            else:
+                directory = home_dir().joinpath('.microdrop', 'devices')
+            observers = ExtensionPoint(IPlugin)
+            plugin_name = 'microdrop.gui.dmf_device_controller'
+            service = observers.service(plugin_name)
+            service.set_app_values({'device_directory': directory})
+        dmf_device_directory = path(directory)
+        dmf_device_directory.parent.makedirs_p()
+        devices = get_skeleton_path('devices')
+        if not dmf_device_directory.isdir():
+            devices.copytree(dmf_device_directory)
     
     def load_dmf_device(self):
         # try what's specified in config file
