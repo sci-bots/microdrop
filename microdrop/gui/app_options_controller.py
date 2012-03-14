@@ -27,10 +27,10 @@ from pygtkhelpers.proxy import proxy_for
 from pygtkhelpers.forms import FormView
 from flatland.schema import Form
 
-from app_context import get_app
+from app_context import get_app, plugin_manager
 from logger import logger
-from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
-    IVideoPlugin, ExtensionPoint
+from plugin_manager import IPlugin, SingletonPlugin, implements, IVideoPlugin,\
+        ExtensionPoint
 
 
 class AppOptionsController:
@@ -76,7 +76,7 @@ class AppOptionsController:
     def run(self):
         # Empty plugin form vbox
         # Get list of app option forms
-        self.forms = emit_signal('get_app_form_class')
+        self.forms = plugin_manager.emit_signal('get_app_form_class')
         self.form_views = {}
         self.clear_form()
         app = get_app()

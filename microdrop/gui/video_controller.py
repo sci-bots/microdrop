@@ -34,9 +34,8 @@ import microdrop
 from opencv.safe_cv import cv
 from opencv.frame_grabber import FrameGrabber
 from opencv.camera_capture import CameraCapture
-from plugin_manager import IPlugin, SingletonPlugin, implements, emit_signal, \
-    IVideoPlugin
-from app_context import get_app
+from plugin_manager import IPlugin, SingletonPlugin, implements, IVideoPlugin
+from app_context import get_app, plugin_manager
 from plugin_helpers import AppDataController
 
 
@@ -106,7 +105,7 @@ class VideoController(SingletonPlugin, AppDataController):
                 % (type(frame), (height, width, channels, depth)))
             gtk_frame = array2cv(frame)
             cv.CvtColor(gtk_frame, gtk_frame, cv.CV_BGR2RGB)
-            emit_signal('on_new_frame', [gtk_frame, depth, frame_time],
+            plugin_manager.emit_signal('on_new_frame', [gtk_frame, depth, frame_time],
                             interface=IVideoPlugin)
         return True
 

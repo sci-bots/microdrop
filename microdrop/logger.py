@@ -1,7 +1,8 @@
 import logging
 import logging.handlers
 
-from plugin_manager import emit_signal, ILoggingPlugin
+from plugin_manager import ILoggingPlugin
+from app_context import plugin_manager
 
 
 class CustomHandler(logging.Handler):
@@ -11,15 +12,15 @@ class CustomHandler(logging.Handler):
 
     def emit(self, record):
         if record.levelname == 'DEBUG':
-            emit_signal('on_debug', [record], interface=ILoggingPlugin)
+            plugin_manager.emit_signal('on_debug', [record], interface=ILoggingPlugin)
         elif record.levelname == 'INFO':
-            emit_signal('on_info', [record], interface=ILoggingPlugin)
+            plugin_manager.emit_signal('on_info', [record], interface=ILoggingPlugin)
         elif record.levelname == 'WARNING':
-            emit_signal('on_warning', [record], interface=ILoggingPlugin)
+            plugin_manager.emit_signal('on_warning', [record], interface=ILoggingPlugin)
         elif record.levelname == 'ERROR':
-            emit_signal('on_error', [record], interface=ILoggingPlugin)
+            plugin_manager.emit_signal('on_error', [record], interface=ILoggingPlugin)
         elif record.levelname == 'CRITICAL':
-            emit_signal('on_critical', [record], interface=ILoggingPlugin)
+            plugin_manager.emit_signal('on_critical', [record], interface=ILoggingPlugin)
 
 
 #logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)

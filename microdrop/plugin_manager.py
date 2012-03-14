@@ -318,11 +318,18 @@ class PluginManager():
                 schedule_requests[observer.name] =\
                         observer.get_schedule_requests(function)
 
-        scheduler = task_scheduler.TaskScheduler(observers.keys())
-        for request in [r for name, requests in schedule_requests.items() for r in requests]:
-            scheduler.request_order(*request)
-
-        schedule = scheduler.get_schedule()
+        if schedule_requests:
+            scheduler = task_scheduler.TaskScheduler(observers.keys())
+            for request in [r for name, requests in schedule_requests.items() for r in requests]:
+                try:
+                    scheduler.request_order(*request)
+                except AssertionError:
+                    logging.info('[PluginManager] emit_signal(%s) could not '\
+                            'add schedule request %s' % (function, request))
+                    continue
+            schedule = scheduler.get_schedule()
+        else:
+            schedule = observers.keys()
 
         return_codes = {}
         for observer_name in schedule:
@@ -350,35 +357,5 @@ class PluginManager():
                     logging.debug(''.join(traceback.format_stack()))
         return return_codes
 
-        
-
-
-
-def emit_signal(function, args=[], interface=IPlugin):
-    observers = ExtensionPoint(interface)
-    return_codes = {}
-    for observer in observers:
-        if hasattr(observer, function):
-            logging.debug('emit_signal: %s.%s()' % (observer.name, function))                    
-            try:
-                if type(args) is not list:
-                    args = [args]
-                f = getattr(observer, function)
-                return_codes[observer.name] = f(*args)
-            except Exception, why:
-                with closing(StringIO()) as message:
-                    if hasattr(observer, "name"):
-                        if interface == ILoggingPlugin:
-                            # If this is a logging plugin, do not try to log
-                            # since that will result in infinite recursion. 
-                            # Instead, just continue onto the next plugin.
-                            continue
-                        print >> message, \
-                            '%s plugin crashed processing %s signal.' % \
-                            (observer.name, function)
-                    print >> message, 'Reason:', str(why)
-                    logging.error(message.getvalue().strip())
-                logging.debug(''.join(traceback.format_stack()))
-    return return_codes
 
 PluginGlobals.pop_env()
