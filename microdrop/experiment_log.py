@@ -77,7 +77,7 @@ class ExperimentLog():
                 try:
                     out.data[i][plugin_name] = yaml.load(plugin_data)
                 except Exception, e:
-                    logger.debug("Couldn't load experiment log data for "
+                    logger.error("Couldn't load experiment log data for "
                                  "plugin: %s. %s." % (plugin_name, e))
         logger.debug("[ExperimentLog].load() loaded in %f s." % \
                      (time.time()-start_time))
@@ -119,7 +119,7 @@ class ExperimentLog():
                             new_data[i][plugin_name] = \
                                 {k:pickle.loads(v)}
                         except Exception, e:
-                            logger.debug("Couldn't load experiment log data "
+                            logger.error("Couldn't load experiment log data "
                                          "for plugin: %s. %s." % \
                                          (plugin_name, e))
                     else:

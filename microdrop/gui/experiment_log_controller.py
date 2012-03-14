@@ -115,10 +115,6 @@ class ExperimentLogController(SingletonPlugin):
             for val in data:
                 if val:
                     label += val
-            data = self.results.log.get("control board name")
-            for val in data:
-                if val:
-                    label += val
             data = self.results.log.get("control board hardware version")
             for val in data:
                 if val:
@@ -235,8 +231,8 @@ class ExperimentLogController(SingletonPlugin):
     def on_textview_notes_focus_out_event(self, widget, data=None):
         if len(self.results.log.data[0])==0:
             self.results.log.data.append({})
-        self.results.log.data[-1]["notes"] = textview_get_text(self.builder. \
-            get_object("textview_notes"))
+        self.results.log.data[-1]['core']['notes'] = \
+            textview_get_text(self.builder.get_object("textview_notes"))
         filename = os.path.join(self.results.log.directory,
                                 str(self.results.log.experiment_id),
                                 'data')
