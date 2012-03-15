@@ -24,7 +24,7 @@ from path import path
 from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
 
-from logger import logger, logging
+from logger import logger
 from utility.user_paths import home_dir, app_data_dir, common_app_data_dir
 from app_context import get_app
 from plugin_manager import ExtensionPoint, IPlugin
@@ -43,14 +43,6 @@ def get_skeleton_path(dir_name):
     if not source_dir.isdir():
         raise IOError, '%s/ directory not available.' % source_dir
     return source_dir
-
-
-def device_skeleton_path():
-    return get_skeleton_path('devices')
-
-
-def plugins_skeleton_path():
-    return get_skeleton_path('plugins')
 
 
 class ValidationError(Exception):
@@ -156,26 +148,7 @@ class Config():
                                  ', '.join(section_list))
             raise ValidationError
         self.data.filename = self.filename
-        #self._init_devices_dir()
         self._init_plugins_dir()
-
-    def _init_devices_dir(self):
-        app = get_app()
-        observers = ExtensionPoint(IPlugin)
-        plugin_name = 'microdrop.gui.dmf_device_controller'
-        service = observers.service(plugin_name)
-        directory = app.get_device_directory()
-        if directory is None:
-            if os.name == 'nt':
-                directory = home_dir().joinpath('Microdrop', 'devices')
-            else:
-                directory = home_dir().joinpath('.microdrop', 'devices')
-            service.set_app_values({'device_directory': directory})
-        dmf_device_directory = path(directory)
-        dmf_device_directory.parent.makedirs_p()
-        devices = device_skeleton_path()
-        if not dmf_device_directory.isdir():
-            devices.copytree(dmf_device_directory)
 
     def _init_plugins_dir(self):
         if self.data['plugins']['directory'] is None:
@@ -185,7 +158,7 @@ class Config():
                 self.data['plugins']['directory'] = home_dir().joinpath('.microdrop', 'plugins')
         plugins_directory = path(self.data['plugins']['directory'])            
         plugins_directory.parent.makedirs_p()
-        plugins = plugins_skeleton_path()
+        plugins = get_skeleton_path('plugins')
         if not plugins_directory.isdir():
             # Copy plugins directory to app data directory, keeping symlinks
             # intact.  If we don't keep symlinks as they are, we might end up
