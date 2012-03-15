@@ -33,7 +33,7 @@ from protocol import Protocol
 from config import Config
 from experiment_log import ExperimentLog
 from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
-    IPlugin, implements, PluginGlobals, Plugin, ScheduleRequest
+    IPlugin, implements, PluginGlobals, Plugin
 from plugin_helpers import AppDataController
 from logger import logger, CustomHandler, logging
 from app_context import plugin_manager
@@ -163,8 +163,12 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
 
     def get_data(self, plugin_name):
         logging.debug('[App] plugin_data=%s' % self.plugin_data)
-        return self.plugin_data.get(plugin_name)
-
+        data = self.plugin_data.get(plugin_name)
+        if data:
+            return data
+        else:
+            return {}
+    
     def set_data(self, plugin_name, data):
         self.plugin_data[plugin_name] = data
 
@@ -192,9 +196,6 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                 
         self.builder.connect_signals(self.signals)
 
-        # process the config file
-        self.config_controller.process_config_file()
-        
         # Load optional plugins marked as enabled in config
         for p in self.config['plugins']['enabled']:
             try:
@@ -213,6 +214,32 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                 device_path = os.path.join(directory,
                         self.dmf_device.name, "logs")
         self.experiment_log = ExperimentLog(device_path)
+
+        # save the protocol name from the config file because it is
+        # automatically overwritten when we load a new device
+        protocol_name = self.config['protocol']['name']
+
+        # load the device from the config file
+        if self.config['dmf_device']['name']:
+            directory = self.get_device_directory()
+            if directory:
+                device_path = os.path.join(directory,
+                                           self.config['dmf_device']['name'],
+                                           'device')
+                self.dmf_device_controller.load_device(device_path)
+
+            # reapply the protocol name to the config file
+            self.config['protocol']['name'] = protocol_name
+    
+            # load the protocol
+            if self.config['protocol']['name']:
+                directory = self.get_device_directory()
+                if directory:
+                    filename = os.path.join(directory,
+                                            self.config['dmf_device']['name'],
+                                            "protocols",
+                                            self.config['protocol']['name'])
+                    self.protocol_controller.load_protocol(filename)
         
         self.main_window_controller.main()
 
@@ -276,14 +303,6 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                 return directory
         return None
 
-    def get_schedule_requests(self, function_name):
-        """
-        Returns a list of scheduling requests (i.e., ScheduleRequest
-        instances) for the function specified by function_name.
-        """
-        if function_name == 'on_app_init':
-            return [ScheduleRequest('microdrop.app', 'microdrop.gui.main_window_controller')]
-        return []
 
 PluginGlobals.pop_env()
 

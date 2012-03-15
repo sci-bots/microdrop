@@ -30,18 +30,20 @@ Dims = namedtuple('Dims', 'x y width height')
 
 
 class DmfDeviceView:
-    def __init__(self, widget):
-        self.widget = widget
-        x, y, width, height = self.widget.get_allocation()
-        self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
-        #self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
-                                   #True, 0, 0, width, height)
+    def __init__(self):
         self.scale = 1
         self.offset = (0,0)
         self.electrode_color = {}
         self.background = None
         self.transform_matrix = None
         self.overlay_opacity = None
+        self.widget = None
+        self.pixmap = None
+
+    def set_widget(self, widget):
+        self.widget = widget
+        x, y, width, height = self.widget.get_allocation()
+        self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
 
     def fit_device(self, padding=None):
         app = get_app()

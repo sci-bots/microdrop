@@ -68,13 +68,13 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         Integer.named('display_fps').using(default=10, optional=True,
             validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)]),
         Directory.named('device_directory').using(default='', optional=True),
-        String.named('transformation_matrix').using(default='', optional=True,
+        String.named('transform_matrix').using(default='', optional=True,
             properties=dict(show_in_gui=False))
     )
 
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"        
-        self.view = None
+        self.view = DmfDeviceView()
         self.popup = None
         self.last_electrode_clicked = None
         self.last_frame = None
@@ -92,6 +92,12 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 self.display_fps_inv = 1. / int(values['display_fps'])
             if 'device_directory' in values:
                 self.apply_device_dir(values['device_directory'])
+            if 'transform_matrix' in values:
+                matrix = yaml.load(values['transform_matrix'])
+                if matrix:
+                    matrix = cv.fromarray(np.array(matrix, dtype='float32'))
+                    self.view.transform_matrix = matrix
+
         elif plugin_name == 'microdrop.gui.video_controller':
             observers = ExtensionPoint(IPlugin)
             service = observers.service(plugin_name)
@@ -136,7 +142,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_app_init(self):
         app = get_app()
-        self.view = DmfDeviceView(app.builder.get_object("dmf_device_view"))
+        self.view.set_widget(app.builder.get_object("dmf_device_view"))
         app.builder.add_from_file(os.path.join("gui",
                                    "glade",
                                    "right_click_popup.glade"))
@@ -159,7 +165,11 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app.signals["on_menu_edit_electrode_channels_activate"] = self.on_edit_electrode_channels
         app.signals["on_menu_edit_electrode_area_activate"] = self.on_edit_electrode_area
         app.dmf_device_controller = self
-        data = self.get_default_app_options()
+        defaults = self.get_default_app_options()
+        data = app.get_data(self.name)
+        for k, v in defaults.items():
+            if k not in data:
+                data[k] = v
         app.set_data(self.name, data)
         plugin_manager.emit_signal('on_app_options_changed', [self.name])
 
@@ -189,7 +199,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                   count=results.width*results.height)
             array.shape = (results.width, results.height)
             self.set_app_values(
-                dict(transformation_matrix=yaml.dump(array.tolist())))
+                dict(transform_matrix=yaml.dump(array.tolist())))
     
     def get_default_options(self):
         return DmfDeviceOptions()
@@ -333,7 +343,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if rename and os.path.isdir(src):
                 if src == dest:
                     return
-                if os.path.isdir(dest):
+                if f.isdir(dest):
                     app.main_window_controller.error("A device with that "
                         "name already exists.")
                     return
@@ -474,7 +484,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
         instances) for the function specified by function_name.
         """
         if function_name == 'on_app_init':
-            return [ScheduleRequest('microdrop.gui.main_window_controller', 'microdrop.gui.dmf_device_controller')]
+            return [ScheduleRequest('microdrop.gui.config_controller',
+                                    self.name),
+                    ScheduleRequest('microdrop.gui.main_window_controller',
+                                    self.name)]
         return []
 
 PluginGlobals.pop_env()

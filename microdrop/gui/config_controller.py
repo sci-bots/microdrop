@@ -26,7 +26,7 @@ from logger import logger
 from dmf_device import DmfDevice
 from protocol import Protocol
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
-    PluginGlobals, ExtensionPoint
+    PluginGlobals, ExtensionPoint, ScheduleRequest
 from app_context import get_app
 from utility.user_paths import home_dir
 from config import get_skeleton_path
@@ -46,10 +46,6 @@ class ConfigController(SingletonPlugin):
         self.app = get_app()
         self.app.config_controller = self
 
-    def on_app_exit(self):
-        self.app.config.save()
-        
-    def process_config_file(self):
         # load all app options from the config file
         observers = ExtensionPoint(IPlugin)
         for section_name, values_dict in self.app.config.data.iteritems():
@@ -57,18 +53,11 @@ class ConfigController(SingletonPlugin):
             if service:
                 service.set_app_values(values_dict)
 
-        # initialize the device directory
         self._init_devices_dir()
 
-        # save the protocol name from the config file because it is
-        # automatically overwritten when we load a new device
-        protocol_name = self.app.config['protocol']['name']
-        self.load_dmf_device()
+    def on_app_exit(self):
+        self.app.config.save()
         
-        # reapply the protocol name to the config file
-        self.app.config['protocol']['name'] = protocol_name
-        self.load_protocol()
-    
     def _init_devices_dir(self):
         app = get_app()
         directory = app.get_device_directory()
@@ -86,29 +75,7 @@ class ConfigController(SingletonPlugin):
         devices = get_skeleton_path('devices')
         if not dmf_device_directory.isdir():
             devices.copytree(dmf_device_directory)
-    
-    def load_dmf_device(self):
-        # try what's specified in config file
-        if self.app.config['dmf_device']['name'] != None:
-            directory = self.app.get_device_directory()
-            if directory:
-                device_path = os.path.join(directory,
-                                    self.app.config['dmf_device']['name'],
-                                    'device')
-                self.app.dmf_device_controller.load_device(device_path)
-
-    def load_protocol(self):
-        if self.app.config['dmf_device']['name']:
-            # try what's specified in config file
-            if self.app.config['protocol']['name'] != None:
-                directory = self.app.get_device_directory()
-                if directory:
-                    filename = os.path.join(directory,
-                                            self.app.config['dmf_device']['name'],
-                                            "protocols",
-                                            self.app.config['protocol']['name'])
-                    self.app.protocol_controller.load_protocol(filename)
-                
+                    
     def on_dmf_device_changed(self, dmf_device):
         self.app.config['dmf_device']['name'] = dmf_device.name
         
@@ -131,6 +98,16 @@ class ConfigController(SingletonPlugin):
                     self.app.config.data[plugin_name] = {}
                 self.app.config.data[plugin_name].update(app_options)
                 self.app.config.save()
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_app_init':
+            return [ScheduleRequest("microdrop.gui.main_window_controller",
+                                    self.name)]
+        return []
 
 
 PluginGlobals.pop_env()

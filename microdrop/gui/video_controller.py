@@ -34,10 +34,14 @@ import microdrop
 from opencv.safe_cv import cv
 from opencv.frame_grabber import FrameGrabber
 from opencv.camera_capture import CameraCapture
-from plugin_manager import IPlugin, SingletonPlugin, implements, IVideoPlugin
+from plugin_manager import IPlugin, SingletonPlugin, implements, \
+    IVideoPlugin, PluginGlobals, ScheduleRequest
 from app_context import get_app, plugin_manager
 from opencv.pixbuf import array2cv
 from plugin_helpers import AppDataController
+
+
+PluginGlobals.push_env('microdrop')
 
 
 class VideoController(SingletonPlugin, AppDataController):
@@ -68,7 +72,11 @@ class VideoController(SingletonPlugin, AppDataController):
 
     def on_app_init(self, *args, **kwargs):
         app = get_app()
-        data = self.get_default_app_options()
+        defaults = self.get_default_app_options()
+        data = app.get_data(self.name)
+        for k, v in defaults.items():
+            if k not in data:
+                data[k] = v
         app.set_data(self.name, data)
 
     def on_plugin_enable(self, *args, **kwargs):
@@ -95,3 +103,15 @@ class VideoController(SingletonPlugin, AppDataController):
         results = self.grabber.stop()
         logging.debug(str(results))
         del self.cam_cap
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_app_init':
+            return [ScheduleRequest('microdrop.gui.config_controller',
+                                    self.name)]
+        return []
+    
+PluginGlobals.pop_env()

@@ -39,7 +39,6 @@ from PIL import Image, ImageFont, ImageDraw
 import utility.uuid_minimal
 
 
-
 def except_handler(*args, **kwargs):
     import traceback
 
