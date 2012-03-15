@@ -27,10 +27,11 @@ import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 import cairo
-from flatland import Form, Integer
+from flatland import Form, Integer, String
 from flatland.validation import ValueAtLeast, ValueAtMost
 from pygtkhelpers.ui.dialogs import yesno
 from path import path
+import yaml
 
 from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
 from dmf_device import DmfDevice
@@ -67,6 +68,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         Integer.named('display_fps').using(default=10, optional=True,
             validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)]),
         Directory.named('device_directory').using(default='', optional=True),
+        String.named('transformation_matrix').using(default='', optional=True,
+            properties=dict(show_in_gui=False))
     )
 
     def __init__(self):
@@ -181,7 +184,13 @@ directory)?''' % (device_directory, self.previous_device_dir))
         results = dialog.run()
         if results:
             self.view.transform_matrix = results
-
+            array = np.fromstring(results.tostring(),
+                                  dtype='float32',
+                                  count=results.width*results.height)
+            array.shape = (results.width, results.height)
+            self.set_app_values(
+                dict(transformation_matrix=yaml.dump(array.tolist())))
+    
     def get_default_options(self):
         return DmfDeviceOptions()
 
