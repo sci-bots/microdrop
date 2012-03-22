@@ -75,6 +75,7 @@ class DmfDevice():
 
     @classmethod
     def load_svg(cls, svg_path):
+        #import pudb; pudb.set_trace()
         path_group = PathGroup.load_svg(svg_path)
         dmf_device = DmfDevice()
         dmf_device.add_path_group(path_group)
