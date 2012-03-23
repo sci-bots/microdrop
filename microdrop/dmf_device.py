@@ -23,6 +23,7 @@ try:
 except ImportError:
     import pickle
 import yaml
+import warnings
 
 import numpy as np
 
@@ -30,6 +31,7 @@ from logger import logger
 from utility import Version, FutureVersionError
 from svg_model.geo_path import Path, ColoredPath, Loop
 from svg_model.svgload.path_parser import LoopTracer, ParseError
+from svg_model.svgload.svg_parser import parse_warning
 from svg_model.path_group import PathGroup
 from svg_model.body_group import BodyGroup
 
@@ -75,8 +77,17 @@ class DmfDevice():
 
     @classmethod
     def load_svg(cls, svg_path):
-        #import pudb; pudb.set_trace()
-        path_group = PathGroup.load_svg(svg_path)
+        with warnings.catch_warnings(record=True) as warning_list:
+            path_group = PathGroup.load_svg(svg_path, on_error=parse_warning)
+        if warning_list:
+            logger.warning('''\
+    The following paths could not be parsed properly have been ignored:
+
+    %s''' % '\n'.join([str(w.message) for w in warning_list]))
+        # Assign the color blue to all paths that have no colour assigned
+        for p in path_group.paths.values():
+            if p.color is None:
+                p.color = (0, 0, 255)
         dmf_device = DmfDevice()
         dmf_device.add_path_group(path_group)
         dmf_device.init_body_group()
