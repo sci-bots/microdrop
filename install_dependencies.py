@@ -175,7 +175,6 @@ if __name__ == "__main__":
               ("pymunk", "exe", "http://pymunk.googlecode.com/files/pymunk-2.1.0.win32.exe"),
               ("pylint", "pip", "http://download.logilab.org/pub/pylint/pylint-0.25.1.tar.gz"),
               ("constraint", "pip", "https://github.com/cfobel/python___labix_constraint/tarball/master"),
-              ("lxml", "pip"),
               ):
         try:
             exec("import " + p[0])
@@ -187,7 +186,9 @@ if __name__ == "__main__":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.7.msi"),
                   ("numpy", "exe", "http://sourceforge.net/projects/numpy/files/NumPy/1.6.1/numpy-1.6.1-win32-superpack-python2.7.exe/download"),
                   ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.win32-py2.7.exe/download"),
-                  ("PIL", "exe", "http://effbot.org/downloads/PIL-1.1.7.win32-py2.7.exe")):
+                  ("PIL", "exe", "http://effbot.org/downloads/PIL-1.1.7.win32-py2.7.exe"),
+                  ("lxml", "exe", "http://pypi.python.org/packages/2.7/l/lxml/lxml-2.3.win32-py2.7.exe#md5=9c02aae672870701377750121f5a6f84"),
+                  ):
             try:
                 exec("import " + p[0])
             except:
@@ -198,7 +199,9 @@ if __name__ == "__main__":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.6.msi"),
                   ("numpy", "exe", "http://sourceforge.net/projects/numpy/files/NumPy/1.3.0/numpy-1.3.0-win32-superpack-python2.6.exe/download"),
                   ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.0.1/matplotlib-1.0.1.win32-py2.6.exe/download"),
-                  ("PIL", "exe", "http://effbot.org/downloads/PIL-1.1.7.win32-py2.6.exe")):
+                  ("PIL", "exe", "http://effbot.org/downloads/PIL-1.1.7.win32-py2.6.exe"),
+                  ("lxml", "exe", "http://pypi.python.org/packages/2.6/l/lxml/lxml-2.3.win32-py2.6.exe#md5=4135a4ac2abe3cb1ef0fa9f198fe3c51")
+                  ):
             try:
                 exec("import " + p[0])
             except:
