@@ -2,8 +2,7 @@ import logging
 import logging.handlers
 
 from plugin_manager import ILoggingPlugin
-from app_context import plugin_manager
-
+import plugin_manager
 
 class CustomHandler(logging.Handler):
     def __init__(self):

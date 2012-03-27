@@ -32,11 +32,11 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from config import Config
 from experiment_log import ExperimentLog
-from plugin_manager import PluginManager, SingletonPlugin, ExtensionPoint, \
+from plugin_manager import SingletonPlugin, ExtensionPoint, \
     IPlugin, implements, PluginGlobals, Plugin
+import plugin_manager
 from plugin_helpers import AppDataController
 from logger import logger, CustomHandler, logging
-from app_context import plugin_manager
 from gui.plugin_manager_dialog import PluginManagerDialog
 
 
