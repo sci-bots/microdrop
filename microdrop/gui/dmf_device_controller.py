@@ -38,8 +38,8 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
-        implements, PluginGlobals, IVideoPlugin, ScheduleRequest
-from app_context import get_app, plugin_manager
+        implements, PluginGlobals, IVideoPlugin, ScheduleRequest, emit_signal
+from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
 from plugin_helpers import AppDataController
@@ -171,7 +171,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if k not in data:
                 data[k] = v
         app.set_data(self.name, data)
-        plugin_manager.emit_signal('on_app_options_changed', [self.name])
+        emit_signal('on_app_options_changed', [self.name])
 
     def on_app_exit(self):
         #TODO: prompt to save if device has changed
@@ -265,7 +265,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
     
     def load_device(self, filename):
         try:
-            plugin_manager.emit_signal("on_dmf_device_changed", DmfDevice.load(filename))
+            emit_signal("on_dmf_device_changed", DmfDevice.load(filename))
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
             logger.debug(''.join(traceback.format_stack()))
@@ -307,7 +307,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             app.dmf_device = DmfDevice.load_svg(filename)
-            plugin_manager.emit_signal("on_dmf_device_changed", [app.dmf_device])
+            emit_signal("on_dmf_device_changed", [app.dmf_device])
         dialog.destroy()
         self._notify_observers_step_options_changed()
         
@@ -355,7 +355,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             # if the device name has changed
             if name != app.dmf_device.name:
                 app.dmf_device.name = name
-                plugin_manager.emit_signal("on_dmf_device_changed", app.dmf_device)
+                emit_signal("on_dmf_device_changed", app.dmf_device)
             
             # save the device
             app.dmf_device.save(os.path.join(dest,"device"))
@@ -427,7 +427,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def _notify_observers_step_options_changed(self):
         app = get_app()
-        plugin_manager.emit_signal('on_step_options_changed',
+        emit_signal('on_step_options_changed',
                     [self.name, app.protocol.current_step_number],
                     interface=IPlugin)
 

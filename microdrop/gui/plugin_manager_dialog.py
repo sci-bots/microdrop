@@ -30,8 +30,8 @@ from pygtkhelpers.ui.dialogs import open_filechooser, info, yesno
 from path import path
 import yaml
 
-from plugin_manager import PluginGlobals
-from app_context import get_app, plugin_manager
+import plugin_manager
+from app_context import get_app
 from utility import Version
 
 
@@ -52,7 +52,7 @@ class PluginController(object):
     def __init__(self, dialog, name):
         self.dialog = dialog
         self.name = name
-        self.e = PluginGlobals.env('microdrop.managed')
+        self.e = plugin_manager.PluginGlobals.env('microdrop.managed')
         self.plugin_class = self.e.plugin_registry[name]
         self.service = plugin_manager.get_service_instance(self.plugin_class)
         self.box = gtk.HBox()
@@ -135,7 +135,7 @@ class PluginManagerDialog(object):
         builder.add_from_file(path('gui').joinpath('glade', 'plugin_manager_dialog.glade'))
         self.window = builder.get_object('plugin_manager')
         self.vbox_plugins = builder.get_object('vbox_plugins')
-        self.e = PluginGlobals.env('microdrop.managed')
+        self.e = plugin_manager.PluginGlobals.env('microdrop.managed')
         self.plugins = []
         # Maintain a list of path deletions to be processed on next app launch
         self.requested_deletions = []

@@ -28,9 +28,9 @@ from pygtkhelpers.proxy import proxy_for
 
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ILoggingPlugin
+    implements, PluginGlobals, ILoggingPlugin, emit_signal
 from gui.plugin_manager_dialog import PluginManagerDialog
-from app_context import get_app, plugin_manager
+from app_context import get_app
 from logger import logger
 from plugin_helpers import AppDataController
 from utility.pygtkhelpers_widgets import Filepath
@@ -115,7 +115,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
         self.protocol_list_view = None
         
     def main(self):
-        plugin_manager.emit_signal("on_step_run")
+        emit_signal("on_step_run")
         gtk.main()
 
     def get_text_input(self, title, label, default_value=""):
@@ -131,7 +131,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
         return name
 
     def on_delete_event(self, widget, data=None):
-        plugin_manager.emit_signal("on_app_exit")
+        emit_signal("on_app_exit")
 
     def on_destroy(self, widget, data=None):
         gtk.main_quit()
@@ -178,7 +178,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
     def on_realtime_mode_toggled(self, widget, data=None):
         realtime_mode = self.checkbutton_realtime_mode.get_active()
         self.set_app_values({'realtime_mode': realtime_mode})
-        plugin_manager.emit_signal("on_app_options_changed", [self.name], interface=IPlugin)
+        emit_signal("on_app_options_changed", [self.name], interface=IPlugin)
 
     def on_menu_app_options_activate(self, widget, data=None):
         from app_options_controller import AppOptionsController

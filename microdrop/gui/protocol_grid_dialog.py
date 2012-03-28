@@ -23,8 +23,7 @@ from path import path
 from pygtkhelpers.forms import FormView
 from pygtkhelpers.proxy import proxy_for
 
-from plugin_manager import PluginGlobals
-from app_context import get_app, plugin_manager
+from app_context import get_app
 
 
 class ProtocolGridDialog(object):

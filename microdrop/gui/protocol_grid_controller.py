@@ -41,9 +41,9 @@ from utility import is_float, is_int
 from utility.gui import textentry_validate
 import utility.uuid_minimal as uuid
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ScheduleRequest
+    implements, PluginGlobals, ScheduleRequest, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer
-from app_context import get_app, plugin_manager
+from app_context import get_app
 
 
 class FieldsStep(object):
@@ -261,7 +261,7 @@ class CombinedFields(ObjectList):
             if selected_row_id != app.protocol.current_step_number:
                 logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
                 app.protocol.goto_step(selected_row_id)
-                plugin_manager.emit_signal('on_step_run')
+                emit_signal('on_step_run')
 
     def _on_item_changed(self, widget, step_data, name, value, **kwargs):
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
@@ -363,7 +363,7 @@ class ProtocolGridController(SingletonPlugin):
         app = get_app()
         logging.debug('[ProtocolGridController] on_step_run():')
         logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
-        forms = plugin_manager.emit_signal('get_step_form_class')
+        forms = emit_signal('get_step_form_class')
 
         steps = app.protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
@@ -371,7 +371,7 @@ class ProtocolGridController(SingletonPlugin):
         combined_fields = CombinedFields(forms)
 
         for i, step in enumerate(steps):
-            values = plugin_manager.emit_signal('get_step_values', [i])
+            values = emit_signal('get_step_values', [i])
             logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s' % (i, step, values))
 
             attributes = dict()
