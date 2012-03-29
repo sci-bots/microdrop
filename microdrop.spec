@@ -49,6 +49,8 @@ a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\etc').walkfiles()]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\share').walkfiles()]
+a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
+            for p in path('microdrop\\support').walkfiles()]
 a.datas += [(path('version.txt'),
             path('microdrop\\version.txt').abspath(),
             'DATA')]
