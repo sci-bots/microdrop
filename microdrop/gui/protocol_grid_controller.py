@@ -72,15 +72,22 @@ class FieldsStep(object):
 class CombinedFields(ObjectList):
     field_set_prefix = '_%s__'
 
-    def __init__(self, forms, *args, **kwargs):
+    def __init__(self, forms, enabled_attrs, *args, **kwargs):
         self.first_selected = True
         self.forms = forms
         self.uuid_mapping = dict([(name, uuid.uuid4().get_hex()[:10]) for name in forms])
         self.uuid_reverse_mapping = dict([(v, k) for k, v in self.uuid_mapping.items()])
         self._columns = []
         self._full_field_to_field_def = {}
+        if not enabled_attrs:
+            enabled = lambda form_name, field: True
+        else:
+            enabled = lambda form_name, field:\
+                    field.name in enabled_attrs.get(form_name, {})
         for form_name, form in self.forms.iteritems():
             for f in form.field_schema:
+                if not enabled(form_name, f):
+                    continue
                 title = re.sub(r'_', ' ', f.name).capitalize()
                 prefix = self.field_set_prefix % self.uuid_mapping[form_name] 
                 name = '%s%s' % (prefix, f.name)
@@ -341,6 +348,18 @@ class ProtocolGridController(SingletonPlugin):
         self.name = "microdrop.gui.protocol_grid_controller"
         self.builder = None
         self.widget = None
+        self._enabled_fields = {}
+        # e.g., 'wheelerlab.dmf_control_board_1.2':\
+                #set(['duration', 'voltage'])}
+
+    @property
+    def enabled_fields(self):
+        return self._enabled_fields
+
+    @enabled_fields.setter
+    def enabled_fields(self, data):
+        self._enabled_fields = deepcopy(data)
+        self.update_gui()
 
     def on_app_init(self):
         app = get_app()
@@ -366,6 +385,9 @@ class ProtocolGridController(SingletonPlugin):
             True if the step should be run again (e.g., if a feedback
             plugin wants to signal that the step should be repeated)
         """
+        self.update_gui()
+
+    def update_gui(self):
         app = get_app()
         logging.debug('[ProtocolGridController] on_step_run():')
         logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
@@ -374,7 +396,7 @@ class ProtocolGridController(SingletonPlugin):
         steps = app.protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
             
-        combined_fields = CombinedFields(forms)
+        combined_fields = CombinedFields(forms, self.enabled_fields)
 
         for i, step in enumerate(steps):
             values = emit_signal('get_step_values', [i])
