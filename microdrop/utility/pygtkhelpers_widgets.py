@@ -12,6 +12,10 @@ VIEW_FILEPATH = 'filepath'
 VIEW_DIRECTORY = 'directory'
 
 
+def get_type_from_schema(schema):
+        return type(schema(0).value)
+
+
 class Filepath(String):
     pass
 

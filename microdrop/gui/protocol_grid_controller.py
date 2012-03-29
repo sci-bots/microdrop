@@ -26,6 +26,7 @@ import logging
 from StringIO import StringIO
 from contextlib import closing
 import re
+from copy import deepcopy
 
 import numpy as np
 import gtk
@@ -40,6 +41,7 @@ from protocol import Protocol
 from utility import is_float, is_int
 from utility.gui import textentry_validate
 import utility.uuid_minimal as uuid
+from utility.pygtkhelpers_widgets import get_type_from_schema
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, PluginGlobals, ScheduleRequest, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer
@@ -80,11 +82,15 @@ class CombinedFields(ObjectList):
         for form_name, form in self.forms.iteritems():
             for f in form.field_schema:
                 title = re.sub(r'_', ' ', f.name).capitalize()
-                name = '%s%s'\
-                    % (self.field_set_prefix % self.uuid_mapping[form_name],
-                        f.name)
-                val_type = type(f(0).value)
-                d = dict(attr=name, type=val_type, title=title, resizable=True, editable=True, sorted=False)
+                prefix = self.field_set_prefix % self.uuid_mapping[form_name] 
+                name = '%s%s' % (prefix, f.name)
+                val_type = get_type_from_schema(f)
+                d = dict(attr=name, type=val_type, title=title, resizable=True,
+                        editable=True, sorted=False)
+                if f.properties.get('mappers', None):
+                    d['mappers'] = deepcopy(f.properties['mappers'])
+                    for m in d['mappers']:
+                        m.attr = '%s%s' % (prefix, m.attr)
                 if val_type == bool:
                     # Use checkbox for boolean cells
                     d['use_checkbox'] = True
