@@ -41,15 +41,24 @@ def test_load_non_existant_dmf_device():
                    path('no device'))
 
 
-def test_svg_parser():
-    svg_parser = SvgParser()
+def _svg_parse(i, expected_paths_count):
     root = path(__file__).parent
+    svg_parser = SvgParser()
+    svg_path = root.joinpath('svg_files', 'test_device_%d.svg' % i)
+    with Silence():
+        svg = svg_parser.parse_file(svg_path, on_error=parse_warning)
+    eq_(len(svg.paths), expected_paths_count)
+
+
+def _import_device(i, root):
+    svg_path = root.joinpath('svg_files', 'test_device_%d.svg' % i)
+    device = DmfDevice.load_svg(svg_path)
+
+
+def test_svg_parser():
     expected_paths_count = [72, 57, 56, 131]
     for i in range(4):
-        svg_path = root.joinpath('svg_files', 'test_device_%d.svg' % i)
-        with Silence():
-            svg = svg_parser.parse_file(svg_path, on_error=parse_warning)
-        eq_(len(svg.paths), expected_paths_count[i])
+        yield _svg_parse, i, expected_paths_count[i]
 
 
 def test_import_device(root=None):
@@ -58,5 +67,4 @@ def test_import_device(root=None):
     else:
         root = path(root)
     for i in range(4):
-        svg_path = root.joinpath('svg_files', 'test_device_%d.svg' % i)
-        device = DmfDevice.load_svg(svg_path)
+        yield _import_device, i, root
