@@ -185,8 +185,9 @@ class Protocol():
 
     def next_step(self):
         if self.current_step_number == len(self.steps) - 1:
-            self.steps.append(Step())
-        self.goto_step(self.current_step_number + 1)
+            self.copy_step()
+        else:
+            self.goto_step(self.current_step_number + 1)
         
     def next_repetition(self):
         if self.current_repetition < self.n_repeats - 1:
