@@ -35,6 +35,7 @@ except ImportError:
 # by PyInstaller when generating an EXE.
 import blinker
 import matplotlib
+from PIL import Image, ImageFont, ImageDraw
 import utility.uuid_minimal
 
 
