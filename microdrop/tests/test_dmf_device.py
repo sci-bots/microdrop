@@ -1,3 +1,5 @@
+import time
+
 from path import path
 from nose.tools import raises, eq_
 
@@ -48,11 +50,13 @@ def _svg_parse(i, expected_paths_count):
     with Silence():
         svg = svg_parser.parse_file(svg_path, on_error=parse_warning)
     eq_(len(svg.paths), expected_paths_count)
+    time.sleep(1.0)
 
 
 def _import_device(i, root):
     svg_path = root.joinpath('svg_files', 'test_device_%d.svg' % i)
     device = DmfDevice.load_svg(svg_path)
+    time.sleep(1.0)
 
 
 def test_svg_parser():
