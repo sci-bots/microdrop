@@ -219,7 +219,7 @@ class ExperimentLogController(SingletonPlugin):
         try:
             app.dmf_device_controller.load_device(filename)
         except:
-            app.main_window_controller.error("Could not open %s" % filename)
+            logger.error("Could not open %s" % filename)
         
     def on_button_load_protocol_clicked(self, widget, data=None):
         app = get_app()

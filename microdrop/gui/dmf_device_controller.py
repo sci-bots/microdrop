@@ -344,7 +344,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 if src == dest:
                     return
                 if f.isdir(dest):
-                    app.main_window_controller.error("A device with that "
+                    logger.error("A device with that "
                         "name already exists.")
                     return
                 shutil.move(src, dest)
@@ -387,7 +387,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                             len(options.state_of_channels)+1, int)])
                 self.last_electrode_clicked.channels = channels
             except:
-                app.main_window_controller.error("Invalid channel.")
+                logger.error("Invalid channel.")
         self._notify_observers_step_options_changed()
         
     def on_edit_electrode_area(self, widget, data=None):
@@ -406,7 +406,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 app.dmf_device.scale = \
                     float(area)/self.last_electrode_clicked.area()
             else:
-                app.main_window_controller.error("Area value is invalid.")
+                logger.error("Area value is invalid.")
     
     def on_dmf_device_changed(self, dmf_device):
         self.view.fit_device()

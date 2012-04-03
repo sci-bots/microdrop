@@ -68,7 +68,7 @@ class ProtocolController(SingletonPlugin):
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)
                 if not service:
-                    app.main_window_controller.warning("Protocol "
+                    logging.warning("Protocol "
                         "requires the %s plugin, however this plugin is "
                         "not available." % (name))
         except FutureVersionError, why:
@@ -79,8 +79,7 @@ It was created with a newer version of the software.
 Protocol is version %s, but only up to version %s is supported with this version of the software.'''\
             % (filename, why.future_version, why.current_version))
         except Exception, why:
-            app.main_window_controller.error("Could not open %s. %s" \
-                                                  % (filename, why))
+            logging.error("Could not open %s. %s" % (filename, why))
         if p:
             emit_signal("on_protocol_changed", p)
         emit_signal('on_step_run')
@@ -377,7 +376,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 return_codes = emit_signal("on_step_run")
                 if 'Fail' in return_codes.values():
                     self.pause_protocol()
-                    app.main_window_controller.error("Protocol failed.")
+                    logging.error("Protocol failed.")
                     break
                 elif 'Repeat' in return_codes.values():
                     attempt+=1
