@@ -45,6 +45,7 @@ from opencv.safe_cv import cv
 from plugin_helpers import AppDataController
 from utility.pygtkhelpers_widgets import Directory
 from utility import is_float, copytree
+from utility.gui.form_view_dialog import text_entry_dialog
 
 
 PluginGlobals.push_env('microdrop')
@@ -328,9 +329,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if save_as or rename or name is None:
             if name is None:
                 name = ""
-            name = app.main_window_controller.get_text_input("Save device",
-                                                             "Device name",
-                                                             name)
+            name = text_entry_dialog('Device name', name, 'Save device')
+            if name is None:
+                name = ""
 
         if name:
             # current file name
@@ -364,10 +365,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         # TODO: set default value
         channel_list = ','.join([str(i) for i in self.last_electrode_clicked.channels])
         app = get_app()
-        channel_list = app.main_window_controller.get_text_input(
-            "Edit electrode channels",
-            "Channels",
-            channel_list)
+        channel_list = text_entry_dialog('Channels', channel_list, 'Edit electrode channels')
         if channel_list:
             channels = channel_list.split(',')
             try: # convert to integers
@@ -396,11 +394,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
             area = ""
         else:
             area = self.last_electrode_clicked.area() * app.dmf_device.scale
-        area = app.main_window_controller.get_text_input(
-            "Edit electrode area",
-            "Area of electrode in mm<span rise=\"5000\" font_size=\"smaller\">"
-            "2</span>:",
-            str(area))
+        area = text_entry_dialog("Area of electrode in mm<span "
+                "rise=\"5000\" font_size=\"smaller\">2</span>:", str(area),
+                        "Edit electrode area")
         if area:
             if is_float(area):
                 app.dmf_device.scale = \

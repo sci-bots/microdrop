@@ -34,6 +34,7 @@ import protocol
 from protocol import Protocol
 from utility import is_float, is_int, FutureVersionError
 from utility.gui import register_shortcuts, textentry_validate
+from utility.gui.form_view_dialog import text_entry_dialog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, PluginGlobals, ScheduleRequest, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer
@@ -234,10 +235,10 @@ Protocol is version %s, but only up to version %s is supported with this version
             if save_as or rename or app.protocol.name is None:
                 # if the dialog is cancelled, name = ""
                 if name is None:
-                    name=""
-                name = app.main_window_controller.get_text_input("Save protocol",
-                                                                 "Protocol name",
-                                                                 name)
+                    name=''
+                name = text_entry_dialog('Protocol name', name, 'Save protocol')
+                if name is None:
+                    name=''
 
             if name:
                 path = os.path.join(app.get_device_directory(),

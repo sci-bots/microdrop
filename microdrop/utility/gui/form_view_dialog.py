@@ -22,6 +22,8 @@ import gtk
 from path import path
 from pygtkhelpers.forms import FormView
 from pygtkhelpers.proxy import proxy_for
+from flatland.validation import ValueAtLeast, ValueAtMost
+from flatland import Form, Dict, String, Integer, Boolean, Float
 
 from app_context import get_app
 
@@ -46,8 +48,10 @@ class FormViewDialog(object):
             proxy = proxy_for(field.widget)
             value = values.get(name, field.element.default_value)
             proxy.set_widget_value(value)
+            field.widget.set_activates_default(gtk.TRUE)
         self.clear_form()
         self.vbox_form.pack_start(form_view.widget)
+        self.window.set_default_response(gtk.RESPONSE_OK)
         self.window.show_all()
         response = self.window.run()
         self.window.hide()
@@ -55,6 +59,40 @@ class FormViewDialog(object):
                 % (response, proxy.get_widget_value()))
         return (response == 0), dict([(name, f.element.value)
                 for name, f in form_view.form.fields.items()])
+
+
+def field_entry_dialog(field, value=None, title='Input value'):
+    form = Form.of(field)
+    dialog = FormViewDialog(title=title)
+    if value is not None:
+        values = {field.name: value}
+    else:
+        values = None
+    valid, response =  dialog.run(form, values)
+    return valid, response.values()[0]
+
+
+def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
+        max_value=None):
+    field = Integer.named('name')
+    validators = []
+    if min_value is not None:
+        ValueAtLeast(minimum=min_value)
+    if max_value is not None:
+        ValueAtMost(maximum=max_value)
+
+    valid, response = field_entry_dialog(Integer.named(name)\
+            .using(validators=validators), value, title)
+    if valid:
+        return response
+    return None 
+
+
+def text_entry_dialog(name, value='', title='Input value'):
+    valid, response = field_entry_dialog(String.named(name), value, title)
+    if valid:
+        return response
+    return None 
 
 
 if __name__ == '__main__':
