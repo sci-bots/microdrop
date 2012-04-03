@@ -44,6 +44,25 @@ from plugin_helpers import AppDataController
 PluginGlobals.push_env('microdrop')
 
 
+def array2cv(a):
+    dtype2depth = {
+            'uint8':   cv.IPL_DEPTH_8U,
+            'int8':    cv.IPL_DEPTH_8S,
+            'uint16':  cv.IPL_DEPTH_16U,
+            'int16':   cv.IPL_DEPTH_16S,
+            'int32':   cv.IPL_DEPTH_32S,
+            'float32': cv.IPL_DEPTH_32F,
+            'float64': cv.IPL_DEPTH_64F,
+        }
+    try:
+        nChannels = a.shape[2]
+    except:
+        nChannels = 1
+    cv_im = cv.CreateMat(a.shape[0], a.shape[1], cv.CV_8UC3)
+    cv.SetData(cv_im, a.tostring(), a.shape[1] * nChannels)
+    return cv_im
+
+
 class VideoController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
