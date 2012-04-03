@@ -35,6 +35,7 @@ from flatland import Form, Dict, String, Integer, Boolean, Float
 from flatland.validation import ValueAtLeast, ValueAtMost
 from pygtkhelpers.ui.objectlist import ObjectList
 from pygtkhelpers.ui.objectlist.column import Column
+from pygtkhelpers.utils import gsignal
 
 import protocol
 from protocol import Protocol
@@ -71,6 +72,8 @@ class FieldsStep(object):
 
 class CombinedFields(ObjectList):
     field_set_prefix = '_%s__'
+
+    gsignal('fields-filter-request', object)
 
     def __init__(self, forms, enabled_attrs, *args, **kwargs):
         self.first_selected = True
@@ -116,6 +119,7 @@ class CombinedFields(ObjectList):
         self.connect('item-right-clicked', self._on_right_clicked)
         app = get_app()
         app.combined_fields = self
+        self.enabled_fields_by_plugin = enabled_attrs
 
     def _set_rows_attr(self, row_ids, column_title, value, prompt=False):
         title_map = dict([(c.title, c.attr) for c in self.columns])
@@ -183,6 +187,15 @@ class CombinedFields(ObjectList):
                 (gtk.MenuItem('''Set selected [%s] to...''' % column_title),
                 set_attr),
             ]
+        def request_field_filter(*args, **kwargs):
+            from gui.field_filter_controller import FieldFilterController
+
+            ffc = FieldFilterController()
+            response = ffc.run(self.forms, self.enabled_fields_by_plugin)
+            if response == gtk.RESPONSE_OK:
+                self.emit('fields-filter-request', ffc.enabled_fields_by_plugin)
+
+        menu_items += [(gtk.MenuItem('Select fields...'), request_field_filter), ]
         for item, callback in menu_items:
             popup.add(item)
             item.connect('activate', callback)
@@ -349,6 +362,7 @@ class ProtocolGridController(SingletonPlugin):
         self.builder = None
         self.widget = None
         self._enabled_fields = {}
+        self.enabled_fields_by_plugin = {}
         # e.g., 'wheelerlab.dmf_control_board_1.2':\
                 #set(['duration', 'voltage'])}
 
@@ -387,6 +401,11 @@ class ProtocolGridController(SingletonPlugin):
         """
         self.update_gui()
 
+    def set_fields_filter(self, combined_fields, enabled_fields_by_plugin):
+        self.enabled_fields = enabled_fields_by_plugin
+        logging.debug('[ProtocolGridController] set_fields_filter: %s' % self.enabled_fields)
+        self.update_gui()
+
     def update_gui(self):
         app = get_app()
         logging.debug('[ProtocolGridController] on_step_run():')
@@ -396,7 +415,9 @@ class ProtocolGridController(SingletonPlugin):
         steps = app.protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
             
+        #import pudb; pudb.set_trace()
         combined_fields = CombinedFields(forms, self.enabled_fields)
+        combined_fields.connect('fields-filter-request', self.set_fields_filter)
 
         for i, step in enumerate(steps):
             values = emit_signal('get_step_values', [i])
