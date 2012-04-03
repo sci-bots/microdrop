@@ -3,6 +3,23 @@ from plugin_manager import IPlugin, ExtensionPoint, emit_signal
 
 
 class AppDataController(object):
+    def on_plugin_enable(self):
+        """
+        Handler called once the plugin instance has been enabled.
+        """
+        app = get_app()
+        defaults = self.get_default_app_options()
+
+        # update app data from config file        
+        if self.name in app.config.data:
+            self.set_app_values(app.config.data[self.name])        
+
+        data = app.get_data(self.name)
+        for k, v in defaults.items():
+            if k not in data:
+                data[k] = v
+        app.set_data(self.name, data)
+    
     def get_default_app_options(self):
         return dict([(k, v.value) for k,v in self.AppFields.from_defaults().iteritems()])
 

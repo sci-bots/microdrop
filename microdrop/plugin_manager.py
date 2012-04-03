@@ -24,7 +24,7 @@ from contextlib import closing
 from collections import namedtuple
 
 from pyutilib.component.core import Interface, ExtensionPoint, implements, \
-    PluginGlobals
+    Plugin, PluginGlobals
 import pyutilib.component.loader
 from path import path
 import logging
@@ -33,10 +33,10 @@ import utility
 import task_scheduler
 
 if utility.PROGRAM_LAUNCHED:
-    from pyutilib.component.core import SingletonPlugin, Plugin, PluginGlobals
+    from pyutilib.component.core import SingletonPlugin
 else:
-    from pyutilib.component.core import Plugin
     from pyutilib.component.config import ManagedPlugin as SingletonPlugin
+
 
 PluginGlobals.push_env('microdrop.managed')
 PluginGlobals.pop_env()
@@ -114,24 +114,30 @@ else:
             """
             return []
 
-        def on_plugin_disable():
+        def on_plugin_disable(self):
             """
-            Handler called once the plugin instance has been disabled.
-            """
-            pass
-        
-        def on_plugin_enable():
-            """
-            Handler called once the plugin instance has been enabled.
+            Handler called once the plugin instance is disabled.
             """
             pass
         
-        def on_app_init():
+        def on_plugin_enable(self):
+            """
+            Handler called once the plugin instance is enabled.
+            
+            Note: if you inherit your plugin from AppDataController and don't
+            implement this handler, by default, it will automatically load all
+            app options from the config file. If you decide to overide the
+            default handler, you should call:
+                
+                super(AppDataController, self).on_plugin_enable()
+                
+            to retain this functionality.
+            """
+            pass
+        
+        def on_app_init(self):
             """
             Handler called once when the Microdrop application starts.
-            
-            Plugins should store a reference to the app object if they need to
-            access other components.
             """
             pass
         
