@@ -33,8 +33,8 @@ import numpy as np
 import protocol
 from protocol import Protocol
 from utility import is_float, is_int, FutureVersionError
-from utility.gui import register_shortcuts, textentry_validate
-from utility.gui.form_view_dialog import text_entry_dialog
+from utility.gui import register_shortcuts, textentry_validate,\
+        text_entry_dialog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, PluginGlobals, ScheduleRequest, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer

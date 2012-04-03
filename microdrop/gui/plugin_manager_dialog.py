@@ -26,13 +26,14 @@ import tempfile
 from collections import namedtuple
 
 import gtk
-from pygtkhelpers.ui.dialogs import open_filechooser, info, yesno
+from pygtkhelpers.ui.dialogs import open_filechooser, info
 from path import path
 import yaml
 
 import plugin_manager
 from app_context import get_app
 from utility import Version
+from utility.gui import yesno
 
 
 PluginMetaData = namedtuple('PluginMetaData', 'name version')

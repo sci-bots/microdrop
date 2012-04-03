@@ -37,6 +37,12 @@ import blinker
 import matplotlib
 from PIL import Image, ImageFont, ImageDraw
 import utility.uuid_minimal
+import gtk
+
+settings = gtk.settings_get_default()
+# Use a button ordering more consistent with Windows
+print 'Use a button ordering more consistent with Windows'
+settings.set_property('gtk-alternative-button-order', True)
 
 
 def except_handler(*args, **kwargs):

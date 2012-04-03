@@ -29,7 +29,7 @@ from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 import cairo
 from flatland import Form, Integer, String
 from flatland.validation import ValueAtLeast, ValueAtMost
-from pygtkhelpers.ui.dialogs import yesno
+from utility.gui import yesno
 from path import path
 import yaml
 
@@ -45,7 +45,7 @@ from opencv.safe_cv import cv
 from plugin_helpers import AppDataController
 from utility.pygtkhelpers_widgets import Directory
 from utility import is_float, copytree
-from utility.gui.form_view_dialog import text_entry_dialog
+from utility.gui import text_entry_dialog
 
 
 PluginGlobals.push_env('microdrop')

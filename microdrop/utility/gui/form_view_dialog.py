@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 import logging
+from functools import partial
 
 import gtk
 from path import path
@@ -59,40 +60,6 @@ class FormViewDialog(object):
                 % (response, proxy.get_widget_value()))
         return (response == 0), dict([(name, f.element.value)
                 for name, f in form_view.form.fields.items()])
-
-
-def field_entry_dialog(field, value=None, title='Input value'):
-    form = Form.of(field)
-    dialog = FormViewDialog(title=title)
-    if value is not None:
-        values = {field.name: value}
-    else:
-        values = None
-    valid, response =  dialog.run(form, values)
-    return valid, response.values()[0]
-
-
-def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
-        max_value=None):
-    field = Integer.named('name')
-    validators = []
-    if min_value is not None:
-        ValueAtLeast(minimum=min_value)
-    if max_value is not None:
-        ValueAtMost(maximum=max_value)
-
-    valid, response = field_entry_dialog(Integer.named(name)\
-            .using(validators=validators), value, title)
-    if valid:
-        return response
-    return None 
-
-
-def text_entry_dialog(name, value='', title='Input value'):
-    valid, response = field_entry_dialog(String.named(name), value, title)
-    if valid:
-        return response
-    return None 
 
 
 if __name__ == '__main__':

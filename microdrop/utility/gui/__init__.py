@@ -1,8 +1,13 @@
+from functools import partial
+import os
+
 import gtk
-from pygtkhelpers.ui.dialogs import yesno, error, info, open_filechooser,\
-        save, simple, warning, yesno
+#from pygtkhelpers.ui.dialogs import yesno, error, info, open_filechooser,\
+        #save, simple, warning
+from pygtkhelpers.ui.dialogs import simple, yesno as _yesno
 
 from logger import logger
+from .form_view_dialog import FormViewDialog
 from .. import is_float, is_int
 
 
@@ -75,3 +80,44 @@ def textview_get_text(textview):
     start = buffer.get_start_iter()
     end = buffer.get_end_iter()
     return buffer.get_text(start, end)
+
+
+#:  A yes/no question dialog, see :func:`~pygtkhelpers.ui.dialogs.simple` parameters
+if os.name == 'nt':
+    yesno = partial(_yesno, alt_button_order=(gtk.RESPONSE_YES, gtk.RESPONSE_NO))
+else:
+    yesno = _yesno
+
+
+def field_entry_dialog(field, value=None, title='Input value'):
+    form = Form.of(field)
+    dialog = FormViewDialog(title=title)
+    if value is not None:
+        values = {field.name: value}
+    else:
+        values = None
+    valid, response =  dialog.run(form, values)
+    return valid, response.values()[0]
+
+
+def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
+        max_value=None):
+    field = Integer.named('name')
+    validators = []
+    if min_value is not None:
+        ValueAtLeast(minimum=min_value)
+    if max_value is not None:
+        ValueAtMost(maximum=max_value)
+
+    valid, response = field_entry_dialog(Integer.named(name)\
+            .using(validators=validators), value, title)
+    if valid:
+        return response
+    return None 
+
+
+def text_entry_dialog(name, value='', title='Input value'):
+    valid, response = field_entry_dialog(String.named(name), value, title)
+    if valid:
+        return response
+    return None 
