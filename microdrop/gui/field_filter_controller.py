@@ -118,10 +118,11 @@ class FieldFilterController(object):
             form_view = self.form_views[form_name]
             values = initial_values.get(form_name, {})
             for name, field in form_view.form.fields.items():
-                if name in values or not values:
+                if name in values or not initial_values:
                     value = True
                 else:
                     value = False
+                print 'set %s to %s' % (name, value)
                 proxy = proxy_for(getattr(form_view, name))
                 proxy.set_widget_value(value)
                 field.label_widget.set_text(
