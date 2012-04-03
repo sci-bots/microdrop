@@ -75,18 +75,19 @@ class DmfDeviceView:
         return False
 
     def update(self):
-        x, y, width, height = self.widget.get_allocation()
-        if self.background is not None:
-            self.pixmap, mask = self.background.render_pixmap_and_mask()
-            if self.overlay_opacity:
-                alpha = self.overlay_opacity / 100
+        if self.widget:
+            x, y, width, height = self.widget.get_allocation()
+            if self.background is not None:
+                self.pixmap, mask = self.background.render_pixmap_and_mask()
+                if self.overlay_opacity:
+                    alpha = self.overlay_opacity / 100
+                else:
+                    alpha = 1.
             else:
                 alpha = 1.
-        else:
-            alpha = 1.
-            self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
-                                   True, 0, 0, width, height)
-        self.draw_on_pixmap(self.pixmap, alpha=alpha)
+                self.pixmap.draw_rectangle(self.widget.get_style().black_gc,
+                                       True, 0, 0, width, height)
+            self.draw_on_pixmap(self.pixmap, alpha=alpha)
 
     def draw_on_pixmap(self, pixmap, alpha=1.0):
         app = get_app()
