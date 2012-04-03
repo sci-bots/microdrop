@@ -26,30 +26,34 @@ from pygtkhelpers.proxy import proxy_for
 from app_context import get_app
 
 
-class ProtocolGridDialog(object):
-    def __init__(self):
+class FormViewDialog(object):
+    def __init__(self, title=None):
         builder = gtk.Builder()
-        builder.add_from_file(path('gui').joinpath('glade', 'protocol_grid_dialog.glade'))
-        self.window = builder.get_object('protocol_grid_dialog')
+        builder.add_from_file(path('gui').joinpath('glade', 'form_view_dialog.glade'))
+        self.window = builder.get_object('form_view_dialog')
         self.vbox_form = builder.get_object('vbox_form')
+        if title:
+            self.window.set_title(title)
 
     def clear_form(self):
         self.vbox_form.foreach(lambda x: self.vbox_form.remove(x))
 
-    def run(self, form, value=None):
+    def run(self, form, values=None):
         FormView.schema_type = form
         form_view = FormView()
-        proxy = proxy_for(getattr(form_view, form_view.form.fields.keys()[0]))
-        self.clear_form()
-        if value:
+        for name, field in form_view.form.fields.items():
+            proxy = proxy_for(field.widget)
+            value = values.get(name, field.element.default_value)
             proxy.set_widget_value(value)
+        self.clear_form()
         self.vbox_form.pack_start(form_view.widget)
         self.window.show_all()
         response = self.window.run()
         self.window.hide()
-        logging.debug('[ProtocolGridDialog] response=%s value=%s'\
+        logging.debug('[FormViewDialog] response=%s value=%s'\
                 % (response, proxy.get_widget_value()))
-        return (response == 0), proxy.get_widget_value()
+        return (response == 0), dict([(name, f.element.value)
+                for name, f in form_view.form.fields.items()])
 
 
 if __name__ == '__main__':
