@@ -177,7 +177,7 @@ def generate_wxs(root_path, version):
     root = dw.xml_tree(root_path)
 
     extra_dirs = ['etc', 'gui', 'mpl-data', 'share', 'pygtkhelpers', 'opencv',
-        'flatland', 'support', ]
+        'flatland', 'support', 'utility', ]
     children = dict([(name, dw.xml_tree(root_path.joinpath(name),
             recursive=True)) for name in extra_dirs])
 
