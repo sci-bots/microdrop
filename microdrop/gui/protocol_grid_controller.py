@@ -125,15 +125,18 @@ class CombinedFields(ObjectList):
         title_map = dict([(c.title, c.attr) for c in self.columns])
         attr = title_map.get(column_title)
         if prompt:
-            from protocol_grid_dialog import ProtocolGridDialog
+            from utility.gui.form_view_dialog import FormViewDialog
             from flatland import Form
 
             Fields = Form.of(self._full_field_to_field_def[attr])
+            local_field = Fields.field_schema_mapping.keys()[0]
 
-            temp = ProtocolGridDialog()
-            response_ok, value = temp.run(Fields, value)
+            temp = FormViewDialog(title='Set %s' % local_field)
+            response_ok, values = temp.run(Fields,
+                    {local_field: value})
             if not response_ok:
                 return
+            value = values.values()[0]
         else:
             title_map = dict([(c.title, c.attr) for c in self.columns])
             attr = title_map.get(column_title)

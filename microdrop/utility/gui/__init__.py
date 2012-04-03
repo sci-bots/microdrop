@@ -1,7 +1,9 @@
 import gtk
+from pygtkhelpers.ui.dialogs import yesno, error, info, open_filechooser,\
+        save, simple, warning, yesno
 
 from logger import logger
-from . import is_float, is_int
+from .. import is_float, is_int
 
 
 def register_shortcuts(window, shortcuts, enabled_widgets=None,

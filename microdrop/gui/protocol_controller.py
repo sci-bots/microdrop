@@ -34,6 +34,7 @@ import protocol
 from protocol import Protocol
 from utility import is_float, is_int, FutureVersionError
 from utility.gui import register_shortcuts, textentry_validate
+from utility.gui.form_view_dialog import text_entry_dialog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, PluginGlobals, ScheduleRequest, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer
@@ -68,7 +69,7 @@ class ProtocolController(SingletonPlugin):
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)
                 if not service:
-                    app.main_window_controller.warning("Protocol "
+                    logging.warning("Protocol "
                         "requires the %s plugin, however this plugin is "
                         "not available." % (name))
         except FutureVersionError, why:
@@ -79,8 +80,7 @@ It was created with a newer version of the software.
 Protocol is version %s, but only up to version %s is supported with this version of the software.'''\
             % (filename, why.future_version, why.current_version))
         except Exception, why:
-            app.main_window_controller.error("Could not open %s. %s" \
-                                                  % (filename, why))
+            logging.error("Could not open %s. %s" % (filename, why))
         if p:
             emit_signal("on_protocol_changed", p)
         emit_signal('on_step_run')
@@ -235,10 +235,10 @@ Protocol is version %s, but only up to version %s is supported with this version
             if save_as or rename or app.protocol.name is None:
                 # if the dialog is cancelled, name = ""
                 if name is None:
-                    name=""
-                name = app.main_window_controller.get_text_input("Save protocol",
-                                                                 "Protocol name",
-                                                                 name)
+                    name=''
+                name = text_entry_dialog('Protocol name', name, 'Save protocol')
+                if name is None:
+                    name=''
 
             if name:
                 path = os.path.join(app.get_device_directory(),
@@ -377,7 +377,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 return_codes = emit_signal("on_step_run")
                 if 'Fail' in return_codes.values():
                     self.pause_protocol()
-                    app.main_window_controller.error("Protocol failed.")
+                    logging.error("Protocol failed.")
                     break
                 elif 'Repeat' in return_codes.values():
                     attempt+=1
