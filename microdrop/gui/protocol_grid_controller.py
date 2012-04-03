@@ -125,7 +125,7 @@ class CombinedFields(ObjectList):
         title_map = dict([(c.title, c.attr) for c in self.columns])
         attr = title_map.get(column_title)
         if prompt:
-            from form_view_dialog import FormViewDialog
+            from utility.gui.form_view_dialog import FormViewDialog
             from flatland import Form
 
             Fields = Form.of(self._full_field_to_field_def[attr])

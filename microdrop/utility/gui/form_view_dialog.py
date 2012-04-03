@@ -29,7 +29,8 @@ from app_context import get_app
 class FormViewDialog(object):
     def __init__(self, title=None):
         builder = gtk.Builder()
-        builder.add_from_file(path('gui').joinpath('glade', 'form_view_dialog.glade'))
+        builder.add_from_file(path('utility').joinpath('gui', 'glade',
+                'form_view_dialog.glade'))
         self.window = builder.get_object('form_view_dialog')
         self.vbox_form = builder.get_object('vbox_form')
         if title:
