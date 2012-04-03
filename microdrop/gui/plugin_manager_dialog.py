@@ -60,10 +60,10 @@ class PluginController(object):
         self.label.set_alignment(0, 0.5)
         self.label_version = gtk.Label(str(self.version))
         self.label_version.set_alignment(0, 0.5)
-        self.button_uninstall = gtk.Button('uninstall')
+        self.button_uninstall = gtk.Button('Uninstall')
         self.button_uninstall.connect('clicked',
                 self.on_button_uninstall_clicked, None)
-        self.button = gtk.Button('disabled')
+        self.button = gtk.Button('Enable')
         self.button.connect('clicked', self.on_button_clicked, None)
         self.box.pack_start(self.label, expand=True, fill=True)
         self.box.pack_end(self.button, expand=False, fill=False, padding=5)
@@ -83,9 +83,9 @@ class PluginController(object):
     def update(self):
         self.service = plugin_manager.get_service_instance(self.plugin_class)
         if self.enabled():
-            self.button.set_label('enabled')
+            self.button.set_label('Disable')
         else:
-            self.button.set_label('disabled')
+            self.button.set_label('Enable')
 
     def toggle_enabled(self):
         if not self.enabled():
