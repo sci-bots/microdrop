@@ -253,6 +253,10 @@ version?''' % message)
                 else:
                     try:
                         self.uninstall_plugin(installed_plugin_path)
+                        count = 1
+                        while installed_plugin_path.exists():
+                            installed_plugin_path = path('%s%d'\
+                                    % (installed_plugin_path, count))
                     except:
                         raise
                         return
@@ -262,29 +266,7 @@ version?''' % message)
         self.install_plugin(plugin_root, installed_plugin_path)
 
     def uninstall_plugin(self, plugin_path):
-        # Remove the old version.
-        copy_finished = False
-        try:
-            # Temporarily copy old plugin to /tmp
-            temp_dir = path(tempfile.mkdtemp(prefix='microdrop_backup'))
-            plugin_path.copytree(
-                    temp_dir.joinpath(plugin_path.name),
-                    symlinks=True,
-                    ignore=ignore_patterns('*.pyc'))
-            copy_finished = True
-            # Post-pone deletion until next program launch
-            self.requested_deletions.append(plugin_path)
-        except:
-            if copy_finished:
-                logging.error('''\
-Error uninstalling %s from %s.
-Please try removing the directory manually and try again.
-Note: originally installed version available in %s''' % (plugin_path.name,
-                        plugin_path, temp_dir))
-            raise
-        else:
-            # Post-pone deletion until next program launch
-            self.requested_deletions.append(temp_dir)
+        self.requested_deletions.append(plugin_path)
         self.update()
 
     def install_plugin(self, plugin_root, install_path):
