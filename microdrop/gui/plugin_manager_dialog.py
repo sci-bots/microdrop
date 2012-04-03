@@ -139,6 +139,7 @@ class PluginManagerDialog(object):
         self.plugins = []
         # Maintain a list of path deletions to be processed on next app launch
         self.requested_deletions = []
+        self.rename_queue = []
         self.restart_required = False
         builder.connect_signals(self)
 
@@ -166,6 +167,10 @@ class PluginManagerDialog(object):
                 .joinpath('requested_deletions.yml')
         requested_deletion_path.write_bytes(yaml.dump(
                 [p.abspath() for p in self.requested_deletions]))
+        rename_queue_path = path(app.config.data['plugins']['directory'])\
+                .joinpath('rename_queue.yml')
+        rename_queue_path.write_bytes(yaml.dump(
+                [(p1.abspath(), p2.abspath()) for p1, p2 in self.rename_queue]))
 
 
     def get_plugin_names(self):
@@ -254,9 +259,13 @@ version?''' % message)
                     try:
                         self.uninstall_plugin(installed_plugin_path)
                         count = 1
+                        target_path = installed_plugin_path
                         while installed_plugin_path.exists():
                             installed_plugin_path = path('%s%d'\
                                     % (installed_plugin_path, count))
+                        if target_path != installed_plugin_path:
+                            self.rename_queue.append((installed_plugin_path,
+                                    target_path))
                     except:
                         raise
                         return

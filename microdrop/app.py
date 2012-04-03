@@ -155,6 +155,24 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                     continue
             deletions_path.write_bytes(yaml.dump(requested_deletions))
 
+        rename_queue_path = path(self.config.data['plugins']['directory'])\
+                .joinpath('rename_queue.yml')
+        if rename_queue_path.isfile():
+            rename_queue = yaml.load(rename_queue_path.bytes())
+            requested_renames = [(path(src), path(dst)) for src, dst in rename_queue]
+            logger.info('[App] processing requested renames.')
+            remaining_renames = []
+            for src, dst in requested_renames:
+                try:
+                    if src.exists():
+                        src.rename(dst)
+                        logger.info('  renamed %s -> %s' % (src, dst))
+                except (AssertionError,):
+                    logger.info('  rename unsuccessful: %s -> %s' % (src, dst))
+                    remaining_renames.append((str(src), str(dst)))
+                    continue
+            rename_queue_path.write_bytes(yaml.dump(remaining_renames))
+
         # dmf device
         self.dmf_device = DmfDevice()
 
