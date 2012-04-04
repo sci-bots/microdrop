@@ -2,14 +2,12 @@ from functools import partial
 import os
 
 import gtk
-#from pygtkhelpers.ui.dialogs import yesno, error, info, open_filechooser,\
-        #save, simple, warning
 from pygtkhelpers.ui.dialogs import simple, yesno as _yesno
 
 from logger import logger
 from .form_view_dialog import FormViewDialog
 from .. import is_float, is_int
-
+from flatland.schema import String, Form, Integer
 
 def register_shortcuts(window, shortcuts, enabled_widgets=None,
                         disabled_widgets=None):
