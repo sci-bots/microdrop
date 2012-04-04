@@ -21,6 +21,7 @@ import os
 import subprocess
 import re
 import traceback
+import functools
 
 import gtk
 import numpy as np
@@ -38,6 +39,7 @@ import plugin_manager
 from plugin_helpers import AppDataController
 from logger import logger, CustomHandler, logging
 from gui.plugin_manager_dialog import PluginManagerDialog
+import app_state
 
 
 PluginGlobals.push_env('microdrop')
@@ -52,6 +54,20 @@ import gui.protocol_controller
 import gui.protocol_grid_controller
 import gui.video_controller
 import gui.app_options_controller
+
+
+def test(*args, **kwargs):
+    print 'args=%s\nkwargs=%s' % (args, kwargs)
+
+
+def dump_event_info(current_state, event, label=None):
+    match = re.search(r'app_state.(?P<state_name>.*?)\s+', str(current_state))
+    if match:
+        current_state = match.group('state_name')
+    logger.debug('[%s] event=%s current_state=%s'\
+            % (('%-14s' % label, '')[not label].upper(), event.type.split(' ')[-1],
+                    str(current_state),))
+    #import traceback; print ''.join(traceback.format_stack())
 
 
 class App(SingletonPlugin):
@@ -78,6 +94,9 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
 
     def __init__(self):
         self.name = "microdrop.app"
+        self.state = app_state.AppState(
+                on_pre_event=functools.partial(dump_event_info, label='on_pre_event'),
+                on_post_event=functools.partial(dump_event_info, label='on_post_event'))
         # get the version number
         self.version = ""
         try:
@@ -188,6 +207,9 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
     
     def set_data(self, plugin_name, data):
         self.plugin_data[plugin_name] = data
+
+    def on_protocol_swapped(self, protocol):
+        self.protocol = protocol
 
     @property
     def plugins(self):
@@ -311,6 +333,9 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
     
     def on_protocol_swapped(self, old_protocol, new_protocol):
         self.protocol = new_protocol
+    
+    def on_step_options_changed(self, plugin, step_number):
+        self.state.trigger_event(app_state.PROTOCOL_CHANGED)
     
     def on_protocol_created(self, protocol):
         self.protocol = protocol

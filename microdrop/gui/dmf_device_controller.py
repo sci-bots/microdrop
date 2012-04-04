@@ -46,6 +46,7 @@ from plugin_helpers import AppDataController
 from utility.pygtkhelpers_widgets import Directory
 from utility import is_float, copytree
 from utility.gui import text_entry_dialog
+import app_state
 
 
 PluginGlobals.push_env('microdrop')
@@ -265,6 +266,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         pass
     
     def load_device(self, filename):
+        app = get_app()
         try:
             original_device = get_app().dmf_device
             if original_device is None:
@@ -272,6 +274,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             else:
                 emit_signal("on_dmf_device_swapped", [original_device,
                         DmfDevice.load(filename)])
+            app.state.trigger_event(app_state.LOAD_DEVICE)
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
             logger.debug(''.join(traceback.format_stack()))
@@ -313,6 +316,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             app.dmf_device = DmfDevice.load_svg(filename)
+            app.state.trigger_event(app_state.IMPORT_DEVICE)
             emit_signal("on_dmf_device_created", [app.dmf_device])
         dialog.destroy()
         self._notify_observers_step_options_swapped()

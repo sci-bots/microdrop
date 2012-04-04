@@ -40,6 +40,7 @@ from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
                 get_service_class, get_service_instance, get_service_instance_by_name
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
+import app_state
 
 
 PluginGlobals.push_env('microdrop')
@@ -88,6 +89,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 emit_signal("on_protocol_created", p)
             else:
                 emit_signal("on_protocol_swapped", [original_protocol, p])
+            app.state.trigger_event(app_state.LOAD_PROTOCOL)
         emit_signal('on_step_run')
 
     def on_protocol_created(self, protocol):
@@ -271,6 +273,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                     shutil.move(src, dest)
                 else: # save the file
                     app.protocol.save(dest)
+                    app.state.trigger_event(app_state.PROTOCOL_SAVED)
     
     def on_textentry_step_duration_focus_out(self, widget=None, data=None):
         self.on_step_duration_changed()
@@ -475,10 +478,14 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
                 
     def on_dmf_device_created(self, dmf_device):
+        app = get_app()
         emit_signal("on_protocol_created", Protocol())
+        app.state.trigger_event(app_state.NEW_PROTOCOL)
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        app = get_app()
         emit_signal("on_protocol_created", Protocol())
+        app.state.trigger_event(app_state.NEW_PROTOCOL)
 
     def on_app_exit(self):
         #TODO: prompt to save if protocol has changed
