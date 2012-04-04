@@ -74,6 +74,9 @@ class ExperimentLogController(SingletonPlugin):
 
     def update(self):        
         app = get_app()
+        if not app.experiment_log:
+            self._disable_gui_elements()
+            return
         try:
             id = combobox_get_active_text(self.combobox_log_files)
             log = path(app.experiment_log.directory) / path(id) / path("data")
@@ -156,6 +159,8 @@ class ExperimentLogController(SingletonPlugin):
                         r'wheelerlab.dmf_control_board_', re_pattern=True)
                     options = step.get_data(dmf_plugin_name)
                     vals = []
+                    if not options:
+                        continue
                     for i, c in enumerate(self.columns):
                         if c.name=="Time (s)":
                             vals.append(d['core']['time'])
@@ -172,22 +177,18 @@ class ExperimentLogController(SingletonPlugin):
                     protocol_list.append(vals)
         except Exception, why:
             logger.info("[ExperimentLogController].update(): %s" % why)
-            self.builder.get_object("button_load_device").set_sensitive(False)        
-            self.builder.get_object("button_load_protocol").set_sensitive(False)    
-            self.builder.get_object("textview_notes").set_sensitive(False)
+            self._disable_gui_elements()
+
+    def _disable_gui_elements(self):
+        self.builder.get_object("button_load_device").set_sensitive(False)        
+        self.builder.get_object("button_load_protocol").set_sensitive(False)    
+        self.builder.get_object("textview_notes").set_sensitive(False)
     
     def save(self):
         app = get_app()
         data = {"software version": app.version}
         data["device name"] = app.dmf_device.name
         data["protocol name"] = app.protocol.name
-        if app.control_board.connected():
-            data["control board name"] = \
-                app.control_board.name()
-            data["control board hardware version"] = \
-                app.control_board.hardware_version()
-            data["control board software version"] = \
-                app.control_board.software_version()
         data["notes"] = textview_get_text(app.protocol_controller. \
             builder.get_object("textview_notes"))
         app.experiment_log.add_data(data)
@@ -199,7 +200,7 @@ class ExperimentLogController(SingletonPlugin):
         
         # create a new log
         experiment_log = ExperimentLog(app.experiment_log.directory)
-        emit_signal("on_experiment_log_changed", experiment_log)
+        emit_signal("on_experiment_log_created", experiment_log)
 
     def on_window_show(self, widget, data=None):
         self.window.show()
@@ -245,7 +246,11 @@ class ExperimentLogController(SingletonPlugin):
             device_path = os.path.join(app.get_device_directory(),
                                        dmf_device.name, "logs")
         experiment_log = ExperimentLog(device_path)
-        emit_signal("on_experiment_log_changed", experiment_log)
+        app.experiment_log = experiment_log
+        emit_signal("on_experiment_log_created", experiment_log)
+
+    def on_experiment_log_created(self, experiment_log):
+        self.on_experiment_log_changed(experiment_log)
         
     def on_experiment_log_changed(self, experiment_log):
         log_files = []

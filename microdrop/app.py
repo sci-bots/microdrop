@@ -102,7 +102,6 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
         self.plugin_data = {}
 
         # these members are initialized by plugins
-        self.control_board = None
         self.experiment_log_controller = None
         self.config_controller = None
         self.dmf_device_controller = None 
@@ -174,10 +173,10 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
             rename_queue_path.write_bytes(yaml.dump(remaining_renames))
 
         # dmf device
-        self.dmf_device = DmfDevice()
+        self.dmf_device = None
 
         # protocol
-        self.protocol = Protocol()
+        self.protocol = None
 
     def get_data(self, plugin_name):
         logging.debug('[App] plugin_data=%s' % self.plugin_data)
@@ -227,14 +226,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                     'directory:\n\n    %s' % (p, self.config['plugins']['directory']))
         plugin_manager.log_summary()
 
-        # experiment logs
-        device_path = None
-        if self.dmf_device.name:
-            directory = self.get_device_directory()
-            if directory:
-                device_path = os.path.join(directory,
-                        self.dmf_device.name, "logs")
-        self.experiment_log = ExperimentLog(device_path)
+        self.experiment_log = None
 
         # save the protocol name from the config file because it is
         # automatically overwritten when we load a new device

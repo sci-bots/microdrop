@@ -374,11 +374,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
                         channels[i] = int(channels[i])
                 else:
                     channels = []
-                state = app.protocol[i].get_data(self.name).state_of_channels
-                if channels and max(channels) >= len(state):
+                options = app.protocol[i].get_data(self.name)
+                if channels and max(channels) >= len(options.state_of_channels):
                     # zero-pad channel states for all steps
                     for i in range(len(app.protocol)):
-                        options = app.protocol[i].get_data(self.name)
                         options.state_of_channels = \
                             np.concatenate([options.state_of_channels,
                             np.zeros(max(channels) - \
@@ -405,8 +404,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 logger.error("Area value is invalid.")
     
     def on_dmf_device_changed(self, dmf_device):
-        self.view.fit_device()
         self._notify_observers_step_options_changed()
+        self.view.fit_device()
 
     def on_step_options_changed(self, plugin_name, step_number):
         '''
@@ -423,19 +422,23 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def _notify_observers_step_options_changed(self):
         app = get_app()
+        if not app.dmf_device:
+            return
         emit_signal('on_step_options_changed',
                     [self.name, app.protocol.current_step_number],
                     interface=IPlugin)
 
     def _update(self):
         app = get_app()
+        if not app.dmf_device:
+            return
         options = self.get_step_options()
-        state_of_all_channels = options.state_of_channels
+        state_of_channels = options.state_of_channels
         for id, electrode in app.dmf_device.electrodes.iteritems():
             channels = app.dmf_device.electrodes[id].channels
             if channels:
                 # get the state(s) of the channel(s) connected to this electrode
-                states = state_of_all_channels[channels]
+                states = state_of_channels[channels]
     
                 # if all of the states are the same
                 if len(np.nonzero(states == states[0])[0]) == len(states):
@@ -452,6 +455,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.view.update()
 
     def on_new_frame(self, frame, depth, frame_time):
+        app = get_app()
+        if not app.dmf_device:
+            return
         self.last_frame = frame
         now = datetime.now()
 
@@ -484,6 +490,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                     self.name),
                     ScheduleRequest('microdrop.gui.main_window_controller',
                                     self.name)]
+        elif function_name == 'on_dmf_device_changed':
+            return [ScheduleRequest('microdrop.app', self.name),]
         return []
 
 PluginGlobals.pop_env()
