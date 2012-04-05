@@ -68,7 +68,7 @@ class VideoController(SingletonPlugin, AppDataController):
 
     AppFields = Form.of(
         Boolean.named('video_enabled').using(default=False, optional=True),
-        Integer.named('fps_limit').using(default=5, optional=True,
+        Integer.named('fps_limit').using(default=30, optional=True,
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
     )
 

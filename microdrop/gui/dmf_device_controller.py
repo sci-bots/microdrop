@@ -66,7 +66,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     AppFields = Form.of(
         Integer.named('overlay_opacity').using(default=30, optional=True,
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
-        Integer.named('display_fps').using(default=10, optional=True,
+        Integer.named('display_fps').using(default=30, optional=True,
             validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)]),
         Directory.named('device_directory').using(default='', optional=True),
         String.named('transform_matrix').using(default='', optional=True,
