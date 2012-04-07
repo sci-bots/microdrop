@@ -129,6 +129,10 @@ class Protocol():
                 return plugin_name
         return None
 
+    def get_step_values(self, plugin_name):
+        logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
+        return self.plugin_data.get(plugin_name)
+
     def get_data(self, plugin_name):
         logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
         return self.plugin_data.get(plugin_name)
@@ -162,6 +166,15 @@ class Protocol():
                 yaml.dump(out, f)
             else:
                 raise TypeError
+
+    def get_step_number(self, default):
+        if default is None:
+            return self.current_step_number
+        return default
+
+    def get_step(self, step_number=None):
+        step_number = self.get_step_number(step_number)
+        return self.steps[step_number]
 
     def current_step(self):
         return self.steps[self.current_step_number]

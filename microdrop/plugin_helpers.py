@@ -1,5 +1,11 @@
+import re
+
 from app_context import get_app
+from logger import logger
 from plugin_manager import IPlugin, ExtensionPoint, emit_signal
+from gui.plugin_manager_dialog import PluginManagerDialog
+from utility import Version
+from utility.git_util import GitUtil
 
 
 class AppDataController(object):
@@ -59,3 +65,101 @@ class AppDataController(object):
         if hasattr(service, 'get_app_values'):
             return service.get_app_values()
         return None
+
+
+class StepOptionsController(object):
+    @staticmethod
+    def get_plugin_step_values(plugin_name, step_number=None):
+        app = get_app()
+        observers = ExtensionPoint(IPlugin)
+        service = observers.service(plugin_name)
+        if hasattr(service, 'get_step_values'):
+            return service.get_step_values(step_number)
+        return None
+
+    def on_step_created(self, step_number):
+        pass
+
+    def get_default_step_options(self):
+        return dict([(k, v.value)
+                for k,v in self.StepFields.from_defaults().iteritems()])
+
+    def get_step_form_class(self):
+        return self.StepFields
+
+    def get_step_fields(self):
+        return self.StepFields.field_schema_mapping.keys()
+
+    def get_step_values(self, step_number=None):
+        return self.get_step_options(step_number)
+
+    def get_step_value(self, name, step_number=None):
+        app = get_app()
+        if not name in self.StepFields.field_schema_mapping:
+            raise KeyError('No field with name %s for plugin %s' % (name, self.name))
+        step = self.get_step(step_number)
+
+        options = step.get_data(self.name)
+        if options:
+            return options[name]
+        return None
+
+    def set_step_values(self, values_dict, step_number=None):
+        step_number = self.get_step_number(step_number)
+        logger.debug('[StepOptionsController] set_step[%d]_values(): '\
+                    'values_dict=%s' % (step_number, values_dict,))
+        el = self.StepFields(value=values_dict)
+        if not el.validate():
+            raise ValueError('Invalid values: %s' % el.errors)
+        options = self.get_step_options(step_number=step_number)
+        values = {}
+        for name, field in el.iteritems():
+            if field.value is None:
+                continue
+            values[name] = field.value
+        
+        if values:
+            app = get_app()
+            step = app.protocol.steps[step_number]
+            step.set_data(self.name, values)
+            emit_signal('on_step_options_changed', [self.name, step_number],
+                        interface=IPlugin)
+
+    def get_step(self, step_number):
+        step_number = self.get_step_number(step_number)
+        return get_app().protocol.steps[step_number]
+
+    def get_step_number(self, default):
+        if default is None:
+            return get_app().protocol.current_step_number
+        return default
+
+    def get_step_options(self, step_number=None):
+        step = self.get_step(step_number)
+        options = step.get_data(self.name)
+        if options is None:
+            # No data is registered for this plugin (for this step).
+            options = self.get_default_step_options()
+            step.set_data(self.name, options)
+        return options
+
+
+def get_plugin_version(plugin_root):
+    try:
+        version = GitUtil(plugin_root).describe()
+        m = re.search('^v(?P<major>\d+)\.(?P<minor>\d+)(-(?P<micro>\d+))?', version)
+        if m.group('micro'):
+            micro = m.group('micro')
+        else:
+            micro = '0'
+        version_string = "%s.%s.%s" % (m.group('major'),
+                m.group('minor'), micro)
+        version = Version.fromstring(version_string)
+        return version
+    except AssertionError:
+        info = PluginManagerDialog.get_plugin_info(plugin_root)
+        if info:
+            return info.version
+        else:
+            raise
+    return None

@@ -293,6 +293,15 @@ def get_service_class(name, env='microdrop.managed'):
     return e.plugin_registry[name]
 
 
+def get_service_instance_by_name(name, env='microdrop.managed'):
+    e = PluginGlobals.env(env)
+    plugins = [p for p in e.active_services(IPlugin) if p.name == name]
+    if plugins:
+        return plugins[0]
+    else:
+        return None
+
+
 def get_service_instance(class_, env='microdrop.managed'):
     e = PluginGlobals.env(env)
     for service in e.services:

@@ -36,7 +36,8 @@ from utility import is_float, is_int, FutureVersionError
 from utility.gui import register_shortcuts, textentry_validate,\
         text_entry_dialog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ScheduleRequest, emit_signal
+        implements, PluginGlobals, ScheduleRequest, emit_signal,\
+                get_service_class, get_service_instance, get_service_instance_by_name
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
 
@@ -402,18 +403,28 @@ Protocol is version %s, but only up to version %s is supported with this version
         else: # we're on the last step
             self.pause_protocol()
 
+    def on_step_options_swapped(self, step_number):
+        self._update_dmf_fields(self._get_dmf_control_fields(step_number))
+
+    def _get_dmf_control_fields(self, step_number):
+        step = get_app().protocol.get_step(step_number)
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        service = get_service_instance_by_name(dmf_plugin_name)
+        return service.get_step_values(step_number)
+
     def on_step_options_changed(self, plugin, step_number):
         logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, step_number=%s'\
             % (plugin, step_number))
         app = get_app()
         step = app.protocol.steps[step_number]
         if(re.search(r'wheelerlab.dmf_control_board_', plugin)):
-            dmf_plugin_name = step.plugin_name_lookup(
-                r'wheelerlab.dmf_control_board_', re_pattern=True)
-            options = step.get_data(dmf_plugin_name)
-            self.textentry_voltage.set_text(str(options.voltage))
-            self.textentry_frequency.set_text(str(options.frequency / 1e3))
-            self.textentry_step_duration.set_text(str(options.duration))
+            self._update_dmf_fields(self._get_dmf_control_fields(step_number))
+
+    def _update_dmf_fields(self, values):
+        self.textentry_voltage.set_text(str(values['voltage']))
+        self.textentry_frequency.set_text(str(values['frequency'] / 1e3))
+        self.textentry_step_duration.set_text(str(values['duration']))
 
     def set_app_values(self, values_dict):
         logging.debug('[ProtocolController] set_app_values(): '\
