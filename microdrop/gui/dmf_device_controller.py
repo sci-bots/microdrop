@@ -369,6 +369,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             
             # save the device
             app.dmf_device.save(os.path.join(dest,"device"))
+            app.state.trigger_event(app_state.DEVICE_SAVED)
                     
     def on_edit_electrode_channels(self, widget, data=None):
         # TODO: set default value
@@ -392,9 +393,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
                             np.zeros(max(channels) - \
                             len(options.state_of_channels)+1, int)])
                 self.last_electrode_clicked.channels = channels
+                app.state.trigger_event(app_state.DEVICE_CHANGED)
             except:
                 logger.error("Invalid channel.")
-        self._notify_observers_step_options_changed()
         
     def on_edit_electrode_area(self, widget, data=None):
         app = get_app()
