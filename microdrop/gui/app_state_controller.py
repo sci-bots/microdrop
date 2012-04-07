@@ -30,11 +30,11 @@ class AppStateController(SingletonPlugin):
         self.on_plugin_enable(*args, **kwargs)
 
     def on_pre_event(self, state, event):
-        logging.info('[on_pre_event] state=%s, event=%s' % (state,
+        logging.debug('[on_pre_event] state=%s, event=%s' % (state,
                 event.type.split(' ')[-1]))
 
     def on_post_event(self, state, event):
-        logging.info('[on_post_event] state=%s, event=%s' % (state,
+        logging.debug('[on_post_event] state=%s, event=%s' % (state,
                 event.type.split(' ')[-1]))
 
     def _on_pre_event(self, state, event):
