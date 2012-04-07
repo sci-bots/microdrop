@@ -38,12 +38,12 @@ def register_shortcuts(window, shortcuts, enabled_widgets=None,
     return accelgroup
 
 
-def textentry_validate(textentry, prev_value, type):
+def textentry_validate(textentry, prev_value, type_):
     val = textentry.get_text()
-    if val and type is float:
+    if val and type_ is float:
         if is_float(val):
             return float(val)
-    elif val and type is int:
+    elif val and type_ is int:
         if is_int(val):
             return int(val)
     textentry.set_text(str(prev_value))
@@ -74,10 +74,10 @@ def combobox_get_active_text(cb):
 
 
 def textview_get_text(textview):
-    buffer = textview.get_buffer()
-    start = buffer.get_start_iter()
-    end = buffer.get_end_iter()
-    return buffer.get_text(start, end)
+    buffer_ = textview.get_buffer()
+    start = buffer_.get_start_iter()
+    end = buffer_.get_end_iter()
+    return buffer_.get_text(start, end)
 
 
 #:  A yes/no question dialog, see :func:`~pygtkhelpers.ui.dialogs.simple` parameters
