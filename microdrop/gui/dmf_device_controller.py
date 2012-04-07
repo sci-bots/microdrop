@@ -344,9 +344,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if rename and os.path.isdir(src):
                 if src == dest:
                     return
-                if f.isdir(dest):
+                if os.path.isdir(dest):
                     logger.error("A device with that "
-                        "name already exists.")
+                                 "name already exists.")
                     return
                 shutil.move(src, dest)
 
