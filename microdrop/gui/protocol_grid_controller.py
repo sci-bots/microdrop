@@ -389,19 +389,18 @@ class ProtocolGridController(SingletonPlugin):
         print 'args=%s, kwargs=%s' % (args, kwargs)
         print 'attrs=%s' % args[1].attrs
 
+    def on_step_options_swapped(self, plugin, step_number):
+        self.update_gui()
+
     def on_step_options_changed(self, plugin, step_number):
         if self.widget is None:
             return
         self.widget._on_step_options_changed(plugin, step_number)
 
-    def on_step_run(self):
-        """
-        Handler called whenever a step is executed.
+    def on_protocol_swapped(self, old_protocol, protocol):
+        self.on_protocol_created(protocol)
 
-        Returns:
-            True if the step should be run again (e.g., if a feedback
-            plugin wants to signal that the step should be repeated)
-        """
+    def on_protocol_created(self, protocol):
         self.update_gui()
 
     def set_fields_filter(self, combined_fields, enabled_fields_by_plugin):
@@ -411,6 +410,8 @@ class ProtocolGridController(SingletonPlugin):
 
     def update_gui(self):
         app = get_app()
+        if not app.protocol:
+            return 
         logging.debug('[ProtocolGridController] on_step_run():')
         logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
         forms = emit_signal('get_step_form_class')

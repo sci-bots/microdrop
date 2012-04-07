@@ -293,7 +293,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             filename = dialog.get_filename()
             self.load_device(filename)
         dialog.destroy()
-        self._notify_observers_step_options_changed()
+        self._notify_observers_step_options_swapped()
         
     def on_import_dmf_device(self, widget, data=None):
         app = get_app()
@@ -315,7 +315,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             app.dmf_device = DmfDevice.load_svg(filename)
             emit_signal("on_dmf_device_created", [app.dmf_device])
         dialog.destroy()
-        self._notify_observers_step_options_changed()
+        self._notify_observers_step_options_swapped()
         
     def on_rename_dmf_device(self, widget, data=None):
         self.save_dmf_device(rename=True)
@@ -415,6 +415,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self._notify_observers_step_options_changed()
         self.view.fit_device()
 
+    def on_step_options_swapped(self, plugin_name, step_number):
+        self.on_step_options_changed(plugin_name, step_number)
+
     def on_step_options_changed(self, plugin_name, step_number):
         '''
         The step options for the current step have changed.
@@ -427,6 +430,14 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_step_run(self):
         self._update()
+
+    def _notify_observers_step_options_swapped(self):
+        app = get_app()
+        if not app.dmf_device:
+            return
+        emit_signal('on_step_options_swapped',
+                    [self.name, app.protocol.current_step_number],
+                    interface=IPlugin)
 
     def _notify_observers_step_options_changed(self):
         app = get_app()
