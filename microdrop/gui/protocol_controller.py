@@ -263,7 +263,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 # if the protocol name has changed
                 if name != app.protocol.name:
                     app.protocol.name = name
-                    emit_signal("on_protocol_swapped", app.protocol)
+                    emit_signal("on_protocol_swapped", [None, app.protocol])
 
                 # if we're renaming
                 if rename and os.path.isfile(src):
