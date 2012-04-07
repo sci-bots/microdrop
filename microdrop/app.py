@@ -46,6 +46,7 @@ PluginGlobals.push_env('microdrop')
     
 
 # these imports automatically load (and initialize) core singleton plugins
+import gui.app_state_controller
 import gui.experiment_log_controller
 import gui.config_controller
 import gui.main_window_controller
@@ -84,6 +85,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
     '''
     core_plugins = ['microdrop.app',
+            'microdrop.gui.app_state_controller',
             'microdrop.gui.config_controller',
             'microdrop.gui.dmf_device_controller',
             'microdrop.gui.experiment_log_controller',
@@ -94,9 +96,6 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
 
     def __init__(self):
         self.name = "microdrop.app"
-        self.state = app_state.AppState(
-                on_pre_event=functools.partial(dump_event_info, label='on_pre_event'),
-                on_post_event=functools.partial(dump_event_info, label='on_post_event'))
         # get the version number
         self.version = ""
         try:
@@ -126,6 +125,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
         self.dmf_device_controller = None 
         self.protocol_controller = None
         self.main_window_controller = None
+        self.state = app_state.AppState()
 
         # Enable custom logging handler
         logger.addHandler(CustomHandler())

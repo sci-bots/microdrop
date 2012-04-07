@@ -210,6 +210,7 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def on_new_protocol(self, widget=None, data=None):
         emit_signal("on_protocol_created", Protocol())
+        get_app().state.trigger_event(app_state.NEW_PROTOCOL)
         emit_signal('on_step_run')
 
     def on_load_protocol(self, widget=None, data=None):

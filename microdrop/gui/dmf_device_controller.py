@@ -38,7 +38,8 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
-        implements, PluginGlobals, IVideoPlugin, ScheduleRequest, emit_signal
+        implements, PluginGlobals, IVideoPlugin, ScheduleRequest, emit_signal,\
+        IAppStatePlugin
 from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
@@ -62,6 +63,7 @@ class DmfDeviceOptions(object):
 
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
+    implements(IAppStatePlugin)
     implements(IVideoPlugin)
     
     AppFields = Form.of(
@@ -270,11 +272,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
         try:
             original_device = get_app().dmf_device
             if original_device is None:
+                app.state.trigger_event(app_state.LOAD_DEVICE)
                 emit_signal("on_dmf_device_created", DmfDevice.load(filename))
             else:
+                app.state.trigger_event(app_state.LOAD_DEVICE)
                 emit_signal("on_dmf_device_swapped", [original_device,
                         DmfDevice.load(filename)])
-            app.state.trigger_event(app_state.LOAD_DEVICE)
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
             logger.debug(''.join(traceback.format_stack()))
@@ -517,5 +520,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         elif function_name in ['on_dmf_device_swapped', 'on_dmf_device_created']:
             return [ScheduleRequest('microdrop.app', self.name),]
         return []
+
 
 PluginGlobals.pop_env()
