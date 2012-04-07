@@ -45,7 +45,10 @@ class FormViewDialog(object):
         form_view = FormView()
         for name, field in form_view.form.fields.items():
             proxy = proxy_for(field.widget)
-            value = values.get(name, field.element.default_value)
+            if values:
+                value = values[name]
+            else:
+                value = field.element.default_value
             proxy.set_widget_value(value)
             field.widget.set_activates_default(gtk.TRUE)
         self.clear_form()
@@ -58,5 +61,5 @@ class FormViewDialog(object):
         self.window.hide()
         logging.debug('[FormViewDialog] response=%s value=%s'\
                 % (response, proxy.get_widget_value()))
-        return (response == 0), dict([(name, f.element.value)
-                for name, f in form_view.form.fields.items()])
+        return (response == 0), {name: f.element.value
+                for name, f in form_view.form.fields.items()}
