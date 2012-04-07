@@ -33,7 +33,7 @@ from protocol import Protocol
 from config import Config
 from experiment_log import ExperimentLog
 from plugin_manager import SingletonPlugin, ExtensionPoint, \
-    IPlugin, implements, PluginGlobals, Plugin
+    IPlugin, implements, PluginGlobals
 import plugin_manager
 from plugin_helpers import AppDataController
 from logger import logger, CustomHandler, logging
@@ -54,7 +54,7 @@ import gui.video_controller
 import gui.app_options_controller
 
 
-class App(Plugin):
+class App(SingletonPlugin):
     implements(IPlugin)
     '''
 INFO:  <Plugin App 'microdrop.app'>

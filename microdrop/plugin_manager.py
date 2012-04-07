@@ -251,12 +251,7 @@ def get_plugin_names(env=None):
     return list(e.plugin_registry.keys())
 
 def disable(name, env='microdrop.managed'):
-    e = PluginGlobals.env(env)
-    print e.plugin_registry
-    
-    if name not in e.plugin_registry:
-        raise KeyError, 'No plugin registered with name: %s' % name
-    class_ = e.plugin_registry[name]
+    class_ = get_service_class(name, env)
     service = get_service_instance(class_, env)
     if service and service.enabled():
         if hasattr(service, "on_plugin_disable"):
@@ -265,24 +260,21 @@ def disable(name, env='microdrop.managed'):
         logging.info('[PluginManager] Disabled plugin: %s' % name)
 
 def enable(name, env='microdrop.managed'):
-    e = PluginGlobals.env(env)
-    if name not in e.plugin_registry:
-        raise KeyError, 'No plugin registered with name: %s' % name
-    PluginClass = e.plugin_registry[name]
-    service = get_service_instance(PluginClass, env)
+    class_ = get_service_class(name, env)
+    service = get_service_instance(class_, env)
     if service is None:
         # There is not currently any plugin registered of the specified
         # type.
         try:
-            service = PluginClass()
+            service = class_()
         except Exception, why:
-            service_instance = get_service_instance(PluginClass)
+            service_instance = get_service_instance(class_)
             with closing(StringIO()) as message:
                 if service_instance:
                         if hasattr(service_instance, "name"):
                             print >> message, \
                             '%s plugin crashed during initialization:' % \
-                            str(PluginClass),
+                            str(class_),
                         # Deactivate in plugin registry since the plugin
                         # was not initialized properly.
                         service_instance.deactivate()
@@ -294,7 +286,14 @@ def enable(name, env='microdrop.managed'):
         logging.info('[PluginManager] Enabled plugin: %s' % name)
     if hasattr(service, "on_plugin_enable"):
         service.on_plugin_enable()
-    return service
+
+
+def get_service_class(name, env='microdrop.managed'):
+    e = PluginGlobals.env(env)
+    if name not in e.plugin_registry:
+        raise KeyError, 'No plugin registered with name: %s' % name
+    return e.plugin_registry[name]
+
 
 def get_service_instance(class_, env='microdrop.managed'):
     e = PluginGlobals.env(env)
