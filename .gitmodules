@@ -1,6 +1,3 @@
-[submodule "microdrop/plugins/dmf_control_board"]
-	path = microdrop/plugins/dmf_control_board
-	url = http://microfluidics.utoronto.ca/git/dmf_control_board.git
 [submodule "microdrop/gui/textbuffer_with_undo"]
 	path = microdrop/gui/textbuffer_with_undo
 	url = http://microfluidics.utoronto.ca/git/python___pygtk___gtk-textbuffer-with-undo.git
