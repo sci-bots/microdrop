@@ -190,9 +190,6 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
     def set_data(self, plugin_name, data):
         self.plugin_data[plugin_name] = data
 
-    def on_protocol_changed(self, protocol):
-        self.protocol = protocol
-
     @property
     def plugins(self):
         return set(self.plugin_data.keys())
@@ -214,8 +211,14 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                 
         self.builder.connect_signals(self.signals)
 
+        # Enable plugins according to schedule requests
+        observers = {name: plugin_manager.get_service_instance(
+                             plugin_manager.get_service_class(name)
+                           ) for name in self.config['plugins']['enabled']}
+        schedule = plugin_manager.get_schedule(observers, "on_plugin_enable")
+
         # Load optional plugins marked as enabled in config
-        for p in self.config['plugins']['enabled']:
+        for p in schedule:
             try:
                 plugin_manager.enable(p)
             except KeyError:
