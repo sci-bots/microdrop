@@ -122,7 +122,7 @@ class FieldFilterController(object):
                     value = True
                 else:
                     value = False
-                print 'set %s to %s' % (name, value)
+                logger.debug('set %s to %s' % (name, value))
                 proxy = proxy_for(getattr(form_view, name))
                 proxy.set_widget_value(value)
                 field.label_widget.set_text(
