@@ -266,7 +266,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
     
     def load_device(self, filename):
         try:
-            emit_signal("on_dmf_device_changed", DmfDevice.load(filename))
+            original_device = get_app().dmf_device
+            if original_device is None:
+                emit_signal("on_dmf_device_created", DmfDevice.load(filename))
+            else:
+                emit_signal("on_dmf_device_swapped", [original_device,
+                        DmfDevice.load(filename)])
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
             logger.debug(''.join(traceback.format_stack()))
@@ -308,7 +313,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             app.dmf_device = DmfDevice.load_svg(filename)
-            emit_signal("on_dmf_device_changed", [app.dmf_device])
+            emit_signal("on_dmf_device_created", [app.dmf_device])
         dialog.destroy()
         self._notify_observers_step_options_changed()
         
@@ -356,7 +361,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             # if the device name has changed
             if name != app.dmf_device.name:
                 app.dmf_device.name = name
-                emit_signal("on_dmf_device_changed", app.dmf_device)
+                emit_signal("on_dmf_device_created", app.dmf_device)
             
             # save the device
             app.dmf_device.save(os.path.join(dest,"device"))
@@ -403,7 +408,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
             else:
                 logger.error("Area value is invalid.")
     
-    def on_dmf_device_changed(self, dmf_device):
+    def on_dmf_device_created(self, dmf_device):
+        self.on_dmf_device_swapped(None, dmf_device)
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self._notify_observers_step_options_changed()
         self.view.fit_device()
 
@@ -490,7 +498,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                     self.name),
                     ScheduleRequest('microdrop.gui.main_window_controller',
                                     self.name)]
-        elif function_name == 'on_dmf_device_changed':
+        elif function_name in ['on_dmf_device_swapped', 'on_dmf_device_created']:
             return [ScheduleRequest('microdrop.app', self.name),]
         return []
 

@@ -296,13 +296,19 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
             else:
                 self._destroy_log_file_handler()
 
-    def on_dmf_device_changed(self, dmf_device):
+    def on_dmf_device_created(self, dmf_device):
+        self.dmf_device = dmf_device
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.dmf_device = dmf_device
     
-    def on_protocol_changed(self, protocol):
+    def on_protocol_swapped(self, old_protocol, new_protocol):
+        self.protocol = new_protocol
+    
+    def on_protocol_created(self, protocol):
         self.protocol = protocol
     
-    def on_experiment_log_changed(self, experiment_log):
+    def on_experiment_log_created(self, experiment_log):
         self.experiment_log = experiment_log
 
     def get_device_directory(self):

@@ -159,16 +159,23 @@ else:
             """
             pass
 
-        def on_dmf_device_changed(self):
+        def on_dmf_device_created(self, dmf_device):
             """
-            Handler called when the DMF device changes (e.g., when a new device
-            is loaded).
+            Handler called when the DMF device is created (e.g., when a new device
+            is imported).
+            """
+            pass
+
+        def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+            """
+            Handler called when a different DMF device is swapped in (e.g., when
+            a new device is loaded).
             """
             pass
         
-        def on_experiment_log_changed(self):
+        def on_experiment_log_created(self, experiment_log):
             """
-            Handler called when the experiment log changes (e.g., when a
+            Handler called when a new experiment log is created (e.g., when a
             protocol finishes running.
             """
             pass

@@ -239,7 +239,10 @@ class ExperimentLogController(SingletonPlugin):
                                 'data')
         self.results.log.save(filename)
 
-    def on_dmf_device_changed(self, dmf_device):
+    def on_dmf_device_created(self, dmf_device):
+        self.on_dmf_device_swapped(None, dmf_device)
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         app = get_app()
         device_path = None
         if dmf_device.name:
@@ -250,9 +253,6 @@ class ExperimentLogController(SingletonPlugin):
         emit_signal("on_experiment_log_created", experiment_log)
 
     def on_experiment_log_created(self, experiment_log):
-        self.on_experiment_log_changed(experiment_log)
-        
-    def on_experiment_log_changed(self, experiment_log):
         log_files = []
         if path(experiment_log.directory).isdir():
             for d in path(experiment_log.directory).dirs():

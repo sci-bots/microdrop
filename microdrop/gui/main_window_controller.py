@@ -258,14 +258,21 @@ class MainWindowController(SingletonPlugin, AppDataController):
         logger.debug("URL clicked: %s" % data)
         webbrowser.open_new_tab(data)
 
-    def on_protocol_changed(self, protocol):
+    def on_protocol_created(self, protocol):
         self.label_protocol_name.set_text(
                 wrap_string("Protocol: %s" % protocol.name, 30, "\n\t"))
 
-    def on_experiment_log_changed(self, experiment_log):
+    def on_protocol_swapped(self, old_protocol, protocol):
+        self.label_protocol_name.set_text(
+                wrap_string("Protocol: %s" % protocol.name, 30, "\n\t"))
+
+    def on_experiment_log_created(self, experiment_log):
         self.label_experiment_id.set_text("Experiment: %s" % str(experiment_log.experiment_id))
 
-    def on_dmf_device_changed(self, dmf_device):
+    def on_dmf_device_created(self, dmf_device):
+        self.label_device_name.set_text("Device: %s" % dmf_device.name)
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.label_device_name.set_text("Device: %s" % dmf_device.name)
 
 

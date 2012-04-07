@@ -62,6 +62,7 @@ class ProtocolController(SingletonPlugin):
 
     def load_protocol(self, filename):
         app = get_app()
+        original_protocol = app.protocol
         p = None
         try:
             p = Protocol.load(filename)
@@ -82,12 +83,19 @@ Protocol is version %s, but only up to version %s is supported with this version
         except Exception, why:
             logging.error("Could not open %s. %s" % (filename, why))
         if p:
-            emit_signal("on_protocol_changed", p)
+            if original_protocol is None:
+                emit_signal("on_protocol_created", p)
+            else:
+                emit_signal("on_protocol_swapped", [original_protocol, p])
         emit_signal('on_step_run')
 
-    def on_protocol_changed(self, protocol):
+    def on_protocol_created(self, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
-        logging.debug('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
+        logging.debug('[ProtocolController] on_protocol_created(): plugin_fields=%s' % protocol.plugin_fields)
+        
+    def on_protocol_swapped(self, old_protocol, protocol):
+        protocol.plugin_fields = emit_signal('get_step_fields')
+        logging.debug('[ProtocolController] on_protocol_swapped(): plugin_fields=%s' % protocol.plugin_fields)
         
     def on_app_init(self):
         app = get_app()
@@ -198,7 +206,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_step_run')
 
     def on_new_protocol(self, widget=None, data=None):
-        emit_signal("on_protocol_changed", Protocol())
+        emit_signal("on_protocol_created", Protocol())
         emit_signal('on_step_run')
 
     def on_load_protocol(self, widget=None, data=None):
@@ -255,7 +263,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 # if the protocol name has changed
                 if name != app.protocol.name:
                     app.protocol.name = name
-                    emit_signal("on_protocol_changed", app.protocol)
+                    emit_signal("on_protocol_swapped", app.protocol)
 
                 # if we're renaming
                 if rename and os.path.isfile(src):
@@ -452,8 +460,11 @@ Protocol is version %s, but only up to version %s is supported with this version
             app.protocol.n_repeats))
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
                 
-    def on_dmf_device_changed(self, dmf_device):
-        emit_signal("on_protocol_changed", Protocol())
+    def on_dmf_device_created(self, dmf_device):
+        emit_signal("on_protocol_created", Protocol())
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        emit_signal("on_protocol_created", Protocol())
 
     def on_app_exit(self):
         #TODO: prompt to save if protocol has changed
