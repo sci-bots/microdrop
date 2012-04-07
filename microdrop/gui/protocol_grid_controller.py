@@ -376,7 +376,7 @@ class ProtocolGridController(SingletonPlugin):
     @enabled_fields.setter
     def enabled_fields(self, data):
         self._enabled_fields = deepcopy(data)
-        self.update_gui()
+        self.update_grid()
 
     def on_app_init(self):
         app = get_app()
@@ -389,28 +389,30 @@ class ProtocolGridController(SingletonPlugin):
         print 'args=%s, kwargs=%s' % (args, kwargs)
         print 'attrs=%s' % args[1].attrs
 
+    def on_step_options_swapped(self, plugin, step_number):
+        self.update_grid()
+        self.select_current_step()
+
     def on_step_options_changed(self, plugin, step_number):
         if self.widget is None:
             return
         self.widget._on_step_options_changed(plugin, step_number)
 
-    def on_step_run(self):
-        """
-        Handler called whenever a step is executed.
+    def on_protocol_swapped(self, old_protocol, protocol):
+        self.on_protocol_created(protocol)
 
-        Returns:
-            True if the step should be run again (e.g., if a feedback
-            plugin wants to signal that the step should be repeated)
-        """
-        self.update_gui()
+    def on_protocol_created(self, protocol):
+        self.update_grid()
 
     def set_fields_filter(self, combined_fields, enabled_fields_by_plugin):
         self.enabled_fields = enabled_fields_by_plugin
         logging.debug('[ProtocolGridController] set_fields_filter: %s' % self.enabled_fields)
-        self.update_gui()
+        self.update_grid()
 
-    def update_gui(self):
+    def update_grid(self):
         app = get_app()
+        if not app.protocol:
+            return 
         logging.debug('[ProtocolGridController] on_step_run():')
         logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
         forms = emit_signal('get_step_form_class')
@@ -418,7 +420,6 @@ class ProtocolGridController(SingletonPlugin):
         steps = app.protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
             
-        #import pudb; pudb.set_trace()
         combined_fields = CombinedFields(forms, self.enabled_fields)
         combined_fields.connect('fields-filter-request', self.set_fields_filter)
 
@@ -437,6 +438,11 @@ class ProtocolGridController(SingletonPlugin):
             self.window.remove(self.widget)
             del self.widget
         self.widget = combined_fields
+        self.widget.show_all()
+        self.window.add(self.widget)
+
+    def select_current_step(self): 
+        app = get_app()
         s = self.widget.get_selection()
         model, rows = s.get_selected_rows()
         if rows:
@@ -446,7 +452,6 @@ class ProtocolGridController(SingletonPlugin):
         if selected_row_id != app.protocol.current_step_number:
             s.select_path(app.protocol.current_step_number)
         self.widget.show_all()
-        self.window.add(self.widget)
 
     def get_schedule_requests(self, function_name):
         """

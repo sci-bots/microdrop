@@ -413,6 +413,9 @@ Protocol is version %s, but only up to version %s is supported with this version
         service = get_service_instance_by_name(dmf_plugin_name)
         return service.get_step_values(step_number)
 
+    def on_step_options_swapped(self, plugin, step_number):
+        self.on_step_options_changed(plugin, step_number)
+
     def on_step_options_changed(self, plugin, step_number):
         logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, step_number=%s'\
             % (plugin, step_number))
@@ -444,7 +447,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         app = get_app()
         step = app.protocol.current_step()
         for plugin_name in step.plugins:
-            emit_signal('on_step_options_changed',
+            emit_signal('on_step_options_swapped',
                     [plugin_name,
                     app.protocol.current_step_number],
                     interface=IPlugin)
