@@ -210,10 +210,17 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                 
         self.builder.connect_signals(self.signals)
 
+        observers = {}
         # Enable plugins according to schedule requests
-        observers = {name: plugin_manager.get_service_instance(
-                             plugin_manager.get_service_class(name)
-                           ) for name in self.config['plugins']['enabled']}
+        for name in self.config['plugins']['enabled']:
+            try:
+                service = plugin_manager.get_service_instance(
+                    plugin_manager.get_service_class(name)
+                )
+                observers[name] = service
+            except Exception, e:
+                self.config['plugins']['enabled'].remove(name)
+                logger.error(e)
         schedule = plugin_manager.get_schedule(observers, "on_plugin_enable")
 
         # Load optional plugins marked as enabled in config
