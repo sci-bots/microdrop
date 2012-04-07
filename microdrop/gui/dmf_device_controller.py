@@ -266,7 +266,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
     
     def load_device(self, filename):
         try:
-            emit_signal("on_dmf_device_changed", DmfDevice.load(filename))
+            original_device = get_app().dmf_device
+            if original_device is None:
+                emit_signal("on_dmf_device_created", DmfDevice.load(filename))
+            else:
+                emit_signal("on_dmf_device_swapped", [original_device,
+                        DmfDevice.load(filename)])
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
             logger.debug(''.join(traceback.format_stack()))
@@ -308,7 +313,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             app.dmf_device = DmfDevice.load_svg(filename)
-            emit_signal("on_dmf_device_changed", [app.dmf_device])
+            emit_signal("on_dmf_device_created", [app.dmf_device])
         dialog.destroy()
         self._notify_observers_step_options_changed()
         
@@ -356,7 +361,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             # if the device name has changed
             if name != app.dmf_device.name:
                 app.dmf_device.name = name
-                emit_signal("on_dmf_device_changed", app.dmf_device)
+                emit_signal("on_dmf_device_created", app.dmf_device)
             
             # save the device
             app.dmf_device.save(os.path.join(dest,"device"))
@@ -374,11 +379,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
                         channels[i] = int(channels[i])
                 else:
                     channels = []
-                state = app.protocol[i].get_data(self.name).state_of_channels
-                if channels and max(channels) >= len(state):
+                options = app.protocol[i].get_data(self.name)
+                if channels and max(channels) >= len(options.state_of_channels):
                     # zero-pad channel states for all steps
                     for i in range(len(app.protocol)):
-                        options = app.protocol[i].get_data(self.name)
                         options.state_of_channels = \
                             np.concatenate([options.state_of_channels,
                             np.zeros(max(channels) - \
@@ -404,9 +408,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
             else:
                 logger.error("Area value is invalid.")
     
-    def on_dmf_device_changed(self, dmf_device):
-        self.view.fit_device()
+    def on_dmf_device_created(self, dmf_device):
+        self.on_dmf_device_swapped(None, dmf_device)
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self._notify_observers_step_options_changed()
+        self.view.fit_device()
 
     def on_step_options_changed(self, plugin_name, step_number):
         '''
@@ -423,19 +430,23 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def _notify_observers_step_options_changed(self):
         app = get_app()
+        if not app.dmf_device:
+            return
         emit_signal('on_step_options_changed',
                     [self.name, app.protocol.current_step_number],
                     interface=IPlugin)
 
     def _update(self):
         app = get_app()
+        if not app.dmf_device:
+            return
         options = self.get_step_options()
-        state_of_all_channels = options.state_of_channels
+        state_of_channels = options.state_of_channels
         for id, electrode in app.dmf_device.electrodes.iteritems():
             channels = app.dmf_device.electrodes[id].channels
             if channels:
                 # get the state(s) of the channel(s) connected to this electrode
-                states = state_of_all_channels[channels]
+                states = state_of_channels[channels]
     
                 # if all of the states are the same
                 if len(np.nonzero(states == states[0])[0]) == len(states):
@@ -452,6 +463,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.view.update()
 
     def on_new_frame(self, frame, depth, frame_time):
+        app = get_app()
+        if not app.dmf_device:
+            return
         self.last_frame = frame
         now = datetime.now()
 
@@ -484,6 +498,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                     self.name),
                     ScheduleRequest('microdrop.gui.main_window_controller',
                                     self.name)]
+        elif function_name in ['on_dmf_device_swapped', 'on_dmf_device_created']:
+            return [ScheduleRequest('microdrop.app', self.name),]
         return []
 
 PluginGlobals.pop_env()

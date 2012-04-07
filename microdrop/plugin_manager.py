@@ -159,16 +159,23 @@ else:
             """
             pass
 
-        def on_dmf_device_changed(self):
+        def on_dmf_device_created(self, dmf_device):
             """
-            Handler called when the DMF device changes (e.g., when a new device
-            is loaded).
+            Handler called when the DMF device is created (e.g., when a new device
+            is imported).
+            """
+            pass
+
+        def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+            """
+            Handler called when a different DMF device is swapped in (e.g., when
+            a new device is loaded).
             """
             pass
         
-        def on_experiment_log_changed(self):
+        def on_experiment_log_created(self, experiment_log):
             """
-            Handler called when the experiment log changes (e.g., when a
+            Handler called when a new experiment log is created (e.g., when a
             protocol finishes running.
             """
             pass
@@ -263,9 +270,9 @@ def disable(name, env='microdrop.managed'):
     class_ = get_service_class(name, env)
     service = get_service_instance(class_, env)
     if service and service.enabled():
+        service.disable()
         if hasattr(service, "on_plugin_disable"):
             service.on_plugin_disable()
-        service.disable()
         logging.info('[PluginManager] Disabled plugin: %s' % name)
 
 
@@ -284,6 +291,15 @@ def get_service_class(name, env='microdrop.managed'):
     if name not in e.plugin_registry:
         raise KeyError, 'No plugin registered with name: %s' % name
     return e.plugin_registry[name]
+
+
+def get_service_instance_by_name(name, env='microdrop.managed'):
+    e = PluginGlobals.env(env)
+    plugins = [p for p in e.active_services(IPlugin) if p.name == name]
+    if plugins:
+        return plugins[0]
+    else:
+        return None
 
 
 def get_service_instance(class_, env='microdrop.managed'):

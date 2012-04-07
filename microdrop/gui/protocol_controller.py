@@ -36,7 +36,8 @@ from utility import is_float, is_int, FutureVersionError
 from utility.gui import register_shortcuts, textentry_validate,\
         text_entry_dialog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ScheduleRequest, emit_signal
+        implements, PluginGlobals, ScheduleRequest, emit_signal,\
+                get_service_class, get_service_instance, get_service_instance_by_name
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
 
@@ -62,6 +63,7 @@ class ProtocolController(SingletonPlugin):
 
     def load_protocol(self, filename):
         app = get_app()
+        original_protocol = app.protocol
         p = None
         try:
             p = Protocol.load(filename)
@@ -82,12 +84,19 @@ Protocol is version %s, but only up to version %s is supported with this version
         except Exception, why:
             logging.error("Could not open %s. %s" % (filename, why))
         if p:
-            emit_signal("on_protocol_changed", p)
+            if original_protocol is None:
+                emit_signal("on_protocol_created", p)
+            else:
+                emit_signal("on_protocol_swapped", [original_protocol, p])
         emit_signal('on_step_run')
 
-    def on_protocol_changed(self, protocol):
+    def on_protocol_created(self, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
-        logging.debug('[ProtocolController] on_protocol_changed(): plugin_fields=%s' % protocol.plugin_fields)
+        logging.debug('[ProtocolController] on_protocol_created(): plugin_fields=%s' % protocol.plugin_fields)
+        
+    def on_protocol_swapped(self, old_protocol, protocol):
+        protocol.plugin_fields = emit_signal('get_step_fields')
+        logging.debug('[ProtocolController] on_protocol_swapped(): plugin_fields=%s' % protocol.plugin_fields)
         
     def on_app_init(self):
         app = get_app()
@@ -198,7 +207,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_step_run')
 
     def on_new_protocol(self, widget=None, data=None):
-        emit_signal("on_protocol_changed", Protocol())
+        emit_signal("on_protocol_created", Protocol())
         emit_signal('on_step_run')
 
     def on_load_protocol(self, widget=None, data=None):
@@ -255,7 +264,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 # if the protocol name has changed
                 if name != app.protocol.name:
                     app.protocol.name = name
-                    emit_signal("on_protocol_changed", app.protocol)
+                    emit_signal("on_protocol_swapped", [None, app.protocol])
 
                 # if we're renaming
                 if rename and os.path.isfile(src):
@@ -394,18 +403,28 @@ Protocol is version %s, but only up to version %s is supported with this version
         else: # we're on the last step
             self.pause_protocol()
 
+    def on_step_options_swapped(self, step_number):
+        self._update_dmf_fields(self._get_dmf_control_fields(step_number))
+
+    def _get_dmf_control_fields(self, step_number):
+        step = get_app().protocol.get_step(step_number)
+        dmf_plugin_name = step.plugin_name_lookup(
+            r'wheelerlab.dmf_control_board_', re_pattern=True)
+        service = get_service_instance_by_name(dmf_plugin_name)
+        return service.get_step_values(step_number)
+
     def on_step_options_changed(self, plugin, step_number):
         logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, step_number=%s'\
             % (plugin, step_number))
         app = get_app()
         step = app.protocol.steps[step_number]
         if(re.search(r'wheelerlab.dmf_control_board_', plugin)):
-            dmf_plugin_name = step.plugin_name_lookup(
-                r'wheelerlab.dmf_control_board_', re_pattern=True)
-            options = step.get_data(dmf_plugin_name)
-            self.textentry_voltage.set_text(str(options.voltage))
-            self.textentry_frequency.set_text(str(options.frequency / 1e3))
-            self.textentry_step_duration.set_text(str(options.duration))
+            self._update_dmf_fields(self._get_dmf_control_fields(step_number))
+
+    def _update_dmf_fields(self, values):
+        self.textentry_voltage.set_text(str(values['voltage']))
+        self.textentry_frequency.set_text(str(values['frequency'] / 1e3))
+        self.textentry_step_duration.set_text(str(values['duration']))
 
     def set_app_values(self, values_dict):
         logging.debug('[ProtocolController] set_app_values(): '\
@@ -433,6 +452,11 @@ Protocol is version %s, but only up to version %s is supported with this version
             for plugin_name, fields in app.protocol.plugin_fields.iteritems():
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(plugin_name)
+                if service is None:
+                    # We can end up here if a service has been disabled.
+                    # TODO: protocol.plugin_fields should likely be updated
+                    #    whenever a plugin is enabled/disabled...
+                    continue
                 print >> sio, '[ProtocolController] plugin.name=%s field_values='\
                         % (plugin_name),
                 print >> sio, [service.get_step_value(f) for f in fields]
@@ -447,8 +471,11 @@ Protocol is version %s, but only up to version %s is supported with this version
             app.protocol.n_repeats))
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
                 
-    def on_dmf_device_changed(self, dmf_device):
-        emit_signal("on_protocol_changed", Protocol())
+    def on_dmf_device_created(self, dmf_device):
+        emit_signal("on_protocol_created", Protocol())
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        emit_signal("on_protocol_created", Protocol())
 
     def on_app_exit(self):
         #TODO: prompt to save if protocol has changed

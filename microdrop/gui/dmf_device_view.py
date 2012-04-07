@@ -47,7 +47,7 @@ class DmfDeviceView:
 
     def fit_device(self, padding=None):
         app = get_app()
-        if len(app.dmf_device.electrodes):
+        if app.dmf_device and len(app.dmf_device.electrodes):
             if padding is None:
                 padding = 10
 

@@ -76,10 +76,17 @@ class ConfigController(SingletonPlugin):
         if not dmf_device_directory.isdir():
             devices.copytree(dmf_device_directory)
                     
-    def on_dmf_device_changed(self, dmf_device):
+    def on_dmf_device_created(self, dmf_device):
+        self.on_dmf_device_swapped(None, dmf_device)
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.app.config['dmf_device']['name'] = dmf_device.name
         
-    def on_protocol_changed(self, protocol):
+    def on_protocol_created(self, protocol):
+        self.app.config['protocol']['name'] = protocol.name
+        self.app.config.save()
+
+    def on_protocol_swapped(self, old_protocol, protocol):
         self.app.config['protocol']['name'] = protocol.name
         self.app.config.save()
 

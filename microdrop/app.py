@@ -102,7 +102,6 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
         self.plugin_data = {}
 
         # these members are initialized by plugins
-        self.control_board = None
         self.experiment_log_controller = None
         self.config_controller = None
         self.dmf_device_controller = None 
@@ -174,10 +173,10 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
             rename_queue_path.write_bytes(yaml.dump(remaining_renames))
 
         # dmf device
-        self.dmf_device = DmfDevice()
+        self.dmf_device = None
 
         # protocol
-        self.protocol = Protocol()
+        self.protocol = None
 
     def get_data(self, plugin_name):
         logging.debug('[App] plugin_data=%s' % self.plugin_data)
@@ -227,14 +226,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                     'directory:\n\n    %s' % (p, self.config['plugins']['directory']))
         plugin_manager.log_summary()
 
-        # experiment logs
-        device_path = None
-        if self.dmf_device.name:
-            directory = self.get_device_directory()
-            if directory:
-                device_path = os.path.join(directory,
-                        self.dmf_device.name, "logs")
-        self.experiment_log = ExperimentLog(device_path)
+        self.experiment_log = None
 
         # save the protocol name from the config file because it is
         # automatically overwritten when we load a new device
@@ -304,13 +296,19 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
             else:
                 self._destroy_log_file_handler()
 
-    def on_dmf_device_changed(self, dmf_device):
+    def on_dmf_device_created(self, dmf_device):
+        self.dmf_device = dmf_device
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.dmf_device = dmf_device
     
-    def on_protocol_changed(self, protocol):
+    def on_protocol_swapped(self, old_protocol, new_protocol):
+        self.protocol = new_protocol
+    
+    def on_protocol_created(self, protocol):
         self.protocol = protocol
     
-    def on_experiment_log_changed(self, experiment_log):
+    def on_experiment_log_created(self, experiment_log):
         self.experiment_log = experiment_log
 
     def get_device_directory(self):
