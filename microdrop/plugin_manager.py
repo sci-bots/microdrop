@@ -263,9 +263,9 @@ def disable(name, env='microdrop.managed'):
     class_ = get_service_class(name, env)
     service = get_service_instance(class_, env)
     if service and service.enabled():
+        service.disable()
         if hasattr(service, "on_plugin_disable"):
             service.on_plugin_disable()
-        service.disable()
         logging.info('[PluginManager] Disabled plugin: %s' % name)
 
 

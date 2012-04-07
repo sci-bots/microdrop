@@ -433,6 +433,11 @@ Protocol is version %s, but only up to version %s is supported with this version
             for plugin_name, fields in app.protocol.plugin_fields.iteritems():
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(plugin_name)
+                if service is None:
+                    # We can end up here if a service has been disabled.
+                    # TODO: protocol.plugin_fields should likely be updated
+                    #    whenever a plugin is enabled/disabled...
+                    continue
                 print >> sio, '[ProtocolController] plugin.name=%s field_values='\
                         % (plugin_name),
                 print >> sio, [service.get_step_value(f) for f in fields]
