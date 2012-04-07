@@ -23,8 +23,6 @@ import gtk
 from path import path
 from pygtkhelpers.forms import FormView
 from pygtkhelpers.proxy import proxy_for
-from flatland.validation import ValueAtLeast, ValueAtMost
-from flatland import Form, Dict, String, Integer, Boolean, Float
 
 from app_context import get_app
 
@@ -53,6 +51,8 @@ class FormViewDialog(object):
         self.clear_form()
         self.vbox_form.pack_start(form_view.widget)
         self.window.set_default_response(gtk.RESPONSE_OK)
+        self.window.set_position(gtk.WIN_POS_CENTER_ON_PARENT)        
+        self.window.set_transient_for(get_app().main_window_controller.view)
         self.window.show_all()
         response = self.window.run()
         self.window.hide()
@@ -60,7 +60,3 @@ class FormViewDialog(object):
                 % (response, proxy.get_widget_value()))
         return (response == 0), dict([(name, f.element.value)
                 for name, f in form_view.form.fields.items()])
-
-
-if __name__ == '__main__':
-    pm = PluginManagerView()
