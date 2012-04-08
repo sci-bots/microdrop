@@ -37,10 +37,12 @@ from utility.gui import register_shortcuts, textentry_validate,\
         text_entry_dialog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
         implements, PluginGlobals, ScheduleRequest, emit_signal,\
-                get_service_class, get_service_instance, get_service_instance_by_name
+        get_service_class, get_service_instance, get_service_instance_by_name,\
+        IAppStatePlugin
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
 import app_state
+from utility.gui import yesno
 
 
 PluginGlobals.push_env('microdrop')
@@ -48,6 +50,7 @@ PluginGlobals.push_env('microdrop')
 
 class ProtocolController(SingletonPlugin):
     implements(IPlugin)
+    implements(IAppStatePlugin)
     
     def __init__(self):
         self.name = "microdrop.gui.protocol_controller"
@@ -120,6 +123,13 @@ Protocol is version %s, but only up to version %s is supported with this version
             "textentry_protocol_repeats")        
         self.button_run_protocol = self.builder.get_object("button_run_protocol")
         
+        self.menu_protocol = app.builder.get_object('menu_protocol')
+        self.menu_new_protocol = app.builder.get_object('menu_new_protocol')
+        self.menu_load_protocol = app.builder.get_object('menu_load_protocol')
+        self.menu_rename_protocol = app.builder.get_object('menu_rename_protocol')
+        self.menu_save_protocol = app.builder.get_object('menu_save_protocol')
+        self.menu_save_protocol_as = app.builder.get_object('menu_save_protocol_as')
+
         app.signals["on_button_insert_step_clicked"] = self.on_insert_step
         app.signals["on_button_delete_step_clicked"] = self.on_delete_step
         app.signals["on_button_copy_step_clicked"] = self.on_copy_step
@@ -151,6 +161,20 @@ Protocol is version %s, but only up to version %s is supported with this version
                 self.on_textentry_step_duration_key_press
         app.protocol_controller = self
         self._register_shortcuts()
+
+    def on_post_event(self, state, event):
+        if type(state) in [app_state.NoDeviceNoProtocol]:
+            self.menu_protocol.set_property('sensitive', False)
+            self.menu_new_protocol.set_property('sensitive', False)
+            self.menu_load_protocol.set_property('sensitive', False)
+        else:
+            self.menu_protocol.set_property('sensitive', True)
+            self.menu_new_protocol.set_property('sensitive', True)
+            self.menu_load_protocol.set_property('sensitive', True)
+        if type(state) in [app_state.DeviceDirtyProtocol, app_state.DirtyDeviceDirtyProtocol]:
+            self.menu_save_protocol.set_property('sensitive', True)
+        else:
+            self.menu_save_protocol.set_property('sensitive', False)
 
     def _register_shortcuts(self):
         app = get_app()
@@ -427,6 +451,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         step = app.protocol.steps[step_number]
         if(re.search(r'wheelerlab.dmf_control_board_', plugin)):
             self._update_dmf_fields(self._get_dmf_control_fields(step_number))
+        app.state.trigger_event(app_state.PROTOCOL_CHANGED)
 
     def _update_dmf_fields(self, values):
         self.textentry_voltage.set_text(str(values['voltage']))
@@ -489,8 +514,13 @@ Protocol is version %s, but only up to version %s is supported with this version
         app.state.trigger_event(app_state.NEW_PROTOCOL)
 
     def on_app_exit(self):
-        #TODO: prompt to save if protocol has changed
-        self.save_protocol()
+        app = get_app()
+        state = app.state.current_state
+        print '[ProtocolController] on_app_exit() %s' % type(state)
+        if type(state) in [app_state.DeviceDirtyProtocol, app_state.DirtyDeviceDirtyProtocol]:
+            result = yesno('Protocol %s has unsaved changes.  Save now?' % app.protocol.name)
+            if result == gtk.RESPONSE_YES:
+                self.save_protocol()
 
     def get_schedule_requests(self, function_name):
         """

@@ -166,6 +166,10 @@ class AppState(object):
         self.on_pre_event = on_pre_event
         self.on_post_event = on_post_event
 
+    @property
+    def current_state(self):
+        return self.machine.currentState()
+
     def trigger_event(self, etype, **kwargs):
         if self.machine.currentState() is None:
             return None

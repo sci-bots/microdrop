@@ -146,6 +146,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_app_init(self):
         app = get_app()
+
         self.view.set_widget(app.builder.get_object("dmf_device_view"))
         app.builder.add_from_file(os.path.join("gui",
                                    "glade",
@@ -156,6 +157,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.popup.append(self.register_menu)
         self.register_menu.connect("activate", self.on_register)
         self.register_menu.show()
+
+        self.menu_load_dmf_device = app.builder.get_object('menu_load_dmf_device')
+        self.menu_import_dmf_device = app.builder.get_object('menu_import_dmf_device')
+        self.menu_rename_dmf_device = app.builder.get_object('menu_rename_dmf_device')
+        self.menu_save_dmf_device = app.builder.get_object('menu_save_dmf_device')
+        self.menu_save_dmf_device_as = app.builder.get_object('menu_save_dmf_device_as')
 
         app.signals["on_dmf_device_view_button_press_event"] = self.on_button_press
         app.signals["on_dmf_device_view_key_press_event"] = self.on_key_press
@@ -177,9 +184,22 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app.set_data(self.name, data)
         emit_signal('on_app_options_changed', [self.name])
 
+    def on_post_event(self, state, event):
+        if type(state) in [app_state.DirtyDeviceDirtyProtocol,
+                app_state.DirtyDeviceProtocol, app_state.DirtyDeviceNoProtocol]:
+            self.menu_save_dmf_device.set_property('sensitive', True)
+        else:
+            self.menu_save_dmf_device.set_property('sensitive', False)
+
     def on_app_exit(self):
-        #TODO: prompt to save if device has changed
-        self.save_dmf_device()
+        app = get_app()
+        state = app.state.current_state
+        print '[DmfDeviceController] on_app_exit() %s' % type(state)
+        if type(state) in [app_state.DirtyDeviceDirtyProtocol,
+                app_state.DirtyDeviceProtocol, app_state.DirtyDeviceNoProtocol]:
+            result = yesno('Device %s has unsaved changes.  Save now?' % app.device.name)
+            if result == gtk.RESPONSE_YES:
+                self.save_dmf_device()
         
     def on_register(self, *args, **kwargs):
         if self.last_frame is None:

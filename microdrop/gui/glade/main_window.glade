@@ -446,6 +446,7 @@
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
                     <property name="label" translatable="yes">Not Connected</property>
+                    <property name="use_markup">True</property>
                     <property name="width_chars">20</property>
                   </object>
                   <packing>
@@ -462,6 +463,7 @@
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
                     <property name="label" translatable="yes">Device name</property>
+                    <property name="use_markup">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -477,6 +479,7 @@
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
                     <property name="label" translatable="yes">Protocol name</property>
+                    <property name="use_markup">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -492,6 +495,7 @@
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
                     <property name="label" translatable="yes">Experiment: ?</property>
+                    <property name="use_markup">True</property>
                     <property name="width_chars">20</property>
                   </object>
                   <packing>
