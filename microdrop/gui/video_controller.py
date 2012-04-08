@@ -33,7 +33,7 @@ from flatland.validation import ValueAtLeast, ValueAtMost
 import microdrop
 from opencv.safe_cv import cv
 from opencv.frame_grabber import FrameGrabber
-from opencv.camera_capture import CameraCapture
+from opencv.camera_capture import CameraCapture, CaptureError
 from plugin_manager import IPlugin, SingletonPlugin, implements, \
     IVideoPlugin, PluginGlobals, ScheduleRequest, emit_signal
 from app_context import get_app
@@ -70,36 +70,53 @@ class VideoController(SingletonPlugin, AppDataController):
         Boolean.named('video_enabled').using(default=False, optional=True),
         Integer.named('fps_limit').using(default=30, optional=True,
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
+        Integer.named('camera_id').using(default=-1, optional=True,
+            validators=[ValueAtLeast(minimum=-1), ValueAtMost(maximum=100)]),
     )
 
     def __init__(self):
         self.name = 'microdrop.gui.video_controller'
-        self.cam_cap = CameraCapture(auto_init=False)
-        self.grabber = FrameGrabber(self.cam_cap, auto_init=True)
-        self.grabber.frame_callback = self.update_frame_data
-        self.grabber.start()
+        self.grabber = None
         self.video_enabled = False
+        self.cam_cap = None
 
     def on_app_options_changed(self, plugin_name):
         app = get_app()
         if plugin_name == self.name:
             app_data = app.get_data(self.name)
-            if 'fps_limit' in app_data:
+            if 'fps_limit' in app_data and self.grabber:
                 self.grabber.set_fps_limit(app_data['fps_limit'])
             if 'video_enabled' in app_data:
                 self.video_enabled = app_data['video_enabled']
+            if 'camera_id' in app_data:
+                if self.cam_cap is None or self.cam_cap\
+                                and self.cam_cap.id != app_data['camera_id']:
+                    self.reset_capture()
 
     def on_plugin_enable(self, *args, **kwargs):
+        AppDataController.on_plugin_enable(self, *args, **kwargs)
+        self.reset_capture()
+
+    def reset_capture(self):
         app = get_app()
-        defaults = self.get_default_app_options()
-        data = app.get_data(self.name)
-        for k, v in defaults.items():
-            if k not in data:
-                data[k] = v
-        app.set_data(self.name, data)
-
-    def on_plugin_enable(self, *args, **kwargs):
-        pass
+        app_data = app.get_data(self.name)
+        if self.grabber:
+            self.grabber.stop()
+            del self.grabber
+            del self.cam_cap
+            self.grabber = None
+            self.cam_cap = None
+        try:
+            temp_cam_cap = CameraCapture(id=app_data['camera_id'], auto_init=True)
+            del temp_cam_cap
+            self.cam_cap = CameraCapture(id=app_data['camera_id'], auto_init=False)
+            self.grabber = FrameGrabber(self.cam_cap, auto_init=True)
+            self.grabber.set_fps_limit(app_data['fps_limit'])
+            self.grabber.frame_callback = self.update_frame_data
+            self.grabber.start()
+        except CaptureError:
+            if app_data['video_enabled']:
+                self.set_app_values({'video_enabled': False})
 
     def on_plugin_disable(self, *args, **kwargs):
         pass
