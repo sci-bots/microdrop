@@ -236,9 +236,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
         # Enable plugins according to schedule requests
         for name in self.config['plugins']['enabled']:
             try:
-                service = plugin_manager.get_service_instance(
-                    plugin_manager.get_service_class(name)
-                )
+                service = plugin_manager.get_service_instance_by_name(name)
                 observers[name] = service
             except Exception, e:
                 self.config['plugins']['enabled'].remove(name)

@@ -16,10 +16,9 @@ class AppStateController(SingletonPlugin):
     plugin_name = 'microdrop.gui.app_state_controller'
 
     def __init__(self):
-        pass
+        self.name = self.plugin_name
 
     def on_plugin_enable(self, *args, **kwargs):
-        self.name = self.plugin_name
         app = get_app()
         app.app_state_controller = self
         self.app_state = app.state

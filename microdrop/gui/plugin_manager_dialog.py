@@ -90,9 +90,9 @@ class PluginController(object):
 
     def toggle_enabled(self):
         if not self.enabled():
-            plugin_manager.enable(self.name)
+            plugin_manager.enable(self.service.name)
         else:
-            plugin_manager.disable(self.name)
+            plugin_manager.disable(self.service.name)
         self.update()
 
     def get_widget(self):
@@ -182,7 +182,7 @@ class PluginManagerDialog(object):
         self.update()
         response = self.window.run()
         self.window.hide()
-        enabled_plugins = [p.name for p in self.plugins if p.enabled()]
+        enabled_plugins = [p.service.name for p in self.plugins if p.enabled()]
         app.config.set_plugins(enabled_plugins)
         app.config.save()
         if self.restart_required:

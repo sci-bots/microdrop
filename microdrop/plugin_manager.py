@@ -280,26 +280,6 @@ def get_plugin_names(env=None):
     return list(e.plugin_registry.keys())
 
 
-def disable(name, env='microdrop.managed'):
-    class_ = get_service_class(name, env)
-    service = get_service_instance(class_, env)
-    if service and service.enabled():
-        service.disable()
-        if hasattr(service, "on_plugin_disable"):
-            service.on_plugin_disable()
-        logging.info('[PluginManager] Disabled plugin: %s' % name)
-
-
-def enable(name, env='microdrop.managed'):
-    class_ = get_service_class(name, env)
-    service = get_service_instance(class_, env)
-    if not service.enabled():
-        service.enable()
-        logging.info('[PluginManager] Enabled plugin: %s' % name)
-    if hasattr(service, "on_plugin_enable"):
-        service.on_plugin_enable()
-
-
 def get_service_class(name, env='microdrop.managed'):
     e = PluginGlobals.env(env)
     if name not in e.plugin_registry:
@@ -309,7 +289,7 @@ def get_service_class(name, env='microdrop.managed'):
 
 def get_service_instance_by_name(name, env='microdrop.managed'):
     e = PluginGlobals.env(env)
-    plugins = [p for p in e.active_services(IPlugin) if p.name == name]
+    plugins = [p for i, p in enumerate(e.services) if name == p.name]
     if plugins:
         return plugins[0]
     else:
@@ -323,6 +303,24 @@ def get_service_instance(class_, env='microdrop.managed'):
             # A plugin of this type is registered
             return service
     return None
+
+
+def enable(name, env='microdrop.managed'):
+    service = get_service_instance_by_name(name, env)
+    if not service.enabled():
+        service.enable()
+        logging.info('[PluginManager] Enabled plugin: %s' % name)
+    if hasattr(service, "on_plugin_enable"):
+        service.on_plugin_enable()
+
+
+def disable(name, env='microdrop.managed'):
+    service = get_service_instance_by_name(name, env)
+    if service and service.enabled():
+        service.disable()
+        if hasattr(service, "on_plugin_disable"):
+            service.on_plugin_disable()
+        logging.info('[PluginManager] Disabled plugin: %s' % name)
 
 
 def get_schedule(observers, function):

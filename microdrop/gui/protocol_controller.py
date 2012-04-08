@@ -432,14 +432,18 @@ Protocol is version %s, but only up to version %s is supported with this version
             self.pause_protocol()
 
     def on_step_options_swapped(self, step_number):
-        self._update_dmf_fields(self._get_dmf_control_fields(step_number))
+        values = self._get_dmf_control_fields(step_number)
+        if values:
+            self._update_dmf_fields(values)
 
     def _get_dmf_control_fields(self, step_number):
         step = get_app().protocol.get_step(step_number)
         dmf_plugin_name = step.plugin_name_lookup(
             r'wheelerlab.dmf_control_board_', re_pattern=True)
         service = get_service_instance_by_name(dmf_plugin_name)
-        return service.get_step_values(step_number)
+        if service:
+            return service.get_step_values(step_number)
+        return None
 
     def on_step_options_swapped(self, plugin, step_number):
         self.on_step_options_changed(plugin, step_number)
@@ -448,12 +452,15 @@ Protocol is version %s, but only up to version %s is supported with this version
         logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, step_number=%s'\
             % (plugin, step_number))
         app = get_app()
-        step = app.protocol.steps[step_number]
-        if(re.search(r'wheelerlab.dmf_control_board_', plugin)):
-            self._update_dmf_fields(self._get_dmf_control_fields(step_number))
-        app.state.trigger_event(app_state.PROTOCOL_CHANGED)
+        if app.protocol:
+            step = app.protocol.steps[step_number]
+            if(re.search(r'wheelerlab.dmf_control_board_', plugin)):
+                self._update_dmf_fields(self._get_dmf_control_fields(step_number))
+            app.state.trigger_event(app_state.PROTOCOL_CHANGED)
 
     def _update_dmf_fields(self, values):
+        if not values:
+            return
         self.textentry_voltage.set_text(str(values['voltage']))
         self.textentry_frequency.set_text(str(values['frequency'] / 1e3))
         self.textentry_step_duration.set_text(str(values['duration']))
