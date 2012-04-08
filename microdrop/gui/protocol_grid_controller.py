@@ -364,8 +364,7 @@ class ProtocolGridController(SingletonPlugin):
         self.name = "microdrop.gui.protocol_grid_controller"
         self.builder = None
         self.widget = None
-        self._enabled_fields = {}
-        self.enabled_fields_by_plugin = {}
+        self._enabled_fields = None
         # e.g., 'wheelerlab.dmf_control_board_1.2':\
                 #set(['duration', 'voltage'])}
 
@@ -420,6 +419,10 @@ class ProtocolGridController(SingletonPlugin):
         steps = app.protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
             
+        if self.enabled_fields is None:
+            self.enabled_fields = dict([(form_name,
+                    set(form.field_schema_mapping.keys()))
+                            for form_name, form in forms.items()])
         combined_fields = CombinedFields(forms, self.enabled_fields)
         combined_fields.connect('fields-filter-request', self.set_fields_filter)
 

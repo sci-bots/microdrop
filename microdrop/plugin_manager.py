@@ -56,6 +56,10 @@ if not utility.PROGRAM_LAUNCHED:
         __interface_namespace__ = None
 
 
+    class IAppStatePlugin(object):    
+        __interface_namespace__ = None
+
+
     class IWaveformGenerator(object):
         __interface_namespace__ = None
 
@@ -83,6 +87,14 @@ else:
             pass
 
         def on_critical(self, record):
+            pass
+
+
+    class IAppStatePlugin(Interface):    
+        def on_pre_event(self, state, event):
+            pass
+
+        def on_post_event(self, state, event):
             pass
 
 
@@ -255,6 +267,14 @@ def log_summary():
         logging.info('\t %s' % observer)
     observers = ExtensionPoint(ILoggingPlugin)
     logging.info('Registered logging plugins:')
+    for observer in observers:
+        logging.info('\t %s' % observer)
+    observers = ExtensionPoint(IVideoPlugin)
+    logging.info('Registered video plugins:')
+    for observer in observers:
+        logging.info('\t %s' % observer)
+    observers = ExtensionPoint(IAppStatePlugin)
+    logging.info('Registered app state plugins:')
     for observer in observers:
         logging.info('\t %s' % observer)
 

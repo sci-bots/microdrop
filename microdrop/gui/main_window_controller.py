@@ -28,9 +28,10 @@ from pygtkhelpers.proxy import proxy_for
 
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ILoggingPlugin, emit_signal
+    implements, PluginGlobals, ILoggingPlugin, emit_signal, IAppStatePlugin
 from gui.plugin_manager_dialog import PluginManagerDialog
 from app_context import get_app
+import app_state
 from logger import logger
 from plugin_helpers import AppDataController
 from utility.pygtkhelpers_widgets import Filepath
@@ -45,6 +46,7 @@ PluginGlobals.push_env('microdrop')
 
 class MainWindowController(SingletonPlugin, AppDataController):
     implements(IPlugin)
+    implements(IAppStatePlugin)
     implements(ILoggingPlugin)
 
     AppFields = Form.of(
@@ -131,9 +133,10 @@ class MainWindowController(SingletonPlugin, AppDataController):
         return name
 
     def on_delete_event(self, widget, data=None):
-        emit_signal("on_app_exit")
+        pass
 
     def on_destroy(self, widget, data=None):
+        emit_signal("on_app_exit")
         gtk.main_quit()
         observers = ExtensionPoint(IPlugin)
         service = observers.service('microdrop.gui.video_controller')
@@ -258,22 +261,62 @@ class MainWindowController(SingletonPlugin, AppDataController):
         logger.debug("URL clicked: %s" % data)
         webbrowser.open_new_tab(data)
 
+    def get_protocol_string(self, protocol=None):
+        if protocol is None:
+            protocol = get_app().protocol
+        if protocol is None:
+            return ''
+        return 'Protocol: %s' % protocol.name
+
+    def update_label(self, label, obj=None, modified=False, get_string=str):
+        message = get_string(obj)
+        if modified:
+            message += ' <b>[modified]</b>'
+        #label.set_text(wrap_string(message, 30, "\n\t"))
+        label.set_markup(wrap_string(message, 60, "\n\t"))
+
+    def update_protocol_name_label(self, obj=None, **kwargs):
+        _kwargs = kwargs.copy()
+        _kwargs['get_string'] = self.get_protocol_string
+        self.update_label(self.label_protocol_name, obj=obj, **_kwargs)
+
+    def on_post_event(self, state, event):
+        if type(state) in [app_state.DeviceDirtyProtocol, app_state.DirtyDeviceDirtyProtocol]:
+            self.update_protocol_name_label(modified=True)
+        else:
+            self.update_protocol_name_label(modified=False)
+        if type(state) in [app_state.DirtyDeviceDirtyProtocol,
+                app_state.DirtyDeviceProtocol, app_state.DirtyDeviceNoProtocol]:
+            self.update_device_name_label(modified=True)
+        else:
+            self.update_device_name_label(modified=False)
+
     def on_protocol_created(self, protocol):
-        self.label_protocol_name.set_text(
-                wrap_string("Protocol: %s" % protocol.name, 30, "\n\t"))
+        self.update_protocol_name_label(protocol)
 
     def on_protocol_swapped(self, old_protocol, protocol):
-        self.label_protocol_name.set_text(
-                wrap_string("Protocol: %s" % protocol.name, 30, "\n\t"))
+        self.update_protocol_name_label(protocol)
 
     def on_experiment_log_created(self, experiment_log):
         self.label_experiment_id.set_text("Experiment: %s" % str(experiment_log.experiment_id))
 
+    def get_device_string(self, device=None):
+        if device is None:
+            device = get_app().dmf_device
+        if device is None:
+            return ''
+        return 'Device: %s' % device.name
+
+    def update_device_name_label(self, obj=None, **kwargs):
+        _kwargs = kwargs.copy()
+        _kwargs['get_string'] = self.get_device_string
+        self.update_label(self.label_device_name, obj=obj, **_kwargs)
+
     def on_dmf_device_created(self, dmf_device):
-        self.label_device_name.set_text("Device: %s" % dmf_device.name)
+        self.update_device_name_label(dmf_device)
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        self.label_device_name.set_text("Device: %s" % dmf_device.name)
+        self.update_device_name_label(dmf_device)
 
 
 PluginGlobals.pop_env()
