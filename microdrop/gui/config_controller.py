@@ -42,7 +42,7 @@ class ConfigController(SingletonPlugin):
         self.name = "microdrop.gui.config_controller"
         self.app = None
 
-    def on_app_init(self):
+    def on_plugin_enable(self):
         self.app = get_app()
         self.app.config_controller = self
 
@@ -111,7 +111,7 @@ class ConfigController(SingletonPlugin):
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
-        if function_name == 'on_app_init':
+        if function_name == 'on_plugin_enable':
             return [ScheduleRequest("microdrop.gui.main_window_controller",
                                     self.name)]
         return []

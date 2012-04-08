@@ -377,7 +377,7 @@ class ProtocolGridController(SingletonPlugin):
         self._enabled_fields = deepcopy(data)
         self.update_grid()
 
-    def on_app_init(self):
+    def on_plugin_enable(self):
         app = get_app()
         self.parent = app.builder.get_object("vbox2")
         self.window = gtk.ScrolledWindow()
@@ -461,7 +461,7 @@ class ProtocolGridController(SingletonPlugin):
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
-        if function_name == 'on_app_init':
+        if function_name == 'on_plugin_enable':
             return [ScheduleRequest('microdrop.gui.main_window_controller', self.name)]
         return []
 

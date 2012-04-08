@@ -89,7 +89,7 @@ class VideoController(SingletonPlugin, AppDataController):
             if 'video_enabled' in app_data:
                 self.video_enabled = app_data['video_enabled']
 
-    def on_app_init(self, *args, **kwargs):
+    def on_plugin_enable(self, *args, **kwargs):
         app = get_app()
         defaults = self.get_default_app_options()
         data = app.get_data(self.name)
@@ -128,7 +128,7 @@ class VideoController(SingletonPlugin, AppDataController):
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
-        if function_name == 'on_app_init':
+        if function_name == 'on_plugin_enable':
             return [ScheduleRequest('microdrop.gui.config_controller',
                                     self.name)]
         return []

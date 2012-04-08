@@ -26,9 +26,6 @@ class AppStateController(SingletonPlugin):
         self.app_state.on_pre_event = self._on_pre_event
         self.app_state.on_post_event = self._on_post_event
 
-    def on_app_init(self, *args, **kwargs):
-        self.on_plugin_enable(*args, **kwargs)
-
     def on_pre_event(self, state, event):
         logging.debug('[on_pre_event] state=%s, event=%s' % (state,
                 event.type.split(' ')[-1]))
@@ -48,7 +45,7 @@ class AppStateController(SingletonPlugin):
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
-        if function_name in ['on_app_init', 'on_plugin_enable']:
+        if function_name in ['on_plugin_enable']:
             app = get_app()
             schedule_requests = []
             for p in [name for name in app.core_plugins if name != self.name]:

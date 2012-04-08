@@ -103,7 +103,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         protocol.plugin_fields = emit_signal('get_step_fields')
         logging.debug('[ProtocolController] on_protocol_swapped(): plugin_fields=%s' % protocol.plugin_fields)
         
-    def on_app_init(self):
+    def on_plugin_enable(self):
         app = get_app()
         self.builder = app.builder
         
@@ -527,7 +527,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
-        if function_name == 'on_app_init':
+        if function_name == 'on_plugin_enable':
             return [ScheduleRequest('microdrop.gui.main_window_controller',
                                     self.name)]
         return []

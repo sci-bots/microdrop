@@ -66,7 +66,7 @@ class ExperimentLogController(SingletonPlugin):
                         ExperimentLogColumn("Frequency (kHz)", float, "%.1f")]
         self.protocol_view.get_selection().connect("changed", self.on_treeview_selection_changed)
 
-    def on_app_init(self):
+    def on_plugin_enable(self):
         app = get_app()
         app.experiment_log_controller = self
         self.window.set_title("Experiment logs")

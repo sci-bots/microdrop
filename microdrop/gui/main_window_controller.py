@@ -82,7 +82,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
                     'values_dict=%s' % (values_dict,))
         super(MainWindowController, self).set_app_values(values_dict)
 
-    def on_app_init(self):
+    def on_plugin_enable(self):
         app = get_app()
         app.builder.add_from_file(os.path.join("gui",
                                                "glade",

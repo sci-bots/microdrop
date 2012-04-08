@@ -144,7 +144,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.view.background = None
         self.view.update()
 
-    def on_app_init(self):
+    def on_plugin_enable(self):
         app = get_app()
 
         self.view.set_widget(app.builder.get_object("dmf_device_view"))
@@ -532,7 +532,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
-        if function_name == 'on_app_init':
+        if function_name == 'on_plugin_enable':
             return [ScheduleRequest('microdrop.gui.config_controller',
                                     self.name),
                     ScheduleRequest('microdrop.gui.main_window_controller',

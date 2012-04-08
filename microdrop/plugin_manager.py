@@ -147,12 +147,6 @@ else:
             """
             pass
         
-        def on_app_init(self):
-            """
-            Handler called once when the Microdrop application starts.
-            """
-            pass
-        
         def on_app_exit(self):
             """
             Handler called just before the Microdrop application exists. 

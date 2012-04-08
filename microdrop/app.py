@@ -227,7 +227,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
     def run(self):
         plugin_manager.load_plugins(self.config['plugins']['directory'])
 
-        plugin_manager.emit_signal('on_app_init')
+        plugin_manager.emit_signal('on_plugin_enable')
         self.update_log_file()
                 
         self.builder.connect_signals(self.signals)
