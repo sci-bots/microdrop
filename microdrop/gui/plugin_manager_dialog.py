@@ -57,7 +57,7 @@ class PluginController(object):
         self.plugin_class = self.e.plugin_registry[name]
         self.service = plugin_manager.get_service_instance(self.plugin_class)
         self.box = gtk.HBox()
-        self.label = gtk.Label('%s' % self.name)
+        self.label = gtk.Label('%s' % self.service.name)
         self.label.set_alignment(0, 0.5)
         self.label_version = gtk.Label(str(self.version))
         self.label_version.set_alignment(0, 0.5)
