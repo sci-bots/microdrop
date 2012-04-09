@@ -106,6 +106,17 @@ else:
             pass
 
 
+    class IAmplifier(Interface):
+        def gain(self, frequency):
+            """
+            Get the gain of an amplifier for a given frequency/frequencies.
+            
+            Parameters:
+                frequency : frequency or list of frequencies
+            """
+            pass
+        
+    
     class IPlugin(Interface):    
         def get_schedule_requests(self, function_name):
             """
