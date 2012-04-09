@@ -140,7 +140,7 @@ else:
             app options from the config file. If you decide to overide the
             default handler, you should call:
                 
-                super(AppDataController, self).on_plugin_enable()
+                super(PluginClass, self).on_plugin_enable()
                 
             to retain this functionality.
             """
