@@ -185,6 +185,7 @@ if __name__ == "__main__":
     if PYTHON_VERSION=="2.7":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.7.msi"),
                   ("numpy", "exe", "http://sourceforge.net/projects/numpy/files/NumPy/1.6.1/numpy-1.6.1-win32-superpack-python2.7.exe/download"),
+                  ("scipy", "exe", "http://sourceforge.net/projects/scipy/files/scipy/0.10.1/scipy-0.10.1-win32-superpack-python2.7.exe/download"),
                   ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.win32-py2.7.exe/download"),
                   ("PIL", "exe", "http://microfluidics.utoronto.ca/software/PIL-1.1.7.win32-py2.7.exe"),
                   ("lxml", "exe", "http://pypi.python.org/packages/2.7/l/lxml/lxml-2.3.win32-py2.7.exe#md5=9c02aae672870701377750121f5a6f84"),
@@ -198,6 +199,7 @@ if __name__ == "__main__":
     elif PYTHON_VERSION=="2.6":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.6.msi"),
                   ("numpy", "exe", "http://sourceforge.net/projects/numpy/files/NumPy/1.3.0/numpy-1.3.0-win32-superpack-python2.6.exe/download"),
+                  ("scipy", "exe", "http://sourceforge.net/projects/scipy/files/scipy/0.10.1/scipy-0.10.1-win32-superpack-python2.6.exe/download"),
                   ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.0.1/matplotlib-1.0.1.win32-py2.6.exe/download"),
                   ("PIL", "exe", "http://effbot.org/downloads/PIL-1.1.7.win32-py2.6.exe"),
                   ("lxml", "exe", "http://pypi.python.org/packages/2.6/l/lxml/lxml-2.3.win32-py2.6.exe#md5=4135a4ac2abe3cb1ef0fa9f198fe3c51")
@@ -251,28 +253,6 @@ if __name__ == "__main__":
                          "msi",
                          "http://microfluidics.utoronto.ca/software/Wix35.msi"))
 
-    # check if the dmf_control_board binaries have been installed
-    dmf_control_board_path = os.path.join(root_dir,
-                                          "microdrop",
-                                          "plugins",
-                                          "dmf_control_board")
-    version = get_version(dmf_control_board_path)
-    f = None
-    try:
-        f = open(os.path.join(dmf_control_board_path, "version.txt"), 'r')
-        if f.readline().strip()!=version:
-            raise Exception("wrong version")
-    except:
-        packages.append(("dmf_control_board",
-                         "tar.gz",
-                         "http://microfluidics.utoronto.ca/software/dmf_control_board-%s-py%s.tar.gz" % \
-                             (version, PYTHON_VERSION),
-                         "dmf_control_board-%s-py%s" % (version, PYTHON_VERSION),
-                         "microdrop/plugins/dmf_control_board"))
-    finally:
-        if f:
-            f.close()
-        
     if len(packages)>0:
         print "The following packages need to be installed:"
         for p in packages:
