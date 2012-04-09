@@ -38,6 +38,7 @@ import matplotlib
 from PIL import Image, ImageFont, ImageDraw
 import utility.uuid_minimal
 import gtk
+import scipy.optimize
 
 settings = gtk.settings_get_default()
 # Use a button ordering more consistent with Windows
