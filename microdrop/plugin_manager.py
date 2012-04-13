@@ -64,6 +64,10 @@ if not utility.PROGRAM_LAUNCHED:
         __interface_namespace__ = None
 
 
+    class IAmplifier(object):
+        __interface_namespace__ = None
+
+
     class ILoggingPlugin(object):
         __interface_namespace__ = None
 
