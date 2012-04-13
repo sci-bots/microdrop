@@ -320,7 +320,7 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
     if plugins:
         return plugins[0]
     else:
-        return None
+        raise KeyError, 'No plugin registered with name: %s' % name
 
 
 def get_service_instance(class_, env='microdrop.managed'):
