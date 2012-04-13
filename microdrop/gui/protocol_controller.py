@@ -334,11 +334,13 @@ Protocol is version %s, but only up to version %s is supported with this version
         dmf_plugin_name = step.plugin_name_lookup(
             r'wheelerlab.dmf_control_board_', re_pattern=True)
         options = step.get_data(dmf_plugin_name)
+        prev_voltage = options.voltage
         options.voltage = \
             textentry_validate(self.textentry_voltage, options.voltage, float)
-        emit_signal('on_step_options_changed',
-                    [dmf_plugin_name, app.protocol.current_step_number],
-                    interface=IPlugin)
+        if options.voltage != prev_voltage: 
+            emit_signal('on_step_options_changed',
+                        [dmf_plugin_name, app.protocol.current_step_number],
+                        interface=IPlugin)
         
     def on_textentry_frequency_focus_out(self, widget=None, data=None):
         self.on_frequency_changed()
@@ -354,13 +356,15 @@ Protocol is version %s, but only up to version %s is supported with this version
         dmf_plugin_name = step.plugin_name_lookup(
             r'wheelerlab.dmf_control_board_', re_pattern=True)
         options = step.get_data(dmf_plugin_name)
+        prev_frequency = options.frequency 
         options.frequency = \
             textentry_validate(self.textentry_frequency,
                             options.frequency / 1e3,
                             float) * 1e3
-        emit_signal('on_step_options_changed',
-                    [dmf_plugin_name, app.protocol.current_step_number],
-                    interface=IPlugin)
+        if options.frequency != prev_frequency: 
+            emit_signal('on_step_options_changed',
+                        [dmf_plugin_name, app.protocol.current_step_number],
+                        interface=IPlugin)
 
     def on_textentry_protocol_repeats_focus_out(self, widget, data=None):
         self.on_protocol_repeats_changed()

@@ -146,7 +146,7 @@ class Protocol():
     def __getitem__(self, i):
         return self.steps[i]
 
-    def save(self, filename, format='yaml'):
+    def save(self, filename, format='pickle'):
         out = deepcopy(self)
         if hasattr(out, 'filename'):
             del out.filename
