@@ -105,15 +105,17 @@ class CombinedFields(ObjectList):
     field_set_prefix = '_%s__'
 
     gsignal('fields-filter-request', object)
-    gsignal('rows-changed', object, object)
+    gsignal('rows-changed', object, object, str)
     # args: (row_id, step_data, name, value)
     gsignal('row-changed', int, object, str, object)
 
     def __init__(self, forms, enabled_attrs, *args, **kwargs):
         self.first_selected = True
         self.forms = forms
-        self.uuid_mapping = dict([(name, uuid4().get_hex()[:10]) for name in forms])
-        self.uuid_reverse_mapping = dict([(v, k) for k, v in self.uuid_mapping.items()])
+        self.uuid_mapping = dict([(name, uuid4().get_hex()[:10])
+                for name in forms])
+        self.uuid_reverse_mapping = dict([(v, k)
+                for k, v in self.uuid_mapping.items()])
         self._columns = []
         self._full_field_to_field_def = {}
         if not enabled_attrs:
@@ -122,17 +124,17 @@ class CombinedFields(ObjectList):
             enabled = lambda form_name, field:\
                     field.name in enabled_attrs.get(form_name, {})
         for form_name, form in self.forms.iteritems():
-            for f in form.field_schema:
-                if not enabled(form_name, f):
+            for field_name in form.field_schema:
+                if not enabled(form_name, field_name):
                     continue
-                title = re.sub(r'_', ' ', f.name).capitalize()
+                title = re.sub(r'_', ' ', field_name.name).capitalize()
                 prefix = self.field_set_prefix % self.uuid_mapping[form_name] 
-                name = '%s%s' % (prefix, f.name)
-                val_type = get_type_from_schema(f)
+                name = '%s%s' % (prefix, field_name.name)
+                val_type = get_type_from_schema(field_name)
                 d = dict(attr=name, type=val_type, title=title, resizable=True,
                         editable=True, sorted=False)
-                if f.properties.get('mappers', None):
-                    d['mappers'] = deepcopy(f.properties['mappers'])
+                if field_name.properties.get('mappers', None):
+                    d['mappers'] = deepcopy(field_name.properties['mappers'])
                     for m in d['mappers']:
                         m.attr = '%s%s' % (prefix, m.attr)
                 if val_type == bool:
@@ -143,7 +145,7 @@ class CombinedFields(ObjectList):
                     d['use_spin'] = True
                 logging.debug('[CombinedFields] column attrs=%s' % d)
                 self._columns.append(Column(**d))
-                self._full_field_to_field_def[name] = f
+                self._full_field_to_field_def[name] = field_name
         logging.debug('[CombinedFields] columns=%s' % self._columns)
         super(CombinedFields, self).__init__(self._columns, *args, **kwargs)
         s = self.get_selection()
@@ -206,9 +208,10 @@ class CombinedFields(ObjectList):
         menu_items = []
         menu_items += [(gtk.MenuItem('Invert row selection'), invert_rows), ]
         if len(row_ids) < len(self):
-            menu_items += [(gtk.MenuItem('Select all rows'), self._select_all), ]
+            menu_items += [(gtk.MenuItem('Select all rows'), self._select_all),]
         if len(row_ids) > 0:
-            menu_items += [(gtk.MenuItem('Deselect all rows'), self._deselect_all), ]
+            menu_items += [(gtk.MenuItem('Deselect all rows'),
+                    self._deselect_all), ]
 
         item_id = [r for r in self].index(item)
         if item_id not in row_ids:
@@ -227,9 +230,11 @@ class CombinedFields(ObjectList):
             ffc = FieldFilterController()
             response = ffc.run(self.forms, self.enabled_fields_by_form_name)
             if response == gtk.RESPONSE_OK:
-                self.emit('fields-filter-request', ffc.enabled_fields_by_form_name)
+                self.emit('fields-filter-request',
+                        ffc.enabled_fields_by_form_name)
 
-        menu_items += [(gtk.MenuItem('Select fields...'), request_field_filter), ]
+        menu_items += [(gtk.MenuItem('Select fields...'),
+                request_field_filter), ]
         for item, callback in menu_items:
             popup.add(item)
             item.connect('activate', callback)
@@ -285,19 +290,19 @@ class CombinedFields(ObjectList):
             setattr(form_step, attr, value)
         self.update(combined_step)
 
-    def _on_multiple_changed(self, attr, **kwargs):
+    def _on_multiple_changed(self, attr):
         selection = self.get_selection()
         model, rows = selection.get_selected_rows()
         row_ids = zip(*rows)[0]
         logging.debug('[CombinedFields] _on_multiple_changed(): attr=%s '\
                 'selected_rows=%s' % (attr, row_ids))
-        self.emit('rows-changed', row_ids, rows)
+        self.emit('rows-changed', row_ids, rows, attr)
 
-    def _on_item_changed(self, widget, step_data, name, value, **kwargs):
+    def _on_item_changed(self, widget, step_data, attr, value, **kwargs):
         row_id = [r for r in self].index(step_data)
-        logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
-        self.emit('row-changed', row_id, step_data, name, value)
-
+        logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s'\
+                % (attr, value))
+        self.emit('row-changed', row_id, step_data, attr, value)
 
 
 class CombinedStep(object):
@@ -383,33 +388,35 @@ class CombinedStep(object):
         return mangled_form_name.split('__')[-1]
     
     def set_step(self, step_id):
-        if 'DefaultFields' in self.combined_fields.forms and step_id is not None:
+        if 'DefaultFields' in self.combined_fields.forms\
+                and step_id is not None:
             self.attributes['DefaultFields'].step = step_id
 
     def __getattr__(self, name):
         logging.debug('[CombinedStep] name=%r' % name)
         if not name in ['attributes', 'combined_fields']:
-            for form_name, uuid_code in self.combined_fields.uuid_mapping.iteritems():
+            for form_name, uuid_code in self.combined_fields.uuid_mapping\
+                    .iteritems():
                 field_set_prefix = self.field_set_prefix % uuid_code
-                logging.debug('name=%s, field_set_prefix=%s' % (name, field_set_prefix))
+                logging.debug('name=%s, field_set_prefix=%s' % (name,
+                        field_set_prefix))
                 if name.startswith(field_set_prefix):
-                    return getattr(self.attributes[form_name], name[len(field_set_prefix):])
+                    return getattr(self.attributes[form_name],
+                            name[len(field_set_prefix):])
         return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
         logging.debug('[CombinedStep] set %s=%s' % (name, value))
         if not name in ['attributes', 'combined_fields']:
-            for form_name, uuid_code in self.combined_fields.uuid_mapping.iteritems():
+            for form_name, uuid_code in self.combined_fields.uuid_mapping\
+                    .iteritems():
                 field_set_prefix = self.field_set_prefix % uuid_code
                 if name.startswith(field_set_prefix):
-                    setattr(self.attributes[form_name], name[len(field_set_prefix):], value)
+                    setattr(self.attributes[form_name],
+                            name[len(field_set_prefix):], value)
         self.__dict__[name] = value
         logging.debug(self.__dict__[name])
 
     def __str__(self):
-        return '<CombinedStep attributes=%s>' % [(k, v.attrs) for k, v in self.attributes.iteritems()]
-
-
-
-
-
+        return '<CombinedStep attributes=%s>' % [(k, v.attrs)
+                for k, v in self.attributes.iteritems()]

@@ -63,16 +63,16 @@ class ProtocolGridView(CombinedFields):
                 'plugin_name=%s step_number=%s attrs=%s' % (form_name,
                         step_number, attrs))
 
-    def on_row_changed(self, row_id, row, field_name, value):
+    def on_row_changed(self, list_, row_id, row, field_name, value):
         for form_name, uuid_code in self.uuid_mapping.iteritems():
             field_set_prefix = self.field_set_prefix % uuid_code
-            if name.startswith(field_set_prefix):
+            if field_name.startswith(field_set_prefix):
                 form_step = row.get_fields_step(form_name)
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(form_name)
                 service.set_step_values(form_step.attrs, step_number=row_id)
 
-    def on_rows_changed(self, row_ids, rows):
+    def on_rows_changed(self, list_, row_ids, rows, attr):
         app = get_app()
         for step_number, step in [(i, self[i]) for i in row_ids]:
             for form_name, uuid_code in self.uuid_mapping.iteritems():
