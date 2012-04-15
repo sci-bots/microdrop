@@ -39,6 +39,7 @@ import plugin_manager
 from plugin_helpers import AppDataController
 from logger import logger, CustomHandler, logging
 from gui.plugin_manager_dialog import PluginManagerDialog
+from utility.gui.form_view_dialog import FormViewDialog
 import app_state
 
 
@@ -229,6 +230,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
 
         plugin_manager.emit_signal('on_plugin_enable')
         self.update_log_file()
+        FormViewDialog.default_parent = self.main_window_controller.view
                 
         self.builder.connect_signals(self.signals)
 

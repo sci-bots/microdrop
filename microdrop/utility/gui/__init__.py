@@ -87,9 +87,9 @@ else:
     yesno = _yesno
 
 
-def field_entry_dialog(field, value=None, title='Input value'):
+def field_entry_dialog(field, value=None, title='Input value', parent=None):
     form = Form.of(field)
-    dialog = FormViewDialog(title=title)
+    dialog = FormViewDialog(title=title, parent=parent)
     if value is not None:
         values = {field.name: value}
     else:
@@ -99,7 +99,7 @@ def field_entry_dialog(field, value=None, title='Input value'):
 
 
 def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
-        max_value=None):
+        max_value=None, parent=None):
     field = Integer.named('name')
     validators = []
     if min_value is not None:
@@ -108,14 +108,15 @@ def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
         ValueAtMost(maximum=max_value)
 
     valid, response = field_entry_dialog(Integer.named(name)\
-            .using(validators=validators), value, title)
+            .using(validators=validators), value, title, parent=parent)
     if valid:
         return response
     return None 
 
 
-def text_entry_dialog(name, value='', title='Input value'):
-    valid, response = field_entry_dialog(String.named(name), value, title)
+def text_entry_dialog(name, value='', title='Input value', parent=None):
+    valid, response = field_entry_dialog(String.named(name), value, title,
+            parent=parent)
     if valid:
         return response
     return None 

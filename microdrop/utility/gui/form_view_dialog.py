@@ -24,11 +24,11 @@ from path import path
 from pygtkhelpers.forms import FormView
 from pygtkhelpers.proxy import proxy_for
 
-from app_context import get_app
-
 
 class FormViewDialog(object):
-    def __init__(self, title=None):
+    default_parent = None
+
+    def __init__(self, title=None, parent=None):
         builder = gtk.Builder()
         builder.add_from_file(path('utility').joinpath('gui', 'glade',
                 'form_view_dialog.glade'))
@@ -36,11 +36,16 @@ class FormViewDialog(object):
         self.vbox_form = builder.get_object('vbox_form')
         if title:
             self.window.set_title(title)
+        self.parent = parent
 
     def clear_form(self):
         self.vbox_form.foreach(lambda x: self.vbox_form.remove(x))
 
-    def run(self, form, values=None):
+    def run(self, form, values=None, parent=None):
+        if parent is None:
+            parent = self.parent
+        if parent is None:
+            parent = self.default_parent
         FormView.schema_type = form
         form_view = FormView()
         for name, field in form_view.form.fields.items():
@@ -55,7 +60,9 @@ class FormViewDialog(object):
         self.vbox_form.pack_start(form_view.widget)
         self.window.set_default_response(gtk.RESPONSE_OK)
         self.window.set_position(gtk.WIN_POS_CENTER_ON_PARENT)        
-        self.window.set_transient_for(get_app().main_window_controller.view)
+        if parent:
+            self.window.set_transient_for(parent)
+            print '[FormViewDialog] set_transient_for(%s)' % parent
         self.window.show_all()
         response = self.window.run()
         self.window.hide()
