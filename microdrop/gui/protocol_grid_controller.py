@@ -50,6 +50,19 @@ from app_context import get_app
 
 
 class FieldsStep(object):
+    '''
+    Expose all key/value pairs specified through kwargs as object attributes. 
+    This is convenient for use in combination with a pygtkhelpers ObjectList,
+    since an ObjectList object uses attribute access to read/write field values.
+
+    >>> field_step = FieldsStep(foo='Hello', bar='World')
+    >>> field_step.foo
+    'Hello'
+    >>> field_step.bar
+    'World'
+    >>> field_step.attrs
+    {'foo': 'Hello', 'bar': 'World'}
+    '''
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
             setattr(self, key, value)
@@ -67,12 +80,9 @@ class FieldsStep(object):
 
     @property
     def attrs(self):
-        return self.__dict__
-
-'''
-(Note that we're beginning a new string on purpose here, since the following
-code would fail as a doc test because 
-'''
+        return dict([(k, v) for k, v in self.__dict__.items() 
+                if k not in ('__members__', '__methods__',
+                        '_getAttributeNames')])
 
 
 class CombinedFields(ObjectList):
@@ -133,7 +143,6 @@ class CombinedFields(ObjectList):
     field_set_prefix = '_%s__'
 
     gsignal('fields-filter-request', object)
-
     def __init__(self, forms, enabled_attrs, *args, **kwargs):
         self.first_selected = True
         self.forms = forms
@@ -362,6 +371,66 @@ class CombinedFields(ObjectList):
 
 
 class CombinedStep(object):
+    '''
+    This class provides storage for all field values for a particular row/step
+    in a CombinedFields instance.  Access to the field values is provided
+    through attribute access (i.e., getattr, setattr) using the CombinedFields
+    mangled field name.  This provides compatibility with the pygtkhelpers
+    ObjectList class (parent class of CombinedFields), which constructs a GTK
+    list view based on a list of objects corresponding to the rows.
+
+    >>> from flatland import Form, String, Integer
+    >>> from pprint import pprint
+
+    Here we create two forms, where all fields have a default value assigned.
+
+    >>> form1 = Form.of(String.named('my_string_field').using(default='foo'))
+    >>> form2 = Form.of(Integer.named('my_int_field').using(default=10))
+    >>> forms = {'example_form': form1, 'another_form': form2}
+
+    Next, we construct a CombinedFields instance based on the forms.
+
+    >>> combined_fields = CombinedFields(forms, enabled_attrs=None)
+
+    Using the CombinedFields object, we create a CombinedStep instance.  Note
+    that if 'attributes' is None (default), all field values will be set to
+    their default values (see above).
+
+    >>> combined_step = CombinedStep(combined_fields, attributes=None)
+
+    Here we can see that internally, the field values corresponding to each form
+    are grouped together by form into a FieldsStep instance.
+
+    >>> pprint(dict([(form_name, field_step.attrs)
+    ...     for form_name, field_step in combined_step.attributes.items()]))
+    {'another_form': {'my_int_field': 10},
+     'example_form': {'my_string_field': u'foo'}}
+
+    Attribute access to a CombinedStep maps to the mangled field names
+    defined by the CombinedFields instance.
+
+    >>> pprint([(c.attr, c.title) for c in combined_fields._columns]) # doctest:+SKIP
+    [(u'_05c880b1f4__my_int_field', u'My int field'),
+    (u'_261660f830__my_string_field', u'My string field')]
+
+    Here we read the value of the 'my_int_field' field from the 'another_form'
+    using the mangled field name.
+
+    >>> combined_step._05c880b1f4__my_int_field # doctest:+SKIP
+    10
+
+    Note that values can also be set using the mangled field name.
+
+    >>> combined_step._05c880b1f4__my_int_field = 1234 # doctest:+SKIP
+
+    Here we can see that the corresponding FieldsStep instance has been updated
+    to reflect the change.
+
+    >>> pprint(dict([(form_name, field_step.attrs)
+    ...     for form_name, field_step in combined_step.attributes.items()])) # doctest:+SKIP
+    {'another_form': {'my_int_field': 1234},
+     'example_form': {'my_string_field': u'foo'}}
+    '''
     field_set_prefix = '_%s__'
 
     def __init__(self, combined_fields, step_id=None, attributes=None):
