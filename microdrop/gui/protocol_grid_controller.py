@@ -63,6 +63,24 @@ class ProtocolGridView(CombinedFields):
                 'plugin_name=%s step_number=%s attrs=%s' % (form_name,
                         step_number, attrs))
 
+    def _get_popup_menu(self, item, column_title, value, row_ids, menu_items=None):
+        if menu_items is None:
+            # Use list of tuples (menu label, callback) rather than a dict to
+            # allow ordering.
+            menu_items = []
+        def request_field_filter(*args, **kwargs):
+            from .field_filter_controller import FieldFilterController
+
+            ffc = FieldFilterController()
+            response = ffc.run(self.forms, self.enabled_fields_by_form_name)
+            if response == gtk.RESPONSE_OK:
+                self.emit('fields-filter-request',
+                        ffc.enabled_fields_by_plugin)
+        # Add menu entry to select enabled fields for each plugin
+        menu_items += [('Select fields...', request_field_filter)]
+        return super(ProtocolGridView, self)._get_popup_menu(item, column_title, value,
+                row_ids, menu_items)
+
     def on_row_changed(self, list_, row_id, row, field_name, value):
         for form_name, uuid_code in self.uuid_mapping.iteritems():
             field_set_prefix = self.field_set_prefix % uuid_code

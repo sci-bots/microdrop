@@ -158,7 +158,7 @@ class CombinedFields(ObjectList):
         title_map = dict([(c.title, c.attr) for c in self.columns])
         attr = title_map.get(column_title)
         if prompt:
-            from utility.gui.form_view_dialog import FormViewDialog
+            from .gui.form_view_dialog import FormViewDialog
             from flatland import Form
 
             Fields = Form.of(self._full_field_to_field_def[attr])
@@ -195,7 +195,7 @@ class CombinedFields(ObjectList):
         for i in row_ids:
             s.unselect_path(i)
 
-    def _get_popup_menu(self, item, column_title, value, row_ids):
+    def _get_popup_menu(self, item, column_title, value, row_ids, menu_items=None):
         popup = gtk.Menu()
         def set_attr_value(*args, **kwargs):
             logging.debug('[set_attr_value] args=%s kwargs=%s' % (args, kwargs))
@@ -205,74 +205,54 @@ class CombinedFields(ObjectList):
             self._set_rows_attr(row_ids, column_title, value, prompt=True)
         def invert_rows(*args, **kwargs):
             self._invert_rows(row_ids)
-        menu_items = []
-        menu_items += [(gtk.MenuItem('Invert row selection'), invert_rows), ]
+        if menu_items is None:
+            # Use list of tuples (menu label, callback) rather than a dict to
+            # allow ordering.
+            menu_items = []
         if len(row_ids) < len(self):
-            menu_items += [(gtk.MenuItem('Select all rows'), self._select_all),]
+            menu_items += [('Select all rows', self._select_all)]
         if len(row_ids) > 0:
-            menu_items += [(gtk.MenuItem('Deselect all rows'),
-                    self._deselect_all), ]
+            menu_items += [('Deselect all rows', self._deselect_all),
+                    ('Invert row selection', invert_rows)]
 
         item_id = [r for r in self].index(item)
         if item_id not in row_ids:
             logging.debug('[ProtocolGridController] _on_right_clicked(): '\
                             'clicked item is not selected')
         elif len(row_ids) > 1:
-            menu_items += [
-                (gtk.MenuItem('''Set selected [%s] to "%s"'''\
-                            % (column_title, value)), set_attr_value),
-                (gtk.MenuItem('''Set selected [%s] to...''' % column_title),
-                set_attr),
-            ]
-        def request_field_filter(*args, **kwargs):
-            from gui.field_filter_controller import FieldFilterController
+            menu_items += [('Set selected [%s] to "%s"' % (column_title, value),
+                    set_attr_value), ('Set selected [%s] to...'''\
+                            % column_title, set_attr)]
 
-            ffc = FieldFilterController()
-            response = ffc.run(self.forms, self.enabled_fields_by_form_name)
-            if response == gtk.RESPONSE_OK:
-                self.emit('fields-filter-request',
-                        ffc.enabled_fields_by_form_name)
-
-        menu_items += [(gtk.MenuItem('Select fields...'),
-                request_field_filter), ]
-        for item, callback in menu_items:
-            popup.add(item)
-            item.connect('activate', callback)
+        for label, callback in menu_items:
+            menu_item = gtk.MenuItem(label)
+            popup.add(menu_item)
+            menu_item.connect('activate', callback)
         popup.show_all()
         return popup
 
-    def _on_button_press_event(self, treeview, event):
-        item_spec = self.get_path_at_pos(int(event.x), int(event.y))
-        if item_spec is not None:
-            # clicked on an actual cell
-            path, col, rx, ry = item_spec
-            signal_map = {
-                (1, gtk.gdk.BUTTON_PRESS): 'item-left-clicked',
-                (3, gtk.gdk.BUTTON_PRESS): 'item-right-clicked',
-                (2, gtk.gdk.BUTTON_PRESS): 'item-middle-clicked',
-                (1, gtk.gdk._2BUTTON_PRESS): 'item-double-clicked',
-            }
-            signal_name = signal_map.get((event.button, event.type))
-            if not signal_name == 'item-right-clicked':
-                self._emit_for_path(path, event)
-            else:
-                item = self._object_at_sort_path(path)
-                return self._on_right_clicked(self, item, event, col.get_title())
+    def _on_right_clicked(self, list_, item, event):
+        # Prevent right-click from causing selection to change
+        self.stop_emission('button-press-event')
 
-    def _on_right_clicked(self, list_, item, event, column_title):
-        title_map = dict([(c.title, c.attr) for c in self.columns])
-        attr = title_map.get(column_title)
+        item_spec = self.get_path_at_pos(int(event.x), int(event.y))
+
+        if item_spec is None:
+            return
+        path, treeview_col, rx, ry = item_spec
+        item = self._object_at_sort_path(path)
+        column = treeview_col.get_data('pygtkhelpers::column')
         selection = self.get_selection()
         model, rows = selection.get_selected_rows()
         if not rows:
-            return False
-        row_ids = zip(*rows)[0]
-        value = getattr(item, attr)
+            row_ids = []
+        else:
+            row_ids = zip(*rows)[0]
+        value = getattr(item, column.attr)
 
         self.grab_focus()
-        popup = self._get_popup_menu(item, column_title, value, row_ids)
+        popup = self._get_popup_menu(item, column.title, value, row_ids)
         popup.popup(None, None, None, event.button, event.time)
-        del popup
         return True
 
     def _update_fields_step(self, form_name, step_number, attrs):
