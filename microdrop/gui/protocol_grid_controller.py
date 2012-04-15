@@ -185,7 +185,7 @@ class CombinedFields(ObjectList):
         self.connect('item-changed', self._on_item_changed)
         self.connect('selection-changed', self._on_selection_changed)
         self.connect('item-right-clicked', self._on_right_clicked)
-        self.enabled_fields_by_plugin = enabled_attrs
+        self.enabled_fields_by_form_name = enabled_attrs
 
     def _set_rows_attr(self, row_ids, column_title, value, prompt=False):
         title_map = dict([(c.title, c.attr) for c in self.columns])
@@ -260,9 +260,9 @@ class CombinedFields(ObjectList):
             from gui.field_filter_controller import FieldFilterController
 
             ffc = FieldFilterController()
-            response = ffc.run(self.forms, self.enabled_fields_by_plugin)
+            response = ffc.run(self.forms, self.enabled_fields_by_form_name)
             if response == gtk.RESPONSE_OK:
-                self.emit('fields-filter-request', ffc.enabled_fields_by_plugin)
+                self.emit('fields-filter-request', ffc.enabled_fields_by_form_name)
 
         menu_items += [(gtk.MenuItem('Select fields...'), request_field_filter), ]
         for item, callback in menu_items:
@@ -305,28 +305,20 @@ class CombinedFields(ObjectList):
         del popup
         return True
 
-    def _on_step_options_changed(self, plugin_name, step_number):
+    def _update_fields_step(self, form_name, step_number, attrs):
         '''
-        -get step values for (plugin, step_number)
+        -get step values for (form_name, step_number)
         -set affected objectlist item attributes based on step values
         '''
-        if plugin_name not in self.forms\
+        if form_name not in self.forms\
             or step_number >= len(self):
             return
-        app = get_app()
-        step = app.protocol.current_step()
         combined_step = self[step_number]
-        form_step = combined_step.get_fields_step(plugin_name)
-        observers = ExtensionPoint(IPlugin)
-        # Get the instance of the specified plugin
-        service = observers.service(plugin_name)
-        # Get the step option values from the plugin instance
-        attrs = service.get_step_values(step_number=step_number)
+        form_step = combined_step.get_fields_step(form_name)
+
         for attr, value in attrs.items():
             setattr(form_step, attr, value)
         self.update(combined_step)
-        logging.debug('[CombinedFields] _on_step_options_changed(): '\
-                'plugin_name=%s step_number=%s attrs=%s' % (plugin_name, step_number, attrs))
 
     def _on_multiple_changed(self, attr, **kwargs):
         selection = self.get_selection()
@@ -368,6 +360,19 @@ class CombinedFields(ObjectList):
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(form_name)
                 service.set_step_values(form_step.attrs, step_number=step_number)
+
+
+class ProtocolGridView(CombinedFields):
+    def _on_step_options_changed(self, form_name, step_number):
+        observers = ExtensionPoint(IPlugin)
+        # Get the instance of the specified plugin
+        service = observers.service(form_name)
+        # Get the step option values from the plugin instance
+        attrs = service.get_step_values(step_number=step_number)
+        self._update_fields_step(form_name, step_number, attrs)
+        logging.debug('[ProtocolGridView] _on_step_options_changed(): '\
+                'plugin_name=%s step_number=%s attrs=%s' % (form_name,
+                        step_number, attrs))
 
 
 class CombinedStep(object):
@@ -483,6 +488,7 @@ class CombinedStep(object):
 PluginGlobals.push_env('microdrop')
 
 
+
 class ProtocolGridController(SingletonPlugin):
     implements(IPlugin)
     
@@ -549,7 +555,7 @@ class ProtocolGridController(SingletonPlugin):
             self.enabled_fields = dict([(form_name,
                     set(form.field_schema_mapping.keys()))
                             for form_name, form in forms.items()])
-        combined_fields = CombinedFields(forms, self.enabled_fields)
+        combined_fields = ProtocolGridView(forms, self.enabled_fields)
         combined_fields.connect('fields-filter-request', self.set_fields_filter)
 
         for i, step in enumerate(steps):
@@ -584,6 +590,7 @@ class ProtocolGridController(SingletonPlugin):
 
     def get_schedule_requests(self, function_name):
         """
+
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
