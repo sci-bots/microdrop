@@ -58,7 +58,7 @@ class ProtocolGridView(CombinedFields):
         service = observers.service(form_name)
         # Get the step option values from the plugin instance
         attrs = service.get_step_values(step_number=step_number)
-        self._update_fields_step(form_name, step_number, attrs)
+        self._update_row_fields(form_name, step_number, attrs)
         logging.debug('[ProtocolGridView] _on_step_options_changed(): '\
                 'plugin_name=%s step_number=%s attrs=%s' % (form_name,
                         step_number, attrs))
@@ -85,7 +85,7 @@ class ProtocolGridView(CombinedFields):
         for form_name, uuid_code in self.uuid_mapping.iteritems():
             field_set_prefix = self.field_set_prefix % uuid_code
             if field_name.startswith(field_set_prefix):
-                form_step = row.get_fields_step(form_name)
+                form_step = row.get_row_fields(form_name)
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(form_name)
                 service.set_step_values(form_step.attrs, step_number=row_id)
@@ -96,7 +96,7 @@ class ProtocolGridView(CombinedFields):
             for form_name, uuid_code in self.uuid_mapping.iteritems():
                 field_set_prefix = self.field_set_prefix % uuid_code
                 if attr.startswith(field_set_prefix):
-                    form_step = step.get_fields_step(form_name)
+                    form_step = step.get_row_fields(form_name)
                     observers = ExtensionPoint(IPlugin)
                     service = observers.service(form_name)
                     service.set_step_values(form_step.attrs, step_number=step_number)
