@@ -167,6 +167,7 @@ class CombinedFields(ObjectList):
                 self._full_field_to_field_def[name] = field_name
         super(CombinedFields, self).__init__(self._columns, **kwargs)
         s = self.get_selection()
+        # Enable multiple row selection
         s.set_mode(gtk.SELECTION_MULTIPLE)
         self.connect('item-changed', self._on_item_changed)
         self.connect('item-right-clicked', self._on_right_clicked)

@@ -79,6 +79,12 @@ class ProtocolGridView(CombinedFields):
                         ffc.enabled_fields_by_plugin)
         # Add menu entry to select enabled fields for each plugin
         menu_items += [('Select fields...', request_field_filter)]
+
+        # Uncomment lines below to add menu item for running pudb
+        #def run_pudb(*args, **kwargs):
+            #import pudb; pudb.set_trace()
+        #menu_items += [('Run pudb...', run_pudb)]
+
         return super(ProtocolGridView, self)._get_popup_menu(item, column_title, value,
                 row_ids, menu_items)
 
@@ -103,16 +109,13 @@ class ProtocolGridView(CombinedFields):
                     service.set_step_values(form_step.attrs, step_number=step_number)
 
     def on_selection_changed(self, grid_view):
-        selection = self.get_selection()
-        model, rows = selection.get_selected_rows()
-        if not rows:
-            return
-        row_ids = zip(*rows)[0]
-        logging.debug('[CombinedFields] selection changed: %s %s' % (selection, row_ids))
-        if len(row_ids) == 1:
+        logging.debug('[CombinedFields] selection changed')
+        #import pudb; pudb.set_trace()
+        selected_row_ids = self.selected_ids
+        if selected_row_ids:
             # A single row is selected
-            selected_row_id = row_ids[0]
             app = get_app()
+            selected_row_id = selected_row_ids[0]
             if selected_row_id != app.protocol.current_step_number:
                 logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
                 app.protocol.goto_step(selected_row_id)
@@ -167,7 +170,9 @@ class ProtocolGridController(SingletonPlugin):
         self.update_grid(protocol)
 
     def set_fields_filter(self, combined_fields, enabled_fields_by_plugin):
+        app = get_app()
         self.enabled_fields = enabled_fields_by_plugin
+        self.widget.selected_ids = [app.protocol.current_step_number]
         logging.debug('[ProtocolGridController] set_fields_filter: %s' % self.enabled_fields)
 
     def update_grid(self, protocol=None):
@@ -240,12 +245,12 @@ class ProtocolGridController(SingletonPlugin):
         self.update_grid()
 
     def on_step_swapped(self, original_step_number, step_number):
-        logging.info('[ProtocolGridController] on_step_swapped[%d->%d]',
+        self.widget.selected_items = [self.widget[step_number]]
+        logging.debug('[ProtocolGridController] on_step_swapped[%d->%d]',
                 original_step_number, step_number)
-        self.update_grid()
 
     def on_step_removed(self, step_number, step):
-        logging.info('[ProtocolGridController] on_step_removed[%d]',
+        logging.debug('[ProtocolGridController] on_step_removed[%d]',
                 step_number)
         self.update_grid()
 
