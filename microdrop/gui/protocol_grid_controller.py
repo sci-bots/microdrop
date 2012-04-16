@@ -36,8 +36,8 @@ import protocol
 from protocol import Protocol
 from utility import is_float, is_int
 from utility.gui import textentry_validate
-from utility.pygtkhelpers_combined_fields import CombinedFields, CombinedStep,\
-        FieldsStep
+from utility.pygtkhelpers_combined_fields import CombinedFields, CombinedRow,\
+        RowFields
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, PluginGlobals, ScheduleRequest, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer
@@ -186,7 +186,8 @@ class ProtocolGridController(SingletonPlugin):
             self.enabled_fields = dict([(form_name,
                     set(form.field_schema_mapping.keys()))
                             for form_name, form in forms.items()])
-        combined_fields = ProtocolGridView(forms, self.enabled_fields)
+        # The step ID column can be hidden by changing show_ids to False
+        combined_fields = ProtocolGridView(forms, self.enabled_fields, show_ids=True)
         combined_fields.connect('fields-filter-request', self.set_fields_filter)
 
         for i, step in enumerate(steps):
@@ -196,9 +197,9 @@ class ProtocolGridController(SingletonPlugin):
             attributes = dict()
             for form_name, form in combined_fields.forms.iteritems():
                 attr_values = values[form_name]
-                logging.debug('[CombinedStep] attr_values=%s' % attr_values)
-                attributes[form_name] = FieldsStep(**attr_values)
-            c = CombinedStep(combined_fields, attributes=attributes)
+                logging.debug('[CombinedRow] attr_values=%s' % attr_values)
+                attributes[form_name] = RowFields(**attr_values)
+            c = CombinedRow(combined_fields, attributes=attributes)
             combined_fields.append(c)
         if self.widget:
             self.window.remove(self.widget)

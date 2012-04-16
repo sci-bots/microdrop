@@ -12,18 +12,18 @@ from .pygtkhelpers_widgets import get_type_from_schema
 from .uuid_minimal import uuid4
 
 
-class FieldsStep(object):
+class RowFields(object):
     '''
     Expose all key/value pairs specified through kwargs as object attributes. 
     This is convenient for use in combination with a pygtkhelpers ObjectList,
     since an ObjectList object uses attribute access to read/write field values.
 
-    >>> field_step = FieldsStep(foo='Hello', bar='World')
-    >>> field_step.foo
+    >>> row_fields = RowFields(foo='Hello', bar='World')
+    >>> row_fields.foo
     'Hello'
-    >>> field_step.bar
+    >>> row_fields.bar
     'World'
-    >>> field_step.attrs
+    >>> row_fields.attrs
     {'foo': 'Hello', 'bar': 'World'}
     '''
     def __init__(self, **kwargs):
@@ -107,20 +107,25 @@ class CombinedFields(ObjectList):
 
     gsignal('fields-filter-request', object)
     gsignal('rows-changed', object, object, str)
-    # args: (row_id, step_data, name, value)
+    # args: (row_id, row_data, name, value)
     gsignal('row-changed', int, object, str, object)
+
+    @property
+    def forms(self):
+        return dict([(k, v) for k, v in self._forms.iteritems()
+                if k != '__DefaultFields'])
 
     def __init__(self, forms, enabled_attrs, show_ids=True, **kwargs):
         self.first_selected = True
-        self.forms = forms.copy()
-        step_id_properties = dict(editable=False)
+        self._forms = forms.copy()
+        row_id_properties = dict(editable=False)
         if not show_ids:
-            step_id_properties['show_in_gui'] = False
-        self.forms['__DefaultFields'] = Form.of(Integer.named('step_id')\
-                .using(default=0, properties=step_id_properties))
+            row_id_properties['show_in_gui'] = False
+        self._forms['__DefaultFields'] = Form.of(Integer.named('id')\
+                .using(default=0, properties=row_id_properties))
 
         self.uuid_mapping = dict([(name, uuid4().get_hex()[:10])
-                for name in self.forms])
+                for name in self._forms])
         self.uuid_reverse_mapping = dict([(v, k)
                 for k, v in self.uuid_mapping.items()])
         self._columns = []
@@ -130,10 +135,10 @@ class CombinedFields(ObjectList):
         else:
             enabled = lambda form_name, field:\
                     field.name in enabled_attrs.get(form_name, {})
-        # Make __DefaultFields.step_id the first column
+        # Make __DefaultFields.id the first column
         form_names = ['__DefaultFields'] + sorted(forms.keys())
         for form_name in form_names:
-            form = self.forms[form_name]
+            form = self._forms[form_name]
             for field_name in form.field_schema:
                 if not form_name == '__DefaultFields' and not enabled(form_name,
                         field_name):
@@ -271,20 +276,20 @@ class CombinedFields(ObjectList):
         popup.popup(None, None, None, event.button, event.time)
         return True
 
-    def _update_fields_step(self, form_name, step_number, attrs):
+    def _update_row_fields(self, form_name, row_id, attrs):
         '''
-        -get step values for (form_name, step_number)
-        -set affected objectlist item attributes based on step values
+        -get row values for (form_name, row_id)
+        -set affected objectlist item attributes based on row values
         '''
-        if form_name not in self.forms\
-            or step_number >= len(self):
+        if form_name not in self._forms\
+            or row_id >= len(self):
             return
-        combined_step = self[step_number]
-        form_step = combined_step.get_fields_step(form_name)
+        combined_row = self[row_id]
+        form_row = combined_row.get_row_fields(form_name)
 
         for attr, value in attrs.items():
-            setattr(form_step, attr, value)
-        self.update(combined_step)
+            setattr(form_row, attr, value)
+        self.update(combined_row)
 
     def _on_multiple_changed(self, attr):
         selection = self.get_selection()
@@ -294,30 +299,30 @@ class CombinedFields(ObjectList):
                 'selected_rows=%s' % (attr, row_ids))
         self.emit('rows-changed', row_ids, rows, attr)
 
-    def _on_item_changed(self, widget, step_data, attr, value, **kwargs):
-        row_id = [r for r in self].index(step_data)
+    def _on_item_changed(self, widget, row_data, attr, value, **kwargs):
+        row_id = [r for r in self].index(row_data)
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s'\
                 % (attr, value))
-        self.emit('row-changed', row_id, step_data, attr, value)
+        self.emit('row-changed', row_id, row_data, attr, value)
 
     def _on_item_added(self, list_, item):
         logging.debug('[CombinedFields] _on_item_added[%s] %s',
                 self._view_path_for(item), item.attributes)
-        self.reset_step_ids()
+        self.reset_row_ids()
 
     def _on_item_removed(self, list_, item, item_id):
         logging.debug('[CombinedFields] _on_item_removed[%d] %s', item_id,
                 item.attributes)
-        self.reset_step_ids()
+        self.reset_row_ids()
 
-    def reset_step_ids(self):
-        for i, combined_step in enumerate(self):
-            combined_step.set_fields_step_attr('__DefaultFields', 'step_id', i + 1)
+    def reset_row_ids(self):
+        for i, combined_row in enumerate(self):
+            combined_row.set_row_fields_attr('__DefaultFields', 'id', i + 1)
 
 
-class CombinedStep(object):
+class CombinedRow(object):
     '''
-    This class provides storage for all field values for a particular row/step
+    This class provides storage for all field values for a particular row
     in a CombinedFields instance.  Access to the field values is provided
     through attribute access (i.e., getattr, setattr) using the CombinedFields
     mangled field name.  This provides compatibility with the pygtkhelpers
@@ -337,21 +342,22 @@ class CombinedStep(object):
 
     >>> combined_fields = CombinedFields(forms, enabled_attrs=None)
 
-    Using the CombinedFields object, we create a CombinedStep instance.  Note
+    Using the CombinedFields object, we create a CombinedRow instance.  Note
     that if 'attributes' is None (default), all field values will be set to
     their default values (see above).
 
-    >>> combined_step = CombinedStep(combined_fields, attributes=None)
+    >>> combined_row = CombinedRow(combined_fields, attributes=None)
 
     Here we can see that internally, the field values corresponding to each form
-    are grouped together by form into a FieldsStep instance.
+    are grouped together by form into a RowFields instance.
 
-    >>> pprint(dict([(form_name, field_step.attrs)
-    ...     for form_name, field_step in combined_step.attributes.items()]))
-    {'another_form': {'my_int_field': 10},
+    >>> pprint(dict([(form_name, row_fields.attrs)
+    ...     for form_name, row_fields in combined_row.attributes.items()]))
+    {'__DefaultFields': {'id': 0},
+     'another_form': {'my_int_field': 10},
      'example_form': {'my_string_field': u'foo'}}
 
-    Attribute access to a CombinedStep maps to the mangled field names
+    Attribute access to a CombinedRow maps to the mangled field names
     defined by the CombinedFields instance.
 
     >>> pprint([(c.attr, c.title) for c in combined_fields._columns]) # doctest:+SKIP
@@ -361,18 +367,18 @@ class CombinedStep(object):
     Here we read the value of the 'my_int_field' field from the 'another_form'
     using the mangled field name.
 
-    >>> combined_step._05c880b1f4__my_int_field # doctest:+SKIP
+    >>> combined_row._05c880b1f4__my_int_field # doctest:+SKIP
     10
 
     Note that values can also be set using the mangled field name.
 
-    >>> combined_step._05c880b1f4__my_int_field = 1234 # doctest:+SKIP
+    >>> combined_row._05c880b1f4__my_int_field = 1234 # doctest:+SKIP
 
-    Here we can see that the corresponding FieldsStep instance has been updated
+    Here we can see that the corresponding RowFields instance has been updated
     to reflect the change.
 
-    >>> pprint(dict([(form_name, field_step.attrs)
-    ...     for form_name, field_step in combined_step.attributes.items()])) # doctest:+SKIP
+    >>> pprint(dict([(form_name, row_fields.attrs)
+    ...     for form_name, row_fields in combined_row.attributes.items()])) # doctest:+SKIP
     {'another_form': {'my_int_field': 1234},
      'example_form': {'my_string_field': u'foo'}}
     '''
@@ -382,26 +388,26 @@ class CombinedStep(object):
         self.combined_fields = combined_fields
 
         self.attributes = dict()
-        for form_name, form in combined_fields.forms.iteritems():
+        for form_name, form in combined_fields._forms.iteritems():
             temp = form.from_defaults()
             attr_values = dict([(k, v.value) for k, v in temp.iteritems()])
-            self.attributes[form_name] = FieldsStep(**attr_values)
+            self.attributes[form_name] = RowFields(**attr_values)
         if attributes:
             self.attributes.update(attributes)
 
-    def set_fields_step_attr(self, form_name, attr, value):
+    def set_row_fields_attr(self, form_name, attr, value):
         return setattr(self.attributes[form_name], attr, value)
     
-    def get_fields_step(self, form_name):
+    def get_row_fields(self, form_name):
         return self.attributes[form_name]
     
     def decode_form_name(self, mangled_form_name):
         return mangled_form_name.split('__')[-1]
     
-    def set_step(self, step_id):
-        if '__DefaultFields' in self.combined_fields.forms\
-                and step_id is not None:
-            self.attributes['__DefaultFields'].step = step_id
+    def set_row_id(self, row_id):
+        if '__DefaultFields' in self.combined_fields._forms\
+                and row_id is not None:
+            self.attributes['__DefaultFields'].id = row_id
 
     def __getattr__(self, name):
         if not name in ['attributes', 'combined_fields']:
@@ -422,11 +428,11 @@ class CombinedStep(object):
                     # Update value
                     setattr(self.attributes[form_name],
                             name[len(field_set_prefix):], value)
-                    logging.debug('[CombinedStep] setattr %s=%s' % (name, value))
+                    logging.debug('[CombinedRow] setattr %s=%s' % (name, value))
                     break
         else:
             self.__dict__[name] = value
 
     def __str__(self):
-        return '<CombinedStep attributes=%s>' % [(k, v.attrs)
+        return '<CombinedRow attributes=%s>' % [(k, v.attrs)
                 for k, v in self.attributes.iteritems()]
