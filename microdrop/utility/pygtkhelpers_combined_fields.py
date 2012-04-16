@@ -6,6 +6,7 @@ import gtk
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.ui.objectlist import ObjectList
 from pygtkhelpers.ui.objectlist.column import Column
+from flatland import Form, Integer
 
 from .pygtkhelpers_widgets import get_type_from_schema
 from .uuid_minimal import uuid4
@@ -109,11 +110,17 @@ class CombinedFields(ObjectList):
     # args: (row_id, step_data, name, value)
     gsignal('row-changed', int, object, str, object)
 
-    def __init__(self, forms, enabled_attrs, *args, **kwargs):
+    def __init__(self, forms, enabled_attrs, show_ids=True, **kwargs):
         self.first_selected = True
-        self.forms = forms
+        self.forms = forms.copy()
+        step_id_properties = dict(editable=False)
+        if not show_ids:
+            step_id_properties['show_in_gui'] = False
+        self.forms['__DefaultFields'] = Form.of(Integer.named('step_id')\
+                .using(default=0, properties=step_id_properties))
+
         self.uuid_mapping = dict([(name, uuid4().get_hex()[:10])
-                for name in forms])
+                for name in self.forms])
         self.uuid_reverse_mapping = dict([(v, k)
                 for k, v in self.uuid_mapping.items()])
         self._columns = []
@@ -123,9 +130,13 @@ class CombinedFields(ObjectList):
         else:
             enabled = lambda form_name, field:\
                     field.name in enabled_attrs.get(form_name, {})
-        for form_name, form in self.forms.iteritems():
+        # Make __DefaultFields.step_id the first column
+        form_names = ['__DefaultFields'] + sorted(forms.keys())
+        for form_name in form_names:
+            form = self.forms[form_name]
             for field_name in form.field_schema:
-                if not enabled(form_name, field_name):
+                if not form_name == '__DefaultFields' and not enabled(form_name,
+                        field_name):
                     continue
                 title = re.sub(r'_', ' ', field_name.name).capitalize()
                 prefix = self.field_set_prefix % self.uuid_mapping[form_name] 
@@ -137,6 +148,10 @@ class CombinedFields(ObjectList):
                     d['mappers'] = deepcopy(field_name.properties['mappers'])
                     for m in d['mappers']:
                         m.attr = '%s%s' % (prefix, m.attr)
+                if 'editable' in field_name.properties:
+                    d['editable'] = field_name.properties['editable']
+                if 'show_in_gui' in field_name.properties:
+                    d['visible'] = field_name.properties['show_in_gui']
                 if val_type == bool:
                     # Use checkbox for boolean cells
                     d['use_checkbox'] = True
@@ -145,12 +160,15 @@ class CombinedFields(ObjectList):
                     d['use_spin'] = True
                 self._columns.append(Column(**d))
                 self._full_field_to_field_def[name] = field_name
-        super(CombinedFields, self).__init__(self._columns, *args, **kwargs)
+        super(CombinedFields, self).__init__(self._columns, **kwargs)
         s = self.get_selection()
         s.set_mode(gtk.SELECTION_MULTIPLE)
         self.connect('item-changed', self._on_item_changed)
         self.connect('item-right-clicked', self._on_right_clicked)
         self.enabled_fields_by_form_name = enabled_attrs
+
+        self.connect('item-added', self._on_item_added)
+        self.connect('item-removed', self._on_item_removed)
 
     def _set_rows_attr(self, row_ids, column_title, value, prompt=False):
         title_map = dict([(c.title, c.attr) for c in self.columns])
@@ -282,6 +300,20 @@ class CombinedFields(ObjectList):
                 % (attr, value))
         self.emit('row-changed', row_id, step_data, attr, value)
 
+    def _on_item_added(self, list_, item):
+        logging.debug('[CombinedFields] _on_item_added[%s] %s',
+                self._view_path_for(item), item.attributes)
+        self.reset_step_ids()
+
+    def _on_item_removed(self, list_, item, item_id):
+        logging.debug('[CombinedFields] _on_item_removed[%d] %s', item_id,
+                item.attributes)
+        self.reset_step_ids()
+
+    def reset_step_ids(self):
+        for i, combined_step in enumerate(self):
+            combined_step.set_fields_step_attr('__DefaultFields', 'step_id', i + 1)
+
 
 class CombinedStep(object):
     '''
@@ -346,7 +378,7 @@ class CombinedStep(object):
     '''
     field_set_prefix = '_%s__'
 
-    def __init__(self, combined_fields, step_id=None, attributes=None):
+    def __init__(self, combined_fields, attributes=None):
         self.combined_fields = combined_fields
 
         self.attributes = dict()
@@ -367,9 +399,9 @@ class CombinedStep(object):
         return mangled_form_name.split('__')[-1]
     
     def set_step(self, step_id):
-        if 'DefaultFields' in self.combined_fields.forms\
+        if '__DefaultFields' in self.combined_fields.forms\
                 and step_id is not None:
-            self.attributes['DefaultFields'].step = step_id
+            self.attributes['__DefaultFields'].step = step_id
 
     def __getattr__(self, name):
         if not name in ['attributes', 'combined_fields']:
