@@ -172,8 +172,9 @@ class CombinedFields(ObjectList):
         self.connect('item-right-clicked', self._on_right_clicked)
         self.enabled_fields_by_form_name = enabled_attrs
 
-        self.connect('item-added', self._on_item_added)
-        self.connect('item-removed', self._on_item_removed)
+        self.connect('item-added', lambda x, y: self.reset_row_ids())
+        self.connect('item-inserted', lambda x, y, z: self.reset_row_ids())
+        self.connect('item-removed', lambda x, y: self.reset_row_ids())
 
     def _set_rows_attr(self, row_ids, column_title, value, prompt=False):
         title_map = dict([(c.title, c.attr) for c in self.columns])
@@ -304,16 +305,6 @@ class CombinedFields(ObjectList):
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s'\
                 % (attr, value))
         self.emit('row-changed', row_id, row_data, attr, value)
-
-    def _on_item_added(self, list_, item):
-        logging.debug('[CombinedFields] _on_item_added[%s] %s',
-                self._view_path_for(item), item.attributes)
-        self.reset_row_ids()
-
-    def _on_item_removed(self, list_, item, item_id):
-        logging.debug('[CombinedFields] _on_item_removed[%d] %s', item_id,
-                item.attributes)
-        self.reset_row_ids()
 
     def reset_row_ids(self):
         for i, combined_row in enumerate(self):

@@ -56,12 +56,13 @@ class ProtocolGridView(CombinedFields):
         observers = ExtensionPoint(IPlugin)
         # Get the instance of the specified plugin
         service = observers.service(form_name)
-        # Get the step option values from the plugin instance
-        attrs = service.get_step_values(step_number=step_number)
-        self._update_row_fields(form_name, step_number, attrs)
-        logging.debug('[ProtocolGridView] _on_step_options_changed(): '\
-                'plugin_name=%s step_number=%s attrs=%s' % (form_name,
-                        step_number, attrs))
+        if hasattr(service, 'get_step_values'):
+            # Get the step option values from the plugin instance
+            attrs = service.get_step_values(step_number=step_number)
+            self._update_row_fields(form_name, step_number, attrs)
+            logging.debug('[ProtocolGridView] _on_step_options_changed(): '\
+                    'plugin_name=%s step_number=%s attrs=%s' % (form_name,
+                            step_number, attrs))
 
     def _get_popup_menu(self, item, column_title, value, row_ids, menu_items=None):
         if menu_items is None:
@@ -152,7 +153,6 @@ class ProtocolGridController(SingletonPlugin):
         print 'attrs=%s' % args[1].attrs
 
     def on_step_options_swapped(self, plugin, step_number):
-        self.update_grid()
         self.select_current_step()
 
     def on_step_options_changed(self, plugin, step_number):
@@ -164,26 +164,29 @@ class ProtocolGridController(SingletonPlugin):
         self.on_protocol_created(protocol)
 
     def on_protocol_created(self, protocol):
-        self.update_grid()
+        self.update_grid(protocol)
 
     def set_fields_filter(self, combined_fields, enabled_fields_by_plugin):
         self.enabled_fields = enabled_fields_by_plugin
         logging.debug('[ProtocolGridController] set_fields_filter: %s' % self.enabled_fields)
-        self.update_grid()
 
-    def update_grid(self):
+    def update_grid(self, protocol=None):
         app = get_app()
-        if not app.protocol:
-            return 
+        if protocol is None:
+            protocol = app.protocol
+        if protocol is None:
+            return
         logging.debug('[ProtocolGridController] on_step_run():')
-        logging.debug('[ProtocolGridController]   plugin_fields=%s' % app.protocol.plugin_fields)
+        logging.debug('[ProtocolGridController]   plugin_fields=%s' % protocol.plugin_fields)
         forms = emit_signal('get_step_form_class')
 
-        steps = app.protocol.steps
+        steps = protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
             
         if self.enabled_fields is None:
-            self.enabled_fields = dict([(form_name,
+            # Assign directly to _enabled_fields to avoid recursive call into
+            # update_grid()
+            self._enabled_fields = dict([(form_name,
                     set(form.field_schema_mapping.keys()))
                             for form_name, form in forms.items()])
         # The step ID column can be hidden by changing show_ids to False
@@ -209,6 +212,8 @@ class ProtocolGridController(SingletonPlugin):
         self.window.add(self.widget)
 
     def select_current_step(self): 
+        if self.widget is None:
+            return
         app = get_app()
         s = self.widget.get_selection()
         model, rows = s.get_selected_rows()
@@ -229,6 +234,20 @@ class ProtocolGridController(SingletonPlugin):
         if function_name == 'on_plugin_enable':
             return [ScheduleRequest('microdrop.gui.main_window_controller', self.name)]
         return []
+
+    def on_step_created(self, step_number):
+        logging.info('[ProtocolGridController] on_step_created[%d]', step_number)
+        self.update_grid()
+
+    def on_step_swapped(self, original_step_number, step_number):
+        logging.info('[ProtocolGridController] on_step_swapped[%d->%d]',
+                original_step_number, step_number)
+        self.update_grid()
+
+    def on_step_removed(self, step_number, step):
+        logging.info('[ProtocolGridController] on_step_removed[%d]',
+                step_number)
+        self.update_grid()
 
 
 PluginGlobals.pop_env()

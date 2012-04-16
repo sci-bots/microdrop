@@ -89,10 +89,9 @@ Protocol is version %s, but only up to version %s is supported with this version
             logging.error("Could not open %s. %s" % (filename, why))
         if p:
             if original_protocol is None:
-                emit_signal("on_protocol_created", p)
+                self.create_protocol(p, state=app_state.LOAD_PROTOCOL) 
             else:
-                emit_signal("on_protocol_swapped", [original_protocol, p])
-            app.state.trigger_event(app_state.LOAD_PROTOCOL)
+                self.swap_protocol(p)
         emit_signal('on_step_run')
 
     def on_protocol_created(self, protocol):
@@ -233,8 +232,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_step_run')
 
     def on_new_protocol(self, widget=None, data=None):
-        emit_signal("on_protocol_created", Protocol())
-        get_app().state.trigger_event(app_state.NEW_PROTOCOL)
+        self.create_protocol()
         emit_signal('on_step_run')
 
     def on_load_protocol(self, widget=None, data=None):
@@ -291,7 +289,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 # if the protocol name has changed
                 if name != app.protocol.name:
                     app.protocol.name = name
-                    emit_signal("on_protocol_swapped", [None, app.protocol])
+                    self.swap_protocol(app.protocol)
 
                 # if we're renaming
                 if rename and os.path.isfile(src):
@@ -299,6 +297,25 @@ Protocol is version %s, but only up to version %s is supported with this version
                 else: # save the file
                     app.protocol.save(dest)
                     app.state.trigger_event(app_state.PROTOCOL_SAVED)
+
+    def swap_protocol(self, protocol, state=None):
+        app = get_app()
+        original_protocol = app.protocol
+        if state is None:
+            state = app_state.LOAD_PROTOCOL
+        app.protocol = protocol
+        emit_signal("on_protocol_swapped", [original_protocol, app.protocol])
+        app.state.trigger_event(state)
+
+    def create_protocol(self, protocol=None, state=None):
+        app = get_app()
+        if state is None:
+            state = app_state.NEW_PROTOCOL
+        if protocol is None:
+            protocol = Protocol()
+        app.protocol = protocol
+        emit_signal("on_protocol_created", app.protocol)
+        app.state.trigger_event(state)
     
     def on_textentry_step_duration_focus_out(self, widget=None, data=None):
         self.on_step_duration_changed()
@@ -500,9 +517,10 @@ Protocol is version %s, but only up to version %s is supported with this version
                     # TODO: protocol.plugin_fields should likely be updated
                     #    whenever a plugin is enabled/disabled...
                     continue
-                print >> sio, '[ProtocolController] plugin.name=%s field_values='\
-                        % (plugin_name),
-                print >> sio, [service.get_step_value(f) for f in fields]
+                if hasattr(service, 'get_step_value'):
+                    print >> sio, '[ProtocolController] plugin.name=%s field_values='\
+                            % (plugin_name),
+                    print >> sio, [service.get_step_value(f) for f in fields]
             logging.debug(sio.getvalue())
 
     def _update_labels(self):
@@ -513,16 +531,12 @@ Protocol is version %s, but only up to version %s is supported with this version
             app.protocol.current_repetition + 1,
             app.protocol.n_repeats))
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
-                
+
     def on_dmf_device_created(self, dmf_device):
-        app = get_app()
-        emit_signal("on_protocol_created", Protocol())
-        app.state.trigger_event(app_state.NEW_PROTOCOL)
+        self.create_protocol()
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        app = get_app()
-        emit_signal("on_protocol_created", Protocol())
-        app.state.trigger_event(app_state.NEW_PROTOCOL)
+        self.create_protocol()
 
     def on_app_exit(self):
         app = get_app()

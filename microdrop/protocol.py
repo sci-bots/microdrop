@@ -27,6 +27,7 @@ except ImportError:
     import pickle
 import yaml
 
+import plugin_manager
 from logger import logger
 from utility import Version, VersionError, FutureVersionError
 
@@ -179,26 +180,37 @@ class Protocol():
     def current_step(self):
         return self.steps[self.current_step_number]
 
-    def insert_step(self):
-        self.steps.insert(self.current_step_number,
-                          Step())
-
-    def copy_step(self):
-        self.steps.insert(self.current_step_number,
-            Step(plugin_data=deepcopy(self.current_step().plugin_data)))
-        self.next_step()
+    def insert_step(self, step_number=None, value=None):
+        if step_number is None:
+            step_number = self.current_step_number
+        if value is None:
+            value = Step()
+        self.steps.insert(step_number, value)
+        plugin_manager.emit_signal('on_step_created',
+                args=[self.current_step_number])
 
     def delete_step(self):
-        if len(self.steps) > 1:
+        step_count = len(self.steps)
+        if step_count > 0:
+            # Remove step
+            step_to_remove = self.steps[self.current_step_number]
             del self.steps[self.current_step_number]
-            if self.current_step_number == len(self.steps):
-                self.current_step_number -= 1
-        else: # reset first step
-            self.steps = [Step()]
+            plugin_manager.emit_signal('on_step_removed',
+                args=[self.current_step_number, step_to_remove])
+
+        if len(self.steps) == 0:
+            # If we deleted the last remaining step, we need to insert a new
+            # default Step
+            self.insert_step(0, Step())
+            self.goto_step(0)
+        elif self.current_step_number == len(self.steps):
+            self.goto_step(self.current_step_number - 1)
 
     def next_step(self):
         if self.current_step_number == len(self.steps) - 1:
-            self.copy_step()
+            self.insert_step(self.current_step_number,
+                    self.current_step().copy())
+            self.next_step()
         else:
             self.goto_step(self.current_step_number + 1)
         
@@ -219,7 +231,9 @@ class Protocol():
         self.goto_step(len(self.steps) - 1)
 
     def goto_step(self, step):
+        original_step = self.current_step_number
         self.current_step_number = step
+        plugin_manager.emit_signal('on_step_swapped', args=[original_step, step])
         
 
 class Step(object):
@@ -228,6 +242,9 @@ class Step(object):
             self.plugin_data = {}
         else:
             self.plugin_data = deepcopy(plugin_data)
+
+    def copy(self):
+        return Step(plugin_data=deepcopy(self.plugin_data))
 
     @property
     def plugins(self):
