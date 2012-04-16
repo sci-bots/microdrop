@@ -143,10 +143,8 @@ class CombinedFields(ObjectList):
                 elif val_type == int:
                     # Use spinner for integer cells
                     d['use_spin'] = True
-                logging.debug('[CombinedFields] column attrs=%s' % d)
                 self._columns.append(Column(**d))
                 self._full_field_to_field_def[name] = field_name
-        logging.debug('[CombinedFields] columns=%s' % self._columns)
         super(CombinedFields, self).__init__(self._columns, *args, **kwargs)
         s = self.get_selection()
         s.set_mode(gtk.SELECTION_MULTIPLE)
@@ -351,16 +349,17 @@ class CombinedStep(object):
     def __init__(self, combined_fields, step_id=None, attributes=None):
         self.combined_fields = combined_fields
 
-        if attributes is None:
-            self.attributes = dict()
-            for form_name, form in combined_fields.forms.iteritems():
-                temp = form.from_defaults()
-                attr_values = dict([(k, v.value) for k, v in temp.iteritems()])
-                logging.debug('[CombinedStep] attr_values=%s' % attr_values)
-                self.attributes[form_name] = FieldsStep(**attr_values)
-        else:
-            self.attributes = attributes
+        self.attributes = dict()
+        for form_name, form in combined_fields.forms.iteritems():
+            temp = form.from_defaults()
+            attr_values = dict([(k, v.value) for k, v in temp.iteritems()])
+            self.attributes[form_name] = FieldsStep(**attr_values)
+        if attributes:
+            self.attributes.update(attributes)
 
+    def set_fields_step_attr(self, form_name, attr, value):
+        return setattr(self.attributes[form_name], attr, value)
+    
     def get_fields_step(self, form_name):
         return self.attributes[form_name]
     
@@ -373,29 +372,28 @@ class CombinedStep(object):
             self.attributes['DefaultFields'].step = step_id
 
     def __getattr__(self, name):
-        logging.debug('[CombinedStep] name=%r' % name)
         if not name in ['attributes', 'combined_fields']:
             for form_name, uuid_code in self.combined_fields.uuid_mapping\
                     .iteritems():
                 field_set_prefix = self.field_set_prefix % uuid_code
-                logging.debug('name=%s, field_set_prefix=%s' % (name,
-                        field_set_prefix))
                 if name.startswith(field_set_prefix):
                     return getattr(self.attributes[form_name],
                             name[len(field_set_prefix):])
         return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
-        logging.debug('[CombinedStep] set %s=%s' % (name, value))
         if not name in ['attributes', 'combined_fields']:
             for form_name, uuid_code in self.combined_fields.uuid_mapping\
                     .iteritems():
                 field_set_prefix = self.field_set_prefix % uuid_code
                 if name.startswith(field_set_prefix):
+                    # Update value
                     setattr(self.attributes[form_name],
                             name[len(field_set_prefix):], value)
-        self.__dict__[name] = value
-        logging.debug(self.__dict__[name])
+                    logging.debug('[CombinedStep] setattr %s=%s' % (name, value))
+                    break
+        else:
+            self.__dict__[name] = value
 
     def __str__(self):
         return '<CombinedStep attributes=%s>' % [(k, v.attrs)
