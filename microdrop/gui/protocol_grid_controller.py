@@ -31,242 +31,66 @@ from copy import deepcopy
 import numpy as np
 import gtk
 from path import path
-from flatland import Form, Dict, String, Integer, Boolean, Float
-from flatland.validation import ValueAtLeast, ValueAtMost
-from pygtkhelpers.ui.objectlist import ObjectList
-from pygtkhelpers.ui.objectlist.column import Column
-from pygtkhelpers.utils import gsignal
 
 import protocol
 from protocol import Protocol
 from utility import is_float, is_int
 from utility.gui import textentry_validate
-import utility.uuid_minimal as uuid
-from utility.pygtkhelpers_widgets import get_type_from_schema
+from utility.pygtkhelpers_combined_fields import CombinedFields, CombinedRow,\
+        RowFields
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, PluginGlobals, ScheduleRequest, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
 
 
-class FieldsStep(object):
-    def __init__(self, **kwargs):
-        for key, value in kwargs.iteritems():
-            setattr(self, key, value)
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-
-    def __getstate__(self):
-        return self.__dict__
-
-    def __getattr__(self, name):
-        if not name in dir(self):
-            setattr(self, name, None)
-        return object.__getattribute__(self, name)
-
-    @property
-    def attrs(self):
-        return self.__dict__
-
-
-class CombinedFields(ObjectList):
-    field_set_prefix = '_%s__'
-
-    gsignal('fields-filter-request', object)
-
+class ProtocolGridView(CombinedFields):
     def __init__(self, forms, enabled_attrs, *args, **kwargs):
-        self.first_selected = True
-        self.forms = forms
-        self.uuid_mapping = dict([(name, uuid.uuid4().get_hex()[:10]) for name in forms])
-        self.uuid_reverse_mapping = dict([(v, k) for k, v in self.uuid_mapping.items()])
-        self._columns = []
-        self._full_field_to_field_def = {}
-        if not enabled_attrs:
-            enabled = lambda form_name, field: True
-        else:
-            enabled = lambda form_name, field:\
-                    field.name in enabled_attrs.get(form_name, {})
-        for form_name, form in self.forms.iteritems():
-            for f in form.field_schema:
-                if not enabled(form_name, f):
-                    continue
-                title = re.sub(r'_', ' ', f.name).capitalize()
-                prefix = self.field_set_prefix % self.uuid_mapping[form_name] 
-                name = '%s%s' % (prefix, f.name)
-                val_type = get_type_from_schema(f)
-                d = dict(attr=name, type=val_type, title=title, resizable=True,
-                        editable=True, sorted=False)
-                if f.properties.get('mappers', None):
-                    d['mappers'] = deepcopy(f.properties['mappers'])
-                    for m in d['mappers']:
-                        m.attr = '%s%s' % (prefix, m.attr)
-                if val_type == bool:
-                    # Use checkbox for boolean cells
-                    d['use_checkbox'] = True
-                elif val_type == int:
-                    # Use spinner for integer cells
-                    d['use_spin'] = True
-                logging.debug('[CombinedFields] column attrs=%s' % d)
-                self._columns.append(Column(**d))
-                self._full_field_to_field_def[name] = f
-        logging.debug('[CombinedFields] columns=%s' % self._columns)
-        super(CombinedFields, self).__init__(self._columns, *args, **kwargs)
-        s = self.get_selection()
-        s.set_mode(gtk.SELECTION_MULTIPLE)
-        self.connect('item-changed', self._on_item_changed)
-        self.connect('selection-changed', self._on_selection_changed)
-        self.connect('item-right-clicked', self._on_right_clicked)
-        app = get_app()
-        app.combined_fields = self
-        self.enabled_fields_by_plugin = enabled_attrs
+        super(ProtocolGridView, self).__init__(forms, enabled_attrs, *args,
+                **kwargs)
+        self.connect('row-changed', self.on_row_changed)
+        self.connect('rows-changed', self.on_rows_changed)
+        self.connect('selection-changed', self.on_selection_changed)
 
-    def _set_rows_attr(self, row_ids, column_title, value, prompt=False):
-        title_map = dict([(c.title, c.attr) for c in self.columns])
-        attr = title_map.get(column_title)
-        if prompt:
-            from utility.gui.form_view_dialog import FormViewDialog
-            from flatland import Form
-
-            Fields = Form.of(self._full_field_to_field_def[attr])
-            local_field = Fields.field_schema_mapping.keys()[0]
-
-            temp = FormViewDialog(title='Set %s' % local_field)
-            response_ok, values = temp.run(Fields,
-                    {local_field: value})
-            if not response_ok:
-                return
-            value = values.values()[0]
-        else:
-            title_map = dict([(c.title, c.attr) for c in self.columns])
-            attr = title_map.get(column_title)
-
-        for i in row_ids:
-            setattr(self[i], attr, value)
-        logging.debug('Set rows attr: row_ids=%s column_title=%s value=%s'\
-            % (row_ids, column_title, value))
-        self._on_multiple_changed(attr)
-        return True
-
-    def _deselect_all(self, *args, **kwargs):
-        s = self.get_selection()
-        s.unselect_all()
-
-    def _select_all(self, *args, **kwargs):
-        s = self.get_selection()
-        s.select_all()
-
-    def _invert_rows(self, row_ids):
-        self._select_all()
-        s = self.get_selection()
-        for i in row_ids:
-            s.unselect_path(i)
-
-    def _get_popup_menu(self, item, column_title, value, row_ids):
-        popup = gtk.Menu()
-        def set_attr_value(*args, **kwargs):
-            logging.debug('[set_attr_value] args=%s kwargs=%s' % (args, kwargs))
-            self._set_rows_attr(row_ids, column_title, value)
-        def set_attr(*args, **kwargs):
-            logging.debug('[set_attr] args=%s kwargs=%s' % (args, kwargs))
-            self._set_rows_attr(row_ids, column_title, value, prompt=True)
-        def invert_rows(*args, **kwargs):
-            self._invert_rows(row_ids)
-        menu_items = []
-        menu_items += [(gtk.MenuItem('Invert row selection'), invert_rows), ]
-        if len(row_ids) < len(self):
-            menu_items += [(gtk.MenuItem('Select all rows'), self._select_all), ]
-        if len(row_ids) > 0:
-            menu_items += [(gtk.MenuItem('Deselect all rows'), self._deselect_all), ]
-
-        item_id = [r for r in self].index(item)
-        if item_id not in row_ids:
-            logging.debug('[ProtocolGridController] _on_right_clicked(): '\
-                            'clicked item is not selected')
-        elif len(row_ids) > 1:
-            menu_items += [
-                (gtk.MenuItem('''Set selected [%s] to "%s"'''\
-                            % (column_title, value)), set_attr_value),
-                (gtk.MenuItem('''Set selected [%s] to...''' % column_title),
-                set_attr),
-            ]
-        def request_field_filter(*args, **kwargs):
-            from gui.field_filter_controller import FieldFilterController
-
-            ffc = FieldFilterController()
-            response = ffc.run(self.forms, self.enabled_fields_by_plugin)
-            if response == gtk.RESPONSE_OK:
-                self.emit('fields-filter-request', ffc.enabled_fields_by_plugin)
-
-        menu_items += [(gtk.MenuItem('Select fields...'), request_field_filter), ]
-        for item, callback in menu_items:
-            popup.add(item)
-            item.connect('activate', callback)
-        popup.show_all()
-        return popup
-
-    def _on_button_press_event(self, treeview, event):
-        item_spec = self.get_path_at_pos(int(event.x), int(event.y))
-        if item_spec is not None:
-            # clicked on an actual cell
-            path, col, rx, ry = item_spec
-            signal_map = {
-                (1, gtk.gdk.BUTTON_PRESS): 'item-left-clicked',
-                (3, gtk.gdk.BUTTON_PRESS): 'item-right-clicked',
-                (2, gtk.gdk.BUTTON_PRESS): 'item-middle-clicked',
-                (1, gtk.gdk._2BUTTON_PRESS): 'item-double-clicked',
-            }
-            signal_name = signal_map.get((event.button, event.type))
-            if not signal_name == 'item-right-clicked':
-                self._emit_for_path(path, event)
-            else:
-                item = self._object_at_sort_path(path)
-                return self._on_right_clicked(self, item, event, col.get_title())
-
-    def _on_right_clicked(self, list_, item, event, column_title):
-        title_map = dict([(c.title, c.attr) for c in self.columns])
-        attr = title_map.get(column_title)
-        selection = self.get_selection()
-        model, rows = selection.get_selected_rows()
-        if not rows:
-            return False
-        row_ids = zip(*rows)[0]
-        value = getattr(item, attr)
-
-        self.grab_focus()
-        popup = self._get_popup_menu(item, column_title, value, row_ids)
-        popup.popup(None, None, None, event.button, event.time)
-        del popup
-        return True
-
-    def _on_step_options_changed(self, plugin_name, step_number):
-        '''
-        -get step values for (plugin, step_number)
-        -set affected objectlist item attributes based on step values
-        '''
-        if plugin_name not in self.forms\
-            or step_number >= len(self):
-            return
-        app = get_app()
-        step = app.protocol.current_step()
-        combined_step = self[step_number]
-        form_step = combined_step.get_fields_step(plugin_name)
+    def _on_step_options_changed(self, form_name, step_number):
         observers = ExtensionPoint(IPlugin)
         # Get the instance of the specified plugin
-        service = observers.service(plugin_name)
+        service = observers.service(form_name)
         # Get the step option values from the plugin instance
         attrs = service.get_step_values(step_number=step_number)
-        for attr, value in attrs.items():
-            setattr(form_step, attr, value)
-        self.update(combined_step)
-        logging.debug('[CombinedFields] _on_step_options_changed(): '\
-                'plugin_name=%s step_number=%s attrs=%s' % (plugin_name, step_number, attrs))
+        self._update_fields_step(form_name, step_number, attrs)
+        logging.debug('[ProtocolGridView] _on_step_options_changed(): '\
+                'plugin_name=%s step_number=%s attrs=%s' % (form_name,
+                        step_number, attrs))
 
-    def _on_multiple_changed(self, attr, **kwargs):
-        selection = self.get_selection()
-        model, rows = selection.get_selected_rows()
-        row_ids = zip(*rows)[0]
-        logging.debug('[CombinedFields] _on_multiple_changed(): attr=%s selected_rows=%s' % (attr, row_ids))
+    def _get_popup_menu(self, item, column_title, value, row_ids, menu_items=None):
+        if menu_items is None:
+            # Use list of tuples (menu label, callback) rather than a dict to
+            # allow ordering.
+            menu_items = []
+        def request_field_filter(*args, **kwargs):
+            from .field_filter_controller import FieldFilterController
+
+            ffc = FieldFilterController()
+            response = ffc.run(self.forms, self.enabled_fields_by_form_name)
+            if response == gtk.RESPONSE_OK:
+                self.emit('fields-filter-request',
+                        ffc.enabled_fields_by_plugin)
+        # Add menu entry to select enabled fields for each plugin
+        menu_items += [('Select fields...', request_field_filter)]
+        return super(ProtocolGridView, self)._get_popup_menu(item, column_title, value,
+                row_ids, menu_items)
+
+    def on_row_changed(self, list_, row_id, row, field_name, value):
+        for form_name, uuid_code in self.uuid_mapping.iteritems():
+            field_set_prefix = self.field_set_prefix % uuid_code
+            if field_name.startswith(field_set_prefix):
+                form_step = row.get_fields_step(form_name)
+                observers = ExtensionPoint(IPlugin)
+                service = observers.service(form_name)
+                service.set_step_values(form_step.attrs, step_number=row_id)
+
+    def on_rows_changed(self, list_, row_ids, rows, attr):
         app = get_app()
         for step_number, step in [(i, self[i]) for i in row_ids]:
             for form_name, uuid_code in self.uuid_mapping.iteritems():
@@ -277,7 +101,8 @@ class CombinedFields(ObjectList):
                     service = observers.service(form_name)
                     service.set_step_values(form_step.attrs, step_number=step_number)
 
-    def _on_selection_changed(self, selection, *args, **kwargs):
+    def on_selection_changed(self, grid_view):
+        selection = self.get_selection()
         model, rows = selection.get_selected_rows()
         if not rows:
             return
@@ -292,70 +117,8 @@ class CombinedFields(ObjectList):
                 app.protocol.goto_step(selected_row_id)
                 emit_signal('on_step_run')
 
-    def _on_item_changed(self, widget, step_data, name, value, **kwargs):
-        logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s' % (name, value))
-        for form_name, uuid_code in self.uuid_mapping.iteritems():
-            field_set_prefix = self.field_set_prefix % uuid_code
-            step_number = [r for r in self].index(step_data)
-            if name.startswith(field_set_prefix):
-                form_step = step_data.get_fields_step(form_name)
-                observers = ExtensionPoint(IPlugin)
-                service = observers.service(form_name)
-                service.set_step_values(form_step.attrs, step_number=step_number)
-
-
-class CombinedStep(object):
-    field_set_prefix = '_%s__'
-
-    def __init__(self, combined_fields, step_id=None, attributes=None):
-        self.combined_fields = combined_fields
-
-        if attributes is None:
-            self.attributes = dict()
-            for form_name, form in combined_fields.forms.iteritems():
-                temp = form.from_defaults()
-                attr_values = dict([(k, v.value) for k, v in temp.iteritems()])
-                logging.debug('[CombinedStep] attr_values=%s' % attr_values)
-                self.attributes[form_name] = FieldsStep(**attr_values)
-        else:
-            self.attributes = attributes
-
-    def get_fields_step(self, form_name):
-        return self.attributes[form_name]
-    
-    def decode_form_name(self, mangled_form_name):
-        return mangled_form_name.split('__')[-1]
-    
-    def set_step(self, step_id):
-        if 'DefaultFields' in self.combined_fields.forms and step_id is not None:
-            self.attributes['DefaultFields'].step = step_id
-
-    def __getattr__(self, name):
-        logging.debug('[CombinedStep] name=%r' % name)
-        if not name in ['attributes', 'combined_fields']:
-            for form_name, uuid_code in self.combined_fields.uuid_mapping.iteritems():
-                field_set_prefix = self.field_set_prefix % uuid_code
-                logging.debug('name=%s, field_set_prefix=%s' % (name, field_set_prefix))
-                if name.startswith(field_set_prefix):
-                    return getattr(self.attributes[form_name], name[len(field_set_prefix):])
-        return object.__getattribute__(self, name)
-
-    def __setattr__(self, name, value):
-        logging.debug('[CombinedStep] set %s=%s' % (name, value))
-        if not name in ['attributes', 'combined_fields']:
-            for form_name, uuid_code in self.combined_fields.uuid_mapping.iteritems():
-                field_set_prefix = self.field_set_prefix % uuid_code
-                if name.startswith(field_set_prefix):
-                    setattr(self.attributes[form_name], name[len(field_set_prefix):], value)
-        self.__dict__[name] = value
-        logging.debug(self.__dict__[name])
-
-    def __str__(self):
-        return '<CombinedStep attributes=%s>' % [(k, v.attrs) for k, v in self.attributes.iteritems()]
-
 
 PluginGlobals.push_env('microdrop')
-
 
 class ProtocolGridController(SingletonPlugin):
     implements(IPlugin)
@@ -423,7 +186,8 @@ class ProtocolGridController(SingletonPlugin):
             self.enabled_fields = dict([(form_name,
                     set(form.field_schema_mapping.keys()))
                             for form_name, form in forms.items()])
-        combined_fields = CombinedFields(forms, self.enabled_fields)
+        # The step ID column can be hidden by changing show_ids to False
+        combined_fields = ProtocolGridView(forms, self.enabled_fields, show_ids=True)
         combined_fields.connect('fields-filter-request', self.set_fields_filter)
 
         for i, step in enumerate(steps):
@@ -433,9 +197,9 @@ class ProtocolGridController(SingletonPlugin):
             attributes = dict()
             for form_name, form in combined_fields.forms.iteritems():
                 attr_values = values[form_name]
-                logging.debug('[CombinedStep] attr_values=%s' % attr_values)
-                attributes[form_name] = FieldsStep(**attr_values)
-            c = CombinedStep(combined_fields, attributes=attributes)
+                logging.debug('[CombinedRow] attr_values=%s' % attr_values)
+                attributes[form_name] = RowFields(**attr_values)
+            c = CombinedRow(combined_fields, attributes=attributes)
             combined_fields.append(c)
         if self.widget:
             self.window.remove(self.widget)
@@ -458,6 +222,7 @@ class ProtocolGridController(SingletonPlugin):
 
     def get_schedule_requests(self, function_name):
         """
+
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
