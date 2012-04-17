@@ -41,7 +41,7 @@ class FormViewDialog(object):
     def clear_form(self):
         self.vbox_form.foreach(lambda x: self.vbox_form.remove(x))
 
-    def run(self, form, values=None, parent=None):
+    def run(self, form, values=None, parent=None, use_markup=True):
         if parent is None:
             parent = self.parent
         if parent is None:
@@ -56,6 +56,7 @@ class FormViewDialog(object):
                 value = field.element.default_value
             proxy.set_widget_value(value)
             field.widget.set_activates_default(gtk.TRUE)
+            field.label_widget.set_use_markup(use_markup)
         self.clear_form()
         self.vbox_form.pack_start(form_view.widget)
         self.window.set_default_response(gtk.RESPONSE_OK)
