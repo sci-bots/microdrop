@@ -129,9 +129,6 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.menu_save_protocol = app.builder.get_object('menu_save_protocol')
         self.menu_save_protocol_as = app.builder.get_object('menu_save_protocol_as')
 
-        app.signals["on_button_insert_step_clicked"] = self.on_insert_step
-        app.signals["on_button_delete_step_clicked"] = self.on_delete_step
-        app.signals["on_button_copy_step_clicked"] = self.on_copy_step
         app.signals["on_button_first_step_clicked"] = self.on_first_step
         app.signals["on_button_prev_step_clicked"] = self.on_prev_step
         app.signals["on_button_next_step_clicked"] = self.on_next_step
@@ -195,19 +192,6 @@ Protocol is version %s, but only up to version %s is supported with this version
         }
         register_shortcuts(view, notes_shortcuts,
                     enabled_widgets=[self.textentry_notes])
-
-    def on_insert_step(self, widget=None, data=None):
-        app = get_app()
-        app.protocol.insert_step()
-
-    def on_copy_step(self, widget=None, data=None):
-        app = get_app()
-        app.protocol.copy_step()
-        emit_signal('on_step_run')
-
-    def on_delete_step(self, widget=None, data=None):
-        app = get_app()
-        app.protocol.delete_step()
 
     def on_first_step(self, widget=None, data=None):
         app = get_app()
@@ -532,6 +516,9 @@ Protocol is version %s, but only up to version %s is supported with this version
                             % (plugin_name),
                     print >> sio, [service.get_step_value(f) for f in fields]
             logging.debug(sio.getvalue())
+
+    def on_step_swapped(self, original_step_number, step_number):
+        self._update_labels()
 
     def _update_labels(self):
         app = get_app()

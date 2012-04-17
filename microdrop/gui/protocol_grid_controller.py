@@ -65,6 +65,7 @@ class ProtocolGridView(CombinedFields):
                             step_number, attrs))
 
     def _get_popup_menu(self, item, column_title, value, row_ids, menu_items=None):
+        app = get_app()
         if menu_items is None:
             # Use list of tuples (menu label, callback) rather than a dict to
             # allow ordering.
@@ -81,6 +82,7 @@ class ProtocolGridView(CombinedFields):
         menu_items += [('Select fields...', request_field_filter)]
         # Add seperator
         menu_items += [(None, None)]
+        menu_items += [('Insert', lambda x: app.protocol.insert_step())]
         menu_items += [('Delete', self.delete_rows)]
         menu_items += [('Cut', self.cut_rows)]
         menu_items += [('Copy', self.copy_rows)]
@@ -271,7 +273,10 @@ class ProtocolGridController(SingletonPlugin):
             '<Control>x': FocusWrapper(self, self.widget.cut_rows),
             'Delete': FocusWrapper(self, self.widget.delete_rows),
             '<Control>v': FocusWrapper(self, self.widget.paste_rows_after),
-            '<Control><Shift>v': FocusWrapper(self, self.widget.paste_rows_before),
+            '<Control><Shift>v': FocusWrapper(self,
+                    self.widget.paste_rows_before),
+            '<Control><Shift>i': FocusWrapper(self,
+                    lambda: app.protocol.insert_step()),
         }
         register_shortcuts(view, shortcuts, enabled_widgets=[self.widget])
 
@@ -315,8 +320,9 @@ class ProtocolGridController(SingletonPlugin):
         logging.debug('[ProtocolGridController] on_step_removed[%d]',
                 step_number)
         self.update_grid()
-        self.widget.selected_ids = [min(len(app.protocol.steps) - 1,
-                app.protocol.current_step_number)]
+        if app.protocol.steps:
+            self.widget.selected_ids = [min(len(app.protocol.steps) - 1,
+                    app.protocol.current_step_number)]
 
 
 PluginGlobals.pop_env()

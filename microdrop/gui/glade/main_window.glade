@@ -47,7 +47,17 @@
     <property name="can_focus">False</property>
     <property name="stock">gtk-go-back</property>
   </object>
+  <object class="GtkImage" id="image_go_back1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-go-back</property>
+  </object>
   <object class="GtkImage" id="image_go_forward">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-go-forward</property>
+  </object>
+  <object class="GtkImage" id="image_go_forward1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-go-forward</property>
@@ -57,7 +67,17 @@
     <property name="can_focus">False</property>
     <property name="stock">gtk-goto-first</property>
   </object>
+  <object class="GtkImage" id="image_goto_first1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-goto-first</property>
+  </object>
   <object class="GtkImage" id="image_goto_last">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-goto-last</property>
+  </object>
+  <object class="GtkImage" id="image_goto_last1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-goto-last</property>
@@ -83,6 +103,11 @@
     <property name="stock">gtk-media-pause</property>
   </object>
   <object class="GtkImage" id="image_play">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-media-play</property>
+  </object>
+  <object class="GtkImage" id="image_play1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-media-play</property>
@@ -823,48 +848,6 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHBox" id="hbox5">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkButton" id="button_insert_step">
-                        <property name="label" translatable="yes">Insert Step</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
-                        <signal name="clicked" handler="on_button_insert_step_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="button_delete_step">
-                        <property name="label" translatable="yes">Delete Step</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
-                        <signal name="clicked" handler="on_button_delete_step_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="padding">2</property>
-                    <property name="position">13</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkHBox" id="hbox2">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -874,7 +857,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image_goto_first</property>
+                        <property name="image">image_goto_first1</property>
                         <signal name="clicked" handler="on_button_first_step_clicked" swapped="no"/>
                       </object>
                       <packing>
@@ -889,7 +872,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image_go_back</property>
+                        <property name="image">image_go_back1</property>
                         <signal name="clicked" handler="on_button_prev_step_clicked" swapped="no"/>
                       </object>
                       <packing>
@@ -904,7 +887,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image_play</property>
+                        <property name="image">image_play1</property>
                         <signal name="clicked" handler="on_button_run_protocol_clicked" swapped="no"/>
                       </object>
                       <packing>
@@ -919,7 +902,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image_go_forward</property>
+                        <property name="image">image_go_forward1</property>
                         <signal name="clicked" handler="on_button_next_step_clicked" swapped="no"/>
                       </object>
                       <packing>
@@ -934,7 +917,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="image">image_goto_last</property>
+                        <property name="image">image_goto_last1</property>
                         <signal name="clicked" handler="on_button_last_step_clicked" swapped="no"/>
                       </object>
                       <packing>
@@ -948,7 +931,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">2</property>
-                    <property name="position">14</property>
+                    <property name="position">13</property>
                   </packing>
                 </child>
                 <child>
@@ -959,7 +942,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">15</property>
+                    <property name="position">14</property>
                   </packing>
                 </child>
                 <child>
@@ -989,6 +972,7 @@
                         <property name="width_chars">5</property>
                         <property name="text" translatable="yes">1</property>
                         <property name="xalign">0.5</property>
+                        <property name="invisible_char_set">True</property>
                         <property name="primary_icon_activatable">False</property>
                         <property name="secondary_icon_activatable">False</property>
                         <property name="primary_icon_sensitive">True</property>
@@ -1020,7 +1004,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">2</property>
-                    <property name="position">16</property>
+                    <property name="position">15</property>
                   </packing>
                 </child>
                 <child>
@@ -1031,7 +1015,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">17</property>
+                    <property name="position">16</property>
                   </packing>
                 </child>
                 <child>
@@ -1045,7 +1029,7 @@
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="padding">3</property>
-                    <property name="position">20</property>
+                    <property name="position">17</property>
                   </packing>
                 </child>
               </object>
