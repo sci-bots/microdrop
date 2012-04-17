@@ -50,6 +50,7 @@ class AppOptionsController:
         self.btn_apply = builder.get_object('btn_apply')
         self.btn_cancel = builder.get_object('btn_cancel')
         self.form_views = {}
+        self.no_gui_names = set()
 
         builder.connect_signals(self)
         self.builder = builder
@@ -80,6 +81,7 @@ class AppOptionsController:
         self.form_views = {}
         self.clear_form()
         app = get_app()
+        self.no_gui_names = set()
         for name, form in self.forms.iteritems():
             # For each form, generate a pygtkhelpers formview and append the view
             # onto the end of the plugin vbox
@@ -88,6 +90,9 @@ class AppOptionsController:
             # 'properties' dictionary
             schema_entries = [f for f in form.field_schema\
                     if f.properties.get('show_in_gui', True)]
+            if not schema_entries:
+                self.no_gui_names.add(name)
+                continue
             gui_form = Form.of(*schema_entries)
             FormView.schema_type = gui_form
             self.form_views[name] = FormView()
@@ -100,8 +105,9 @@ class AppOptionsController:
                 expander.set_expanded(True)
                 expander.add(self.form_views[name].widget)
                 self.plugin_form_vbox.pack_start(expander)
-        #import pudb; pudb.set_trace()
         for form_name, form in self.forms.iteritems():
+            if form_name in self.no_gui_names:
+                continue
             form_view = self.form_views[form_name]
             values = self._get_app_values(form_name)
             fields = set(values.keys()).intersection(form_view.form.fields)
