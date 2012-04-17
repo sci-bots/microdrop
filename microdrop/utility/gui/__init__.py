@@ -9,6 +9,23 @@ from .form_view_dialog import FormViewDialog
 from .. import is_float, is_int
 from flatland.schema import String, Form, Integer
 
+
+class Defaults(object):
+    def __init__(self):
+        self._parent_widget = None
+
+    @property
+    def parent_widget(self):
+        return self._parent_widget
+
+    @parent_widget.setter
+    def parent_widget(self, parent):
+        self._parent_widget = parent
+
+
+DEFAULTS = Defaults()
+
+
 def register_shortcuts(window, shortcuts, enabled_widgets=None,
                         disabled_widgets=None):
     logger.debug('register_shortcuts()...')
@@ -80,6 +97,8 @@ def textview_get_text(textview):
     return buffer_.get_text(start, end)
 
 def field_entry_dialog(field, value=None, title='Input value', parent=None):
+    if parent is None:
+        parent = DEFAULTS.parent_widget
     form = Form.of(field)
     dialog = FormViewDialog(title=title, parent=parent)
     if value is not None:
@@ -92,6 +111,8 @@ def field_entry_dialog(field, value=None, title='Input value', parent=None):
 
 def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
         max_value=None, parent=None):
+    if parent is None:
+        parent = DEFAULTS.parent_widget
     field = Integer.named('name')
     validators = []
     if min_value is not None:
@@ -109,26 +130,23 @@ def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
 def text_entry_dialog(name, value='', title='Input value', parent=None):
     valid, response = field_entry_dialog(String.named(name), value, title,
             parent=parent)
+    if parent is None:
+        parent = DEFAULTS.parent_widget
     if valid:
         return response
     return None 
 
 
-class YesNo(object):
-    def __init__(self):
-        self.DEFAULT_PARENT = None
-
-    def set_default_parent(self, parent):
-        self.DEFAULT_PARENT = parent
-    
-    def __call__(self, *args, **kwargs):
-        print '[yesno] using parent: %s' % self.DEFAULT_PARENT
-        if os.name == 'nt':
-            return _yesno(*args, parent=self.DEFAULT_PARENT,
-                    alt_button_order=(gtk.RESPONSE_YES, gtk.RESPONSE_NO),
-                            **kwargs)
-        else:
-            return _yesno(*args, parent=self.DEFAULT_PARENT, **kwargs)
-
-
-yesno = YesNo()
+if os.name == 'nt':
+    def yesno(*args, **kwargs):
+        parent = kwargs.get('parent', None)
+        if parent is None:
+            parent = DEFAULTS.parent_widget
+        return _yesno(*args, parent=parent,
+                alt_button_order=(gtk.RESPONSE_YES, gtk.RESPONSE_NO), **kwargs)
+else:
+    def yesno(*args, **kwargs):
+        parent = kwargs.get('parent', None)
+        if parent is None:
+            parent = DEFAULTS.parent_widget
+        return _yesno(*args, parent=parent, **kwargs)
