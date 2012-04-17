@@ -121,7 +121,7 @@ class VideoController(SingletonPlugin, AppDataController):
                 p = Process(target=self._verify_camera,
                         args=(app_data['camera_id'], verified))
                 p.start()
-                p.join(timeout=5000)
+                p.join(timeout=10)
                 if p.is_alive() or not verified.value:
                     # Seems like camera test initialization has hung
                     p.terminate()
@@ -133,7 +133,7 @@ class VideoController(SingletonPlugin, AppDataController):
                 self.grabber.frame_callback = self.update_frame_data
                 self.grabber.start()
             except (CaptureError,), why:
-                logging.info(str(why))
+                logging.warning(str(why))
                 if app_data['video_enabled']:
                     self.set_app_values({'video_enabled': False})
                     emit_signal('on_app_options_changed', [self.name],
