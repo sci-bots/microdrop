@@ -428,7 +428,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             area = self.last_electrode_clicked.area() * app.dmf_device.scale
         area = text_entry_dialog("Area of electrode in mm<span "
                 "rise=\"5000\" font_size=\"smaller\">2</span>:", str(area),
-                        "Edit electrode area")
+                        "Edit electrode area", use_markup=True)
         if area:
             if is_float(area):
                 app.dmf_device.scale = \

@@ -96,7 +96,9 @@ def textview_get_text(textview):
     end = buffer_.get_end_iter()
     return buffer_.get_text(start, end)
 
-def field_entry_dialog(field, value=None, title='Input value', parent=None):
+
+def field_entry_dialog(field, value=None, title='Input value', parent=None,
+        use_markup=False):
     if parent is None:
         parent = DEFAULTS.parent_widget
     form = Form.of(field)
@@ -105,12 +107,12 @@ def field_entry_dialog(field, value=None, title='Input value', parent=None):
         values = {field.name: value}
     else:
         values = None
-    valid, response =  dialog.run(form, values)
+    valid, response =  dialog.run(form, values, use_markup=use_markup)
     return valid, response.values()[0]
 
 
 def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
-        max_value=None, parent=None):
+        max_value=None, parent=None, use_markup=False):
     if parent is None:
         parent = DEFAULTS.parent_widget
     field = Integer.named('name')
@@ -121,15 +123,17 @@ def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
         ValueAtMost(maximum=max_value)
 
     valid, response = field_entry_dialog(Integer.named(name)\
-            .using(validators=validators), value, title, parent=parent)
+            .using(validators=validators), value, title, parent=parent,
+                    use_markup=use_markup)
     if valid:
         return response
     return None 
 
 
-def text_entry_dialog(name, value='', title='Input value', parent=None):
+def text_entry_dialog(name, value='', title='Input value', parent=None,
+        use_markup=False):
     valid, response = field_entry_dialog(String.named(name), value, title,
-            parent=parent)
+            parent=parent, use_markup=use_markup)
     if parent is None:
         parent = DEFAULTS.parent_widget
     if valid:
