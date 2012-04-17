@@ -106,17 +106,16 @@ class VideoController(SingletonPlugin, AppDataController):
             del self.cam_cap
             self.grabber = None
             self.cam_cap = None
-        try:
-            temp_cam_cap = CameraCapture(id=app_data['camera_id'], auto_init=True)
-            del temp_cam_cap
-            self.cam_cap = CameraCapture(id=app_data['camera_id'], auto_init=False)
-            self.grabber = FrameGrabber(self.cam_cap, auto_init=True)
-            self.grabber.set_fps_limit(app_data['fps_limit'])
-            self.grabber.frame_callback = self.update_frame_data
-            self.grabber.start()
-        except CaptureError:
-            if app_data['video_enabled']:
-                self.set_app_values({'video_enabled': False})
+        if self.video_enabled:
+            try:
+                self.cam_cap = CameraCapture(id=app_data['camera_id'], auto_init=False)
+                self.grabber = FrameGrabber(self.cam_cap, auto_init=True)
+                self.grabber.set_fps_limit(app_data['fps_limit'])
+                self.grabber.frame_callback = self.update_frame_data
+                self.grabber.start()
+            except CaptureError:
+                if app_data['video_enabled']:
+                    self.set_app_values({'video_enabled': False})
 
     def on_plugin_disable(self, *args, **kwargs):
         pass
@@ -136,9 +135,10 @@ class VideoController(SingletonPlugin, AppDataController):
         return True
 
     def __del__(self, *args, **kwargs):
-        results = self.grabber.stop()
-        logging.debug(str(results))
-        del self.cam_cap
+        if self.grabber:
+            results = self.grabber.stop()
+            logging.debug(str(results))
+            del self.cam_cap
 
     def get_schedule_requests(self, function_name):
         """
