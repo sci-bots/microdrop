@@ -248,9 +248,13 @@ class CombinedFields(ObjectList):
                             % column_title, set_attr)]
 
         for label, callback in menu_items:
-            menu_item = gtk.MenuItem(label)
+            if label is None:
+                # Assume that this should be separator
+                menu_item = gtk.MenuItem()
+            else:
+                menu_item = gtk.MenuItem(label)
+                menu_item.connect('activate', callback)
             popup.add(menu_item)
-            menu_item.connect('activate', callback)
         popup.show_all()
         return popup
 

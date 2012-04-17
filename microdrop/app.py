@@ -30,7 +30,7 @@ import yaml
 
 from utility import base_path, PROGRAM_LAUNCHED
 from dmf_device import DmfDevice
-from protocol import Protocol
+from protocol import Protocol, Step
 from config import Config
 from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
@@ -354,6 +354,35 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                 return directory
         return None
 
+    def paste_steps(self, step_number=None):
+        if step_number is None:
+            # Default to pasting after the current step
+            step_number = self.protocol.current_step_number + 1
+        clipboard = gtk.clipboard_get()
+        try:
+            new_steps = yaml.load(clipboard.wait_for_text())
+            for step in new_steps:
+                if not isinstance(step, Step):
+                    # Invalid object type
+                    return
+        except (Exception,), why:
+            logger.info('[paste_steps] invalid data: %s', why)
+            return
+        self.protocol.insert_steps(step_number, values=new_steps)
+
+    def copy_steps(self, step_ids):
+        steps = [self.protocol.steps[id] for id in step_ids]
+        if steps:
+            clipboard = gtk.clipboard_get()
+            clipboard.set_text(yaml.dump(steps))
+
+    def delete_steps(self, step_ids):
+        self.protocol.delete_steps(step_ids)
+        
+    def cut_steps(self, step_ids):
+        self.copy_steps(step_ids)
+        self.delete_steps(step_ids)
+        
 
 PluginGlobals.pop_env()
 

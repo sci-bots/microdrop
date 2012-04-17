@@ -184,7 +184,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             'S': self.on_prev_step,
             'D': self.on_next_step,
             'F': self.on_last_step,
-            'Delete': self.on_delete_step,
+            #'Delete': self.on_delete_step,
         }
         register_shortcuts(view, shortcuts,
                     disabled_widgets=[self.textentry_notes])
@@ -199,7 +199,6 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_insert_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.insert_step()
-        emit_signal('on_step_run')
 
     def on_copy_step(self, widget=None, data=None):
         app = get_app()
@@ -209,7 +208,6 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_delete_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.delete_step()
-        emit_signal('on_step_run')
 
     def on_first_step(self, widget=None, data=None):
         app = get_app()

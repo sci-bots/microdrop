@@ -17,8 +17,6 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import gtk
-import gobject
 import os
 import math
 import time
@@ -30,12 +28,14 @@ from copy import deepcopy
 
 import numpy as np
 import gtk
+import yaml
+import gobject
 from path import path
 
 import protocol
 from protocol import Protocol
 from utility import is_float, is_int
-from utility.gui import textentry_validate
+from utility.gui import textentry_validate, register_shortcuts
 from utility.pygtkhelpers_combined_fields import CombinedFields, CombinedRow,\
         RowFields
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
@@ -79,6 +79,15 @@ class ProtocolGridView(CombinedFields):
                         ffc.enabled_fields_by_plugin)
         # Add menu entry to select enabled fields for each plugin
         menu_items += [('Select fields...', request_field_filter)]
+        # Add seperator
+        menu_items += [(None, None)]
+        menu_items += [('Delete', self.delete_rows)]
+        menu_items += [('Cut', self.cut_rows)]
+        menu_items += [('Copy', self.copy_rows)]
+        menu_items += [('Paste before', self.paste_rows_before)]
+        menu_items += [('Paste after', self.paste_rows_after)]
+        # Add seperator
+        menu_items += [(None, None)]
 
         # Uncomment lines below to add menu item for running pudb
         #def run_pudb(*args, **kwargs):
@@ -87,6 +96,26 @@ class ProtocolGridView(CombinedFields):
 
         return super(ProtocolGridView, self)._get_popup_menu(item, column_title, value,
                 row_ids, menu_items)
+
+    def paste_rows_before(self, *args, **kwargs):
+        app = get_app()
+        app.paste_steps(app.protocol.current_step_number)
+
+    def paste_rows_after(self, *args, **kwargs):
+        app = get_app()
+        app.paste_steps()
+
+    def copy_rows(self, *args, **kwargs):
+        app = get_app()
+        app.copy_steps(self.selected_ids)
+
+    def delete_rows(self, *args, **kwargs):
+        app = get_app()
+        app.delete_steps(self.selected_ids)
+
+    def cut_rows(self, *args, **kwargs):
+        app = get_app()
+        app.cut_steps(self.selected_ids)
 
     def on_row_changed(self, list_, row_id, row, field_name, value):
         for form_name, uuid_code in self.uuid_mapping.iteritems():
@@ -213,8 +242,38 @@ class ProtocolGridController(SingletonPlugin):
             self.window.remove(self.widget)
             del self.widget
         self.widget = combined_fields
-        self.widget.show_all()
-        self.window.add(self.widget)
+        if self.widget:
+            self.widget.show_all()
+            self.selected_ids = [app.protocol.current_step_number]
+            self._register_shortcuts()
+            self.window.add(self.widget)
+
+    def _register_shortcuts(self):
+        class FocusWrapper(object):
+            '''
+            This class allows for a function to be executed, restoring the
+            focused state of the protocol grid view if necessary.
+            '''
+            def __init__(self, controller, func):
+                self.controller = controller
+                self.func = func
+
+            def __call__(self):
+                focused = self.controller.widget.has_focus()
+                self.func()
+                if focused:
+                    self.controller.widget.grab_focus()
+
+        app = get_app()
+        view = app.main_window_controller.view
+        shortcuts = {
+            '<Control>c': self.widget.copy_rows,
+            '<Control>x': FocusWrapper(self, self.widget.cut_rows),
+            'Delete': FocusWrapper(self, self.widget.delete_rows),
+            '<Control>v': FocusWrapper(self, self.widget.paste_rows_after),
+            '<Control><Shift>v': FocusWrapper(self, self.widget.paste_rows_before),
+        }
+        register_shortcuts(view, shortcuts, enabled_widgets=[self.widget])
 
     def select_current_step(self): 
         if self.widget is None:
@@ -241,18 +300,23 @@ class ProtocolGridController(SingletonPlugin):
         return []
 
     def on_step_created(self, step_number):
-        logging.info('[ProtocolGridController] on_step_created[%d]', step_number)
+        app = get_app()
+        logging.debug('[ProtocolGridController] on_step_created[%d]', step_number)
         self.update_grid()
+        self.widget.selected_ids = [app.protocol.current_step_number]
 
     def on_step_swapped(self, original_step_number, step_number):
-        self.widget.selected_items = [self.widget[step_number]]
+        self.widget.selected_ids = [step_number]
         logging.debug('[ProtocolGridController] on_step_swapped[%d->%d]',
                 original_step_number, step_number)
 
     def on_step_removed(self, step_number, step):
+        app = get_app()
         logging.debug('[ProtocolGridController] on_step_removed[%d]',
                 step_number)
         self.update_grid()
+        self.widget.selected_ids = [min(len(app.protocol.steps) - 1,
+                app.protocol.current_step_number)]
 
 
 PluginGlobals.pop_env()

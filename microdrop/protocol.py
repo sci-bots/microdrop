@@ -180,6 +180,14 @@ class Protocol():
     def current_step(self):
         return self.steps[self.current_step_number]
 
+    def insert_steps(self, step_number=None, count=None, values=None):
+        if values is None and count is None:
+            raise ValueError, 'Either count or values must be specified'
+        elif values is None:
+            values = [Step()] * count
+        for value in values[::-1]:
+            self.insert_step(step_number, value)
+
     def insert_step(self, step_number=None, value=None):
         if step_number is None:
             step_number = self.current_step_number
@@ -189,14 +197,11 @@ class Protocol():
         plugin_manager.emit_signal('on_step_created',
                 args=[self.current_step_number])
 
-    def delete_step(self):
-        step_count = len(self.steps)
-        if step_count > 0:
-            # Remove step
-            step_to_remove = self.steps[self.current_step_number]
-            del self.steps[self.current_step_number]
-            plugin_manager.emit_signal('on_step_removed',
-                args=[self.current_step_number, step_to_remove])
+    def delete_step(self, step_number):
+        step_to_remove = self.steps[step_number]
+        del self.steps[step_number]
+        plugin_manager.emit_signal('on_step_removed',
+            args=[step_number, step_to_remove])
 
         if len(self.steps) == 0:
             # If we deleted the last remaining step, we need to insert a new
@@ -204,7 +209,17 @@ class Protocol():
             self.insert_step(0, Step())
             self.goto_step(0)
         elif self.current_step_number == len(self.steps):
-            self.goto_step(self.current_step_number - 1)
+            self.goto_step(step_number - 1)
+        else:
+            self.goto_step(self.current_step_number)
+
+    def delete_steps(self, step_ids):
+        sorted_ids = sorted(step_ids)
+        # Process deletion of steps in reverse order to avoid ID mismatch due
+        # to deleted rows.
+        sorted_ids.reverse()
+        for id in sorted_ids:
+            self.delete_step(id)
 
     def next_step(self):
         if self.current_step_number == len(self.steps) - 1:
@@ -234,7 +249,7 @@ class Protocol():
         original_step = self.current_step_number
         self.current_step_number = step
         plugin_manager.emit_signal('on_step_swapped', args=[original_step, step])
-        
+
 
 class Step(object):
     def __init__(self, plugin_data=None):
