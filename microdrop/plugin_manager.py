@@ -251,6 +251,15 @@ else:
         def get_step_values(self, step_number=None):
             pass
 
+        def on_step_swapped(self, original_step_number, new_step_number):
+            pass
+
+        def on_step_changed(self, step_number):
+            pass
+
+        def on_step_created(self, step_number):
+            pass
+
     class IVideoPlugin(Interface):
         def on_new_frame(self, frame):
             pass
@@ -330,6 +339,16 @@ def get_service_instance(class_, env='microdrop.managed'):
             # A plugin of this type is registered
             return service
     return None
+
+
+def get_service_names(env='microdrop.managed'):
+    e = PluginGlobals.env(env)
+    service_names = []
+    for name in get_plugin_names(env):
+        plugin_class = e.plugin_registry[name]
+        service = get_service_instance(plugin_class, env=env)
+        service_names.append(service.name)
+    return service_names
 
 
 def enable(name, env='microdrop.managed'):

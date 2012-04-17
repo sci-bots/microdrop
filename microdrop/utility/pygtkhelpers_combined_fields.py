@@ -167,13 +167,15 @@ class CombinedFields(ObjectList):
                 self._full_field_to_field_def[name] = field_name
         super(CombinedFields, self).__init__(self._columns, **kwargs)
         s = self.get_selection()
+        # Enable multiple row selection
         s.set_mode(gtk.SELECTION_MULTIPLE)
         self.connect('item-changed', self._on_item_changed)
         self.connect('item-right-clicked', self._on_right_clicked)
         self.enabled_fields_by_form_name = enabled_attrs
 
-        self.connect('item-added', self._on_item_added)
-        self.connect('item-removed', self._on_item_removed)
+        self.connect('item-added', lambda x, y: self.reset_row_ids())
+        self.connect('item-inserted', lambda x, y, z: self.reset_row_ids())
+        self.connect('item-removed', lambda x, y: self.reset_row_ids())
 
     def _set_rows_attr(self, row_ids, column_title, value, prompt=False):
         title_map = dict([(c.title, c.attr) for c in self.columns])
@@ -246,9 +248,13 @@ class CombinedFields(ObjectList):
                             % column_title, set_attr)]
 
         for label, callback in menu_items:
-            menu_item = gtk.MenuItem(label)
+            if label is None:
+                # Assume that this should be separator
+                menu_item = gtk.MenuItem()
+            else:
+                menu_item = gtk.MenuItem(label)
+                menu_item.connect('activate', callback)
             popup.add(menu_item)
-            menu_item.connect('activate', callback)
         popup.show_all()
         return popup
 
@@ -304,16 +310,6 @@ class CombinedFields(ObjectList):
         logging.debug('[CombinedFields] _on_item_changed(): name=%s value=%s'\
                 % (attr, value))
         self.emit('row-changed', row_id, row_data, attr, value)
-
-    def _on_item_added(self, list_, item):
-        logging.debug('[CombinedFields] _on_item_added[%s] %s',
-                self._view_path_for(item), item.attributes)
-        self.reset_row_ids()
-
-    def _on_item_removed(self, list_, item, item_id):
-        logging.debug('[CombinedFields] _on_item_removed[%d] %s', item_id,
-                item.attributes)
-        self.reset_row_ids()
 
     def reset_row_ids(self):
         for i, combined_row in enumerate(self):

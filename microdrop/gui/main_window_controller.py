@@ -318,5 +318,12 @@ class MainWindowController(SingletonPlugin, AppDataController):
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.update_device_name_label(dmf_device)
 
+    def on_step_created(self, step_number):
+        logger.debug('[MainWindowController] on_step_created[%d]', step_number)
+
+    def on_step_swapped(self, original_step_number, step_number):
+        logger.debug('[MainWindowController] on_step_swapped[%d->%d]',
+                original_step_number, step_number)
+
 
 PluginGlobals.pop_env()
