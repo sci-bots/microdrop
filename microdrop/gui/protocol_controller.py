@@ -230,11 +230,23 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_step_run')
 
     def on_new_protocol(self, widget=None, data=None):
+        self.save_check()
         self.create_protocol()
         emit_signal('on_step_run')
 
+    def save_check(self):
+        app = get_app()
+        state = app.state.current_state
+        if type(state) in [app_state.DeviceDirtyProtocol,
+                app_state.DirtyDeviceDirtyProtocol]:
+            result = yesno('Protocol %s has unsaved changes.  Save now?'\
+                    % app.protocol.name)
+            if result == gtk.RESPONSE_YES:
+                self.save_protocol()
+
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()
+        self.save_check()
         dialog = gtk.FileChooserDialog(title="Load protocol",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
@@ -540,8 +552,10 @@ Protocol is version %s, but only up to version %s is supported with this version
         app = get_app()
         state = app.state.current_state
         print '[ProtocolController] on_app_exit() %s' % type(state)
-        if type(state) in [app_state.DeviceDirtyProtocol, app_state.DirtyDeviceDirtyProtocol]:
-            result = yesno('Protocol %s has unsaved changes.  Save now?' % app.protocol.name)
+        if type(state) in [app_state.DeviceDirtyProtocol,
+                app_state.DirtyDeviceDirtyProtocol]:
+            result = yesno('Protocol %s has unsaved changes.  Save now?'\
+                    % app.protocol.name)
             if result == gtk.RESPONSE_YES:
                 self.save_protocol()
 

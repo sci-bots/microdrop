@@ -79,14 +79,6 @@ def textview_get_text(textview):
     end = buffer_.get_end_iter()
     return buffer_.get_text(start, end)
 
-
-#:  A yes/no question dialog, see :func:`~pygtkhelpers.ui.dialogs.simple` parameters
-if os.name == 'nt':
-    yesno = partial(_yesno, alt_button_order=(gtk.RESPONSE_YES, gtk.RESPONSE_NO))
-else:
-    yesno = _yesno
-
-
 def field_entry_dialog(field, value=None, title='Input value', parent=None):
     form = Form.of(field)
     dialog = FormViewDialog(title=title, parent=parent)
@@ -120,3 +112,23 @@ def text_entry_dialog(name, value='', title='Input value', parent=None):
     if valid:
         return response
     return None 
+
+
+class YesNo(object):
+    def __init__(self):
+        self.DEFAULT_PARENT = None
+
+    def set_default_parent(self, parent):
+        self.DEFAULT_PARENT = parent
+    
+    def __call__(self, *args, **kwargs):
+        print '[yesno] using parent: %s' % self.DEFAULT_PARENT
+        if os.name == 'nt':
+            return _yesno(*args, parent=self.DEFAULT_PARENT,
+                    alt_button_order=(gtk.RESPONSE_YES, gtk.RESPONSE_NO),
+                            **kwargs)
+        else:
+            return _yesno(*args, parent=self.DEFAULT_PARENT, **kwargs)
+
+
+yesno = YesNo()

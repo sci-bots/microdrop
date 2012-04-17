@@ -35,6 +35,7 @@ import app_state
 from logger import logger
 from plugin_helpers import AppDataController
 from utility.pygtkhelpers_widgets import Filepath
+from utility.gui import yesno
 
 
 class MicroDropError(Exception):
@@ -88,6 +89,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
                                                "glade",
                                                "main_window.glade"))
         self.view = app.builder.get_object("window")
+        yesno.set_default_parent(self.view)
         self.label_connection_status = app.builder.get_object("label_connection_status")
         self.label_experiment_id = app.builder.get_object("label_experiment_id")
         self.label_device_name = app.builder.get_object("label_device_name")
