@@ -22,6 +22,7 @@ from StringIO import StringIO
 import signal
 import os
 import logging
+from multiprocessing import Process, Value
 
 import numpy as np
 import gtk
@@ -97,6 +98,14 @@ class VideoController(SingletonPlugin, AppDataController):
         AppDataController.on_plugin_enable(self, *args, **kwargs)
         self.reset_capture()
 
+    def _verify_camera(self, camera_id, verified):
+        try:
+            test_cap = CameraCapture(id=camera_id, auto_init=True)
+            del test_cap
+            verified.value = True
+        except CaptureError, why:
+            logging.debug('[verify_camera] error %s', why)
+
     def reset_capture(self):
         app = get_app()
         app_data = app.get_data(self.name)
@@ -106,16 +115,29 @@ class VideoController(SingletonPlugin, AppDataController):
             del self.cam_cap
             self.grabber = None
             self.cam_cap = None
-        if self.video_enabled:
+        if app_data['video_enabled']:
             try:
+                verified = Value('i', False)
+                p = Process(target=self._verify_camera,
+                        args=(app_data['camera_id'], verified))
+                p.start()
+                p.join(timeout=5000)
+                if p.is_alive() or not verified.value:
+                    # Seems like camera test initialization has hung
+                    p.terminate()
+                    raise CaptureError, 'Could not connect to camera %s'\
+                            % app_data['camera_id']
                 self.cam_cap = CameraCapture(id=app_data['camera_id'], auto_init=False)
                 self.grabber = FrameGrabber(self.cam_cap, auto_init=True)
                 self.grabber.set_fps_limit(app_data['fps_limit'])
                 self.grabber.frame_callback = self.update_frame_data
                 self.grabber.start()
-            except CaptureError:
+            except (CaptureError,), why:
+                logging.info(str(why))
                 if app_data['video_enabled']:
                     self.set_app_values({'video_enabled': False})
+                    emit_signal('on_app_options_changed', [self.name],
+                            interface=IPlugin)
 
     def on_plugin_disable(self, *args, **kwargs):
         pass
