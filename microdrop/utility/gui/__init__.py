@@ -98,7 +98,7 @@ def textview_get_text(textview):
 
 
 def field_entry_dialog(field, value=None, title='Input value', parent=None,
-        use_markup=False):
+        use_markup=True):
     if parent is None:
         parent = DEFAULTS.parent_widget
     form = Form.of(field)
@@ -112,7 +112,7 @@ def field_entry_dialog(field, value=None, title='Input value', parent=None,
 
 
 def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
-        max_value=None, parent=None, use_markup=False):
+        max_value=None, parent=None, use_markup=True):
     if parent is None:
         parent = DEFAULTS.parent_widget
     field = Integer.named('name')
@@ -131,7 +131,7 @@ def integer_entry_dialog(name, value=0, title='Input value', min_value=None,
 
 
 def text_entry_dialog(name, value='', title='Input value', parent=None,
-        use_markup=False):
+        use_markup=True):
     valid, response = field_entry_dialog(String.named(name), value, title,
             parent=parent, use_markup=use_markup)
     if parent is None:

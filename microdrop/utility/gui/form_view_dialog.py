@@ -41,7 +41,7 @@ class FormViewDialog(object):
     def clear_form(self):
         self.vbox_form.foreach(lambda x: self.vbox_form.remove(x))
 
-    def run(self, form, values=None, parent=None, use_markup=False):
+    def run(self, form, values=None, parent=None, use_markup=True):
         if parent is None:
             parent = self.parent
         if parent is None:
