@@ -41,6 +41,16 @@ class AppDataController(object):
         app = get_app()
         return app.get_data(self.name)
 
+    def get_app_value(self, key):
+        if not hasattr(self, 'name'):
+            raise NotImplementedError
+        app = get_app()
+        values_dict = app.get_data(self.name)
+        if key in values_dict:
+            return values_dict[key]
+        else:
+            self.AppFields.field_schema_mapping[key].default
+
     def set_app_values(self, values_dict):
         if not hasattr(self, 'name'):
             raise NotImplementedError
