@@ -26,6 +26,7 @@ import gtk
 from flatland import Form, Boolean
 from pygtkhelpers.proxy import proxy_for
 
+from .dmf_device_view import DmfDeviceView
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, PluginGlobals, ILoggingPlugin, emit_signal, IAppStatePlugin
@@ -109,6 +110,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
                 self.on_realtime_mode_toggled
         app.signals["on_menu_app_options_activate"] = self.on_menu_app_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
+
         #app.signals["on_menu_debug_activate"] = self.on_menu_debug_activate
 
         self.builder = gtk.Builder()
@@ -117,6 +119,17 @@ class MainWindowController(SingletonPlugin, AppDataController):
                                                 "about_dialog.glade"))
         app.main_window_controller = self
         self.protocol_list_view = None
+        hbox1 = app.builder.get_object("hbox1")
+        #self.device_view = DmfDeviceView('cairo_draw', draw_func=lambda x: self.draw_on(x)))
+        #self.device_view = DmfDeviceView('cairo_draw')
+        #self.device_view = CairoDrawBase('cairo_draw', draw_func=lambda x: self.draw_on(x))
+        #self.pipeline = get_video_pipeline(self.device_view)
+        #self.video_view = GStreamerVideoView(self.pipeline)
+        #self.video_window = self.video_view.widget
+        #self.video_window.set_size_request(640, 480)
+        #hbox1.pack_start(self.video_window)
+        #hbox1.show_all()
+        #self.pipeline.set_state(gst.STATE_PLAYING)
         
     def main(self):
         emit_signal("on_step_run")
@@ -142,8 +155,9 @@ class MainWindowController(SingletonPlugin, AppDataController):
         gtk.main_quit()
         observers = ExtensionPoint(IPlugin)
         service = observers.service('microdrop.gui.video_controller')
-        service.on_plugin_disable()
-        service.__del__()
+        if service:
+            service.on_plugin_disable()
+            service.__del__()
 
     def on_about(self, widget, data=None):
         app = get_app()

@@ -30,6 +30,7 @@ from flatland.validation import ValueAtLeast, ValueAtMost
 from utility.gui import yesno
 from path import path
 import yaml
+import gst
 
 from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
 from dmf_device import DmfDevice
@@ -76,7 +77,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"        
-        self.view = DmfDeviceView(self)
+        self.view = DmfDeviceView(self, 'device_view')
         self.view.connect('transform-changed', self.on_transform_changed)
         self.previous_device_dir = None
         
@@ -170,6 +171,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if k not in data:
                 data[k] = v
         app.set_data(self.name, data)
+        self.view.pipeline.set_state(gst.STATE_PLAYING)
         emit_signal('on_app_options_changed', [self.name])
 
     def on_post_event(self, state, event):
