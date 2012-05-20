@@ -19,8 +19,12 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import division
 from collections import namedtuple
+from datetime import datetime
 
 import gtk
+import cairo
+import numpy as np
+import yaml
 
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
@@ -37,9 +41,13 @@ Dims = namedtuple('Dims', 'x y width height')
 class ElectrodeContextMenu(SlaveView):
     builder_file = 'right_click_popup.glade'
 
-    def __init__(self, controller):
-        self.controller = controller
-        super(ElectrodeContextMenu, self).__init__()
+    gsignal('registration-request')
+
+    def disable_video_background(self):
+        app = get_app()
+        self.last_frame = None
+        self.background = None
+        self.update()
 
     def on_edit_electrode_channels__activate(self, widget, data=None):
         # TODO: set default value
@@ -83,12 +91,11 @@ class ElectrodeContextMenu(SlaveView):
                 logger.error("Area value is invalid.")
 
     def on_register_device__activate(self, widget, data=None):
-        self.controller.on_register()
+        self.emit('registration-request')
 
-    def popup(self, electrode, button, time):
+    def popup(self, state_of_channels, electrode, button, time):
         self.last_electrode_clicked = electrode
-        options = self.controller.get_step_options()
-        self.state_of_channels = options.state_of_channels
+        self.state_of_channels = state_of_channels
         self.menu_popup.popup(None, None, None, button, time, None)
 
     def add_item(self, menu_item):
@@ -100,24 +107,27 @@ class DmfDeviceView(SlaveView):
     builder_file = 'dmf_device_view.glade'
 
     gsignal('channel-state-changed', object)
+    gsignal('transform-changed', object)
 
     def __init__(self, dmf_device_controller):
         self.controller = dmf_device_controller
         super(DmfDeviceView, self).__init__()
         self.scale = 1
+        self.last_frame_time = datetime.now()
+        self.last_frame = None
+        self.display_fps_inv = 0.1
         self.offset = (0,0)
         self.electrode_color = {}
         self.background = None
         self.transform_matrix = None
         self.overlay_opacity = None
         self.pixmap = None
-        self.popup = ElectrodeContextMenu(self.controller)
+        self.popup = ElectrodeContextMenu(self)
+        self.popup.connect('registration-request', self.on_register)
 
     def on_device_area__size_allocate(self, *args):
         x, y, width, height = self.device_area.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.device_area.window, width, height)
-        print '[DmfDeviceView] on_device_area__realize: %s (%s, %s, %sx%s)'\
-            % (args, x, y, width, height)
 
     #def set_widget(self, widget):
         #self.widget = widget
@@ -207,8 +217,8 @@ class DmfDeviceView(SlaveView):
     def on_electrode_click(self, electrode, event):
         app = get_app()
         options = self.controller.get_step_options()
+        state = options.state_of_channels
         if event.button == 1:
-            state = options.state_of_channels
             if len(electrode.channels): 
                 for channel in electrode.channels:
                     if state[channel] > 0:
@@ -219,7 +229,7 @@ class DmfDeviceView(SlaveView):
             else:
                 logger.error("no channel assigned to electrode.")
         elif event.button == 3:
-            self.popup.popup(electrode, event.button, event.time)
+            self.popup.popup(state, electrode, event.button, event.time)
         return True
 
     def on_device_area__key_press_event(self, widget, data=None):
@@ -246,6 +256,59 @@ class DmfDeviceView(SlaveView):
                                         self.pixmap, x, y, x, y, width, height)
         return False
 
+    def on_new_frame(self, frame, depth, frame_time):
+        app = get_app()
+        if not app.dmf_device:
+            return
+        self.last_frame = frame
+        now = datetime.now()
+        if (now - self.last_frame_time).total_seconds() < self.display_fps_inv:
+            # Wait to respect display FPS.
+            return
+        self.draw_frame(frame, depth)
+
+        self.last_frame_time = now
+
+    def draw_frame(self, frame, depth):
+        x, y, width, height = self.widget.get_allocation()
+        resized = cv.CreateMat(height, width, cv.CV_8UC3)
+        cv.Resize(frame, resized)
+        if self.transform_matrix is None:
+            warped = resized
+        else:
+            warped = cv.CreateMat(height, width, cv.CV_8UC3)
+            cv.WarpPerspective(resized, warped, self.transform_matrix,
+                    flags=cv.CV_WARP_INVERSE_MAP)
+        self.pixbuf = gtk.gdk.pixbuf_new_from_data(
+            warped.tostring(), gtk.gdk.COLORSPACE_RGB, False,
+            depth, width, height, warped.step)
+        self.background = self.pixbuf
+        self.update()
+
+    def on_register(self, *args, **kwargs):
+        if self.last_frame is None:
+            return
+        size = self.pixmap.get_size()
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, *size)
+        cr = cairo.Context(surface)
+        self.draw_on_cairo(cr)
+        alpha_image = cv.CreateImageHeader(size, cv.IPL_DEPTH_8U, 4)
+        device_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
+        cv.SetData(alpha_image, surface.get_data(), 4 * size[0])
+        cv.CvtColor(alpha_image, device_image, cv.CV_RGBA2RGB)
+        video_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
+        cv.Resize(self.last_frame, video_image)
+        dialog = DeviceRegistrationDialog(device_image, video_image)
+        results = dialog.run()
+        if results:
+            self.transform_matrix = results
+            array = np.fromstring(results.tostring(),
+                                  dtype='float32',
+                                  count=results.width*results.height)
+            array.shape = (results.width, results.height)
+            self.emit('transform-changed', array)
+
+    
 class DeviceRegistrationDialog(RegistrationDialog):
     def __init__(self, device_image, video_image, *args, **kwargs):
         super(DeviceRegistrationDialog, self).__init__(*args, **kwargs)

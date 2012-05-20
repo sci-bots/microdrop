@@ -20,13 +20,11 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import traceback
 import shutil
-from datetime import datetime
 
 import gtk
 import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
-import cairo
 from flatland import Form, Integer, String
 from flatland.validation import ValueAtLeast, ValueAtMost
 from utility.gui import yesno
@@ -78,12 +76,14 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"        
-        self.last_frame = None
         self.view = DmfDeviceView(self)
-        self.last_frame_time = datetime.now()
-        self.display_fps_inv = 0.1
+        self.view.connect('transform-changed', self.on_transform_changed)
         self.previous_device_dir = None
         
+    def on_transform_changed(self, device_view, array):
+        self.set_app_values(
+            dict(transform_matrix=yaml.dump(array.tolist())))
+
     def on_app_options_changed(self, plugin_name):
         app = get_app()
         if plugin_name == self.name:
@@ -91,7 +91,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             if 'overlay_opacity' in values:
                 self.view.overlay_opacity = int(values.get('overlay_opacity'))
             if 'display_fps' in values:
-                self.display_fps_inv = 1. / int(values['display_fps'])
+                self.view.display_fps_inv = 1. / int(values['display_fps'])
             if 'device_directory' in values:
                 self.apply_device_dir(values['device_directory'])
             if 'transform_matrix' in values:
@@ -135,12 +135,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
             original_directory.rmtree()
         self.previous_device_dir = device_directory
         return True
-
-    def disable_video_background(self):
-        app = get_app()
-        self.last_frame = None
-        self.view.background = None
-        self.view.update()
 
     def on_plugin_enable(self):
         app = get_app()
@@ -188,37 +182,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_app_exit(self):
         app = get_app()
         state = app.state.current_state
-        print '[DmfDeviceController] on_app_exit() %s' % type(state)
         if type(state) in [app_state.DirtyDeviceDirtyProtocol,
                 app_state.DirtyDeviceProtocol, app_state.DirtyDeviceNoProtocol]:
-            result = yesno('Device %s has unsaved changes.  Save now?' % app.device.name)
+            result = yesno('Device %s has unsaved changes.  Save now?' % app.dmf_device.name)
             if result == gtk.RESPONSE_YES:
                 self.save_dmf_device()
         
-    def on_register(self, *args, **kwargs):
-        if self.last_frame is None:
-            return
-        size = self.view.pixmap.get_size()
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, *size)
-        cr = cairo.Context(surface)
-        self.view.draw_on_cairo(cr)
-        alpha_image = cv.CreateImageHeader(size, cv.IPL_DEPTH_8U, 4)
-        device_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
-        cv.SetData(alpha_image, surface.get_data(), 4 * size[0])
-        cv.CvtColor(alpha_image, device_image, cv.CV_RGBA2RGB)
-        video_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
-        cv.Resize(self.last_frame, video_image)
-        dialog = DeviceRegistrationDialog(device_image, video_image)
-        results = dialog.run()
-        if results:
-            self.view.transform_matrix = results
-            array = np.fromstring(results.tostring(),
-                                  dtype='float32',
-                                  count=results.width*results.height)
-            array.shape = (results.width, results.height)
-            self.set_app_values(
-                dict(transform_matrix=yaml.dump(array.tolist())))
-    
     def get_default_options(self):
         return DmfDeviceOptions()
 
@@ -349,32 +318,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 self.view.electrode_color[id] = (1,0,0)
         self.view.update()
 
-    def on_new_frame(self, frame, depth, frame_time):
-        app = get_app()
-        if not app.dmf_device:
-            return
-        self.last_frame = frame
-        now = datetime.now()
-
-        if (now - self.last_frame_time).total_seconds() < self.display_fps_inv:
-            # Wait to respect display FPS.
-            return
-        x, y, width, height = self.view.widget.get_allocation()
-        resized = cv.CreateMat(height, width, cv.CV_8UC3)
-        cv.Resize(frame, resized)
-        if self.view.transform_matrix is None:
-            warped = resized
-        else:
-            warped = cv.CreateMat(height, width, cv.CV_8UC3)
-            cv.WarpPerspective(resized, warped, self.view.transform_matrix,
-                    flags=cv.CV_WARP_INVERSE_MAP)
-        self.pixbuf = gtk.gdk.pixbuf_new_from_data(
-            warped.tostring(), gtk.gdk.COLORSPACE_RGB, False,
-            depth, width, height, warped.step)
-        self.view.background = self.pixbuf
-        self.view.update()
-        self.last_frame_time = now
-
     def get_schedule_requests(self, function_name):
         """
         Returns a list of scheduling requests (i.e., ScheduleRequest
@@ -449,5 +392,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self._notify_observers_step_options_changed()
         self.view.fit_device()
 
+    def on_new_frame(self, frame, depth, frame_time):
+        self.view.on_new_frame(frame, depth, frame_time)
 
 PluginGlobals.pop_env()

@@ -432,7 +432,6 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_app_exit(self):
         app = get_app()
         state = app.state.current_state
-        print '[ProtocolController] on_app_exit() %s' % type(state)
         if type(state) in [app_state.DeviceDirtyProtocol,
                 app_state.DirtyDeviceDirtyProtocol]:
             result = yesno('Protocol %s has unsaved changes.  Save now?'\
