@@ -39,6 +39,13 @@ import app_state
 Dims = namedtuple('Dims', 'x y width height')
 
 class ElectrodeContextMenu(SlaveView):
+    '''
+    Slave view for context-menu for an electrode in the DMF device
+    view.
+
+    The signal 'registration-request' is triggered when registration is
+    selected from the menu.
+    '''
     builder_file = 'right_click_popup.glade'
 
     gsignal('registration-request')
@@ -104,6 +111,19 @@ class ElectrodeContextMenu(SlaveView):
 
 
 class DmfDeviceView(SlaveView):
+    '''
+    Slave view for DMF device view.
+
+    This view contains a canvas where video is overlayed with a
+    graphical rendering of the device.  The video can optionally be
+    registered to align it to the device rendering.  The signal
+    'transform-changed' is emitted whenever a video registration has
+    been completed.
+
+    The signal 'channel-state-changed' is emitted whenever the state of
+    a channel has changed as a result of interaction with the device
+    view.
+    '''
     builder_file = 'dmf_device_view.glade'
 
     gsignal('channel-state-changed', object)
@@ -128,11 +148,6 @@ class DmfDeviceView(SlaveView):
     def on_device_area__size_allocate(self, *args):
         x, y, width, height = self.device_area.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.device_area.window, width, height)
-
-    #def set_widget(self, widget):
-        #self.widget = widget
-        #x, y, width, height = self.widget.get_allocation()
-        #self.pixmap = gtk.gdk.Pixmap(self.widget.window, width, height)
 
     def fit_device(self, padding=None):
         app = get_app()
@@ -310,6 +325,11 @@ class DmfDeviceView(SlaveView):
 
     
 class DeviceRegistrationDialog(RegistrationDialog):
+    '''
+    This dialog is used to register the video to the DMF device
+    rendering.
+    '''
+
     def __init__(self, device_image, video_image, *args, **kwargs):
         super(DeviceRegistrationDialog, self).__init__(*args, **kwargs)
         self.device_image = device_image
