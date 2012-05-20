@@ -60,6 +60,27 @@ class ProtocolController(SingletonPlugin):
         self.button_run_protocol = None
         self.textentry_protocol_repeats = None
 
+    def _register_shortcuts(self):
+        app = get_app()
+        view = app.main_window_controller.view
+        shortcuts = {
+            'space': self.on_run_protocol,
+            'A': self.on_first_step,
+            'S': self.on_prev_step,
+            'D': self.on_next_step,
+            'F': self.on_last_step,
+            #'Delete': self.on_delete_step,
+        }
+        register_shortcuts(view, shortcuts,
+                    disabled_widgets=[self.textentry_notes])
+
+        notes_shortcuts = {
+            '<Control>z': self.textentry_notes.get_buffer().undo,
+            '<Control>y': self.textentry_notes.get_buffer().redo,
+        }
+        register_shortcuts(view, notes_shortcuts,
+                    enabled_widgets=[self.textentry_notes])
+
     def load_protocol(self, filename):
         app = get_app()
         original_protocol = app.protocol
@@ -146,27 +167,6 @@ Protocol is version %s, but only up to version %s is supported with this version
         else:
             self.menu_save_protocol.set_property('sensitive', False)
 
-    def _register_shortcuts(self):
-        app = get_app()
-        view = app.main_window_controller.view
-        shortcuts = {
-            'space': self.on_run_protocol,
-            'A': self.on_first_step,
-            'S': self.on_prev_step,
-            'D': self.on_next_step,
-            'F': self.on_last_step,
-            #'Delete': self.on_delete_step,
-        }
-        register_shortcuts(view, shortcuts,
-                    disabled_widgets=[self.textentry_notes])
-
-        notes_shortcuts = {
-            '<Control>z': self.textentry_notes.get_buffer().undo,
-            '<Control>y': self.textentry_notes.get_buffer().redo,
-        }
-        register_shortcuts(view, notes_shortcuts,
-                    enabled_widgets=[self.textentry_notes])
-
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         app.protocol.first_step()
@@ -192,15 +192,12 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.create_protocol()
         emit_signal('on_step_run')
 
-    def save_check(self):
+    def on_run_protocol(self, widget=None, data=None):
         app = get_app()
-        state = app.state.current_state
-        if type(state) in [app_state.DeviceDirtyProtocol,
-                app_state.DirtyDeviceDirtyProtocol]:
-            result = yesno('Protocol %s has unsaved changes.  Save now?'\
-                    % app.protocol.name)
-            if result == gtk.RESPONSE_YES:
-                self.save_protocol()
+        if app.running:
+            self.pause_protocol()
+        else:
+            self.run_protocol()
 
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()
@@ -229,6 +226,32 @@ Protocol is version %s, but only up to version %s is supported with this version
     
     def on_save_protocol_as(self, widget=None, data=None):
         self.save_protocol(save_as=True)
+
+    def on_textentry_protocol_repeats_focus_out(self, widget, data=None):
+        self.on_protocol_repeats_changed()
+    
+    def on_textentry_protocol_repeats_key_press(self, widget, event):
+        if event.keyval == gtk.gdk.keyval_from_name('Return'):
+            # user pressed enter
+            self.on_protocol_repeats_changed()
+
+    def on_protocol_repeats_changed(self):
+        app = get_app()
+        app.protocol.n_repeats = \
+            textentry_validate(self.textentry_protocol_repeats,
+                app.protocol.n_repeats,
+                int)
+        emit_signal('on_step_run')
+    
+    def save_check(self):
+        app = get_app()
+        state = app.state.current_state
+        if type(state) in [app_state.DeviceDirtyProtocol,
+                app_state.DirtyDeviceDirtyProtocol]:
+            result = yesno('Protocol %s has unsaved changes.  Save now?'\
+                    % app.protocol.name)
+            if result == gtk.RESPONSE_YES:
+                self.save_protocol()
 
     def save_protocol(self, save_as=False, rename=False):
         app = get_app()
@@ -285,29 +308,6 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal("on_protocol_created", app.protocol)
         app.state.trigger_event(state)
     
-    def on_textentry_protocol_repeats_focus_out(self, widget, data=None):
-        self.on_protocol_repeats_changed()
-    
-    def on_textentry_protocol_repeats_key_press(self, widget, event):
-        if event.keyval == gtk.gdk.keyval_from_name('Return'):
-            # user pressed enter
-            self.on_protocol_repeats_changed()
-    
-    def on_protocol_repeats_changed(self):
-        app = get_app()
-        app.protocol.n_repeats = \
-            textentry_validate(self.textentry_protocol_repeats,
-                app.protocol.n_repeats,
-                int)
-        emit_signal('on_step_run')
-
-    def on_run_protocol(self, widget=None, data=None):
-        app = get_app()
-        if app.running:
-            self.pause_protocol()
-        else:
-            self.run_protocol()
-
     def run_protocol(self):
         app = get_app()
         app.running = True
@@ -432,7 +432,6 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_app_exit(self):
         app = get_app()
         state = app.state.current_state
-        print '[ProtocolController] on_app_exit() %s' % type(state)
         if type(state) in [app_state.DeviceDirtyProtocol,
                 app_state.DirtyDeviceDirtyProtocol]:
             result = yesno('Protocol %s has unsaved changes.  Save now?'\
