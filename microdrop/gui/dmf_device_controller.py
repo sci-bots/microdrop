@@ -171,7 +171,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if k not in data:
                 data[k] = v
         app.set_data(self.name, data)
-        self.view.pipeline.set_state(gst.STATE_PLAYING)
+        self.view.play()
         emit_signal('on_app_options_changed', [self.name])
 
     def on_post_event(self, state, event):
@@ -318,7 +318,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     logger.error("not supported yet")
             else:
                 self.view.electrode_color[id] = (1,0,0)
-        self.view.update()
 
     def get_schedule_requests(self, function_name):
         """
@@ -395,5 +394,17 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_new_frame(self, frame, depth, frame_time):
         self.view.on_new_frame(frame, depth, frame_time)
+
+    def on_protocol_run(self, *args, **kwargs):
+        app = get_app()
+        log_dir = path(app.experiment_log.get_log_path())
+        video_path = log_dir.joinpath('%s.avi' % log_dir.name)
+        print 'recording to: %s' % video_path
+        self.view.record(video_path)
+
+    def on_protocol_pause(self):
+        print 'stop recording'
+        self.view.play()
+
 
 PluginGlobals.pop_env()

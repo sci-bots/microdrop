@@ -29,6 +29,7 @@ import cairo
 import numpy as np
 import yaml
 import gst
+from path import path
 
 from .warp_perspective import warp_perspective
 from .cairo_draw import CairoDrawBase
@@ -43,76 +44,174 @@ from logger import logger
 import app_state
 
 
-def get_video_pipeline(cairo_draw):
-    pipeline = gst.Pipeline('pipeline')
-    if os.name == 'nt':
-        webcam_src = gst.element_factory_make('dshowvideosrc', 'src')
-        webcam_src.set_property('device-name', 'Microsoft LifeCam Studio')
-    else:
-        webcam_src = gst.element_factory_make('v4l2src', 'src')
-        webcam_src.set_property('device', '/dev/video1')
+class ManagedPipeline(object):
+    def __init__(self, cairo_draw_on, on_pipeline_ready=None):
+        self.cairo_draw_on = cairo_draw_on
+        if on_pipeline_ready:
+            self.on_pipeline_ready = on_pipeline_ready
+        self.warper = None
+        self.pipeline = None
 
-    # -- setup webcam_src --
-    webcam_caps = gst.Caps('video/x-raw-yuv,width=640,height=480,framerate=10/1')
-    webcam_caps_filter = gst.element_factory_make('capsfilter', 'caps_filter')
-    webcam_caps_filter.set_property('caps', webcam_caps)
-    #webcam_tee = gst.element_factory_make('tee', 'webcam_tee')
-    #Feed branch
-    feed_queue = gst.element_factory_make('queue', 'feed_queue')
-    warp_in_color = gst.element_factory_make('ffmpegcolorspace', 'warp_in_color')
-    warper = warp_perspective()
-    warp_out_color = gst.element_factory_make('ffmpegcolorspace', 'warp_out_color')
-    cairo_color_in = gst.element_factory_make('ffmpegcolorspace', 'cairo_color_in')
-    cairo_color_out = gst.element_factory_make('ffmpegcolorspace', 'cairo_color_out')
-    video_sink = gst.element_factory_make('autovideosink', 'video_sink')
+    def set_transform_matrix(self, transform_matrix):
+        if self.warper is None:
+            return
+        transform_str = ','.join([str(v)
+                for v in transform_matrix.flatten()])
+        self.warper.set_property('transform_matrix', transform_str)
 
-    video_rate = gst.element_factory_make('videorate', 'video_rate')
-    rate_caps = gst.Caps('video/x-raw-yuv,width=640,height=480,framerate=10/1')
-    rate_caps_filter = gst.element_factory_make('capsfilter', 'rate_caps_filter')
-    rate_caps_filter.set_property('caps', rate_caps)
-    video_scale = gst.element_factory_make('videoscale', 'video_scale')
-    scale_caps_filter = gst.element_factory_make('capsfilter', 'scale_caps_filter')
-    #scale_caps = gst.Caps('video/x-raw-yuv,width=640,height=480')
-    #scale_caps_filter.set_property('caps', scale_caps)
+    def set_scale_caps_filter(self, scale_caps):
+        self.scale_caps_filter.set_property('caps', scale_caps)
 
-    #capture_queue = gst.element_factory_make('queue', 'capture_queue')
-    #ffmpeg_color_space = gst.element_factory_make('ffmpegcolorspace', 'ffmpeg_color_space')
-    #ffenc_mpeg4 = gst.element_factory_make('ffenc_mpeg4', 'ffenc_mpeg40') 
-    #ffenc_mpeg4.set_property('bitrate', 1200000)
-    #avi_mux = gst.element_factory_make('avimux', 'avi_mux')
-    #file_sink = gst.element_factory_make('filesink', 'file_sink')
-    #file_sink.set_property('location', 'temp.avi')
+    def get_webcam_src(self):
+        if os.name == 'nt':
+            webcam_src = gst.element_factory_make('dshowvideosrc', 'src')
+            webcam_src.set_property('device-name', 'Microsoft LifeCam Studio')
+        else:
+            webcam_src = gst.element_factory_make('v4l2src', 'src')
+            webcam_src.set_property('device', '/dev/video1')
+        return webcam_src
 
-    pipeline.add(webcam_src, webcam_caps_filter, video_rate, rate_caps_filter,
-            video_scale,
-            scale_caps_filter,
-            feed_queue, video_sink,
+    def get_webcam_caps_filter(self):
+        webcam_caps = gst.Caps('video/x-raw-yuv,width=640,height=480,framerate=10/1')
+        webcam_caps_filter = gst.element_factory_make('capsfilter', 'caps_filter')
+        webcam_caps_filter.set_property('caps', webcam_caps)
+        return webcam_caps_filter
 
-            # Elements for drawing cairo overlay on video
-            cairo_draw, cairo_color_out, cairo_color_in,
+    def init_pipeline(self, **kwargs):
+        raise NotImplementedError
 
-            # Elements for applying OpenCV warp-perspective transformation
-            warper, warp_in_color, warp_out_color,
+    def stop(self):
+        self.cleanup_pipeline()
 
-            #webcam_tee, 
-            # Elements for writing video to file
-            #capture_queue, ffmpeg_color_space, ffenc_mpeg4, avi_mux, file_sink,
-            )
+    def cleanup_pipeline(self):
+        self.pipeline.set_state(gst.STATE_NULL)
+        del self.pipeline
+        self.pipeline = None
 
-    record_warped = False
-    gst.element_link_many(webcam_src, webcam_caps_filter, video_rate,
-            rate_caps_filter, feed_queue,
-            video_scale, scale_caps_filter,
-            warp_in_color, warper, warp_out_color,
-            cairo_color_in, cairo_draw, cairo_color_out, 
-            video_sink,
-            )
-    #gst.element_link_many(webcam_src, webcam_caps_filter, video_rate, rate_caps_filter, webcam_tee)
-    #gst.element_link_many(webcam_tee, feed_queue, warp_in_color, warper, warp_out_color, cairo_draw, cairo_color_out, video_sink)
-    #gst.element_link_many(webcam_tee, capture_queue, ffmpeg_color_space, ffenc_mpeg4, avi_mux, file_sink)
-    return pipeline, scale_caps_filter, warper
+    def play(self, **kwargs):
+        self.init_pipeline(**kwargs)
+        self.on_pipeline_ready(self.pipeline)
+        self.pipeline.set_state(gst.STATE_PLAYING)
 
 
+class RecordPipeline(ManagedPipeline):
+    def init_pipeline(self, **kwargs):
+        self.pipeline, self.scale_caps_filter, self.warper, self.file_sink =\
+                self.get_pipeline('record_pipeline')
+
+    def play(self, **kwargs):
+        raise NotImplementedError
+
+    def record(self, file_path, **kwargs):
+        self.init_pipeline(**kwargs)
+        self.on_pipeline_ready(self.pipeline)
+        file_path = path(file_path)
+        self.file_sink.set_property('location', str(file_path.abspath()))
+        self.pipeline.set_state(gst.STATE_PLAYING)
+
+    def get_pipeline(self, name):
+        pipeline = gst.Pipeline(name)
+        webcam_src = self.get_webcam_src()
+        webcam_caps_filter = self.get_webcam_caps_filter()
+        # -- setup webcam_src --
+        webcam_tee = gst.element_factory_make('tee', 'webcam_tee')
+        #Feed branch
+        feed_queue = gst.element_factory_make('queue', 'feed_queue')
+        warp_in_color = gst.element_factory_make('ffmpegcolorspace', 'warp_in_color')
+        warper = warp_perspective()
+        warp_out_color = gst.element_factory_make('ffmpegcolorspace', 'warp_out_color')
+        cairo_color_in = gst.element_factory_make('ffmpegcolorspace', 'cairo_color_in')
+        cairo_color_out = gst.element_factory_make('ffmpegcolorspace', 'cairo_color_out')
+        cairo_draw = CairoDrawBase('cairo_draw', self.cairo_draw_on)
+        video_sink = gst.element_factory_make('autovideosink', 'video_sink')
+
+        video_rate = gst.element_factory_make('videorate', 'video_rate')
+        rate_caps = gst.Caps('video/x-raw-yuv,width=640,height=480,framerate=10/1')
+        rate_caps_filter = gst.element_factory_make('capsfilter', 'rate_caps_filter')
+        rate_caps_filter.set_property('caps', rate_caps)
+        video_scale = gst.element_factory_make('videoscale', 'video_scale')
+        scale_caps_filter = gst.element_factory_make('capsfilter', 'scale_caps_filter')
+
+        capture_queue = gst.element_factory_make('queue', 'capture_queue')
+        ffmpeg_color_space = gst.element_factory_make('ffmpegcolorspace', 'ffmpeg_color_space')
+        ffenc_mpeg4 = gst.element_factory_make('ffenc_mpeg4', 'ffenc_mpeg40') 
+        ffenc_mpeg4.set_property('bitrate', 1200000)
+        avi_mux = gst.element_factory_make('avimux', 'avi_mux')
+        file_sink = gst.element_factory_make('filesink', 'file_sink')
+
+        pipeline.add(webcam_src, webcam_caps_filter, video_rate, rate_caps_filter,
+                video_scale,
+                scale_caps_filter,
+                feed_queue, video_sink,
+
+                # Elements for drawing cairo overlay on video
+                cairo_draw, cairo_color_out, cairo_color_in,
+
+                # Elements for applying OpenCV warp-perspective transformation
+                warper, warp_in_color, warp_out_color,
+
+                webcam_tee, 
+                # Elements for writing video to file
+                capture_queue, ffmpeg_color_space, ffenc_mpeg4, avi_mux, file_sink,
+                )
+
+        gst.element_link_many(webcam_src, webcam_caps_filter, video_rate,
+                rate_caps_filter,
+                webcam_tee)
+        gst.element_link_many(feed_queue, video_scale, scale_caps_filter,
+                warp_in_color, warper, warp_out_color,
+                cairo_color_in, cairo_draw, cairo_color_out, 
+                video_sink)
+        gst.element_link_many(webcam_tee, capture_queue, ffmpeg_color_space,
+                ffenc_mpeg4, avi_mux, file_sink)
+        return pipeline, scale_caps_filter, warper, file_sink
+
+
+class DisplayPipeline(ManagedPipeline):
+    def init_pipeline(self, **kwargs):
+        self.pipeline, self.scale_caps_filter, self.warper = \
+                self.get_pipeline('display_pipeline')
+
+    def get_pipeline(self, name):
+        pipeline = gst.Pipeline(name)
+        webcam_src = self.get_webcam_src()
+        webcam_caps_filter = self.get_webcam_caps_filter()
+        # -- setup webcam_src --
+        #Feed branch
+        feed_queue = gst.element_factory_make('queue', 'feed_queue')
+        warp_in_color = gst.element_factory_make('ffmpegcolorspace', 'warp_in_color')
+        warper = warp_perspective()
+        warp_out_color = gst.element_factory_make('ffmpegcolorspace', 'warp_out_color')
+        cairo_color_in = gst.element_factory_make('ffmpegcolorspace', 'cairo_color_in')
+        cairo_color_out = gst.element_factory_make('ffmpegcolorspace', 'cairo_color_out')
+        video_sink = gst.element_factory_make('autovideosink', 'video_sink')
+
+        cairo_draw = CairoDrawBase('cairo_draw', self.cairo_draw_on)
+        video_rate = gst.element_factory_make('videorate', 'video_rate')
+        rate_caps = gst.Caps('video/x-raw-yuv,width=640,height=480,framerate=10/1')
+        rate_caps_filter = gst.element_factory_make('capsfilter', 'rate_caps_filter')
+        rate_caps_filter.set_property('caps', rate_caps)
+        video_scale = gst.element_factory_make('videoscale', 'video_scale')
+        scale_caps_filter = gst.element_factory_make('capsfilter', 'scale_caps_filter')
+
+        pipeline.add(webcam_src, webcam_caps_filter, video_rate, rate_caps_filter,
+                video_scale,
+                scale_caps_filter,
+                feed_queue, video_sink,
+
+                # Elements for drawing cairo overlay on video
+                cairo_draw, cairo_color_out, cairo_color_in,
+
+                # Elements for applying OpenCV warp-perspective transformation
+                warper, warp_in_color, warp_out_color)
+
+        gst.element_link_many(webcam_src, webcam_caps_filter, video_rate,
+                rate_caps_filter, feed_queue,
+                video_scale, scale_caps_filter,
+                warp_in_color, warper, warp_out_color,
+                cairo_color_in, cairo_draw, cairo_color_out, 
+                video_sink)
+        return pipeline, scale_caps_filter, warper
 Dims = namedtuple('Dims', 'x y width height')
 
 class ElectrodeContextMenu(SlaveView):
@@ -220,9 +319,7 @@ class DmfDeviceView(GStreamerVideoView):
         self._transform_matrix = None
         self.overlay_opacity = None
         self.pixmap = None
-        self.cairo_draw_element = CairoDrawBase('cairo_draw', self._draw_on)
-        self.pipeline, self.scale_caps_filter, self.warper = \
-                get_video_pipeline(self.cairo_draw_element)
+        self.managed_pipeline = None
         self.popup = ElectrodeContextMenu(self)
         self.popup.connect('registration-request', self.on_register)
         self.force_aspect_ratio = False
@@ -258,29 +355,28 @@ class DmfDeviceView(GStreamerVideoView):
                                     / self.display_scale - device.width) / 2,
                                 - device.y + padding / self.display_scale)
             scale_caps = gst.Caps('video/x-raw-yuv,width=%s,height=%s' % (display_dims.width, display_dims.height))
-            self.scale_caps_filter.set_property('caps', scale_caps)
+            self.managed_pipeline.set_scale_caps_filter(scale_caps)
 
-    def update(self):
-        #if self.pixmap:
-            #x, y, width, height = self.device_area.get_allocation()
-            #if self.background is not None:
-                #self.pixmap, mask = self.background.render_pixmap_and_mask()
-                #if self.overlay_opacity:
-                    #alpha = self.overlay_opacity / 100
-                #else:
-                    #alpha = 1.
-            #else:
-                #alpha = 1.
-                #self.pixmap.draw_rectangle(self.device_area.get_style().black_gc,
-                                        #True, 0, 0, width, height)
-            #self.draw_on_pixmap(self.pixmap, alpha=alpha)
-        pass
+    def play(self):
+        if self.managed_pipeline:
+            self.managed_pipeline.stop()
+            self.pipeline = None
+        self.managed_pipeline = DisplayPipeline(self._draw_on,
+                lambda pipeline: self.set_pipeline(pipeline))
+        self.managed_pipeline.set_transform_matrix(self.transform_matrix)
+        self.managed_pipeline.play()
 
-    def draw_on_pixmap(self, pixmap, alpha=1.0):
-        app = get_app()
-        cr = pixmap.cairo_create()
-        self.draw_on_cairo(cr, alpha)
-        self.device_area.queue_draw()
+    def set_pipeline(self, pipeline):
+        self.pipeline = pipeline
+        
+    def record(self, file_path):
+        if self.managed_pipeline:
+            self.managed_pipeline.stop()
+            self.pipeline = None
+        self.managed_pipeline = RecordPipeline(self._draw_on,
+                lambda pipeline: self.set_pipeline(pipeline))
+        self.managed_pipeline.set_transform_matrix(self.transform_matrix)
+        self.managed_pipeline.record(file_path)
 
     def _draw_on(self, buf):
         try:
@@ -402,9 +498,8 @@ class DmfDeviceView(GStreamerVideoView):
     @transform_matrix.setter
     def transform_matrix(self, transform_matrix):
         self._transform_matrix = transform_matrix
-        transform_str = ','.join([str(v)
-                for v in transform_matrix.flatten()])
-        self.warper.set_property('transform_matrix', transform_str)
+        if self.managed_pipeline:
+            self.managed_pipeline.set_transform_matrix(transform_matrix)
 
     def on_register(self, *args, **kwargs):
         if self.last_frame is None:
