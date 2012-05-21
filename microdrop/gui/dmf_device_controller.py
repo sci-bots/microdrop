@@ -392,7 +392,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self._notify_observers_step_options_changed()
-        self.view.fit_device()
 
     def on_new_frame(self, frame, depth, frame_time):
         self.view.on_new_frame(frame, depth, frame_time)

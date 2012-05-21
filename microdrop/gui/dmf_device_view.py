@@ -71,9 +71,9 @@ def get_video_pipeline(cairo_draw):
     rate_caps_filter = gst.element_factory_make('capsfilter', 'rate_caps_filter')
     rate_caps_filter.set_property('caps', rate_caps)
     video_scale = gst.element_factory_make('videoscale', 'video_scale')
-    scale_caps = gst.Caps('video/x-raw-yuv,width=500,height=600')
     scale_caps_filter = gst.element_factory_make('capsfilter', 'scale_caps_filter')
-    scale_caps_filter.set_property('caps', scale_caps)
+    #scale_caps = gst.Caps('video/x-raw-yuv,width=640,height=480')
+    #scale_caps_filter.set_property('caps', scale_caps)
 
     #capture_queue = gst.element_factory_make('queue', 'capture_queue')
     #ffmpeg_color_space = gst.element_factory_make('ffmpegcolorspace', 'ffmpeg_color_space')
@@ -84,7 +84,9 @@ def get_video_pipeline(cairo_draw):
     #file_sink.set_property('location', 'temp.avi')
 
     pipeline.add(webcam_src, webcam_caps_filter, video_rate, rate_caps_filter,
-            video_scale, scale_caps_filter, feed_queue, video_sink,
+            video_scale,
+            scale_caps_filter,
+            feed_queue, video_sink,
 
             # Elements for drawing cairo overlay on video
             cairo_draw, cairo_color_out, cairo_color_in,
@@ -99,12 +101,15 @@ def get_video_pipeline(cairo_draw):
 
     record_warped = False
     gst.element_link_many(webcam_src, webcam_caps_filter, video_rate,
-            rate_caps_filter, feed_queue, video_scale, scale_caps_filter,
-            cairo_color_in, cairo_draw, cairo_color_out, video_sink)
+            rate_caps_filter, feed_queue,
+            video_scale, scale_caps_filter,
+            cairo_color_in, cairo_draw, cairo_color_out, 
+            video_sink,
+            )
     #gst.element_link_many(webcam_src, webcam_caps_filter, video_rate, rate_caps_filter, webcam_tee)
     #gst.element_link_many(webcam_tee, feed_queue, warp_in_color, warper, warp_out_color, cairo_draw, cairo_color_out, video_sink)
     #gst.element_link_many(webcam_tee, capture_queue, ffmpeg_color_space, ffenc_mpeg4, avi_mux, file_sink)
-    return pipeline
+    return pipeline, scale_caps_filter
 
 
 Dims = namedtuple('Dims', 'x y width height')
@@ -202,18 +207,21 @@ class DmfDeviceView(GStreamerVideoView):
 
     def __init__(self, dmf_device_controller, name):
         self.controller = dmf_device_controller
-        self.scale = 1
+        self.display_scale = 1
+        self.video_scale = 1
         self.last_frame_time = datetime.now()
         self.last_frame = None
         self.display_fps_inv = 0.1
-        self.offset = (0,0)
+        self.video_offset = (0,0)
+        self.display_offset = (0,0)
         self.electrode_color = {}
         self.background = None
         self.transform_matrix = None
         self.overlay_opacity = None
         self.pixmap = None
         self.cairo_draw_element = CairoDrawBase('cairo_draw', self._draw_on)
-        self.pipeline = get_video_pipeline(self.cairo_draw_element)
+        self.pipeline, self.scale_caps_filter = get_video_pipeline(
+                self.cairo_draw_element)
         self.popup = ElectrodeContextMenu(self)
         self.popup.connect('registration-request', self.on_register)
         self.force_aspect_ratio = False
@@ -228,27 +236,28 @@ class DmfDeviceView(GStreamerVideoView):
         x, y, width, height = self.device_area.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.device_area.window, width, height)
 
-    def fit_device(self, padding=None):
+    def fit_device(self, video_dims, padding=None):
         app = get_app()
         if app.dmf_device and len(app.dmf_device.electrodes):
             if padding is None:
                 padding = 10
-
-            widget = Dims(*self.device_area.get_allocation())
+            display_dims = Dims(*self.device_area.get_allocation())
             device = Dims(*app.dmf_device.get_bounding_box())
-            scale_x = (widget.width - 2 * padding) / device.width
-            scale_y = (widget.height - 2 * padding) / device.height
-            self.scale = min(scale_x, scale_y)
-            if scale_x < scale_y: # center device vertically
-                self.offset = (-device.x + padding / self.scale,
-                               -device.y + padding / self.scale + \
-                               ((widget.height - 2 * padding)\
-                                        / self.scale - device.height) / 2)
+            display_scale_x = (display_dims.width - 2 * padding) / device.width
+            display_scale_y = (display_dims.height - 2 * padding) / device.height
+            self.display_scale = min(display_scale_x, display_scale_y)
+            if display_scale_x < display_scale_y: # center device vertically
+                self.display_offset = (-device.x + padding / self.display_scale,
+                               -device.y + padding / self.display_scale + \
+                               ((display_dims.height - 2 * padding)\
+                                        / self.display_scale - device.height) / 2)
             else:  # center device horizontally
-                self.offset = (-device.x + padding / self.scale +  \
-                               ((widget.width - 2 * padding)\
-                                    / self.scale - device.width) / 2,
-                                - device.y + padding / self.scale)
+                self.display_offset = (-device.x + padding / self.display_scale +  \
+                               ((display_dims.width - 2 * padding)\
+                                    / self.display_scale - device.width) / 2,
+                                - device.y + padding / self.display_scale)
+            scale_caps = gst.Caps('video/x-raw-yuv,width=%s,height=%s' % (display_dims.width, display_dims.height))
+            self.scale_caps_filter.set_property('caps', scale_caps)
 
     def update(self):
         #if self.pixmap:
@@ -277,6 +286,8 @@ class DmfDeviceView(GStreamerVideoView):
             caps = buf.get_caps()
             width = caps[0]['width']
             height = caps[0]['height']
+            video_dims = Dims(0, 0, width, height)
+            self.fit_device(video_dims)
             framerate = caps[0]['framerate']
             surface = cairo.ImageSurface.create_for_data(buf, cairo.FORMAT_ARGB32, width, height, 4 * width)
             cairo_context = cairo.Context(surface)
@@ -285,16 +296,16 @@ class DmfDeviceView(GStreamerVideoView):
             traceback.print_exc()
             return
         try:
-            self.draw_on_cairo(cairo_context, alpha=0.3)
+            self.draw_on_cairo(cairo_context, alpha=self.overlay_opacity / 100.)
         except:
             print "Failed cairo render"
             traceback.print_exc()
 
     def draw_on_cairo(self, cr, alpha=1.0):
         app = get_app()
-        x,y = self.offset
-        cr.scale(self.scale, self.scale)
-        cr.translate(x,y)
+        x, y = self.display_offset
+        cr.scale(self.display_scale, self.display_scale)
+        cr.translate(x, y)
         if app.dmf_device:
             for id, electrode in app.dmf_device.electrodes.iteritems():
                 if self.electrode_color.keys().count(id):
@@ -318,7 +329,8 @@ class DmfDeviceView(GStreamerVideoView):
         cr.restore()
 
     def translate_coords(self, x, y):
-        return (x / self.scale - self.offset[0], y / self.scale - self.offset[1])
+        translated = (x / self.display_scale - self.display_offset[0], y / self.display_scale - self.display_offset[1])
+        return translated
 
     def get_clicked_electrode(self, event):
         app = get_app()
