@@ -59,9 +59,9 @@ def get_video_pipeline(cairo_draw):
     #webcam_tee = gst.element_factory_make('tee', 'webcam_tee')
     #Feed branch
     feed_queue = gst.element_factory_make('queue', 'feed_queue')
-    #warp_in_color = gst.element_factory_make('ffmpegcolorspace', 'warp_in_color')
-    #warper = warp_perspective()
-    #warp_out_color = gst.element_factory_make('ffmpegcolorspace', 'warp_out_color')
+    warp_in_color = gst.element_factory_make('ffmpegcolorspace', 'warp_in_color')
+    warper = warp_perspective()
+    warp_out_color = gst.element_factory_make('ffmpegcolorspace', 'warp_out_color')
     cairo_color_in = gst.element_factory_make('ffmpegcolorspace', 'cairo_color_in')
     cairo_color_out = gst.element_factory_make('ffmpegcolorspace', 'cairo_color_out')
     video_sink = gst.element_factory_make('autovideosink', 'video_sink')
@@ -92,7 +92,7 @@ def get_video_pipeline(cairo_draw):
             cairo_draw, cairo_color_out, cairo_color_in,
 
             # Elements for applying OpenCV warp-perspective transformation
-            #warper, warp_in_color, warp_out_color,
+            warper, warp_in_color, warp_out_color,
 
             #webcam_tee, 
             # Elements for writing video to file
@@ -103,13 +103,14 @@ def get_video_pipeline(cairo_draw):
     gst.element_link_many(webcam_src, webcam_caps_filter, video_rate,
             rate_caps_filter, feed_queue,
             video_scale, scale_caps_filter,
+            warp_in_color, warper, warp_out_color,
             cairo_color_in, cairo_draw, cairo_color_out, 
             video_sink,
             )
     #gst.element_link_many(webcam_src, webcam_caps_filter, video_rate, rate_caps_filter, webcam_tee)
     #gst.element_link_many(webcam_tee, feed_queue, warp_in_color, warper, warp_out_color, cairo_draw, cairo_color_out, video_sink)
     #gst.element_link_many(webcam_tee, capture_queue, ffmpeg_color_space, ffenc_mpeg4, avi_mux, file_sink)
-    return pipeline, scale_caps_filter
+    return pipeline, scale_caps_filter, warper
 
 
 Dims = namedtuple('Dims', 'x y width height')
@@ -216,12 +217,12 @@ class DmfDeviceView(GStreamerVideoView):
         self.display_offset = (0,0)
         self.electrode_color = {}
         self.background = None
-        self.transform_matrix = None
+        self._transform_matrix = None
         self.overlay_opacity = None
         self.pixmap = None
         self.cairo_draw_element = CairoDrawBase('cairo_draw', self._draw_on)
-        self.pipeline, self.scale_caps_filter = get_video_pipeline(
-                self.cairo_draw_element)
+        self.pipeline, self.scale_caps_filter, self.warper = \
+                get_video_pipeline(self.cairo_draw_element)
         self.popup = ElectrodeContextMenu(self)
         self.popup.connect('registration-request', self.on_register)
         self.force_aspect_ratio = False
@@ -391,25 +392,19 @@ class DmfDeviceView(GStreamerVideoView):
         if (now - self.last_frame_time).total_seconds() < self.display_fps_inv:
             # Wait to respect display FPS.
             return
-        #self.draw_frame(frame, depth)
 
         self.last_frame_time = now
 
-    def draw_frame(self, frame, depth):
-        x, y, width, height = self.widget.get_allocation()
-        resized = cv.CreateMat(height, width, cv.CV_8UC3)
-        cv.Resize(frame, resized)
-        if self.transform_matrix is None:
-            warped = resized
-        else:
-            warped = cv.CreateMat(height, width, cv.CV_8UC3)
-            cv.WarpPerspective(resized, warped, self.transform_matrix,
-                    flags=cv.CV_WARP_INVERSE_MAP)
-        self.pixbuf = gtk.gdk.pixbuf_new_from_data(
-            warped.tostring(), gtk.gdk.COLORSPACE_RGB, False,
-            depth, width, height, warped.step)
-        self.background = self.pixbuf
-        self.update()
+    @property
+    def transform_matrix(self):
+        return self._transform_matrix
+
+    @transform_matrix.setter
+    def transform_matrix(self, transform_matrix):
+        self._transform_matrix = transform_matrix
+        transform_str = ','.join([str(v)
+                for v in transform_matrix.flatten()])
+        self.warper.set_property('transform_matrix', transform_str)
 
     def on_register(self, *args, **kwargs):
         if self.last_frame is None:
@@ -428,9 +423,8 @@ class DmfDeviceView(GStreamerVideoView):
         results = dialog.run()
         if results:
             self.transform_matrix = results
-            array = np.fromstring(results.tostring(),
-                                  dtype='float32',
-                                  count=results.width*results.height)
+            array = np.fromstring(results.tostring(), dtype='float32',
+                    count=results.width * results.height)
             array.shape = (results.width, results.height)
             self.emit('transform-changed', array)
 

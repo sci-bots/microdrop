@@ -98,7 +98,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             if 'transform_matrix' in values:
                 matrix = yaml.load(values['transform_matrix'])
                 if matrix:
-                    matrix = cv.fromarray(np.array(matrix, dtype='float32'))
+                    matrix = np.array(matrix, dtype='float32')
                     self.view.transform_matrix = matrix
 
         elif plugin_name == 'microdrop.gui.video_controller':
