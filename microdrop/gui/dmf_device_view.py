@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 from collections import namedtuple
 from datetime import datetime
+import time
 import traceback
 from math import pi
 import os
@@ -161,7 +162,12 @@ class DmfDeviceView(GStreamerVideoView):
             webcam_src = gst.element_factory_make('v4l2src', 'webcam_src')
             webcam_src.set_property('device', '/dev/video1')
 
-        self.play_bin = PlayBin('play_bin', webcam_src, self.cairo_draw_element)
+        video_src = webcam_src
+        #video_src = gst.element_factory_make('videotestsrc', 'video_test_src')
+        #video_src.set_property('pattern', 2)
+
+        self.play_bin = PlayBin('play_bin', video_src, self.cairo_draw_element,
+            width=640, height=480, fps=10)
         self.record_bin = RecordBin('record_bin', width=640, height=480)
         self.pipeline = gst.Pipeline('pipeline')
         self.pipeline.add(self.play_bin)
@@ -172,6 +178,28 @@ class DmfDeviceView(GStreamerVideoView):
         self.sink = None
         self.window_xid = None
         SlaveView.__init__(self)
+
+    def start_recording(self, video_path):
+        self.pipeline.set_state(gst.STATE_READY)
+        while self.pipeline.get_state()[1] != gst.STATE_READY:
+            time.sleep(0.001)
+        self.record_bin.set_state(gst.STATE_NULL)
+        self.record_bin.set_filepath(video_path)
+        self.pipeline.add(self.record_bin)
+        self.play_bin.link(self.record_bin)
+        self.pipeline.set_state(gst.STATE_PLAYING)
+        while self.pipeline.get_state()[1] != gst.STATE_PLAYING:
+            time.sleep(0.001)
+
+    def stop_recording(self):
+        self.pipeline.set_state(gst.STATE_READY)
+        while self.pipeline.get_state()[1] != gst.STATE_READY:
+            time.sleep(0.001)
+        self.play_bin.unlink(self.record_bin)
+        self.pipeline.remove(self.record_bin)
+        self.pipeline.set_state(gst.STATE_PLAYING)
+        while self.pipeline.get_state()[1] != gst.STATE_PLAYING:
+            time.sleep(0.001)
 
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)
