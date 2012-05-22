@@ -48,16 +48,12 @@ class GStreamerVideoView(SlaveView):
 
     @pipeline.setter
     def pipeline(self, pipeline):
-        if hasattr(self, '_pipeline'):
-            del self._pipeline
         self._pipeline = pipeline
-        print '[GStreamerVideoView] pipeline setter: %s' % pipeline
-        if pipeline:
-            bus = self._pipeline.get_bus()
-            bus.add_signal_watch()
-            bus.enable_sync_message_emission()
-            bus.connect("message", self.on_message)
-            bus.connect("sync-message::element", self.on_sync_message)
+        bus = self._pipeline.get_bus()
+        bus.add_signal_watch()
+        bus.enable_sync_message_emission()
+        bus.connect("message", self.on_message)
+        bus.connect("sync-message::element", self.on_sync_message)
 
     def on_message(self, bus, message):
         t = message.type
@@ -69,7 +65,6 @@ class GStreamerVideoView(SlaveView):
             self.pipeline.set_state(gst.STATE_NULL)
     
     def on_sync_message(self, bus, message):
-        print '[GStreamerVideoView] on_sync_message: %s' % message
         if message.structure is None:
             return
         message_name = message.structure.get_name()
