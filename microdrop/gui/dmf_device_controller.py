@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import traceback
 import shutil
+import time
 
 import gtk
 import numpy as np
@@ -184,8 +185,31 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app = get_app()
         step_number = app.protocol.current_step_number + 1
         total_steps = len(app.protocol)
-        self.view.text_overlay.set_property('text',
+        self.view.play_bin.text_overlay.set_property('text',
                 'Step: %s/%s' % (step_number, total_steps))
+
+    def on_protocol_run(self):
+        app = get_app()
+        log_dir = path(app.experiment_log.get_log_path())
+        video_path = log_dir.joinpath('%s.avi' % log_dir.name)
+
+        self.view.pipeline.set_state(gst.STATE_READY)
+        #self.view.record_bin.set_state(gst.STATE_NULL)
+        self.view.record_bin.set_filepath(video_path)
+        self.view.pipeline.add(self.view.record_bin)
+        self.view.play_bin.link(self.view.record_bin)
+        self.view.pipeline.set_state(gst.STATE_PLAYING)
+        while self.view.pipeline.get_state()[1] != gst.STATE_PLAYING:
+            time.sleep(0.001)
+        logger.info('[VideoRecorderPlugin] recording to: %s' % video_path)
+
+    def on_protocol_pause(self):
+        self.view.pipeline.set_state(gst.STATE_READY)
+        self.view.play_bin.unlink(self.view.record_bin)
+        self.view.pipeline.remove(self.view.record_bin)
+        self.view.pipeline.set_state(gst.STATE_PLAYING)
+        while self.view.pipeline.get_state()[1] != gst.STATE_PLAYING:
+            time.sleep(0.1)
 
     def on_post_event(self, state, event):
         if type(state) in [app_state.DirtyDeviceDirtyProtocol,
