@@ -72,6 +72,8 @@ def get_video_pipeline(cairo_draw):
     rate_caps_filter.set_property('caps', rate_caps)
     video_scale = gst.element_factory_make('videoscale', 'video_scale')
     scale_caps_filter = gst.element_factory_make('capsfilter', 'scale_caps_filter')
+    text_overlay = gst.element_factory_make('textoverlay', 'text_overlay')
+    text_overlay.set_property('font-desc', 'Sans Bold 32')
     #scale_caps = gst.Caps('video/x-raw-yuv,width=640,height=480')
     #scale_caps_filter.set_property('caps', scale_caps)
 
@@ -93,6 +95,7 @@ def get_video_pipeline(cairo_draw):
 
             # Elements for applying OpenCV warp-perspective transformation
             warper, warp_in_color, warp_out_color,
+            text_overlay,
 
             #webcam_tee, 
             # Elements for writing video to file
@@ -105,12 +108,13 @@ def get_video_pipeline(cairo_draw):
             video_scale, scale_caps_filter,
             warp_in_color, warper, warp_out_color,
             cairo_color_in, cairo_draw, cairo_color_out, 
+            text_overlay,
             video_sink,
             )
     #gst.element_link_many(webcam_src, webcam_caps_filter, video_rate, rate_caps_filter, webcam_tee)
     #gst.element_link_many(webcam_tee, feed_queue, warp_in_color, warper, warp_out_color, cairo_draw, cairo_color_out, video_sink)
     #gst.element_link_many(webcam_tee, capture_queue, ffmpeg_color_space, ffenc_mpeg4, avi_mux, file_sink)
-    return pipeline, scale_caps_filter, warper
+    return pipeline, scale_caps_filter, warper, text_overlay
 
 
 Dims = namedtuple('Dims', 'x y width height')
@@ -221,7 +225,7 @@ class DmfDeviceView(GStreamerVideoView):
         self.overlay_opacity = None
         self.pixmap = None
         self.cairo_draw_element = CairoDrawBase('cairo_draw', self._draw_on)
-        self.pipeline, self.scale_caps_filter, self.warper = \
+        self.pipeline, self.scale_caps_filter, self.warper, self.text_overlay =\
                 get_video_pipeline(self.cairo_draw_element)
         self.popup = ElectrodeContextMenu(self)
         self.popup.connect('registration-request', self.on_register)

@@ -171,8 +171,21 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if k not in data:
                 data[k] = v
         app.set_data(self.name, data)
-        self.view.pipeline.set_state(gst.STATE_PLAYING)
         emit_signal('on_app_options_changed', [self.name])
+        self.view.pipeline.set_state(gst.STATE_PLAYING)
+
+    def on_protocol_swapped(self, *args):
+        self.set_overlay()
+
+    def on_protocol_created(self, *args):
+        self.set_overlay()
+
+    def set_overlay(self):
+        app = get_app()
+        step_number = app.protocol.current_step_number + 1
+        total_steps = len(app.protocol)
+        self.view.text_overlay.set_property('text',
+                'Step: %s/%s' % (step_number, total_steps))
 
     def on_post_event(self, state, event):
         if type(state) in [app_state.DirtyDeviceDirtyProtocol,
@@ -274,6 +287,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if app.protocol.current_step_number == step_number\
                 and plugin_name == self.name:
             self._update()
+
+    def on_step_created(self, step_number):
+        self.set_overlay()
+
+    def on_step_swapped(self, original_step_number, step_number):
+        self.set_overlay()
 
     def on_step_run(self):
         self._update()
