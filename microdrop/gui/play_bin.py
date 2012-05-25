@@ -110,6 +110,26 @@ class PlayBin(gst.Bin):
         scale_caps = gst.Caps(scale_text)
         self.scale_caps_filter.set_property('caps', scale_caps)
 
+    @property
+    def video_src(self):
+        return self._video_src
+
+    @video_src.setter
+    def video_src(self, src):
+        print '[PlayBin] set video_src %s' % src
+        if src == self._video_src:
+            return
+        original_state = self.get_state()[1]
+        self.set_state(gst.STATE_NULL)
+        if self._video_src:
+            self._video_src.unlink(self.video_caps_filter)
+            self.remove(self._video_src)
+        self._video_src = src
+        if self._video_src:
+            self.add(self._video_src)
+            self.video_src.link(self.video_caps_filter)
+        self.set_state(original_state)
+
     def grab_frame(self):
         buffer_ = self.app_sink.emit('pull-buffer')
         if buffer_ is None:

@@ -152,30 +152,16 @@ class DmfDeviceView(GStreamerVideoView):
         self._transform_matrix = None
         self.overlay_opacity = None
         self.pixmap = None
-        self.cairo_draw_element = CairoDrawBase('cairo_draw', self._draw_on)
 
-        if os.name == 'nt':
-            webcam_src = gst.element_factory_make('dshowvideosrc', 'webcam_src')
-            webcam_src.set_property('device-name', 'Microsoft LifeCam Studio')
-        else:
-            webcam_src = gst.element_factory_make('v4l2src', 'webcam_src')
-            webcam_src.set_property('device', '/dev/video1')
-
-        video_src = webcam_src
-        #video_src = gst.element_factory_make('videotestsrc', 'video_test_src')
-        #video_src.set_property('pattern', 2)
-
-        self.play_bin = PlayBin('play_bin', video_src, self.cairo_draw_element,
-            width=640, height=480, fps=10)
-        self.record_bin = RecordBin('record_bin', width=640, height=480)
-        self.pipeline = gst.Pipeline('pipeline')
-        self.pipeline.add(self.play_bin)
+        self.video_test_src = gst.element_factory_make('videotestsrc', 'video_test_src')
+        self.video_test_src.set_property('pattern', 2)
 
         self.popup = ElectrodeContextMenu(self)
         self.popup.connect('registration-request', self.on_register)
         self.force_aspect_ratio = False
         self.sink = None
         self.window_xid = None
+        self.pipeline = self.get_pipeline(self.video_test_src)
         SlaveView.__init__(self)
 
     def grab_frame(self):
@@ -189,19 +175,61 @@ class DmfDeviceView(GStreamerVideoView):
         self.record_bin.set_filepath(video_path)
         self.pipeline.add(self.record_bin)
         self.play_bin.link(self.record_bin)
+
+    def get_pipeline(self, video_src):
+        cairo_draw_element = CairoDrawBase('cairo_draw', self._draw_on)
+        self.play_bin = PlayBin('play_bin', video_src, cairo_draw_element,
+            width=640, height=480, fps=10)
+        self.record_bin = RecordBin('record_bin', width=640, height=480)
+        pipeline = gst.Pipeline('pipeline')
+        pipeline.add(self.play_bin)
+        return pipeline
+
+    @property
+    def webcam_src(self):
+        self._webcam_src = getattr(self, '_webcam_src', None)
+        if self._webcam_src is None:
+            if os.name == 'nt':
+                webcam_src = gst.element_factory_make('dshowvideosrc', 'webcam_src')
+                webcam_src.set_property('device-name', 'Microsoft LifeCam Studio')
+            else:
+                webcam_src = gst.element_factory_make('v4l2src', 'webcam_src')
+                webcam_src.set_property('device', '/dev/video1')
+            self._webcam_src = webcam_src
+        return self._webcam_src
+
+    def enable_video(self):
+        self.pipeline.set_state(gst.STATE_NULL)
+        self.pipeline = self.get_pipeline(self.webcam_src)
         self.pipeline.set_state(gst.STATE_PLAYING)
-        while self.pipeline.get_state()[1] != gst.STATE_PLAYING:
-            time.sleep(0.001)
+        self.controller.set_overlay()
+
+    def disable_video(self):
+        self.pipeline.set_state(gst.STATE_NULL)
+        self.pipeline = self.get_pipeline(self.video_test_src)
+        self.pipeline.set_state(gst.STATE_PLAYING)
+        self.controller.set_overlay()
+
+    def start_recording(self, video_path):
+        self.disable_video()
+        #if self.controller.video_enabled:
+            #self.pipeline.set_state(gst.STATE_NULL)
+            #self.pipeline = self.get_pipeline(self.video_test_src)
+            #self.pipeline.set_state(gst.STATE_PLAYING)
+            #self.pipeline.set_state(gst.STATE_NULL)
+            #self.pipeline = self.get_pipeline(self.webcam_src)
+            #self.record_bin.set_filepath(video_path)
+            #self.pipeline.add(self.record_bin)
+            #self.play_bin.link(self.record_bin)
+            #self.pipeline.set_state(gst.STATE_PLAYING)
 
     def stop_recording(self):
-        self.pipeline.set_state(gst.STATE_READY)
-        while self.pipeline.get_state()[1] != gst.STATE_READY:
-            time.sleep(0.001)
-        self.play_bin.unlink(self.record_bin)
-        self.pipeline.remove(self.record_bin)
-        self.pipeline.set_state(gst.STATE_PLAYING)
-        while self.pipeline.get_state()[1] != gst.STATE_PLAYING:
-            time.sleep(0.001)
+        self.enable_video()
+        #if self.controller.video_enabled:
+            #self.disable_video()
+            #self.pipeline.set_state(gst.STATE_NULL)
+            #self.pipeline = self.get_pipeline(self.webcam_src)
+            #self.pipeline.set_state(gst.STATE_PLAYING)
 
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)

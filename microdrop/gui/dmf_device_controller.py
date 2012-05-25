@@ -25,7 +25,7 @@ import gtk
 import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
-from flatland import Form, Integer, String
+from flatland import Form, Integer, String, Boolean
 from flatland.validation import ValueAtLeast, ValueAtMost
 from utility.gui import yesno
 from path import path
@@ -66,6 +66,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IVideoPlugin)
     
     AppFields = Form.of(
+        Boolean.named('video_enabled').using(default=False, optional=True),
         Integer.named('overlay_opacity').using(default=30, optional=True,
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
         Integer.named('display_fps').using(default=30, optional=True,
@@ -89,10 +90,19 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         app = get_app()
         if plugin_name == self.name:
             values = self.get_app_values()
+            if 'video_enabled' in values:
+                self.video_enabled = getattr(self, 'video_enabled', False)
+                video_enabled = values['video_enabled']
+                if self.video_enabled and not video_enabled:
+                    self.view.disable_video()
+                    self.video_enabled = False
+                elif not self.video_enabled and video_enabled:
+                    self.view.enable_video()
+                    self.video_enabled = True
             if 'overlay_opacity' in values:
                 self.view.overlay_opacity = int(values.get('overlay_opacity'))
             if 'display_fps' in values:
-                self.view.display_fps_inv = 1. / int(values['display_fps'])
+                self.view.display_fps = int(values['display_fps'])
             if 'device_directory' in values:
                 self.apply_device_dir(values['device_directory'])
             if 'transform_matrix' in values:

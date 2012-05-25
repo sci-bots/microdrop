@@ -1,4 +1,5 @@
 import os
+import time
 
 import gtk
 import gst
@@ -48,12 +49,18 @@ class GStreamerVideoView(SlaveView):
 
     @pipeline.setter
     def pipeline(self, pipeline):
+        if hasattr(self, '_pipeline'):
+            self._pipeline.set_state(gst.STATE_NULL)
+            while self._pipeline.get_state()[1] != gst.STATE_NULL:
+                time.sleep(0.001)
+            del self._pipeline
         self._pipeline = pipeline
         bus = self._pipeline.get_bus()
         bus.add_signal_watch()
         bus.enable_sync_message_emission()
         bus.connect("message", self.on_message)
         bus.connect("sync-message::element", self.on_sync_message)
+        print '[GStreamerVideoView] set pipeline %s' % pipeline
 
     def on_message(self, bus, message):
         t = message.type
