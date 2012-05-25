@@ -1,5 +1,6 @@
 import gst
 
+from opencv.safe_cv import cv
 from warp_perspective import warp_perspective
 from cairo_draw import CairoDrawBase
 
@@ -14,11 +15,10 @@ class PlayBin(gst.Bin):
         fps_text = ',framerate=%s/1' % fps
         caps_str = 'video/x-raw-yuv%s%s%s' % (width_text, height_text, fps_text)
 
-        self.video_src = video_src
         # -- setup video_src --
         video_caps = gst.Caps(caps_str)
-        video_caps_filter = gst.element_factory_make('capsfilter', 'caps_filter')
-        video_caps_filter.set_property('caps', video_caps)
+        self.video_caps_filter = gst.element_factory_make('capsfilter', 'caps_filter')
+        self.video_caps_filter.set_property('caps', video_caps)
         video_tee = gst.element_factory_make('tee', 'video_tee')
         #Feed branch
         feed_queue = gst.element_factory_make('queue', 'feed_queue')
@@ -93,3 +93,16 @@ class PlayBin(gst.Bin):
         scale_caps = gst.Caps(scale_text)
         self.scale_caps_filter.set_property('caps', scale_caps)
 
+    def grab_frame(self):
+        buffer_ = self.app_sink.emit('pull-buffer')
+        if buffer_ is None:
+            return None
+        struct = buffer_.caps[0]
+        #y = np.fromstring(inbuf.data, dtype='uint8', count=len(inbuf))
+        #width, height = struct['width'], struct['height']
+        #y.shape = (height, width, 3)
+        width, height = struct['width'], struct['height']
+        cv_img = cv.CreateMat(height, width, cv.CV_8UC3)
+        cv.SetData(cv_img, buffer_.data, width * 3)
+        cv.CvtColor(cv_img, cv_img, cv.CV_BGR2RGB)
+        return cv_img

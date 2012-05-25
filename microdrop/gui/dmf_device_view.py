@@ -64,7 +64,6 @@ class ElectrodeContextMenu(SlaveView):
         app = get_app()
         self.last_frame = None
         self.background = None
-        self.update()
 
     def on_edit_electrode_channels__activate(self, widget, data=None):
         # TODO: set default value
@@ -179,6 +178,9 @@ class DmfDeviceView(GStreamerVideoView):
         self.window_xid = None
         SlaveView.__init__(self)
 
+    def grab_frame(self):
+            return self.play_bin.grab_frame()
+
     def start_recording(self, video_path):
         self.pipeline.set_state(gst.STATE_READY)
         while self.pipeline.get_state()[1] != gst.STATE_READY:
@@ -230,28 +232,6 @@ class DmfDeviceView(GStreamerVideoView):
                                     / self.display_scale - device.width) / 2,
                                 - device.y + padding / self.display_scale)
             self.play_bin.scale(display_dims.width, display_dims.height)
-
-    def update(self):
-        #if self.pixmap:
-            #x, y, width, height = self.device_area.get_allocation()
-            #if self.background is not None:
-                #self.pixmap, mask = self.background.render_pixmap_and_mask()
-                #if self.overlay_opacity:
-                    #alpha = self.overlay_opacity / 100
-                #else:
-                    #alpha = 1.
-            #else:
-                #alpha = 1.
-                #self.pixmap.draw_rectangle(self.device_area.get_style().black_gc,
-                                        #True, 0, 0, width, height)
-            #self.draw_on_pixmap(self.pixmap, alpha=alpha)
-        pass
-
-    def draw_on_pixmap(self, pixmap, alpha=1.0):
-        app = get_app()
-        cr = pixmap.cairo_create()
-        self.draw_on_cairo(cr, alpha)
-        self.device_area.queue_draw()
 
     def _draw_on(self, buf):
         try:

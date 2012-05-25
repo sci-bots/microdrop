@@ -174,6 +174,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         emit_signal('on_app_options_changed', [self.name])
         self.view.pipeline.set_state(gst.STATE_PLAYING)
 
+    def grab_frame(self):
+        return self.view.grab_frame()
+
     def on_protocol_swapped(self, *args):
         self.set_overlay()
 
@@ -182,10 +185,11 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def set_overlay(self):
         app = get_app()
-        step_number = app.protocol.current_step_number + 1
-        total_steps = len(app.protocol)
-        self.view.play_bin.text_overlay.set_property('text',
-                'Step: %s/%s' % (step_number, total_steps))
+        if app.protocol:
+            step_number = app.protocol.current_step_number + 1
+            total_steps = len(app.protocol)
+            self.view.play_bin.text_overlay.set_property('text',
+                    'Step: %s/%s' % (step_number, total_steps))
 
     def on_protocol_run(self):
         app = get_app()
@@ -347,7 +351,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     logger.error("not supported yet")
             else:
                 self.view.electrode_color[id] = (1,0,0)
-        self.view.update()
 
     def get_schedule_requests(self, function_name):
         """

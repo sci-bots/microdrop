@@ -181,6 +181,12 @@ class ProtocolGridController(SingletonPlugin):
         self.window = gtk.ScrolledWindow()
         self.window.show_all()
         self.parent.add(self.window)
+
+    def on_plugin_enabled(self, env, plugin):
+        self.update_grid()
+        
+    def on_plugin_disabled(self, env, plugin):
+        self.update_grid()
         
     def test(self, *args, **kwargs):
         print 'args=%s, kwargs=%s' % (args, kwargs)

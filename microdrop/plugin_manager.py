@@ -174,6 +174,28 @@ else:
             """
             pass
         
+        def on_plugin_enabled(self, env, plugin):
+            """
+            Handler called to notify that a plugin has been enabled.
+
+            Note that this signal is broadcast to all plugins
+            implementing the IPlugin interface, whereas the
+            on_plugin_enable method is called directly on the plugin
+            that is being enabled.
+            """
+            pass
+        
+        def on_plugin_disabled(self, env, plugin):
+            """
+            Handler called to notify that a plugin has been disabled.
+
+            Note that this signal is broadcast to all plugins
+            implementing the IPlugin interface, whereas the
+            on_plugin_disable method is called directly on the plugin
+            that is being disabled.
+            """
+            pass
+        
         def on_app_exit(self):
             """
             Handler called just before the Microdrop application exists. 
@@ -351,24 +373,6 @@ def get_service_names(env='microdrop.managed'):
     return service_names
 
 
-def enable(name, env='microdrop.managed'):
-    service = get_service_instance_by_name(name, env)
-    if not service.enabled():
-        service.enable()
-        logging.info('[PluginManager] Enabled plugin: %s' % name)
-    if hasattr(service, "on_plugin_enable"):
-        service.on_plugin_enable()
-
-
-def disable(name, env='microdrop.managed'):
-    service = get_service_instance_by_name(name, env)
-    if service and service.enabled():
-        service.disable()
-        if hasattr(service, "on_plugin_disable"):
-            service.on_plugin_disable()
-        logging.info('[PluginManager] Disabled plugin: %s' % name)
-
-
 def get_schedule(observers, function):
     # Query plugins for schedule requests for 'function'
     schedule_requests = {}
@@ -419,6 +423,26 @@ def emit_signal(function, args=[], interface=IPlugin):
                     logging.error(message.getvalue().strip())
                 logging.debug(''.join(traceback.format_stack()))
     return return_codes
+
+
+def enable(name, env='microdrop.managed'):
+    service = get_service_instance_by_name(name, env)
+    if not service.enabled():
+        service.enable()
+        logging.info('[PluginManager] Enabled plugin: %s' % name)
+    if hasattr(service, "on_plugin_enable"):
+        service.on_plugin_enable()
+    emit_signal('on_plugin_enabled', [env, service])
+
+
+def disable(name, env='microdrop.managed'):
+    service = get_service_instance_by_name(name, env)
+    if service and service.enabled():
+        service.disable()
+        if hasattr(service, "on_plugin_disable"):
+            service.on_plugin_disable()
+        emit_signal('on_plugin_disabled', [env, service])
+        logging.info('[PluginManager] Disabled plugin: %s' % name)
 
 
 PluginGlobals.pop_env()
