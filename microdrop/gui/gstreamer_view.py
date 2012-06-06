@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 
 import gtk
 import gst
@@ -20,10 +21,11 @@ class GStreamerVideoView(SlaveView):
     def __init__(self, pipeline, force_aspect_ratio=True):
         self.widget = gtk.DrawingArea()
         self.widget.connect('realize', self.on_realize)
-        self.sink = None
         self.window_xid = None
         self.pipline = pipeline
         self.force_aspect_ratio = force_aspect_ratio
+        self.start_time = None
+        self.sink = None
 
     def on_realize(self, widget):
         if not self.widget.window.has_native():
@@ -51,8 +53,9 @@ class GStreamerVideoView(SlaveView):
     def pipeline(self, pipeline):
         if hasattr(self, '_pipeline'):
             self._pipeline.set_state(gst.STATE_NULL)
-            while self._pipeline.get_state()[1] != gst.STATE_NULL:
-                time.sleep(0.001)
+            if self.sink:
+                self.sink.set_xwindow_id(0)
+            del self.sink
             del self._pipeline
         self._pipeline = pipeline
         bus = self._pipeline.get_bus()
@@ -65,6 +68,12 @@ class GStreamerVideoView(SlaveView):
         t = message.type
         if t == gst.MESSAGE_EOS:
             self.pipeline.set_state(gst.STATE_NULL)
+        elif t == gst.MESSAGE_STATE_CHANGED:
+            if message.src == self.pipeline\
+                    and message.structure['new-state'] == gst.STATE_PLAYING:
+                self.start_time = datetime.fromtimestamp(
+                    self.pipeline.get_clock().get_time() * 1e-9)
+            print message.src, message.parse_state_changed()
         elif t == gst.MESSAGE_ERROR:
             err, debug = message.parse_error()
             print "Error: %s" % err, debug
@@ -82,6 +91,8 @@ class GStreamerVideoView(SlaveView):
             if self.window_xid is None:
                 raise ValueError, 'Invalid window_xid.  Ensure the '\
                     'DrawingArea has been realized.'
+            
+            print '[prepare-xwindow-id] %s' % self.window_xid
             imagesink.set_xwindow_id(self.window_xid)
             imagesink.expose()
             gtk.gdk.threads_leave()
