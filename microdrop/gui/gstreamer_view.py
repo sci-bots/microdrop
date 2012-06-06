@@ -60,7 +60,6 @@ class GStreamerVideoView(SlaveView):
         bus.enable_sync_message_emission()
         bus.connect("message", self.on_message)
         bus.connect("sync-message::element", self.on_sync_message)
-        print '[GStreamerVideoView] set pipeline %s' % pipeline
 
     def on_message(self, bus, message):
         t = message.type

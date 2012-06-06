@@ -225,10 +225,8 @@ class DmfDeviceView(GStreamerVideoView):
         if not hasattr(self.controller, 'video_enabled') or not\
                 self.controller.video_enabled:
             blank_screen = True
-            print 'no attr named video_enabled'
         elif not self.controller.video_enabled:
             blank_screen = True
-            print 'video is disabled'
 
         if blank_screen:
             video_src = gst.element_factory_make('videotestsrc', 'video_src')
@@ -255,6 +253,8 @@ class DmfDeviceView(GStreamerVideoView):
         self.pipeline.set_state(gst.STATE_NULL)
         self.pipeline = self.get_pipeline()
         self.pipeline.set_state(gst.STATE_PLAYING)
+        if self.transform_matrix:
+           self.transform_matrix = self.transform_matrix
         self.controller.set_overlay()
 
     def disable_video(self):
@@ -410,12 +410,17 @@ class DmfDeviceView(GStreamerVideoView):
         super(DmfDeviceView, self).on_message(bus, message)
         t = message.type
         if t == gst.MESSAGE_STATE_CHANGED:
-            camera_bin = self.pipeline.get_by_name('camera_bin')
-            video_encoder = camera_bin.get_property('video-encoder')
-            if message.src == video_encoder and\
+            if message.src == self.pipeline and\
                     message.structure['new-state'] == gst.STATE_PLAYING:
-                self.start_time = datetime.fromtimestamp(
-                    self.pipeline.get_clock().get_time() * 1e-9)
+                if self.transform_matrix is not None:
+                    self.transform_matrix = self.transform_matrix
+            else:
+                camera_bin = self.pipeline.get_by_name('camera_bin')
+                video_encoder = camera_bin.get_property('video-encoder')
+                if message.src == video_encoder and\
+                        message.structure['new-state'] == gst.STATE_PLAYING:
+                    self.start_time = datetime.fromtimestamp(
+                        self.pipeline.get_clock().get_time() * 1e-9)
 
     @property
     def transform_matrix(self):
@@ -428,7 +433,8 @@ class DmfDeviceView(GStreamerVideoView):
                 for v in transform_matrix.flatten()])
         camera_bin = self.pipeline.get_by_name('camera_bin')
         warp_bin = camera_bin.get_by_name('warp_bin')
-        warp_bin.warper.set_property('transform_matrix', transform_str)
+        if warp_bin:
+            warp_bin.warper.set_property('transform-matrix', transform_str)
 
     def on_register(self, *args, **kwargs):
         if self.last_frame is None:

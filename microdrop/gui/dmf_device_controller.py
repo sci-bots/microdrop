@@ -87,7 +87,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             dict(transform_matrix=yaml.dump(array.tolist())))
 
     def on_app_options_changed(self, plugin_name):
-        print '[DmfDeviceController] on_app_options_changed: %s' % plugin_name
         app = get_app()
         if plugin_name == self.name:
             values = self.get_app_values()
