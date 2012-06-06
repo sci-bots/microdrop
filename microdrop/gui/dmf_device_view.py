@@ -31,11 +31,10 @@ import numpy as np
 import yaml
 import gst
 
-from .warp_perspective import warp_perspective
+from .warp_perspective import warp_perspective, WarpBin
+from .rated_bin import RatedBin
 from .cairo_draw import CairoDrawBase
 from .gstreamer_view import GStreamerVideoView
-from .play_bin import PlayBin
-from .record_bin import RecordBin
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
 from app_context import get_app
@@ -153,37 +152,90 @@ class DmfDeviceView(GStreamerVideoView):
         self.overlay_opacity = None
         self.pixmap = None
 
-        self.video_test_src = gst.element_factory_make('videotestsrc', 'video_test_src')
-        self.video_test_src.set_property('pattern', 2)
-
         self.popup = ElectrodeContextMenu(self)
         self.popup.connect('registration-request', self.on_register)
         self.force_aspect_ratio = False
         self.sink = None
         self.window_xid = None
-        self.pipeline = self.get_pipeline(self.video_test_src)
         SlaveView.__init__(self)
+        self.pipeline = self.get_pipeline()
 
     def grab_frame(self):
-            return self.play_bin.grab_frame()
+        #return self.play_bin.grab_frame()
+        return None
 
     def start_recording(self, video_path):
-        self.pipeline.set_state(gst.STATE_READY)
-        while self.pipeline.get_state()[1] != gst.STATE_READY:
-            time.sleep(0.001)
-        self.record_bin.set_state(gst.STATE_NULL)
-        self.record_bin.set_filepath(video_path)
-        self.pipeline.add(self.record_bin)
-        self.play_bin.link(self.record_bin)
+        if self.controller.video_enabled:
+            camera_bin = self.pipeline.get_by_name('camera_bin')
+            ready = False
+            for i in range(5):
+                if camera_bin.get_property('ready-for-capture'):
+                    ready = True
+                    break
+                time.sleep(0.1)
+            if not ready:
+                raise RuntimeError, 'camerabin is not ready for capture'
+            camera_bin.set_property('filename', video_path)
+            camera_bin.emit('capture-start')
+            logger.info('[DmfDeviceView] recording to: %s' % video_path)
 
-    def get_pipeline(self, video_src):
-        cairo_draw_element = CairoDrawBase('cairo_draw', self._draw_on)
-        self.play_bin = PlayBin('play_bin', video_src, cairo_draw_element,
-            width=640, height=480, fps=10)
-        self.record_bin = RecordBin('record_bin', width=640, height=480)
+    def stop_recording(self):
+        camera_bin = self.pipeline.get_by_name('camera_bin')
+        camera_bin.emit('capture-stop')
+        if self.controller.video_enabled:
+            app = get_app()
+            app.experiment_log.add_data({
+                    'record_start_timestamp': self.start_time},
+                            self.controller.name)
+
+    def get_pipeline(self):
         pipeline = gst.Pipeline('pipeline')
-        pipeline.add(self.play_bin)
+
+        camera_bin = gst.element_factory_make('camerabin', 'camera_bin')
+        warp_bin = WarpBin('warp_bin')
+
+        camera_bin.set_property('viewfinder-filter', warp_bin)
+
+        # Disable audio
+        flags = camera_bin.get_property('flags')
+        camera_bin.set_property('flags', flags | 0x020)
+
+        # Set mode to video (rather than image)
+        camera_bin.set_property('mode', 1)
+
+        # Set video source to test source
+        camera_bin.set_property('video-source', self.get_video_src())
+
+        # Set recording format to mpeg4 avi
+        avi_mux = gst.element_factory_make('avimux', 'avi_mux')
+        ffenc_mpeg4 = gst.element_factory_make('ffenc_mpeg4', 'ffenc_mpeg40') 
+        ffenc_mpeg4.set_property('bitrate', 1200000)
+
+        camera_bin.set_property('video-muxer', avi_mux)
+        camera_bin.set_property('video-encoder', ffenc_mpeg4)
+
+        pipeline.add(camera_bin)
+        clock = pipeline.get_clock()
+        clock.set_property('clock-type', 0)
+
         return pipeline
+
+    def get_video_src(self):
+        blank_screen = False
+        if not hasattr(self.controller, 'video_enabled') or not\
+                self.controller.video_enabled:
+            blank_screen = True
+            print 'no attr named video_enabled'
+        elif not self.controller.video_enabled:
+            blank_screen = True
+            print 'video is disabled'
+
+        if blank_screen:
+            video_src = gst.element_factory_make('videotestsrc', 'video_src')
+            video_src.set_property('pattern', 2)
+            return RatedBin('video_src', video_src=video_src)
+        else:
+            return RatedBin('video_src')
 
     @property
     def webcam_src(self):
@@ -194,42 +246,22 @@ class DmfDeviceView(GStreamerVideoView):
                 webcam_src.set_property('device-name', 'Microsoft LifeCam Studio')
             else:
                 webcam_src = gst.element_factory_make('v4l2src', 'webcam_src')
-                webcam_src.set_property('device', '/dev/video1')
+                #webcam_src.set_property('device', '/dev/video1')
+                webcam_src.set_property('device', '/dev/video0')
             self._webcam_src = webcam_src
         return self._webcam_src
 
     def enable_video(self):
         self.pipeline.set_state(gst.STATE_NULL)
-        self.pipeline = self.get_pipeline(self.webcam_src)
+        self.pipeline = self.get_pipeline()
         self.pipeline.set_state(gst.STATE_PLAYING)
         self.controller.set_overlay()
 
     def disable_video(self):
         self.pipeline.set_state(gst.STATE_NULL)
-        self.pipeline = self.get_pipeline(self.video_test_src)
+        self.pipeline = self.get_pipeline()
         self.pipeline.set_state(gst.STATE_PLAYING)
         self.controller.set_overlay()
-
-    def start_recording(self, video_path):
-        self.disable_video()
-        #if self.controller.video_enabled:
-            #self.pipeline.set_state(gst.STATE_NULL)
-            #self.pipeline = self.get_pipeline(self.video_test_src)
-            #self.pipeline.set_state(gst.STATE_PLAYING)
-            #self.pipeline.set_state(gst.STATE_NULL)
-            #self.pipeline = self.get_pipeline(self.webcam_src)
-            #self.record_bin.set_filepath(video_path)
-            #self.pipeline.add(self.record_bin)
-            #self.play_bin.link(self.record_bin)
-            #self.pipeline.set_state(gst.STATE_PLAYING)
-
-    def stop_recording(self):
-        self.enable_video()
-        #if self.controller.video_enabled:
-            #self.disable_video()
-            #self.pipeline.set_state(gst.STATE_NULL)
-            #self.pipeline = self.get_pipeline(self.webcam_src)
-            #self.pipeline.set_state(gst.STATE_PLAYING)
 
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)
@@ -259,7 +291,7 @@ class DmfDeviceView(GStreamerVideoView):
                                ((display_dims.width - 2 * padding)\
                                     / self.display_scale - device.width) / 2,
                                 - device.y + padding / self.display_scale)
-            self.play_bin.scale(display_dims.width, display_dims.height)
+            #self.play_bin.scale(display_dims.width, display_dims.height)
 
     def _draw_on(self, buf):
         try:
@@ -374,6 +406,17 @@ class DmfDeviceView(GStreamerVideoView):
 
         self.last_frame_time = now
 
+    def on_message(self, bus, message):
+        super(DmfDeviceView, self).on_message(bus, message)
+        t = message.type
+        if t == gst.MESSAGE_STATE_CHANGED:
+            camera_bin = self.pipeline.get_by_name('camera_bin')
+            video_encoder = camera_bin.get_property('video-encoder')
+            if message.src == video_encoder and\
+                    message.structure['new-state'] == gst.STATE_PLAYING:
+                self.start_time = datetime.fromtimestamp(
+                    self.pipeline.get_clock().get_time() * 1e-9)
+
     @property
     def transform_matrix(self):
         return self._transform_matrix
@@ -383,7 +426,9 @@ class DmfDeviceView(GStreamerVideoView):
         self._transform_matrix = transform_matrix
         transform_str = ','.join([str(v)
                 for v in transform_matrix.flatten()])
-        self.play_bin.warper.set_property('transform_matrix', transform_str)
+        camera_bin = self.pipeline.get_by_name('camera_bin')
+        warp_bin = camera_bin.get_by_name('warp_bin')
+        warp_bin.warper.set_property('transform_matrix', transform_str)
 
     def on_register(self, *args, **kwargs):
         if self.last_frame is None:

@@ -87,6 +87,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             dict(transform_matrix=yaml.dump(array.tolist())))
 
     def on_app_options_changed(self, plugin_name):
+        print '[DmfDeviceController] on_app_options_changed: %s' % plugin_name
         app = get_app()
         if plugin_name == self.name:
             values = self.get_app_values()
@@ -94,11 +95,11 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 self.video_enabled = getattr(self, 'video_enabled', False)
                 video_enabled = values['video_enabled']
                 if self.video_enabled and not video_enabled:
-                    self.view.disable_video()
                     self.video_enabled = False
+                    self.view.disable_video()
                 elif not self.video_enabled and video_enabled:
-                    self.view.enable_video()
                     self.video_enabled = True
+                    self.view.enable_video()
             if 'overlay_opacity' in values:
                 self.view.overlay_opacity = int(values.get('overlay_opacity'))
             if 'display_fps' in values:
@@ -182,6 +183,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 data[k] = v
         app.set_data(self.name, data)
         emit_signal('on_app_options_changed', [self.name])
+        self.view.pipeline = self.view.get_pipeline()
         self.view.pipeline.set_state(gst.STATE_PLAYING)
 
     def grab_frame(self):
@@ -198,15 +200,14 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if app.protocol:
             step_number = app.protocol.current_step_number + 1
             total_steps = len(app.protocol)
-            self.view.play_bin.text_overlay.set_property('text',
-                    'Step: %s/%s' % (step_number, total_steps))
+            #self.view.play_bin.text_overlay.set_property('text',
+                    #'Step: %s/%s' % (step_number, total_steps))
 
     def on_protocol_run(self):
         app = get_app()
         log_dir = path(app.experiment_log.get_log_path())
         video_path = log_dir.joinpath('%s.avi' % log_dir.name)
         self.view.start_recording(video_path)
-        logger.info('[VideoRecorderPlugin] recording to: %s' % video_path)
 
     def on_protocol_pause(self):
         self.view.stop_recording()

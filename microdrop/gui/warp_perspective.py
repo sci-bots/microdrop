@@ -144,3 +144,20 @@ class warp_perspective(gst.BaseTransform):
 
         # Done!
         return gst.FLOW_OK
+
+
+class WarpBin(gst.Bin):
+    def __init__(self, name):
+        super(WarpBin, self).__init__(name)
+
+        warp_in_color = gst.element_factory_make('ffmpegcolorspace', 'warp_in_color')
+        self.warper = warp_perspective()
+        warp_out_color = gst.element_factory_make('ffmpegcolorspace', 'warp_out_color')
+
+        self.add(warp_in_color, self.warper, warp_out_color)
+        gst.element_link_many(warp_in_color, self.warper, warp_out_color)
+
+        sink_gp = gst.GhostPad('sink', warp_in_color.get_pad('sink'))
+        play_bin_src_gp = gst.GhostPad("src", warp_out_color.get_pad('src'))
+        self.add_pad(sink_gp)
+        self.add_pad(play_bin_src_gp)
