@@ -107,9 +107,11 @@ class ElectrodeContextMenu(SlaveView):
     def on_register_device__activate(self, widget, data=None):
         self.emit('registration-request')
 
-    def popup(self, state_of_channels, electrode, button, time):
+    def popup(self, state_of_channels, electrode, button, time,
+            register_enabled=True):
         self.last_electrode_clicked = electrode
         self.state_of_channels = state_of_channels
+        self.register_device.set_property('sensitive', register_enabled)
         self.menu_popup.popup(None, None, None, button, time, None)
 
     def add_item(self, menu_item):
@@ -414,7 +416,8 @@ class DmfDeviceView(GStreamerVideoView):
             else:
                 logger.error("no channel assigned to electrode.")
         elif event.button == 3:
-            self.popup.popup(state, electrode, event.button, event.time)
+            self.popup.popup(state, electrode, event.button, event.time,
+                    register_enabled=self.controller.video_enabled)
         return True
 
     def on_device_area__key_press_event(self, widget, data=None):
