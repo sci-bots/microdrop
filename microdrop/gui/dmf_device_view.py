@@ -463,22 +463,36 @@ class DmfDeviceView(GStreamerVideoView):
             warp_bin.warper.set_property('transform-matrix', transform_str)
 
     def on_register(self, *args, **kwargs):
-        if self.last_frame is None:
-            return
-        size = self.pixmap.get_size()
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, *size)
+        warp_bin = self.pipeline.get_by_name('warp_bin')
+        warp_bin.grab_frame(self._on_register_frame_grabbed)
+
+    def _on_register_frame_grabbed(self, cv_img):
+        x, y, width, height = self.device_area.get_allocation()
+        # Create a cairo surface to draw device on
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         cr = cairo.Context(surface)
         self.draw_on_cairo(cr)
+
+        size = (width, height)
+        # Write cairo surface to cv image in RGBA format
         alpha_image = cv.CreateImageHeader(size, cv.IPL_DEPTH_8U, 4)
+        cv.SetData(alpha_image, surface.get_data(), 4 * width)
+
+        # Convert RGBA image (alpha_image) to RGB image (device_image)
         device_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
-        cv.SetData(alpha_image, surface.get_data(), 4 * size[0])
         cv.CvtColor(alpha_image, device_image, cv.CV_RGBA2RGB)
+
         video_image = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
-        cv.Resize(self.last_frame, video_image)
+
+        cv.Resize(cv_img, video_image)
+
+        # Since this function may have been called from outside the main
+        # thread, we need to surround GTK code with threads_enter/leave()
+        gtk.gdk.threads_enter()
         dialog = DeviceRegistrationDialog(device_image, video_image)
         results = dialog.run()
+        gtk.gdk.threads_leave()
         if results:
-            self.transform_matrix = results
             array = np.fromstring(results.tostring(), dtype='float32',
                     count=results.width * results.height)
             array.shape = (results.width, results.height)
