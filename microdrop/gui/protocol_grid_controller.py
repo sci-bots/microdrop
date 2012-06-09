@@ -92,9 +92,9 @@ class ProtocolGridView(CombinedFields):
         menu_items += [(None, None)]
 
         # Uncomment lines below to add menu item for running pudb
-        #def run_pudb(*args, **kwargs):
-            #import pudb; pudb.set_trace()
-        #menu_items += [('Run pudb...', run_pudb)]
+        def run_pudb(*args, **kwargs):
+            import pudb; pudb.set_trace()
+        menu_items += [('Run pudb...', run_pudb)]
 
         return super(ProtocolGridView, self)._get_popup_menu(item, column_title, value,
                 row_ids, menu_items)

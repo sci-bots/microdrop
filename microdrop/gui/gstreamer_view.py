@@ -53,9 +53,9 @@ class GStreamerVideoView(SlaveView):
     def pipeline(self, pipeline):
         if hasattr(self, '_pipeline'):
             self._pipeline.set_state(gst.STATE_NULL)
-            if self.sink:
+            if hasattr(self, 'sink') and self.sink:
                 self.sink.set_xwindow_id(0)
-            del self.sink
+                del self.sink
             del self._pipeline
         self._pipeline = pipeline
         bus = self._pipeline.get_bus()

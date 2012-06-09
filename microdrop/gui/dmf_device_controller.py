@@ -88,36 +88,41 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     def on_app_options_changed(self, plugin_name):
         app = get_app()
-        if plugin_name == self.name:
-            values = self.get_app_values()
-            if 'video_enabled' in values:
-                self.video_enabled = getattr(self, 'video_enabled', False)
-                video_enabled = values['video_enabled']
-                if self.video_enabled and not video_enabled:
-                    self.video_enabled = False
-                    self.view.disable_video()
-                elif not self.video_enabled and video_enabled:
-                    self.video_enabled = True
-                    self.view.enable_video()
-            if 'overlay_opacity' in values:
-                self.view.overlay_opacity = int(values.get('overlay_opacity'))
-            if 'display_fps' in values:
-                self.view.display_fps = int(values['display_fps'])
-            if 'device_directory' in values:
-                self.apply_device_dir(values['device_directory'])
-            if 'transform_matrix' in values:
-                matrix = yaml.load(values['transform_matrix'])
-                if matrix:
-                    matrix = np.array(matrix, dtype='float32')
-                    self.view.transform_matrix = matrix
+        try:
+            if plugin_name == self.name:
+                values = self.get_app_values()
+                if 'video_enabled' in values:
+                    self.video_enabled = getattr(self, 'video_enabled', False)
+                    video_enabled = values['video_enabled']
+                    if self.video_enabled and not video_enabled:
+                        self.video_enabled = False
+                        self.view.disable_video()
+                    elif not self.video_enabled and video_enabled:
+                        self.video_enabled = True
+                        self.view.enable_video()
+                if 'overlay_opacity' in values:
+                    self.view.overlay_opacity = int(values.get('overlay_opacity'))
+                if 'display_fps' in values:
+                    self.view.display_fps = int(values['display_fps'])
+                if 'device_directory' in values:
+                    self.apply_device_dir(values['device_directory'])
+                if 'transform_matrix' in values:
+                    matrix = yaml.load(values['transform_matrix'])
+                    if len(matrix):
+                        matrix = np.array(matrix, dtype='float32')
+                        self.view.transform_matrix = matrix
 
-        elif plugin_name == 'microdrop.gui.video_controller':
-            observers = ExtensionPoint(IPlugin)
-            service = observers.service(plugin_name)
-            values = service.get_app_values()
-            video_enabled = values.get('video_enabled')
-            if not video_enabled:
-                self.disable_video_background()
+            elif plugin_name == 'microdrop.gui.video_controller':
+                observers = ExtensionPoint(IPlugin)
+                service = observers.service(plugin_name)
+                values = service.get_app_values()
+                video_enabled = values.get('video_enabled')
+                if not video_enabled:
+                    self.disable_video_background()
+        except (Exception,), why:
+            import traceback
+            traceback.print_exc()
+            raise
 
     def apply_device_dir(self, device_directory):
         app = get_app()

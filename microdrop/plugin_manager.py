@@ -421,7 +421,7 @@ def emit_signal(function, args=[], interface=IPlugin):
                             (observer.name, function)
                     print >> message, 'Reason:', str(why)
                     logging.error(message.getvalue().strip())
-                logging.debug(''.join(traceback.format_stack()))
+                logging.error(''.join(traceback.format_stack()))
     return return_codes
 
 
