@@ -191,7 +191,7 @@ class DmfDeviceView(GStreamerVideoView):
         pipeline = gst.Pipeline('pipeline')
 
         camera_bin = gst.element_factory_make('camerabin', 'camera_bin')
-        warp_bin = WarpBin('warp_bin', self._draw_on)
+        warp_bin = WarpBin('warp_bin', draw_on=self._draw_on)
 
         camera_bin.set_property('viewfinder-filter', warp_bin)
 
@@ -228,35 +228,23 @@ class DmfDeviceView(GStreamerVideoView):
 
         if blank_screen:
             video_src = gst.element_factory_make('videotestsrc', 'video_src')
-            #video_src.set_property('pattern', 2)
+            video_src.set_property('pattern', 2)
             return RatedBin('video_src', video_src=video_src)
         else:
             return RatedBin('video_src')
 
-    @property
-    def webcam_src(self):
-        self._webcam_src = getattr(self, '_webcam_src', None)
-        if self._webcam_src is None:
-            if os.name == 'nt':
-                webcam_src = gst.element_factory_make('dshowvideosrc', 'webcam_src')
-                webcam_src.set_property('device-name', 'Microsoft LifeCam Studio')
-            else:
-                webcam_src = gst.element_factory_make('v4l2src', 'webcam_src')
-                #webcam_src.set_property('device', '/dev/video1')
-                webcam_src.set_property('device', '/dev/video0')
-            self._webcam_src = webcam_src
-        return self._webcam_src
-
     def enable_video(self):
         self.pipeline.set_state(gst.STATE_NULL)
-        self.pipeline = self.get_pipeline()
+        camera_bin = self.pipeline.get_by_name('camera_bin')
+        camera_bin.set_property('video-source', self.get_video_src())
         self.pipeline.set_state(gst.STATE_PLAYING)
         if self.controller.video_enabled and \
                 self.pipeline.get_state()[0] == gst.STATE_CHANGE_FAILURE:
             logger.warning('Could not connect to video cam. Disabling video.')
             self.controller.set_app_values({'video_enabled': False})
             self.pipeline.set_state(gst.STATE_NULL)
-            self.pipeline = self.get_pipeline()
+            camera_bin = self.pipeline.get_by_name('camera_bin')
+            camera_bin.set_property('video-source', self.get_video_src())
             self.pipeline.set_state(gst.STATE_PLAYING)
 
         if not self.transform_matrix is None:
@@ -265,7 +253,8 @@ class DmfDeviceView(GStreamerVideoView):
 
     def disable_video(self):
         self.pipeline.set_state(gst.STATE_NULL)
-        self.pipeline = self.get_pipeline()
+        camera_bin = self.pipeline.get_by_name('camera_bin')
+        camera_bin.set_property('video-source', self.get_video_src())
         self.pipeline.set_state(gst.STATE_PLAYING)
         self.controller.set_overlay()
 
@@ -442,27 +431,6 @@ class DmfDeviceView(GStreamerVideoView):
         if electrode:
             self.on_electrode_click(electrode, event)
         return True
-
-    # device view events
-
-    #def on_device_area__expose_event(self, widget, event):
-        #if self.pixmap:
-            #x , y, width, height = event.area
-            #widget.window.draw_drawable(widget.get_style().white_gc,
-                                        #self.pixmap, x, y, x, y, width, height)
-        #return False
-
-    def on_new_frame(self, frame, depth, frame_time):
-        app = get_app()
-        if not app.dmf_device:
-            return
-        self.last_frame = frame
-        now = datetime.now()
-        if (now - self.last_frame_time).total_seconds() < self.display_fps_inv:
-            # Wait to respect display FPS.
-            return
-
-        self.last_frame_time = now
 
     def on_message(self, bus, message):
         super(DmfDeviceView, self).on_message(bus, message)

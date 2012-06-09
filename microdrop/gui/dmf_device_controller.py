@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import traceback
 import shutil
+from datetime import datetime
 
 import gtk
 import numpy as np
@@ -37,7 +38,7 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
-        implements, PluginGlobals, IVideoPlugin, ScheduleRequest, emit_signal,\
+        implements, PluginGlobals, ScheduleRequest, emit_signal,\
         IAppStatePlugin
 from app_context import get_app
 from logger import logger
@@ -63,14 +64,15 @@ class DmfDeviceOptions(object):
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
     implements(IAppStatePlugin)
-    implements(IVideoPlugin)
     
     AppFields = Form.of(
-        Boolean.named('video_enabled').using(default=False, optional=True),
+        Boolean.named('video_enabled').using(default=False, optional=True,
+                properties={'show_in_gui': False}),
         Integer.named('overlay_opacity').using(default=30, optional=True,
             validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
         Integer.named('display_fps').using(default=30, optional=True,
-            validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)]),
+            validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)],
+            properties={'show_in_gui': False}),
         Directory.named('device_directory').using(default='', optional=True),
         String.named('transform_matrix').using(default='', optional=True,
             properties=dict(show_in_gui=False))
@@ -94,12 +96,12 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 if 'video_enabled' in values:
                     self.video_enabled = getattr(self, 'video_enabled', False)
                     video_enabled = values['video_enabled']
-                    if self.video_enabled and not video_enabled:
-                        self.video_enabled = False
-                        self.view.disable_video()
-                    elif not self.video_enabled and video_enabled:
-                        self.video_enabled = True
-                        self.view.enable_video()
+                    if not (self.video_enabled and video_enabled):
+                        if video_enabled:
+                            self.video_enabled = True
+                        else:
+                            self.video_enabled = False
+                        self.set_toggle_state(self.video_enabled)
                 if 'overlay_opacity' in values:
                     self.view.overlay_opacity = int(values.get('overlay_opacity'))
                 if 'display_fps' in values:
@@ -168,6 +170,13 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_save_dmf_device = app.builder.get_object('menu_save_dmf_device')
         self.menu_save_dmf_device_as = app.builder.get_object('menu_save_dmf_device_as')
 
+        self.menu_video = gtk.CheckMenuItem('Video enabled')
+        self.menu_video.show_all()
+        self.video_toggled_handler = self.menu_video.connect('toggled', self.on_menu_video__toggled)
+        self.set_toggle_state(self.video_enabled)
+
+        app.main_window_controller.menu_tools.append(self.menu_video)
+
         #app.signals["on_dmf_device_view_button_press_event"] = self.on_button_press
         #app.signals["on_dmf_device_view_key_press_event"] = self.on_key_press
         #app.signals["on_dmf_device_view_expose_event"] = self.view.on_expose
@@ -189,6 +198,27 @@ directory)?''' % (device_directory, self.previous_device_dir))
         emit_signal('on_app_options_changed', [self.name])
         self.view.pipeline = self.view.get_pipeline()
         self.view.pipeline.set_state(gst.STATE_PLAYING)
+
+    def request_frame(self):
+        warp_bin = self.view.pipeline.get_by_name('warp_bin')
+        warp_bin.grab_frame(self._on_new_frame)
+
+    def on_menu_video__toggled(self, widget):
+        app = get_app()
+        enable = widget.get_active()
+        result = yesno('To %s video, the application must be restarted.  '\
+                '''Restart now?''' % ('enable' if enable else 'disable'))
+        if result == gtk.RESPONSE_YES:
+            self.set_app_values(dict(video_enabled=enable))
+            app.main_window_controller.on_destroy(None)
+        else:
+            self.set_toggle_state(not enable)
+
+    def set_toggle_state(self, value):
+        if hasattr(self, 'menu_video'):
+            self.menu_video.handler_block(self.video_toggled_handler)
+            self.menu_video.set_active(value)
+            self.menu_video.handler_unblock(self.video_toggled_handler)
 
     def grab_frame(self):
         return self.view.grab_frame()
@@ -440,7 +470,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self._notify_observers_step_options_changed()
 
-    def on_new_frame(self, frame, depth, frame_time):
-        self.view.on_new_frame(frame, depth, frame_time)
+    def _on_new_frame(self, cv_img):
+        emit_signal('on_new_frame', [cv_img])
 
 PluginGlobals.pop_env()

@@ -73,7 +73,6 @@ class GStreamerVideoView(SlaveView):
                     and message.structure['new-state'] == gst.STATE_PLAYING:
                 self.start_time = datetime.fromtimestamp(
                     self.pipeline.get_clock().get_time() * 1e-9)
-            print message.src, message.parse_state_changed()
         elif t == gst.MESSAGE_ERROR:
             err, debug = message.parse_error()
             print "Error: %s" % err, debug
@@ -92,7 +91,6 @@ class GStreamerVideoView(SlaveView):
                 raise ValueError, 'Invalid window_xid.  Ensure the '\
                     'DrawingArea has been realized.'
             
-            print '[prepare-xwindow-id] %s' % self.window_xid
             imagesink.set_xwindow_id(self.window_xid)
             imagesink.expose()
             gtk.gdk.threads_leave()
