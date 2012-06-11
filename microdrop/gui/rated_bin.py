@@ -1,4 +1,6 @@
 import gst
+import gobject
+gobject.threads_init()
 
 
 class RatedBin(gst.Bin):

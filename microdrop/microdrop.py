@@ -38,6 +38,7 @@ import matplotlib
 from PIL import Image, ImageFont, ImageDraw
 import utility.uuid_minimal
 import gtk
+gtk.gdk.threads_init()
 import scipy.optimize
 
 settings = gtk.settings_get_default()

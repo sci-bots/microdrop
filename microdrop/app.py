@@ -24,6 +24,7 @@ import traceback
 import functools
 
 import gtk
+gtk.gdk.threads_init()
 import numpy as np
 from path import path
 import yaml

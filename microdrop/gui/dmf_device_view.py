@@ -26,6 +26,9 @@ from math import pi
 import os
 
 import gtk
+import gobject
+gtk.gdk.threads_init()
+gobject.threads_init()
 import cairo
 import numpy as np
 import yaml
@@ -168,26 +171,27 @@ class DmfDeviceView(GStreamerVideoView):
     def start_recording(self, video_path):
         if self.controller.video_enabled:
             camera_bin = self.pipeline.get_by_name('camera_bin')
+            camera_bin.set_property('filename', video_path)
             ready = False
             for i in range(5):
                 if camera_bin.get_property('ready-for-capture'):
                     ready = True
+                    print '[DmfDeviceView] camera ready-for-capture'
                     break
                 time.sleep(0.1)
             if not ready:
                 raise RuntimeError, 'camerabin is not ready for capture'
-            camera_bin.set_property('filename', video_path)
             camera_bin.emit('capture-start')
             logger.info('[DmfDeviceView] recording to: %s' % video_path)
 
     def stop_recording(self):
-        camera_bin = self.pipeline.get_by_name('camera_bin')
-        camera_bin.emit('capture-stop')
         if self.controller.video_enabled:
+            self.pipeline.set_state(gst.STATE_NULL)
             app = get_app()
             app.experiment_log.add_data({
                     'record_start_timestamp': self.start_time},
                             self.controller.name)
+            self.pipeline.set_state(gst.STATE_PLAYING)
 
     def get_pipeline(self):
         pipeline = gst.Pipeline('pipeline')
@@ -234,31 +238,6 @@ class DmfDeviceView(GStreamerVideoView):
             return RatedBin('video_src', video_src=video_src)
         else:
             return RatedBin('video_src')
-
-    def enable_video(self):
-        self.pipeline.set_state(gst.STATE_NULL)
-        camera_bin = self.pipeline.get_by_name('camera_bin')
-        camera_bin.set_property('video-source', self.get_video_src())
-        self.pipeline.set_state(gst.STATE_PLAYING)
-        if self.controller.video_enabled and \
-                self.pipeline.get_state()[0] == gst.STATE_CHANGE_FAILURE:
-            logger.warning('Could not connect to video cam. Disabling video.')
-            self.controller.set_app_values({'video_enabled': False})
-            self.pipeline.set_state(gst.STATE_NULL)
-            camera_bin = self.pipeline.get_by_name('camera_bin')
-            camera_bin.set_property('video-source', self.get_video_src())
-            self.pipeline.set_state(gst.STATE_PLAYING)
-
-        if not self.transform_matrix is None:
-           self.transform_matrix = self.transform_matrix
-        self.controller.set_overlay()
-
-    def disable_video(self):
-        self.pipeline.set_state(gst.STATE_NULL)
-        camera_bin = self.pipeline.get_by_name('camera_bin')
-        camera_bin.set_property('video-source', self.get_video_src())
-        self.pipeline.set_state(gst.STATE_PLAYING)
-        self.controller.set_overlay()
 
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)
