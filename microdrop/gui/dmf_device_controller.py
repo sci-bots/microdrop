@@ -83,6 +83,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.view = DmfDeviceView(self, 'device_view')
         self.view.connect('transform-changed', self.on_transform_changed)
         self.previous_device_dir = None
+        self.video_enabled = False
         
     def on_transform_changed(self, device_view, array):
         self.set_app_values(
@@ -110,7 +111,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     self.apply_device_dir(values['device_directory'])
                 if 'transform_matrix' in values:
                     matrix = yaml.load(values['transform_matrix'])
-                    if len(matrix):
+                    if matrix is not None and len(matrix):
                         matrix = np.array(matrix, dtype='float32')
                         self.view.transform_matrix = matrix
 
