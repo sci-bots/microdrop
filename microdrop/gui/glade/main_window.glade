@@ -463,13 +463,13 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkLabel" id="label_connection_status">
+                  <object class="GtkLabel" id="label_control_board_status">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="xalign">0</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
-                    <property name="label" translatable="yes">Not Connected</property>
+                    <property name="label" translatable="yes">Not connected</property>
                     <property name="use_markup">True</property>
                     <property name="width_chars">20</property>
                   </object>
@@ -486,7 +486,7 @@
                     <property name="xalign">0</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
-                    <property name="label" translatable="yes">Device name</property>
+                    <property name="label" translatable="yes">Device name:</property>
                     <property name="use_markup">True</property>
                   </object>
                   <packing>
@@ -502,7 +502,7 @@
                     <property name="xalign">0</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
-                    <property name="label" translatable="yes">Protocol name</property>
+                    <property name="label" translatable="yes">Protocol name:</property>
                     <property name="use_markup">True</property>
                   </object>
                   <packing>
@@ -518,7 +518,7 @@
                     <property name="xalign">0</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
-                    <property name="label" translatable="yes">Experiment: ?</property>
+                    <property name="label" translatable="yes">Experiment:</property>
                     <property name="use_markup">True</property>
                     <property name="width_chars">20</property>
                   </object>

@@ -61,7 +61,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
         self.name = "microdrop.gui.main_window_controller"
         self.builder = None
         self.view = None
-        self.label_connection_status = None
+        self.label_control_board_status = None
         self.label_experiment_id = None
         self.label_device_name = None
         self.label_protocol_name = None
@@ -90,7 +90,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
                                                "main_window.glade"))
         self.view = app.builder.get_object("window")
         DEFAULTS.parent_widget = self.view
-        self.label_connection_status = app.builder.get_object("label_connection_status")
+        self.label_control_board_status = app.builder.get_object("label_control_board_status")
         self.label_experiment_id = app.builder.get_object("label_experiment_id")
         self.label_device_name = app.builder.get_object("label_device_name")
         self.label_protocol_name = app.builder.get_object("label_protocol_name")
