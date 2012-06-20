@@ -1,11 +1,12 @@
+import sys
 import logging
 
 import gtk
 from path import path
 from pygtkhelpers.utils import gsignal
-from pygtkhelpers.forms import view_widgets, element_views, ElementBuilder, widget_for, FormView
+from pygtkhelpers.forms import view_widgets, element_views, ElementBuilder, widget_for, FormView, IntegerBuilder
 from pygtkhelpers.proxy import widget_proxies, GObjectProxy, proxy_for
-from flatland.schema import String, Form, Integer
+from flatland.schema import String, Form, Integer, Float
 
 
 VIEW_FILEPATH = 'filepath'
@@ -126,10 +127,34 @@ class FilepathBuilder(ElementBuilder):
 
 
 class DirectoryBuilder(FilepathBuilder):
+    default_style = 'browse'
+
     styles = {
         # <textbox> <browse button>
         'browse': DirectoryWidget,
     }
+
+
+class FloatBuilder(IntegerBuilder):
+    default_style = 'spin'
+
+    styles = {
+        'spin': gtk.SpinButton,
+        'slider': gtk.HScale,
+    }
+
+    def build(self, widget, style, element, options):
+        widget.set_digits(2)
+        adj = widget.get_adjustment()
+        min, max = sys.float_info.min, sys.float_info.max
+        for v in element.validators:
+            if hasattr(v, 'minimum'):
+                min = v.minimum
+            elif hasattr(v, 'maximum'):
+                max = v.maximum
+        args = (min, min, max, 0.1, 10.0)
+        adj.set_all(*args)
+        return widget
 
 
 class FilepathProxy(GObjectProxy):
@@ -144,10 +169,14 @@ class FilepathProxy(GObjectProxy):
         self.widget.value = value
 
 
+VIEW_FLOAT = 'float'
+
+
 #: Map of flatland element types to view types
 element_views.update({
     Filepath: VIEW_FILEPATH,
     Directory: VIEW_DIRECTORY,
+    Float: VIEW_FLOAT,
 })
 
 
@@ -155,6 +184,7 @@ element_views.update({
 view_widgets.update({
     VIEW_FILEPATH: FilepathBuilder(),
     VIEW_DIRECTORY: DirectoryBuilder(),
+    VIEW_FLOAT: FloatBuilder(),
 })
 
 
@@ -168,6 +198,7 @@ if __name__ == '__main__':
     window = gtk.Window()
     form = Form.of(
         Integer.named('overlay_opacity').using(default=20, optional=True),
+        Float.named('float_value').using(default=10.37, optional=True),
         Filepath.named('log_filepath').using(default='', optional=True),
         Directory.named('devices_directory').using(default='', optional=True)
     )
