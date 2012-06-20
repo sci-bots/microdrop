@@ -163,6 +163,12 @@ class CombinedFields(ObjectList):
                 elif val_type == int:
                     # Use spinner for integer cells
                     d['use_spin'] = True
+                    d['step'] = field_name.properties.get('step', 1)
+                elif val_type == float:
+                    # Use spinner for integer cells
+                    d['use_spin'] = True
+                    d['digits'] = field_name.properties.get('digits', 2)
+                    d['step'] = field_name.properties.get('step', 0.1)
                 self._columns.append(Column(**d))
                 self._full_field_to_field_def[name] = field_name
         super(CombinedFields, self).__init__(self._columns, **kwargs)
