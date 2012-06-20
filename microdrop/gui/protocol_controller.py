@@ -314,7 +314,10 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_pause"))
         emit_signal("on_protocol_run")
+        gtk.idle_add(self._run_protocol)
         
+    def _run_protocol(self):
+        app = get_app()
         while app.running:
             self.run_step()
 

@@ -10,15 +10,23 @@ class RatedBin(gst.Bin):
         width_text = ',width=%s' % width
         height_text = ',height=%s' % height
         fps_text = ',framerate=%s/1' % fps
-        caps_str = 'video/x-raw-yuv'
+        caps_str = 'video/x-raw-yuv,format=(fourcc)YUY2%s%s' % (width_text,
+                height_text)
+        native_fps_list = [15, 30]
+        for native_fps in native_fps_list:
+            if native_fps >= fps:
+                break
+        if fps <= native_fps:
+            caps_str += ',framerate=%s/1' % native_fps
+        print caps_str
 
         if video_src is None:
-            video_src = gst.element_factory_make('autovideosrc', 'video_src')
+            video_src = gst.element_factory_make('autovideosrc', 'src')
         caps = gst.Caps(caps_str)
         caps_filter = gst.element_factory_make('capsfilter', 'caps_filter')
         caps_filter.set_property('caps', caps)
 
-        caps_str = 'video/x-raw-yuv%s%s%s' % (width_text, height_text, fps_text)
+        caps_str = 'video/x-raw-yuv,format=(fourcc)YUY2%s%s%s' % (width_text, height_text, fps_text)
 
         rate_caps = gst.Caps(caps_str)
         rate_caps_filter = gst.element_factory_make('capsfilter', 'rate_caps_filter')

@@ -82,9 +82,14 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.name = "microdrop.gui.dmf_device_controller"        
         self.view = DmfDeviceView(self, 'device_view')
         self.view.connect('transform-changed', self.on_transform_changed)
+        self.view.connect('video-started', self.on_video_started)
         self.previous_device_dir = None
         self.video_enabled = False
         
+    def on_video_started(self, device_view, start_time):
+        self.set_app_values(
+            dict(transform_matrix=self.get_app_value('transform_matrix')))
+
     def on_transform_changed(self, device_view, array):
         self.set_app_values(
             dict(transform_matrix=yaml.dump(array.tolist())))
@@ -113,7 +118,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     matrix = yaml.load(values['transform_matrix'])
                     if matrix is not None and len(matrix):
                         matrix = np.array(matrix, dtype='float32')
-                        self.view.transform_matrix = matrix
+                        if self.view.pipeline:
+                            self.view.transform_matrix = matrix
 
             elif plugin_name == 'microdrop.gui.video_controller':
                 observers = ExtensionPoint(IPlugin)
@@ -197,8 +203,21 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 data[k] = v
         app.set_data(self.name, data)
         emit_signal('on_app_options_changed', [self.name])
+        gtk.idle_add(self.init_pipeline)
+
+    def init_pipeline(self):
         self.view.pipeline = self.view.get_pipeline()
-        self.view.pipeline.set_state(gst.STATE_PLAYING)
+        result = self.view.pipeline.set_state(gst.STATE_PLAYING)
+        if result == gst.STATE_CHANGE_FAILURE and self.video_enabled:
+            logger.warning(
+                    'Error starting video.  Disabling video and restarting the'\
+                            'application.')
+            self.set_app_values(dict(video_enabled=False))
+            app = get_app()
+            gtk.idle_add(app.main_window_controller.on_destroy, None)
+        elif result == gst.STATE_CHANGE_ASYNC:
+            while self.view.pipeline.get_state()[1] != gst.STATE_PLAYING:
+                pass
 
     def request_frame(self):
         warp_bin = self.view.pipeline.get_by_name('warp_bin')
@@ -262,6 +281,11 @@ directory)?''' % (device_directory, self.previous_device_dir))
             result = yesno('Device %s has unsaved changes.  Save now?' % app.dmf_device.name)
             if result == gtk.RESPONSE_YES:
                 self.save_dmf_device()
+        if self.view.pipeline:
+            result = self.view.pipeline.set_state(gst.STATE_NULL)
+            if result == gst.STATE_CHANGE_ASYNC:
+                while self.view.pipeline.get_state()[1] != gst.STATE_NULL:
+                    pass
         
     def get_default_options(self):
         return DmfDeviceOptions()

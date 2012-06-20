@@ -59,6 +59,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
     )
 
     def __init__(self):
+        self._shutting_down_latch = False
         self.name = "microdrop.gui.main_window_controller"
         self.builder = None
         self.view = None
@@ -148,10 +149,12 @@ class MainWindowController(SingletonPlugin, AppDataController):
         return name
 
     def on_delete_event(self, widget, data=None):
-        pass
+        if not self._shutting_down_latch:
+            self._shutting_down_latch = True
+            emit_signal("on_app_exit")
 
     def on_destroy(self, widget, data=None):
-        emit_signal("on_app_exit")
+        self.on_delete_event(None)
         gtk.main_quit()
         observers = ExtensionPoint(IPlugin)
         service = observers.service('microdrop.gui.video_controller')

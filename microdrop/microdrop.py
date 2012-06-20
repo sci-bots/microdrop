@@ -33,12 +33,12 @@ except ImportError:
 
 # The following imports ensure that the corresponding modules are processed
 # by PyInstaller when generating an EXE.
+import gtk
+gtk.gdk.threads_init()
 import blinker
 import matplotlib
 from PIL import Image, ImageFont, ImageDraw
 import utility.uuid_minimal
-import gtk
-gtk.gdk.threads_init()
 import scipy.optimize
 
 settings = gtk.settings_get_default()

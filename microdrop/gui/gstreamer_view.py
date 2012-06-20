@@ -6,6 +6,7 @@ import gtk
 import gst
 import gobject
 from pygtkhelpers.delegates import SlaveView
+from pygtkhelpers.utils import gsignal
 
 
 # We need to call threads_init() to ensure correct gtk operation with
@@ -18,6 +19,10 @@ class GStreamerVideoView(SlaveView):
     """
     SlaveView for displaying GStreamer video sink
     """
+
+    gsignal('video-started', object)
+
+
     def __init__(self, pipeline, force_aspect_ratio=True):
         self.widget = gtk.DrawingArea()
         self.widget.connect('realize', self.on_realize)
@@ -51,7 +56,7 @@ class GStreamerVideoView(SlaveView):
 
     @pipeline.setter
     def pipeline(self, pipeline):
-        if hasattr(self, '_pipeline'):
+        if hasattr(self, '_pipeline') and self._pipeline:
             self._pipeline.set_state(gst.STATE_NULL)
             if hasattr(self, 'sink') and self.sink:
                 self.sink.set_xwindow_id(0)
@@ -73,6 +78,7 @@ class GStreamerVideoView(SlaveView):
                     and message.structure['new-state'] == gst.STATE_PLAYING:
                 self.start_time = datetime.fromtimestamp(
                     self.pipeline.get_clock().get_time() * 1e-9)
+                self.emit('video-started', self.start_time)
         elif t == gst.MESSAGE_ERROR:
             err, debug = message.parse_error()
             print "Error: %s" % err, debug

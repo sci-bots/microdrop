@@ -34,6 +34,7 @@ import numpy as np
 import yaml
 import gst
 
+from .record_bin import RecordBin
 from .warp_cairo_draw import WarpBin
 from .rated_bin import RatedBin
 from .gstreamer_view import GStreamerVideoView
@@ -162,63 +163,34 @@ class DmfDeviceView(GStreamerVideoView):
         self.sink = None
         self.window_xid = None
         SlaveView.__init__(self)
-        self.pipeline = self.get_pipeline()
+        #self.pipeline = self.get_pipeline()
 
     def grab_frame(self):
         #return self.play_bin.grab_frame()
         return None
 
     def start_recording(self, video_path):
-        if self.controller.video_enabled:
-            camera_bin = self.pipeline.get_by_name('camera_bin')
-            camera_bin.set_property('filename', video_path)
-            ready = False
-            for i in range(5):
-                if camera_bin.get_property('ready-for-capture'):
-                    ready = True
-                    print '[DmfDeviceView] camera ready-for-capture'
-                    break
-                time.sleep(0.1)
-            if not ready:
-                raise RuntimeError, 'camerabin is not ready for capture'
-            camera_bin.emit('capture-start')
-            logger.info('[DmfDeviceView] recording to: %s' % video_path)
+        pass
 
     def stop_recording(self):
-        if self.controller.video_enabled:
-            self.pipeline.set_state(gst.STATE_NULL)
-            app = get_app()
-            app.experiment_log.add_data({
-                    'record_start_timestamp': self.start_time},
-                            self.controller.name)
-            self.pipeline.set_state(gst.STATE_PLAYING)
+        pass
 
     def get_pipeline(self):
         pipeline = gst.Pipeline('pipeline')
 
-        camera_bin = gst.element_factory_make('camerabin', 'camera_bin')
         warp_bin = WarpBin('warp_bin', draw_on=self._draw_on)
 
-        camera_bin.set_property('viewfinder-filter', warp_bin)
+        video_src = self.get_video_src()
+        video_sink = gst.element_factory_make('autovideosink', 'video_sink')
+        tee = gst.element_factory_make('tee', 'tee')
+        display_queue = gst.element_factory_make('queue', 'display_queue')
+        pipeline.add(video_src, tee, display_queue, warp_bin, video_sink)
 
-        # Disable audio
-        flags = camera_bin.get_property('flags')
-        camera_bin.set_property('flags', flags | 0x020)
+        video_src.link(tee)
+        tee.link(display_queue)
+        display_queue.link(warp_bin)
+        warp_bin.link(video_sink)
 
-        # Set mode to video (rather than image)
-        camera_bin.set_property('mode', 1)
-
-        camera_bin.set_property('video-source', self.get_video_src())
-
-        # Set recording format to mpeg4 avi
-        avi_mux = gst.element_factory_make('avimux', 'avi_mux')
-        ffenc_mpeg4 = gst.element_factory_make('ffenc_mpeg4', 'ffenc_mpeg40') 
-        ffenc_mpeg4.set_property('bitrate', 1200000)
-
-        camera_bin.set_property('video-muxer', avi_mux)
-        camera_bin.set_property('video-encoder', ffenc_mpeg4)
-
-        pipeline.add(camera_bin)
         clock = pipeline.get_clock()
         clock.set_property('clock-type', 0)
 
@@ -233,15 +205,15 @@ class DmfDeviceView(GStreamerVideoView):
             blank_screen = True
 
         if blank_screen:
-            video_src = gst.element_factory_make('videotestsrc', 'video_src')
+            video_src = gst.element_factory_make('videotestsrc', 'test_src')
             video_src.set_property('pattern', 2)
-            return RatedBin('video_src', video_src=video_src)
+            return RatedBin('rated_bin', video_src=video_src)
         else:
-            return RatedBin('video_src')
+            video_src = None
+            return RatedBin('rated_bin', video_src=video_src)
 
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)
-        self.pipeline.set_state(gst.STATE_PLAYING)
 
     def on_device_area__size_allocate(self, *args):
         x, y, width, height = self.device_area.get_allocation()
@@ -252,37 +224,6 @@ class DmfDeviceView(GStreamerVideoView):
         if app.dmf_device and len(app.dmf_device.electrodes):
             if padding is None:
                 padding = 10
-            '''
-
-            display_scale_x = (display_dims.width) / device.width
-            display_scale_y = (display_dims.height) / device.height
-            self.display_scale = min(display_scale_x, display_scale_y)
-            if display_scale_x < display_scale_y: # center device vertically
-                self.display_offset = (-device.x,
-                               -device.y + \
-                               ((display_dims.height)\
-                                        / self.display_scale - device.height) / 2)
-            else:  # center device horizontally
-                self.display_offset = (-device.x +  \
-                               ((display_dims.width)\
-                                    / self.display_scale - device.width) / 2,
-                                - device.y)
-
-            video_dims = Dims(0, 0, 640, 480)
-            video_scale_x = (video_dims.width) / device.width
-            video_scale_y = (video_dims.height) / device.height
-            self.video_scale = min(video_scale_x, video_scale_y)
-            if video_scale_x < video_scale_y: # center device vertically
-                self.video_offset = (-device.x,
-                               -device.y + \
-                               ((video_dims.height)\
-                                        / self.video_scale - device.height) / 2)
-            else:  # center device horizontally
-                self.video_offset = (-device.x +  \
-                               ((video_dims.width)\
-                                    / self.video_scale - device.width) / 2,
-                                - device.y)
-            '''
 
             device = Dims(*app.dmf_device.get_bounding_box())
             display_dims = Dims(*self.device_area.get_allocation())
@@ -301,25 +242,6 @@ class DmfDeviceView(GStreamerVideoView):
                                 - device.y + padding / self.display_scale)
             warp_bin = self.pipeline.get_by_name('warp_bin')
             warp_bin.scale(display_dims.width, display_dims.height)
-
-            '''
-            video_dims = Dims(0, 0, 640, 480)
-            video_scale_x = (video_dims.width - 2 * padding) / device.width
-            video_scale_y = (video_dims.height - 2 * padding) / device.height
-            self.video_scale = min(video_scale_x, video_scale_y)
-            if video_scale_x < video_scale_y: # center device vertically
-                self.video_offset = (-device.x + padding / self.video_scale,
-                               -device.y + padding / self.video_scale + \
-                               ((video_dims.height - 2 * padding)\
-                                        / self.video_scale - device.height) / 2)
-            else:  # center device horizontally
-                self.video_offset = (-device.x + padding / self.video_scale +  \
-                               ((video_dims.width - 2 * padding)\
-                                    / self.video_scale - device.width) / 2,
-                                - device.y + padding / self.video_scale)
-
-            #self.play_bin.scale(display_dims.width, display_dims.height)
-            '''
 
     def _draw_on(self, buf):
         try:
@@ -428,12 +350,7 @@ class DmfDeviceView(GStreamerVideoView):
                 if self.transform_matrix is not None:
                     self.transform_matrix = self.transform_matrix
             else:
-                camera_bin = self.pipeline.get_by_name('camera_bin')
-                video_encoder = camera_bin.get_property('video-encoder')
-                if message.src == video_encoder and\
-                        message.structure['new-state'] == gst.STATE_PLAYING:
-                    self.start_time = datetime.fromtimestamp(
-                        self.pipeline.get_clock().get_time() * 1e-9)
+                pass
 
     @property
     def transform_matrix(self):
@@ -444,8 +361,7 @@ class DmfDeviceView(GStreamerVideoView):
         self._transform_matrix = transform_matrix
         transform_str = ','.join([str(v)
                 for v in transform_matrix.flatten()])
-        camera_bin = self.pipeline.get_by_name('camera_bin')
-        warp_bin = camera_bin.get_by_name('warp_bin')
+        warp_bin = self.pipeline.get_by_name('warp_bin')
         if warp_bin:
             warp_bin.warper.set_property('transform-matrix', transform_str)
 
@@ -473,17 +389,17 @@ class DmfDeviceView(GStreamerVideoView):
 
         cv.Resize(cv_img, video_image)
 
-        # Since this function may have been called from outside the main
-        # thread, we need to surround GTK code with threads_enter/leave()
-        gtk.gdk.threads_enter()
-        dialog = DeviceRegistrationDialog(device_image, video_image)
-        results = dialog.run()
-        gtk.gdk.threads_leave()
-        if results:
-            array = np.fromstring(results.tostring(), dtype='float32',
-                    count=results.width * results.height)
-            array.shape = (results.width, results.height)
-            self.emit('transform-changed', array)
+        def do_device_registration():
+            # Since this function may have been called from outside the main
+            # thread, we need to surround GTK code with threads_enter/leave()
+            dialog = DeviceRegistrationDialog(device_image, video_image)
+            results = dialog.run()
+            if results:
+                array = np.fromstring(results.tostring(), dtype='float32',
+                        count=results.width * results.height)
+                array.shape = (results.width, results.height)
+                self.emit('transform-changed', array)
+        gtk.idle_add(do_device_registration)
 
     
 class DeviceRegistrationDialog(RegistrationDialog):
