@@ -175,6 +175,8 @@ if __name__ == "__main__":
               ("pymunk", "exe", "http://pymunk.googlecode.com/files/pymunk-2.1.0.win32.exe"),
               ("pylint", "pip", "http://download.logilab.org/pub/pylint/pylint-0.25.1.tar.gz"),
               ("constraint", "pip", "https://github.com/cfobel/python___labix_constraint/tarball/master"),
+              ("gstreamer", "msi", "http://ossbuild.googlecode.com/files/GStreamer-WinBuilds-LGPL-x86-Beta04-0.10.7.msi"),
+              ("gstreamer-sdk", "msi", "http://ossbuild.googlecode.com/files/GStreamer-WinBuilds-SDK-LGPL-x86-Beta04-0.10.7.msi"),
               ):
         try:
             exec("import " + p[0])

@@ -58,7 +58,9 @@ class ElectrodeContextMenu(SlaveView):
     The signal 'registration-request' is triggered when registration is
     selected from the menu.
     '''
-    builder_file = 'right_click_popup.glade'
+
+    from utility import base_path
+    builder_file = base_path().joinpath('gui', 'glade', 'right_click_popup.glade')
 
     gsignal('registration-request')
 
@@ -137,7 +139,8 @@ class DmfDeviceView(GStreamerVideoView):
     a channel has changed as a result of interaction with the device
     view.
     '''
-    builder_file = 'dmf_device_view.glade'
+    from utility import base_path
+    builder_file = base_path().joinpath('gui', 'glade', 'dmf_device_view.glade')
 
     gsignal('channel-state-changed', object)
     gsignal('transform-changed', object)
