@@ -198,7 +198,7 @@ class ExperimentLog():
             self.experiment_id = None
             return
         if(os.path.isdir(self.directory)==False):
-            os.mkdir(self.directory)
+            os.makedirs(self.directory)
         logs = os.listdir(self.directory)
         self.experiment_id = 0
         for i in logs:
