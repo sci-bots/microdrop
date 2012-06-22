@@ -26,6 +26,9 @@ import cairo
 import numpy as np
 import yaml
 
+from .warp_cairo_draw import WarpBin
+from .rated_bin import RatedBin
+from .gstreamer_view import GStreamerVideoView
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
 from app_context import get_app

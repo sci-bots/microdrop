@@ -152,11 +152,13 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_save_dmf_device = app.builder.get_object('menu_save_dmf_device')
         self.menu_save_dmf_device_as = app.builder.get_object('menu_save_dmf_device_as')
 
-        #app.signals["on_dmf_device_view_button_press_event"] = self.on_button_press
-        #app.signals["on_dmf_device_view_key_press_event"] = self.on_key_press
-        #app.signals["on_dmf_device_view_expose_event"] = self.view.on_expose
-        #app.signals["on_menu_edit_electrode_channels_activate"] = self.on_edit_electrode_channels
-        #app.signals["on_menu_edit_electrode_area_activate"] = self.on_edit_electrode_area
+        self.menu_video = gtk.CheckMenuItem('Video enabled')
+        self.menu_video.show_all()
+        self.video_toggled_handler = self.menu_video.connect('toggled', self.on_menu_video__toggled)
+        self.set_toggle_state(self.video_enabled)
+
+        app.main_window_controller.menu_tools.append(self.menu_video)
+
         app.signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
         app.signals["on_menu_import_dmf_device_activate"] = \
                 self.on_import_dmf_device
