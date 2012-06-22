@@ -34,7 +34,6 @@ import numpy as np
 import yaml
 import gst
 
-from .record_bin import RecordBin
 from .warp_cairo_draw import WarpBin
 from .rated_bin import RatedBin
 from .gstreamer_view import GStreamerVideoView

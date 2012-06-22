@@ -133,7 +133,8 @@ class MainWindowController(SingletonPlugin, AppDataController):
         #self.pipeline.set_state(gst.STATE_PLAYING)
         
     def main(self):
-        emit_signal("on_step_run")
+        if get_app().protocol:
+            emit_signal("on_step_run")
         gtk.main()
 
     def get_text_input(self, title, label, default_value=""):

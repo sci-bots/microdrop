@@ -184,11 +184,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
         app.main_window_controller.menu_tools.append(self.menu_video)
 
-        #app.signals["on_dmf_device_view_button_press_event"] = self.on_button_press
-        #app.signals["on_dmf_device_view_key_press_event"] = self.on_key_press
-        #app.signals["on_dmf_device_view_expose_event"] = self.view.on_expose
-        #app.signals["on_menu_edit_electrode_channels_activate"] = self.on_edit_electrode_channels
-        #app.signals["on_menu_edit_electrode_area_activate"] = self.on_edit_electrode_area
         app.signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
         app.signals["on_menu_import_dmf_device_activate"] = \
                 self.on_import_dmf_device

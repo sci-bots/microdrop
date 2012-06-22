@@ -55,7 +55,8 @@ class FormViewDialog(object):
             else:
                 value = field.element.default_value
             proxy.set_widget_value(value)
-            field.widget.set_activates_default(gtk.TRUE)
+            if hasattr(field.widget, 'set_activates_default'):
+                field.widget.set_activates_default(gtk.TRUE)
             field.label_widget.set_use_markup(use_markup)
         self.clear_form()
         self.vbox_form.pack_start(form_view.widget)
