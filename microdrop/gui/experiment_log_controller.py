@@ -156,7 +156,7 @@ class ExperimentLogController(SingletonPlugin):
                 if 'step' in d['core'].keys() and 'time' in d['core'].keys():
                     step = self.results.protocol[d['core']['step']]
                     dmf_plugin_name = step.plugin_name_lookup(
-                        r'wheelerlab.dmf_control_board_', re_pattern=True)
+                        r'wheelerlab.dmf_control_board', re_pattern=True)
                     options = step.get_data(dmf_plugin_name)
                     vals = []
                     if not options:
