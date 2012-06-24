@@ -44,6 +44,7 @@ from opencv.safe_cv import cv
 from opencv.registration_dialog import RegistrationDialog
 from utility.gui import text_entry_dialog
 from logger import logger
+from plugin_manager import emit_signal
 import app_state
 
 
@@ -321,6 +322,7 @@ class DmfDeviceView(GStreamerVideoView):
                     else:
                         state[channel] = 1
                 self.emit('channel-state-changed', electrode.channels[:])
+                emit_signal('on_step_run')
             else:
                 logger.error("no channel assigned to electrode.")
         elif event.button == 3:
