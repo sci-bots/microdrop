@@ -29,6 +29,7 @@ import gtk
 from path import path
 import yaml
 from flatland import Form, String
+from jsonrpc.proxy import JSONRPCException
 
 from plugin_repository import PluginRepository
 import plugin_manager
@@ -106,25 +107,11 @@ class PluginController(object):
 
     def on_button_update_clicked(self, widget, data=None):
         plugin_name = self.get_plugin_module_name()
-        server_url = self.controller.get_app_value('server_url')
         try:
-            p = PluginRepository(server_url)
-            latest_version = Version(**p.latest_version(plugin_name))
-            if self.version < latest_version:
-                temp_dir = path(tempfile.mkdtemp(
-                        prefix='microdrop_plugin_update'))
-                try:
-                    p.download_latest(plugin_name, temp_dir)
-                    archive_path = temp_dir.files()[0]
-                    self.controller.install_from_archive(archive_path)
-                finally:
-                    temp_dir.rmtree()
-            else:
-                logging.warning('Plugin %s is up to date (version %s)' % (
-                        plugin_name, self.version))
-        except IOError:
-            logging.error('Could not connect to plugin repository at: %s' % (
-                    server_url))
+            self.controller.update_plugin(plugin_name, verbose=True)
+        except JSONRPCException:
+            logging.info('Plugin %s not available on plugin server %s' % (
+                    plugin_name, self.controller.get_app_value('server_url')))
             return True
         return True
 
@@ -166,6 +153,29 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         self.rename_queue = []
         self.restart_required = False
         self.e = plugin_manager.PluginGlobals.env('microdrop.managed')
+
+    def update_plugin(self, plugin_controller, verbose=False):
+        server_url = self.get_app_value('server_url')
+        plugin_name = plugin_controller.get_plugin_module_name()
+        p = PluginRepository(server_url)
+        latest_version = Version(**p.latest_version(plugin_name))
+        if plugin_controller.version < latest_version:
+            temp_dir = path(tempfile.mkdtemp(
+                    prefix='microdrop_plugin_update'))
+            try:
+                p.download_latest(plugin_name, temp_dir)
+                archive_path = temp_dir.files()[0]
+                self.install_from_archive(archive_path)
+                return True
+            finally:
+                temp_dir.rmtree()
+        else:
+            message = 'Plugin %s is up to date (version %s)' % (plugin_name,
+                    plugin_controller.version)
+            if verbose:
+                logging.warning(message)
+            logging.info(message)
+        return False
 
     def get_plugin_names(self):
         return list(self.e.plugin_registry.keys())

@@ -30,6 +30,7 @@ from pygtkhelpers.ui.dialogs import open_filechooser, info
 from path import path
 import yaml
 from flatland import Form, String
+from jsonrpc.proxy import JSONRPCException
 
 from plugin_repository import PluginRepository
 import plugin_manager
@@ -89,8 +90,18 @@ Please start program again for changes to take effect.''')
 
         return self.controller.install_from_archive(response)
 
-    def on_button_download_clicked(self, *args, **kwargs):
-        pass
+    def on_button_update_all_clicked(self, *args, **kwargs):
+        for p in self.controller.plugins:
+            plugin_name = p.get_plugin_module_name()
+            try:
+                self.controller.update_plugin(p)
+            except JSONRPCException:
+                logging.info('Plugin %s not available on plugin server %s' % (
+                        plugin_name, self.controller.get_app_value('server_url')))
+            except IOError:
+                logging.error('Could not connect to plugin repository at: %s' % (
+                        server_url))
+                return True
 
 
 if __name__ == '__main__':
