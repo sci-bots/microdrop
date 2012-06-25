@@ -24,6 +24,7 @@ import time
 import traceback
 from math import pi
 import os
+import tempfile
 
 import gtk
 import gobject
