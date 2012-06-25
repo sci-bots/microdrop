@@ -25,6 +25,9 @@ class AppDataController(object):
             if k not in data:
                 data[k] = v
         app.set_data(self.name, data)
+
+        if not self.name in app.config.data:
+            app.config.data[self.name] = self.get_app_values()
     
     def get_default_app_options(self):
         return dict([(k, v.value) for k,v in self.AppFields.from_defaults().iteritems()])
