@@ -44,7 +44,7 @@ from opencv.safe_cv import cv
 from opencv.registration_dialog import RegistrationDialog
 from utility.gui import text_entry_dialog
 from logger import logger
-from plugin_manager import emit_signal
+from plugin_manager import emit_signal, IPlugin
 import app_state
 
 
@@ -73,27 +73,39 @@ class ElectrodeContextMenu(SlaveView):
         # TODO: set default value
         channel_list = ','.join([str(i) for i in self.last_electrode_clicked.channels])
         app = get_app()
+        options = self.model.controller.get_step_options()
+        state = options.state_of_channels
         channel_list = text_entry_dialog('Channels', channel_list, 'Edit electrode channels')
         if channel_list:
             channels = channel_list.split(',')
-            #try: # convert to integers
-            if len(channels[0]):
-                for i in range(0,len(channels)):
-                    channels[i] = int(channels[i])
-            else:
-                channels = []
-            if channels and max(channels) >= len(self.state_of_channels):
-                # zero-pad channel states for all steps
-                for i in range(len(app.protocol)):
-                    self.state_of_channels[:] = \
-                        np.concatenate([self.state_of_channels,
-                        np.zeros(max(channels) - \
-                        len(self.state_of_channels)+1, int)])
-            self.last_electrode_clicked.channels = channels
-            app.state.trigger_event(app_state.DEVICE_CHANGED)
-            #except:
-                #logger.error("Invalid channel.")
-        
+            try: # convert to integers
+                if len(channels[0]):
+                    for i in range(0,len(channels)):
+                        channels[i] = int(channels[i])
+                else:
+                    channels = []
+                if channels and max(channels) >= len(state):
+                    # zero-pad channel states for all steps
+                    for i in range(len(app.protocol)):
+                        options = self.model.controller.get_step_options(i)
+                        options.state_of_channels = \
+                            np.concatenate([options.state_of_channels, \
+                                np.zeros(max(channels) - \
+                                len(options.state_of_channels)+1, int)])
+                        # don't emit signal for current step, we will do that after
+                        if i != app.protocol.current_step_number:
+                            emit_signal('on_step_options_changed',
+                                        [self.model.controller.name, i],
+                                        interface=IPlugin)
+                self.last_electrode_clicked.channels = channels
+                emit_signal('on_step_options_changed',
+                            [self.model.controller.name,
+                             app.protocol.current_step_number],
+                            interface=IPlugin)
+                app.state.trigger_event(app_state.DEVICE_CHANGED)
+            except:
+                logger.error("Invalid channel.")
+
     def on_edit_electrode_area__activate(self, widget, data=None):
         app = get_app()
         if app.dmf_device.scale is None:
