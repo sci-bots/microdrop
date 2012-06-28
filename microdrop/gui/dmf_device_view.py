@@ -51,6 +51,7 @@ import app_state
 
 Dims = namedtuple('Dims', 'x y width height')
 
+
 class ElectrodeContextMenu(SlaveView):
     '''
     Slave view for context-menu for an electrode in the DMF device
@@ -337,7 +338,7 @@ class DmfDeviceView(GStreamerVideoView):
                 self.emit('channel-state-changed', electrode.channels[:])
                 emit_signal('on_step_run')
             else:
-                logger.error("no channel assigned to electrode.")
+                logger.error("No channel assigned to electrode.")
         elif event.button == 3:
             self.popup.popup(state, electrode, event.button, event.time,
                     register_enabled=self.controller.video_enabled)

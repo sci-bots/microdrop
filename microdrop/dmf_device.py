@@ -36,6 +36,10 @@ from svg_model.path_group import PathGroup
 from svg_model.body_group import BodyGroup
 
 
+class DeviceScaleNotSet(Exception):
+    pass
+
+
 class DmfDevice():
     class_version = str(Version(0,3,0))
     def __init__(self):
@@ -259,5 +263,4 @@ class Electrode:
         self.channels = []
 
     def area(self):
-        #return (self.x_max-self.x_min)*(self.y_max-self.y_min)
         return self.path.get_area()
