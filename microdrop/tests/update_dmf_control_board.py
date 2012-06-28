@@ -6,8 +6,8 @@ if __name__ == '__main__':
     
     if not os.path.exists('dmf_control_board'):
         print 'Clone dmf_control_board repository...'
-        subprocess.call(['git', 'clone',
+        subprocess.check_call(['git', 'clone',
             'http://microfluidics.utoronto.ca/git/dmf_control_board.git'])
     else:
         print 'Fetch lastest update...'
-        subprocess.call(['git', 'pull'])
+        subprocess.check_call(['git', 'pull'])
