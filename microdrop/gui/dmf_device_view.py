@@ -43,6 +43,7 @@ from app_context import get_app
 from opencv.safe_cv import cv
 from opencv.registration_dialog import RegistrationDialog
 from utility.gui import text_entry_dialog
+from utility import is_float
 from logger import logger
 from plugin_manager import emit_signal, IPlugin
 import app_state
