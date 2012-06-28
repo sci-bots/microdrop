@@ -36,15 +36,6 @@ PYTHON_VERSION = "%s.%s" % (sys.version_info[0],
 CACHE_PATH = "download_cache"
 
 
-def get_version(git_path):
-    from site_scons.git_util import GitUtil
-
-    g = GitUtil(git_path)
-    version = g.describe()
-    m = re.match('v(\d+)\.(\d+)-(\d+)', version)
-    return "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
-
-
 def in_path(filename):
     for d in os.environ['PATH'].split(';'):
         if os.path.isfile(os.path.join(d, filename)):
@@ -189,9 +180,8 @@ if __name__ == "__main__":
 
     packages = []
 
-    # We must check for the 'path' Python module separately since it is
-    # required by the git_util module.  The git_util.GitUtil class is used
-    # to get the version of the dmf_control_board plugin.
+    # We must check for setupstools, pip and path since they are used by this
+    # script.
     for p in (("setuptools", "py", "http://python-distribute.org/distribute_setup.py"),
               ("pip", "easy_install"),
               ("path", "pip", "http://microfluidics.utoronto.ca/git/path.py.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip")
