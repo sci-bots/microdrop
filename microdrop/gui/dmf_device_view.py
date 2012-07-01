@@ -62,7 +62,7 @@ class ElectrodeContextMenu(SlaveView):
     '''
 
     from utility import base_path
-    builder_file = base_path().joinpath('gui', 'glade', 'right_click_popup.glade')
+    builder_path = base_path().joinpath('gui', 'glade', 'right_click_popup.glade')
 
     gsignal('registration-request')
 
@@ -154,7 +154,7 @@ class DmfDeviceView(GStreamerVideoView):
     view.
     '''
     from utility import base_path
-    builder_file = base_path().joinpath('gui', 'glade', 'dmf_device_view.glade')
+    builder_path = base_path().joinpath('gui', 'glade', 'dmf_device_view.glade')
 
     gsignal('channel-state-changed', object)
     gsignal('transform-changed', object)
