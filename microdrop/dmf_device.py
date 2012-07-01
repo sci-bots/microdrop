@@ -129,7 +129,8 @@ class DmfDevice():
         if out==None:
             raise TypeError
         # check type
-        if out.__class__ != cls:
+        if not isinstance(out, cls):
+            print out.__class__, cls
             raise TypeError
         if not hasattr(out, 'version'):
             out.version = '0'
