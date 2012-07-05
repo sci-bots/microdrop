@@ -1,11 +1,49 @@
 import re
+from collections import namedtuple
+
+from path import path
+import yaml
 
 from app_context import get_app
 from logger import logger
-from plugin_manager import IPlugin, ExtensionPoint, emit_signal
+from plugin_manager import IPlugin, ExtensionPoint, emit_signal,\
+        get_service_instance_by_name
 from gui.plugin_manager_dialog import PluginManagerDialog
 from utility import Version
 from utility.git_util import GitUtil
+
+
+PluginMetaData = namedtuple('PluginMetaData', 'name version')
+PluginMetaData.as_dict = lambda self: dict([(k, str(v)) for k, v in zip(self._fields, self)])
+#PluginMetaData.from_dict = staticmethod(lambda data: PluginMetaData(data['name'], Version.fromstring(data['version'])))
+
+def from_dict(data):
+    name = data['name']
+    version = Version.fromstring(data['version'])
+    return PluginMetaData(name, version)
+
+
+PluginMetaData.from_dict = staticmethod(from_dict)
+
+def get_plugin_info(plugin_root):
+    '''
+    Return a tuple:
+        (installed_version, metadata)
+    If plugin is not installed, installed_version will be None.
+    If plugin is not valid, metadata will be None.
+    '''
+    required_paths = [path('microdrop').joinpath('__init__.py'),
+            path('properties.yml')]
+
+    for p in required_paths:
+        if not (plugin_root / p).isfile():
+            return None
+
+    # Load the plugin properties into a PluginMetaData object
+    properties = plugin_root / required_paths[-1]
+    plugin_metadata = PluginMetaData.from_dict(\
+            yaml.load(properties.bytes()))
+    return plugin_metadata
 
 
 class AppDataController(object):
@@ -170,7 +208,7 @@ def get_plugin_version(plugin_root):
         version = Version.fromstring(version_string)
         return version
     except AssertionError:
-        info = PluginManagerDialog.get_plugin_info(plugin_root)
+        info = get_plugin_info(plugin_root)
         if info:
             return info.version
         else:

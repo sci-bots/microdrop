@@ -37,7 +37,7 @@ from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
         implements, PluginGlobals
 import plugin_manager
-from plugin_helpers import AppDataController
+from plugin_helpers import AppDataController, get_plugin_info
 from logger import logger, CustomHandler, logging
 from gui.plugin_manager_dialog import PluginManagerDialog
 from utility.gui.form_view_dialog import FormViewDialog
@@ -55,6 +55,7 @@ import gui.main_window_controller
 import gui.dmf_device_controller
 import gui.protocol_controller
 import gui.protocol_grid_controller
+import gui.plugin_manager_controller
 #import gui.video_controller
 import gui.app_options_controller
 
@@ -157,7 +158,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
                             plugin_root = p
                         elif len(p.dirs()) == 1:
                             plugin_root = path(p.dirs()[0])
-                        info = PluginManagerDialog.get_plugin_info(plugin_root)
+                        info = get_plugin_info(plugin_root)
                         if info:
                             logger.info('  deleting %s' % p)
                             cwd = os.getcwd()
