@@ -215,6 +215,7 @@ if __name__ == "__main__":
               ("pymunk", "exe", "http://pymunk.googlecode.com/files/pymunk-2.1.0.win32.exe"),
               ("pylint", "pip", "http://download.logilab.org/pub/pylint/pylint-0.25.1.tar.gz"),
               ("constraint", "pip", "https://github.com/cfobel/python___labix_constraint/tarball/master"),
+              ("jsonrpc", "pip", "https://github.com/cfobel/python-jsonrpc/tarball/master"),
               ):
         try:
             exec("import " + p[0])
