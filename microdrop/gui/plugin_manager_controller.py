@@ -36,7 +36,7 @@ import plugin_manager
 from app_context import get_app
 from utility import Version
 from utility.gui import yesno
-from plugin_helpers import AppDataController
+from plugin_helpers import AppDataController, get_plugin_info
 from plugin_manager import get_service_instance_by_name, IPlugin, implements,\
         SingletonPlugin
 
@@ -108,7 +108,7 @@ class PluginController(object):
     def on_button_update_clicked(self, widget, data=None):
         plugin_name = self.get_plugin_module_name()
         try:
-            self.controller.update_plugin(plugin_name, verbose=True)
+            self.controller.update_plugin(self, verbose=True)
         except JSONRPCException:
             logging.info('Plugin %s not available on plugin server %s' % (
                     plugin_name, self.controller.get_app_value('server_url')))
@@ -141,7 +141,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
     AppFields = Form.of(
-        String.named('server_url').using(default='http://localhost:8000',
+        String.named('server_url').using(default='http://microfluidics.utoronto.ca/update',
                 optional=True, properties=dict(show_in_gui=False)),
     )
 
@@ -160,15 +160,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         p = PluginRepository(server_url)
         latest_version = Version(**p.latest_version(plugin_name))
         if plugin_controller.version < latest_version:
-            temp_dir = path(tempfile.mkdtemp(
-                    prefix='microdrop_plugin_update'))
-            try:
-                p.download_latest(plugin_name, temp_dir)
-                archive_path = temp_dir.files()[0]
-                self.install_from_archive(archive_path)
-                return True
-            finally:
-                temp_dir.rmtree()
+            self.download_and_install_plugin(plugin_name)
         else:
             message = 'Plugin %s is up to date (version %s)' % (plugin_name,
                     plugin_controller.version)
@@ -176,6 +168,18 @@ class PluginManagerController(SingletonPlugin, AppDataController):
                 logging.warning(message)
             logging.info(message)
         return False
+
+    def download_and_install_plugin(self, plugin_name):
+        temp_dir = path(tempfile.mkdtemp( prefix='microdrop_plugin_update'))
+        try:
+            server_url = self.get_app_value('server_url')
+            p = PluginRepository(server_url)
+            p.download_latest(plugin_name, temp_dir)
+            archive_path = temp_dir.files()[0]
+            self.install_from_archive(archive_path)
+            return True
+        finally:
+            temp_dir.rmtree()
 
     def get_plugin_names(self):
         return list(self.e.plugin_registry.keys())
@@ -235,13 +239,12 @@ class PluginManagerController(SingletonPlugin, AppDataController):
                 ignore=ignore_patterns('*.pyc'))
         app = get_app()
         logging.info('%s installed successfully' % plugin_root.name)
-        info('%s installed successfully' % plugin_root.name)
         self.restart_required = True
 
     def verify_new_plugin(self, extracted_path):
         assert(len(extracted_path.dirs()) == 1)
         plugin_root = path(extracted_path.dirs()[0])
-        plugin_metadata = self.get_plugin_info(plugin_root)
+        plugin_metadata = get_plugin_info(plugin_root)
         if plugin_metadata is None:
             logging.error('%s does not contain a valid plugin.' % (plugin_root))
             return False
@@ -250,7 +253,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         app = get_app()
         installed_plugin_path = path(app.config.data['plugins']['directory'])\
                 .joinpath(plugin_root.name)
-        installed_metadata = self.get_plugin_info(installed_plugin_path)
+        installed_metadata = get_plugin_info(installed_plugin_path)
         
         if installed_metadata:
             logging.info('Currently installed: %s' % (installed_metadata,))

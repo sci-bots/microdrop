@@ -32,6 +32,7 @@ import yaml
 from flatland import Form, String
 from jsonrpc.proxy import JSONRPCException
 
+from gui.plugin_download_dialog import PluginDownloadDialog
 from plugin_repository import PluginRepository
 import plugin_manager
 from app_context import get_app
@@ -80,6 +81,15 @@ Please start program again for changes to take effect.''')
             app.main_window_controller.on_destroy(None)
             return response
         return response
+
+    def on_button_download_clicked(self, *args, **kwargs):
+        d = PluginDownloadDialog()
+        response = d.run()
+
+        if response == gtk.RESPONSE_OK:
+            for p in d.selected_items():
+                print 'installing: %s' % p
+                self.controller.download_and_install_plugin(p)
 
     def on_button_install_clicked(self, *args, **kwargs):
         response = open_filechooser('Select plugin file',
