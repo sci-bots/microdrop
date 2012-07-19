@@ -157,11 +157,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
     def on_destroy(self, widget, data=None):
         self.on_delete_event(None)
         gtk.main_quit()
-        observers = ExtensionPoint(IPlugin)
-        service = observers.service('microdrop.gui.video_controller')
-        if service:
-            service.on_plugin_disable()
-            service.__del__()
 
     def on_about(self, widget, data=None):
         app = get_app()

@@ -121,13 +121,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                         if self.view.pipeline:
                             self.view.transform_matrix = matrix
 
-            elif plugin_name == 'microdrop.gui.video_controller':
-                observers = ExtensionPoint(IPlugin)
-                service = observers.service(plugin_name)
-                values = service.get_app_values()
-                video_enabled = values.get('video_enabled')
-                if not video_enabled:
-                    self.disable_video_background()
         except (Exception,), why:
             import traceback
             traceback.print_exc()

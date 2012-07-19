@@ -56,7 +56,6 @@ import gui.dmf_device_controller
 import gui.protocol_controller
 import gui.protocol_grid_controller
 import gui.plugin_manager_controller
-#import gui.video_controller
 import gui.app_options_controller
 
 
@@ -85,7 +84,6 @@ INFO:  <Plugin ExperimentLogController 'microdrop.gui.experiment_log_controller'
 INFO:  <Plugin MainWindowController 'microdrop.gui.main_window_controller'>
 INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
 INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
-INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
     '''
     core_plugins = ['microdrop.app',
             'microdrop.gui.app_state_controller',
@@ -94,8 +92,7 @@ INFO:  <Plugin VideoController 'microdrop.gui.video_controller'>
             'microdrop.gui.experiment_log_controller',
             'microdrop.gui.main_window_controller',
             'microdrop.gui.protocol_controller',
-            'microdrop.gui.protocol_grid_controller',
-            'microdrop.gui.video_controller',]
+            'microdrop.gui.protocol_grid_controller',]
 
     def __init__(self):
         self.name = "microdrop.app"
