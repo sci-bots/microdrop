@@ -166,7 +166,6 @@ class DmfDeviceView(GStreamerVideoView):
         self.video_scale = 1
         self.last_frame_time = datetime.now()
         self.last_frame = None
-        self.display_fps_inv = 0.1
         self.video_offset = (0,0)
         self.display_offset = (0,0)
         self.electrode_color = {}

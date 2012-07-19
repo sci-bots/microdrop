@@ -22,14 +22,19 @@ import os
 import sys
 import multiprocessing
 
+from path import path
+
 try:
     import utility as utility
+    GST_PLUGIN_PATH = path('gst_plugins')
 except ImportError:
-    from path import path
     import microdrop
-
     sys.path.append(path(microdrop.__file__).parent)
     import utility as utility
+    GST_PLUGIN_PATH = path(microdrop.__file__).parent / path('gst_plugins')
+
+os.environ['GST_PLUGIN_PATH'] = GST_PLUGIN_PATH.abspath()
+sys.path.append(os.environ['GST_PLUGIN_PATH'])
 
 # The following imports ensure that the corresponding modules are processed
 # by PyInstaller when generating an EXE.
