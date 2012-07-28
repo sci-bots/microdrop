@@ -198,8 +198,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
         result = self.view.pipeline.set_state(gst.STATE_PLAYING)
         if result == gst.STATE_CHANGE_FAILURE and self.video_enabled:
             logger.warning(
-                    'Error starting video.  Disabling video and restarting the'\
-                            'application.')
+                    'Error starting video.  Disabling video and restarting ' \
+                            'the application.')
             self.set_app_values(dict(video_enabled=False))
             app = get_app()
             gtk.idle_add(app.main_window_controller.on_destroy, None)
