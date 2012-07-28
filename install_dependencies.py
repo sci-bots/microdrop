@@ -28,8 +28,6 @@ import tarfile
 import re
 from distutils.dir_util import copy_tree
 
-from path import path
-
 
 PYTHON_VERSION = "%s.%s" % (sys.version_info[0],
                             sys.version_info[1])
@@ -41,50 +39,6 @@ def in_path(filename):
         if os.path.isfile(os.path.join(d, filename)):
             return True
     return False
-
-
-def configure_gstreamer():
-    from path import path
-
-    try:
-        gstreamer_dir = path(os.environ['OSSBUILD_GSTREAMER_DIR'])
-    except KeyError:
-        # GStreamer has not been installed
-        return
-
-    version_str = 'v%s.%s' % (sys.version_info.major, sys.version_info.minor)
-    python_lib_path = path(os.environ['OSSBUILD_GSTREAMER_SDK_DIR']).joinpath(
-            'bindings', 'python', version_str, 'lib')
-    python_package_path = python_lib_path.joinpath('site-packages', 'gst-0.10',
-            'gst')
-
-    site_packages_path = path(site.getsitepackages()[-1]).joinpath(
-            python_package_path.name)
-
-    gst_plugin_path = path(os.environ['GST_PLUGIN_PATH'])
-    py26_dll_path = gst_plugin_path.joinpath('libgstpython-v2.6.dll')
-    py_dll_path = gst_plugin_path.joinpath('libgstpython-%s.dll' % version_str)
-
-    if not py_dll_path.isfile():
-        print '%s not found.  Copy files for Python %s' % (py_dll_path,
-                version_str)
-        copy_tree(python_lib_path, gstreamer_dir.joinpath(python_lib_path.name))
-    if not site_packages_path.isdir():
-        print '%s not found.  Copy files Python site-packages' % (
-                site_packages_path)
-        print 'from %s -> %s' % (python_package_path, site_packages_path)
-        copy_tree(python_package_path, site_packages_path)
-
-    if not (sys.version_info.minor == 2 and sys.version_info.minor == 6)\
-        and py26_dll_path.isfile():
-        py26_dll_path.rename(py26_dll_path + 'x')
-
-    path_entries = set([path(p) for p in os.environ['PATH'].split(';')])
-
-    if gst_plugin_path not in path_entries:
-        return [r'%GST_PLUGIN_PATH% must be added to the PATH environment'\
-                ' variable']
-    return []
 
 
 def install(package):
@@ -142,9 +96,10 @@ def download_file(link, name, type):
     downloaded = 0
     print link
     resp = urllib2.urlopen(link)
-    total_length = int(resp.info().getheaders("Content-Length")[0])
+    total_length = None
     try:
-        if total_length:
+        if resp.info().getheaders("Content-Length"):
+            total_length = int(resp.info().getheaders("Content-Length")[0])
             print('Downloading %s (%s kB): ' % (link, total_length/1024))
         else:
             print('Downloading %s (unknown size): ' % link)
@@ -154,7 +109,7 @@ def download_file(link, name, type):
                 break
             downloaded += len(chunk)
             if not total_length:
-                sys.stdout.write('\r%s kB' % downloaded/1024)
+                sys.stdout.write('\r%s kB' % (downloaded/1024))
             else:
                 sys.stdout.write('\r%3i%%  %s kB' % (100*downloaded/total_length, downloaded/1024))
             sys.stdout.flush()
@@ -266,19 +221,6 @@ if __name__ == "__main__":
         elif PYTHON_VERSION=="2.7":
             packages.append(("pywin32", "exe", "http://sourceforge.net/projects/pywin32/files/pywin32/Build216/pywin32-216.win32-py2.7.exe/download"))
 
-
-    # check if pywin32 is installed
-    try:
-        exec("import gst")
-    except:
-        packages.append(("gst", "msi",
-                'http://ossbuild.googlecode.com/files/'\
-                        'GStreamer-WinBuilds-LGPL-x86-Beta04-0.10.7.msi'))
-        packages.append(("gst", "msi",
-                'http://ossbuild.googlecode.com/files/'\
-                        'GStreamer-WinBuilds-SDK-LGPL-x86-Beta04-0.10.7.msi'))
-
-
     # check if pyinstaller is installed
     if os.path.isdir("C:/pyinstaller")==False:
         packages.append(("pyinstaller",
@@ -307,6 +249,18 @@ if __name__ == "__main__":
                          "msi",
                          "http://microfluidics.utoronto.ca/software/Wix35.msi"))
 
+    # binary dependencies
+    if not os.path.isdir(os.path.join("microdrop", "devices")) or \
+       not os.path.isdir(os.path.join("microdrop", "lib")) or \
+       not os.path.isdir(os.path.join("microdrop", "share")) or \
+       not os.path.isdir(os.path.join("microdrop", "etc")) or \
+       not os.path.isdir(os.path.join("microdrop", "gst")):
+        packages.append(('binary_dependencies',
+                         'zip',
+                         'http://microfluidics.utoronto.ca/git/microdrop___dependencies.git/snapshot/b9517eda426e42d3a74f0e580bba7261c16f8a06.zip',
+                         'microdrop___dependencies-b9517ed',
+                         os.path.abspath('microdrop')))
+
     if len(packages)>0:
         print "The following packages need to be installed:"
         for p in packages:
@@ -319,15 +273,6 @@ if __name__ == "__main__":
     print "configuring pyinstaller..."
     subprocess.call("python C:\pyinstaller\Configure.py")
  
-    # extract data.zip
-    if os.path.isdir(os.path.join("microdrop", "devices"))==False or \
-       os.path.isdir(os.path.join("microdrop", "lib"))==False or \
-       os.path.isdir(os.path.join("microdrop", "share"))==False or \
-       os.path.isdir(os.path.join("microdrop", "etc"))==False:
-        print "extracting data.zip..."
-        z = zipfile.ZipFile(os.path.join("microdrop", "data.zip"), 'r')
-        z.extractall("microdrop")
-
     # fix pyutilib for exporting
     PYTHON_PATH = os.path.dirname(sys.executable)
     if os.path.isdir(os.path.join(PYTHON_PATH, "Lib", "site-packages",
@@ -356,8 +301,6 @@ if __name__ == "__main__":
                 warnings.append("Warning: %s exists but you need to "\
                       "add it to your path." % d)
                 break
-
-    warnings += configure_gstreamer()    
     
     print "\nAll dependencies are installed."
 

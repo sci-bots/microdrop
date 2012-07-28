@@ -26,15 +26,16 @@ from path import path
 
 try:
     import utility as utility
-    GST_PLUGIN_PATH = path('gst_plugins')
 except ImportError:
-    import microdrop
-    sys.path.append(path(microdrop.__file__).parent)
+    print "Import error"
+    sys.path.append(path(__file__).parent)
     import utility as utility
-    GST_PLUGIN_PATH = path(microdrop.__file__).parent / path('gst_plugins')
 
-os.environ['GST_PLUGIN_PATH'] = GST_PLUGIN_PATH.abspath()
+# Add gst binaries and plugins to the path/python path
+GST_PATH = path(__file__).parent / path('gst')
+os.environ['GST_PLUGIN_PATH'] = str((GST_PATH / path('plugins')).abspath())
 sys.path.append(os.environ['GST_PLUGIN_PATH'])
+os.environ['PATH'] += ";" + str((GST_PATH / path('bin')).abspath())
 
 # The following imports ensure that the corresponding modules are processed
 # by PyInstaller when generating an EXE.
