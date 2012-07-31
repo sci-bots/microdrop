@@ -33,7 +33,7 @@ from flatland import Form, String
 from jsonrpc.proxy import JSONRPCException
 
 from gui.plugin_download_dialog import PluginDownloadDialog
-from plugin_repository import PluginRepository
+from update_repository.plugins.proxy import PluginRepository
 import plugin_manager
 from app_context import get_app
 from utility import Version

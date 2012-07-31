@@ -13,3 +13,6 @@
 [submodule "microdrop/task_scheduler"]
 	path = microdrop/task_scheduler
 	url = http://microfluidics.utoronto.ca/git/python___task_scheduler.git
+[submodule "microdrop/update_repository"]
+	path = microdrop/update_repository
+	url = http://microfluidics.utoronto.ca/git/microdrop___plugin_repository.git

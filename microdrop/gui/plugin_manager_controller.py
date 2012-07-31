@@ -31,7 +31,7 @@ import yaml
 from flatland import Form, String
 from jsonrpc.proxy import JSONRPCException
 
-from plugin_repository import PluginRepository
+from update_repository.plugins.proxy import PluginRepository
 import plugin_manager
 from app_context import get_app
 from utility import Version
@@ -110,7 +110,7 @@ class PluginController(object):
         try:
             self.controller.update_plugin(self, verbose=True)
         except JSONRPCException:
-            logging.info('Plugin %s not available on plugin server %s' % (
+            logging.warning('Plugin %s not available on plugin server %s' % (
                     plugin_name, self.controller.get_app_value('server_url')))
             return True
         return True

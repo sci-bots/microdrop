@@ -32,7 +32,7 @@ import yaml
 from flatland import Form, String
 from jsonrpc.proxy import JSONRPCException
 
-from plugin_repository import PluginRepository
+from update_repository.plugins.proxy import PluginRepository
 import plugin_manager
 from app_context import get_app
 from utility import Version
@@ -66,7 +66,7 @@ class PluginDownloadDialog(object):
 
         server_url = self.controller.get_app_value('server_url')
         p = PluginRepository(server_url)
-        available = set(p.available_plugins())
+        available = set(p.available_packages())
         installed = set([p.get_plugin_module_name()
                 for p in self.controller.plugins])
         to_install = available.difference(installed)

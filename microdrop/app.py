@@ -28,8 +28,10 @@ gtk.gdk.threads_init()
 import numpy as np
 from path import path
 import yaml
+import webbrowser
 
-from utility import base_path, PROGRAM_LAUNCHED
+from utility import base_path, PROGRAM_LAUNCHED, Version
+from utility.gui import yesno
 from dmf_device import DmfDevice
 from protocol import Protocol, Step
 from config import Config
@@ -41,6 +43,7 @@ from plugin_helpers import AppDataController, get_plugin_info
 from logger import logger, CustomHandler, logging
 from gui.plugin_manager_dialog import PluginManagerDialog
 from utility.gui.form_view_dialog import FormViewDialog
+from update_repository.application.proxy import AppRepository
 import app_state
 
 
@@ -224,7 +227,40 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 return plugin_name
         return None
 
+    def update_check(self):
+        app_update_server_url = self.config.data.get(
+                'microdrop.gui.plugin_manager_controller', {}).get('server_url',
+                        'http://microfluidics.utoronto.ca/update')
+        logging.debug('[APP UPDATE SERVER] server url: %s' % app_update_server_url)
+        app_repository = AppRepository(app_update_server_url)
+        current_version = Version.fromstring(self.version)
+        latest_version = Version(**app_repository.latest_version('microdrop'))
+        if current_version < latest_version:
+            logging.info('Current version: %s. There is a new version '\
+                    'available: %s %s' % (current_version, latest_version,
+                            app_repository.server_url + app_repository\
+                                    .latest_package_url('microdrop')))
+            response = yesno('''\
+
+There is a new version (%s, current version: %s) of the MicroDrop
+application.
+
+Would you like to download the latest version in your browser to upgrade?''' % (
+                    latest_version, current_version))
+            if response == gtk.RESPONSE_YES:
+                latest_full_url = app_repository.server_url + app_repository\
+                        .latest_package_url('microdrop')
+                if webbrowser.open_new_tab(latest_full_url):
+                    logging.info('[SUCCESS] software is up-to-date.\n'\
+                            '(installed version: %s, server version: %s)' % (
+                                    current_version, latest_version))
+                    try:
+                        self.main_window_controller.on_destroy(None)
+                    except AttributeError:
+                        raise SystemExit, 'Closing app to allow upgrade installation'
+
     def run(self):
+        self.update_check()
         plugin_manager.load_plugins(self.config['plugins']['directory'])
 
         plugin_manager.emit_signal('on_plugin_enable')

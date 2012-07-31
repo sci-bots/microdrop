@@ -23,6 +23,7 @@ from StringIO import StringIO
 from contextlib import closing
 from collections import namedtuple
 import logging
+import threading
 
 from pyutilib.component.core import Interface, ExtensionPoint, implements, \
     Plugin, PluginGlobals
@@ -401,8 +402,6 @@ def emit_signal(function, args=[], interface=IPlugin):
     schedule = get_schedule(observers, function)
     return_codes = {}
     for observer_name in schedule:
-        while gtk.events_pending():
-            gtk.main_iteration()
         observer = observers[observer_name]
         if hasattr(observer, function):
             logging.debug('emit_signal: %s.%s()' % (observer.name, function))                    
