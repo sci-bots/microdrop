@@ -113,10 +113,6 @@ class Config():
         self.data = ConfigObj(self.filename, configspec=self.spec.split("\n"))
         self._validate()
 
-    def set_plugins(self, plugins):
-        self.data["plugins"]["enabled"] = plugins
-        self.save()
-
     def save(self, filename=None):
         if filename == None:
             filename = self.filename

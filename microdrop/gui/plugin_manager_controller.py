@@ -23,7 +23,6 @@ from shutil import ignore_patterns
 from zipfile import ZipFile
 import tarfile
 import tempfile
-from collections import namedtuple
 
 import gtk
 from path import path
@@ -96,17 +95,25 @@ class PluginController(object):
         return self.box
 
     def on_button_uninstall_clicked(self, widget, data=None):
-        plugin_name = self.get_plugin_module_name()
-        response = yesno('Uninstall plugin %s?' % plugin_name)
+        package_name = self.get_plugin_package_name()
+        response = yesno('Uninstall plugin %s?' % package_name)
         if response == gtk.RESPONSE_YES:
+            # remove the plugin from he enabled list
+            app = get_app()
+            if package_name in app.config["plugins"]["enabled"]:
+                app.config["plugins"]["enabled"].remove(package_name)
+
             plugin_path = self.get_plugin_path()
             if plugin_path.isdir():
                 self.controller.uninstall_plugin(plugin_path)
                 self.controller.restart_required = True
                 self.controller.update()
+                app.main_window_controller.info("%s plugin successfully " \
+                                    "removed." % package_name,
+                                    "Uninstall plugin")
 
     def on_button_update_clicked(self, widget, data=None):
-        plugin_name = self.get_plugin_module_name()
+        plugin_name = self.get_plugin_package_name()
         try:
             self.controller.update_plugin(self, verbose=True)
         except IOError:
@@ -118,21 +125,13 @@ class PluginController(object):
             return True
         return True
 
-    def get_plugin_module_name(self):
-        cre_plugin_name = re.compile(r'^plugins\.(?P<name>.*?)\.')
-        match = cre_plugin_name.search(self.plugin_class.__module__)
-        if match is None:
-            logging.error('Could not determine plugin name from: %s'\
-                    % self.plugin_class.__module__)
-            return True
-        return match.group('name')
+    def get_plugin_package_name(self):
+        return plugin_manager.get_plugin_package_name(self.plugin_class.__module__)
 
     def get_plugin_path(self, plugin_name=None):
         if plugin_name is None:
-            plugin_name = self.get_plugin_module_name()
+            plugin_name = self.get_plugin_package_name()
         app = get_app()
-
-        app.config.data['plugins']['directory']
         return path(app.config.data['plugins']['directory'])\
                 .joinpath(plugin_name)
 
@@ -159,7 +158,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
 
     def update_plugin(self, plugin_controller, verbose=False):
         server_url = self.get_app_value('server_url')
-        plugin_name = plugin_controller.get_plugin_module_name()
+        plugin_name = plugin_controller.get_plugin_package_name()
         p = PluginRepository(server_url)
         latest_version = Version(**p.latest_version(plugin_name))
         if plugin_controller.version < latest_version:
@@ -295,5 +294,10 @@ version?''' % message)
         else:
             # There is no valid version of this plugin currently installed.
             logging.info('%s is not currently installed' % plugin_root.name)
+            
+            # enable new plugins by default
+            app.config["plugins"]["enabled"].append(plugin_metadata.name)
         self.install_plugin(plugin_root, installed_plugin_path)
-
+        app.main_window_controller.info("%s plugin installed successfully." \
+                                        % plugin_metadata.name,
+                                        "Install plugin")

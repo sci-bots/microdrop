@@ -34,11 +34,10 @@ from jsonrpc.proxy import JSONRPCException
 
 from gui.plugin_download_dialog import PluginDownloadDialog
 from update_repository.plugins.proxy import PluginRepository
-import plugin_manager
 from app_context import get_app
 from utility import Version
 from utility.gui import yesno
-from plugin_manager import get_service_instance_by_name
+from plugin_manager import get_service_instance_by_name, get_plugin_package_name
 
 
 class PluginManagerDialog(object):
@@ -69,9 +68,14 @@ class PluginManagerDialog(object):
         self.update()
         response = self.window.run()
         self.window.hide()
-        enabled_plugins = [p.service.name for p in self.controller.plugins
-                if p.enabled()]
-        app.config.set_plugins(enabled_plugins)
+        for p in self.controller.plugins:
+            package_name = p.get_plugin_package_name()
+            if p.enabled():
+                if package_name not in app.config["plugins"]["enabled"]:
+                    app.config["plugins"]["enabled"].append(package_name)
+            else:
+                if package_name in app.config["plugins"]["enabled"]:
+                    app.config["plugins"]["enabled"].remove(package_name)
         app.config.save()
         if self.controller.restart_required:
             logging.warning('''\
@@ -102,12 +106,12 @@ Please start program again for changes to take effect.''')
 
     def on_button_update_all_clicked(self, *args, **kwargs):
         for p in self.controller.plugins:
-            plugin_name = p.get_plugin_module_name()
+            package_name = p.get_plugin_package_name()
             try:
                 self.controller.update_plugin(p)
             except JSONRPCException:
                 logging.info('Plugin %s not available on plugin server %s' % (
-                        plugin_name, self.controller.get_app_value('server_url')))
+                        package_name, self.controller.get_app_value('server_url')))
             except IOError:
                 logging.error('Could not connect to plugin repository at: %s' % (
                         self.controller.get_app_value('server_url')))

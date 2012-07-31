@@ -23,7 +23,7 @@ from StringIO import StringIO
 from contextlib import closing
 from collections import namedtuple
 import logging
-import threading
+import re
 
 from pyutilib.component.core import Interface, ExtensionPoint, implements, \
     Plugin, PluginGlobals
@@ -147,7 +147,7 @@ else:
             """
             pass
     
-    class IPlugin(Interface):    
+    class IPlugin(Interface):
         def get_schedule_requests(self, function_name):
             """
             Returns a list of scheduling requests (i.e., ScheduleRequest
@@ -354,6 +354,26 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
         return plugins[0]
     else:
         raise KeyError, 'No plugin registered with name: %s' % name
+
+
+def get_service_instance_by_package_name(name, env='microdrop.managed'):
+    e = PluginGlobals.env(env)
+    plugins = [p for i, p in enumerate(e.services) \
+               if name == get_plugin_package_name(p.__class__.__module__)]
+    if plugins:
+        return plugins[0]
+    else:
+        raise KeyError, 'No plugin registered with package name: %s' % name
+
+
+def get_plugin_package_name(class_name):
+    match = re.search(r'plugins\.(?P<name>.*?)\.microdrop',
+                      class_name)
+    if match is None:
+        logging.error('Could not determine package name from: %s'\
+                % class_name)
+        return None
+    return match.group('name')
 
 
 def get_service_instance(class_, env='microdrop.managed'):

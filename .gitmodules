@@ -16,3 +16,6 @@
 [submodule "microdrop/update_repository"]
 	path = microdrop/update_repository
 	url = http://microfluidics.utoronto.ca/git/microdrop___plugin_repository.git
+[submodule "microdrop/utility"]
+	path = microdrop/utility
+	url = http://microfluidics.utoronto.ca/git/python___utility.git
