@@ -235,12 +235,13 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         observers = {}
         # Enable plugins according to schedule requests
-        for name in self.config['plugins']['enabled']:
+        for package_name in self.config['plugins']['enabled']:
             try:
-                service = plugin_manager.get_service_instance_by_name(name)
-                observers[name] = service
+                service = plugin_manager. \
+                    get_service_instance_by_package_name(package_name)
+                observers[service.name] = service
             except Exception, e:
-                self.config['plugins']['enabled'].remove(name)
+                self.config['plugins']['enabled'].remove(package_name)
                 logger.error(e)
         schedule = plugin_manager.get_schedule(observers, "on_plugin_enable")
 
