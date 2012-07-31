@@ -29,6 +29,7 @@ import numpy as np
 from path import path
 import yaml
 import webbrowser
+from jsonrpc.proxy import JSONRPCException
 
 from utility import base_path, PROGRAM_LAUNCHED, Version
 from utility.gui import yesno
@@ -236,7 +237,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         current_version = Version.fromstring(self.version)
         try:
             latest_version = Version(**app_repository.latest_version('microdrop'))
-        except IOError:
+        except (JSONRPCException, IOError):
             logging.info('Could not connect to application update server: %s',
                     app_update_server_url)
             return
