@@ -67,6 +67,7 @@ class PluginDownloadDialog(object):
         server_url = self.controller.get_app_value('server_url')
         p = PluginRepository(server_url)
         available = set(p.available_packages())
+
         installed = set([p.get_plugin_module_name()
                 for p in self.controller.plugins])
         to_install = available.difference(installed)
@@ -83,8 +84,13 @@ class PluginDownloadDialog(object):
 
     def run(self):
         app = get_app()
-        if self.update() is None:
-            logging.warning('All available plugins are already installed')
+        try:
+            if self.update() is None:
+                logging.warning('All available plugins are already installed')
+                return gtk.RESPONSE_CANCEL
+        except IOError:
+            logging.error('Could not connect to plugin repository at: %s' % (
+                    self.controller.get_app_value('server_url')))
             return gtk.RESPONSE_CANCEL
         response = self.window.run()
         self.window.hide()

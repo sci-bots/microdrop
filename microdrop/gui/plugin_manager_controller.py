@@ -109,6 +109,9 @@ class PluginController(object):
         plugin_name = self.get_plugin_module_name()
         try:
             self.controller.update_plugin(self, verbose=True)
+        except IOError:
+            logging.warning('Could not connect to plugin server: %s',
+                    self.controller.get_app_value('server_url'))
         except JSONRPCException:
             logging.warning('Plugin %s not available on plugin server %s' % (
                     plugin_name, self.controller.get_app_value('server_url')))

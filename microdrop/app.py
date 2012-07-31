@@ -234,7 +234,12 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         logging.debug('[APP UPDATE SERVER] server url: %s' % app_update_server_url)
         app_repository = AppRepository(app_update_server_url)
         current_version = Version.fromstring(self.version)
-        latest_version = Version(**app_repository.latest_version('microdrop'))
+        try:
+            latest_version = Version(**app_repository.latest_version('microdrop'))
+        except IOError:
+            logging.info('Could not connect to application update server: %s',
+                    app_update_server_url)
+            return
         if current_version < latest_version:
             logging.info('Current version: %s. There is a new version '\
                     'available: %s %s' % (current_version, latest_version,

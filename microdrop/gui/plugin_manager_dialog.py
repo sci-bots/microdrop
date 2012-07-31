@@ -110,7 +110,7 @@ Please start program again for changes to take effect.''')
                         plugin_name, self.controller.get_app_value('server_url')))
             except IOError:
                 logging.error('Could not connect to plugin repository at: %s' % (
-                        server_url))
+                        self.controller.get_app_value('server_url')))
                 return True
 
 
