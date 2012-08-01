@@ -29,8 +29,8 @@ from pygtkhelpers.proxy import proxy_for
 from .dmf_device_view import DmfDeviceView
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ILoggingPlugin, emit_signal, IAppStatePlugin
-from gui.plugin_manager_dialog import PluginManagerDialog
+    implements, PluginGlobals, ILoggingPlugin, emit_signal, IAppStatePlugin, \
+    get_service_instance_by_name
 from app_context import get_app
 import app_state
 from logger import logger
@@ -170,9 +170,10 @@ class MainWindowController(SingletonPlugin, AppDataController):
         webbrowser.open_new_tab('http://microfluidics.utoronto.ca/microdrop/wiki/UserGuide')
 
     def on_menu_manage_plugins_activate(self, widget, data=None):
-        app = get_app()
-        pmd = PluginManagerDialog()
-        response = pmd.run()
+        service = get_service_instance_by_name(
+                    'microdrop.gui.plugin_manager_controller', env='microdrop')
+        service.dialog.window.set_transient_for(self.view)
+        service.dialog.run()
 
     """
     def on_menu_debug_activate(self, widget, data=None):

@@ -8,7 +8,6 @@ from app_context import get_app
 from logger import logger
 from plugin_manager import IPlugin, ExtensionPoint, emit_signal,\
         get_service_instance_by_name
-from gui.plugin_manager_dialog import PluginManagerDialog
 from utility import Version
 from utility.git_util import GitUtil
 

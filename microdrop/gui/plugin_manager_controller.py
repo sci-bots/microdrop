@@ -38,6 +38,7 @@ from utility.gui import yesno
 from plugin_helpers import AppDataController, get_plugin_info
 from plugin_manager import get_service_instance_by_name, IPlugin, implements,\
         SingletonPlugin
+from gui.plugin_manager_dialog import PluginManagerDialog
 
 
 class PluginController(object):
@@ -111,6 +112,7 @@ class PluginController(object):
                 app.main_window_controller.info("%s plugin successfully " \
                                     "removed." % package_name,
                                     "Uninstall plugin")
+                self.controller.dialog.update()
 
     def on_button_update_clicked(self, widget, data=None):
         plugin_name = self.get_plugin_package_name()
@@ -155,6 +157,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         self.rename_queue = []
         self.restart_required = False
         self.e = plugin_manager.PluginGlobals.env('microdrop.managed')
+        self.dialog = PluginManagerDialog()
 
     def update_plugin(self, plugin_controller, verbose=False):
         server_url = self.get_app_value('server_url')
