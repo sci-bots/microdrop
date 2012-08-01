@@ -295,18 +295,18 @@ def load_plugins(plugins_dir='plugins'):
     if plugins_dir.parent.abspath() not in sys.path:
         sys.path.insert(0, plugins_dir.parent.abspath())
     
-    try:
         for d in plugins_dir.dirs():
             package = (d / path('microdrop'))
             if package.isdir(): 
-                logging.info('\t %s' % package.abspath())
-                import_statement = 'import %s.%s.microdrop' % \
-                    (plugins_dir.name, d.name)
-                logging.debug(import_statement)
-                exec(import_statement)
-    except Exception, why:
-        logging.debug(''.join(traceback.format_stack()))
-        logging.error('Error loading %s plugin.' % d.name)
+                try:
+                    logging.info('\t %s' % package.abspath())
+                    import_statement = 'import %s.%s.microdrop' % \
+                        (plugins_dir.name, d.name)
+                    logging.debug(import_statement)
+                    exec(import_statement)
+                except Exception, why:
+                    logging.debug(''.join(traceback.format_stack()))
+                    logging.error('Error loading %s plugin.' % d.name)
 
     # Create an instance of each of the plugins, but set it to disabled
     e = PluginGlobals.env('microdrop.managed')
