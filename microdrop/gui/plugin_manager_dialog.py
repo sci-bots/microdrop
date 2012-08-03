@@ -105,17 +105,7 @@ Please start program again for changes to take effect.''')
         return self.controller.install_from_archive(response)
 
     def on_button_update_all_clicked(self, *args, **kwargs):
-        for p in self.controller.plugins:
-            package_name = p.get_plugin_package_name()
-            try:
-                self.controller.update_plugin(p)
-            except JSONRPCException:
-                logging.info('Plugin %s not available on plugin server %s' % (
-                        package_name, self.controller.get_app_value('server_url')))
-            except IOError:
-                logging.error('Could not connect to plugin repository at: %s' % (
-                        self.controller.get_app_value('server_url')))
-                return True
+        self.controller.update_all_plugins()
 
 
 if __name__ == '__main__':

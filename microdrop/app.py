@@ -265,6 +265,17 @@ Would you like to download the latest version in your browser to upgrade?''' % (
                     except AttributeError:
                         raise SystemExit, 'Closing app to allow upgrade installation'
 
+    def update_plugins(self):
+        if self.config['microdrop.gui.plugin_manager_controller'][
+                'update_automatically']:
+            service = plugin_manager.get_service_instance_by_name(
+                    'microdrop.gui.plugin_manager_controller', env='microdrop')
+            if service.update_all_plugins():
+                logging.warning('Plugins have been updated.  The application must be restarted.')
+                raise SystemExit, 'Closing app after plugins auto-upgrade'
+            else:
+                logging.info('No plugins have been updated')
+
     def run(self):
         self.update_check()
         plugin_manager.load_plugins(self.config['plugins']['directory'])
@@ -274,6 +285,7 @@ Would you like to download the latest version in your browser to upgrade?''' % (
         FormViewDialog.default_parent = self.main_window_controller.view
                 
         self.builder.connect_signals(self.signals)
+        self.update_plugins()
 
         observers = {}
         # Enable plugins according to schedule requests

@@ -27,7 +27,7 @@ import tempfile
 import gtk
 from path import path
 import yaml
-from flatland import Form, String
+from flatland import Form, String, Boolean
 from jsonrpc.proxy import JSONRPCException
 
 from update_repository.plugins.proxy import PluginRepository
@@ -145,6 +145,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
     AppFields = Form.of(
+        Boolean.named('update_automatically').using(default=False, optional=True),
         String.named('server_url').using(default='http://microfluidics.utoronto.ca/update',
                 optional=True, properties=dict(show_in_gui=False)),
     )
@@ -165,26 +166,27 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         p = PluginRepository(server_url)
         latest_version = Version(**p.latest_version(plugin_name))
         if plugin_controller.version < latest_version:
-            self.download_and_install_plugin(plugin_name)
+            return self.download_and_install_plugin(plugin_name, force=True)
         else:
             message = 'Plugin %s is up to date (version %s)' % (plugin_name,
                     plugin_controller.version)
             if verbose:
                 logging.warning(message)
             logging.info(message)
-        return False
+            return False
 
-    def download_and_install_plugin(self, plugin_name):
+    def download_and_install_plugin(self, plugin_name, force=False):
         temp_dir = path(tempfile.mkdtemp( prefix='microdrop_plugin_update'))
         try:
             server_url = self.get_app_value('server_url')
             p = PluginRepository(server_url)
             p.download_latest(plugin_name, temp_dir)
             archive_path = temp_dir.files()[0]
-            self.install_from_archive(archive_path)
+            self.install_from_archive(archive_path, force=force)
             return True
         finally:
             temp_dir.rmtree()
+        return False
 
     def get_plugin_names(self):
         return list(self.e.plugin_registry.keys())
@@ -213,7 +215,22 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         rename_queue_path.write_bytes(yaml.dump(
                 [(p1.abspath(), p2.abspath()) for p1, p2 in self.rename_queue]))
 
-    def install_from_archive(self, archive_path):
+    def update_all_plugins(self):
+        self.update()
+        plugin_updated = False
+        for p in self.plugins:
+            plugin_name = p.get_plugin_module_name()
+            try:
+                plugin_updated = plugin_updated or self.update_plugin(p)
+            except JSONRPCException:
+                logging.info('Plugin %s not available on plugin server %s' % (
+                        plugin_name, self.get_app_value('server_url')))
+            except IOError:
+                logging.error('Could not connect to plugin repository at: %s' % (
+                        self.get_app_value('server_url')))
+        return plugin_updated
+
+    def install_from_archive(self, archive_path, force=False):
         temp_dir = path(tempfile.mkdtemp(prefix='microdrop_'))
         logging.debug('extracting to: %s' % temp_dir)
         archive_path = path(archive_path)
@@ -228,7 +245,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
                 tar_file = tarfile.open(archive_path, 'r:gz')
                 tar_file.extractall(temp_dir)
                 tar_file.close()
-            self.verify_new_plugin(temp_dir)
+            self.verify_new_plugin(temp_dir, force=force)
         finally:
             # Post-pone deletion until next program launch
             self.requested_deletions.append(temp_dir)
@@ -246,7 +263,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         logging.info('%s installed successfully' % plugin_root.name)
         self.restart_required = True
 
-    def verify_new_plugin(self, extracted_path):
+    def verify_new_plugin(self, extracted_path, force=False):
         assert(len(extracted_path.dirs()) == 1)
         plugin_root = path(extracted_path.dirs()[0])
         plugin_metadata = get_plugin_info(plugin_root)
@@ -259,6 +276,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         installed_plugin_path = path(app.config.data['plugins']['directory'])\
                 .joinpath(plugin_root.name)
         installed_metadata = get_plugin_info(installed_plugin_path)
+        plugin_installed = False
         
         if installed_metadata:
             logging.info('Currently installed: %s' % (installed_metadata,))
@@ -274,13 +292,14 @@ class PluginManagerController(SingletonPlugin, AppDataController):
                         'installed version (%s)' % (plugin_metadata.name,
                         plugin_metadata.version, installed_metadata.version)
                 logging.info(message)
-                response = yesno('''\
-%s
-Would you like to uninstall the previous version and install the new \
-version?''' % message)
-                if response == gtk.RESPONSE_NO:
-                    return
-                else:
+                if not force:
+                    response = yesno('''\
+    %s
+    Would you like to uninstall the previous version and install the new \
+    version?''' % message)
+                    if response == gtk.RESPONSE_YES:
+                        force = True
+                if force:
                     try:
                         self.uninstall_plugin(installed_plugin_path)
                         count = 1
@@ -291,9 +310,10 @@ version?''' % message)
                         if target_path != installed_plugin_path:
                             self.rename_queue.append((installed_plugin_path,
                                     target_path))
+                        plugin_installed = True
                     except:
                         raise
-                        return
+                        return False
         else:
             # There is no valid version of this plugin currently installed.
             logging.info('%s is not currently installed' % plugin_root.name)
@@ -304,3 +324,4 @@ version?''' % message)
         app.main_window_controller.info("%s plugin installed successfully." \
                                         % plugin_metadata.name,
                                         "Install plugin")
+        return True
