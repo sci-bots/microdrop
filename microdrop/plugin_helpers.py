@@ -12,24 +12,25 @@ from utility import Version
 from utility.git_util import GitUtil
 
 
-PluginMetaData = namedtuple('PluginMetaData', 'name version')
+PluginMetaData = namedtuple('PluginMetaData',
+                            'package_name plugin_name version')
 PluginMetaData.as_dict = lambda self: dict([(k, str(v)) for k, v in zip(self._fields, self)])
-#PluginMetaData.from_dict = staticmethod(lambda data: PluginMetaData(data['name'], Version.fromstring(data['version'])))
 
 def from_dict(data):
-    name = data['name']
+    package_name = data['package_name']
+    plugin_name = data['plugin_name']
     version = Version.fromstring(data['version'])
-    return PluginMetaData(name, version)
+    return PluginMetaData(package_name, plugin_name, version)
 
 
 PluginMetaData.from_dict = staticmethod(from_dict)
 
+
 def get_plugin_info(plugin_root):
     '''
-    Return a tuple:
-        (installed_version, metadata)
-    If plugin is not installed, installed_version will be None.
-    If plugin is not valid, metadata will be None.
+    Return a named tuple:
+        (package_name, plugin_name, version)
+    If plugin is not installed or invalid, returned tuple will be None.
     '''
     required_paths = [path('microdrop').joinpath('__init__.py'),
             path('properties.yml')]
@@ -192,24 +193,3 @@ class StepOptionsController(object):
             options = self.get_default_step_options()
             step.set_data(self.name, options)
         return options
-
-
-def get_plugin_version(plugin_root):
-    try:
-        version = GitUtil(plugin_root).describe()
-        m = re.search('^v(?P<major>\d+)\.(?P<minor>\d+)(-(?P<micro>\d+))?', version)
-        if m.group('micro'):
-            micro = m.group('micro')
-        else:
-            micro = '0'
-        version_string = "%s.%s.%s" % (m.group('major'),
-                m.group('minor'), micro)
-        version = Version.fromstring(version_string)
-        return version
-    except AssertionError:
-        info = get_plugin_info(plugin_root)
-        if info:
-            return info.version
-        else:
-            raise
-    return None
