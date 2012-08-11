@@ -61,10 +61,11 @@ class PluginDownloadDialog(object):
         return service
 
     def update(self):
+        app = get_app()
         self.clear_plugin_list()
         self.controller.update()
 
-        server_url = self.controller.get_app_value('server_url')
+        server_url = app.get_app_value('server_url')
         p = PluginRepository(server_url)
         available = set(p.available_packages())
         installed = set([p.get_plugin_package_name()
@@ -89,7 +90,7 @@ class PluginDownloadDialog(object):
                 return gtk.RESPONSE_CANCEL
         except IOError:
             logging.error('Could not connect to plugin repository at: %s' % (
-                    self.controller.get_app_value('server_url')))
+                    app.get_app_value('server_url')))
             return gtk.RESPONSE_CANCEL
         response = self.window.run()
         self.window.hide()

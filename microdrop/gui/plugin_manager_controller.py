@@ -120,10 +120,10 @@ class PluginController(object):
             self.controller.update_plugin(self, verbose=True)
         except IOError:
             logging.warning('Could not connect to plugin server: %s',
-                    self.controller.get_app_value('server_url'))
+                    app.get_app_value('server_url'))
         except JSONRPCException:
             logging.warning('Plugin %s not available on plugin server %s' % (
-                    plugin_name, self.controller.get_app_value('server_url')))
+                    plugin_name, app.get_app_value('server_url')))
             return True
         return True
 
@@ -141,17 +141,8 @@ class PluginController(object):
         self.toggle_enabled()
 
 
-class PluginManagerController(SingletonPlugin, AppDataController):
+class PluginManagerController(SingletonPlugin):
     implements(IPlugin)
-
-    AppFields = Form.of(
-        Enum.named('update_automatically').using(default=0, optional=True)\
-            .valued('auto-update',
-                'check for updates, but ask before installing',
-                '''don't check for updates'''),
-        String.named('server_url').using(default='http://microfluidics.utoronto.ca/update',
-                optional=True, properties=dict(show_in_gui=False)),
-    )
 
     def __init__(self):
         self.name = 'microdrop.gui.plugin_manager_controller'
@@ -164,7 +155,8 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         self.dialog = PluginManagerDialog()
 
     def update_plugin(self, plugin_controller, verbose=False, force=False):
-        server_url = self.get_app_value('server_url')
+        app = get_app()
+        server_url = app.get_app_value('server_url')
         plugin_name = plugin_controller.get_plugin_package_name()
         p = PluginRepository(server_url)
         latest_version = Version(**p.latest_version(plugin_name))
@@ -181,7 +173,8 @@ class PluginManagerController(SingletonPlugin, AppDataController):
     def download_and_install_plugin(self, plugin_name, force=False):
         temp_dir = path(tempfile.mkdtemp( prefix='microdrop_plugin_update'))
         try:
-            server_url = self.get_app_value('server_url')
+            app = get_app()
+            server_url = app.get_app_value('server_url')
             p = PluginRepository(server_url)
             p.download_latest(plugin_name, temp_dir)
             archive_path = temp_dir.files()[0]
@@ -220,6 +213,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
     def update_all_plugins(self, force=False):
         self.update()
         plugin_updated = False
+        app = get_app()
         for p in self.plugins:
             plugin_name = p.get_plugin_package_name()
             try:
@@ -228,10 +222,10 @@ class PluginManagerController(SingletonPlugin, AppDataController):
                 plugin_updated = plugin_updated or result
             except JSONRPCException:
                 logging.info('Plugin %s not available on plugin server %s' % (
-                        plugin_name, self.get_app_value('server_url')))
+                        plugin_name, app.get_app_value('server_url')))
             except IOError:
                 logging.error('Could not connect to plugin repository at: %s' % (
-                        self.get_app_value('server_url')))
+                        app.get_app_value('server_url')))
         return plugin_updated
 
     def install_from_archive(self, archive_path, force=False):
