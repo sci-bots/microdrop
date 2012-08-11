@@ -137,7 +137,11 @@ class AppOptionsController:
             fields = form_view.form.fields.keys()
             attrs = {}
             for field in fields:
-                attrs[field] = form_view.form.fields[field].element.value
-            observers = ExtensionPoint(IPlugin)
-            service = observers.service(name)
-            service.set_app_values(attrs)
+                if form_view.form.fields[field].element.validate():
+                    attrs[field] = form_view.form.fields[field].element.value
+                else:
+                    logger.error('Failed to set %s value for %s' % (field, name))
+            if attrs:
+                observers = ExtensionPoint(IPlugin)
+                service = observers.service(name)
+                service.set_app_values(attrs)
