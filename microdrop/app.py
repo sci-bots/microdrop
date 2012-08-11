@@ -30,6 +30,7 @@ from path import path
 import yaml
 import webbrowser
 from jsonrpc.proxy import JSONRPCException
+from flatland import Form, String, Enum
 
 from utility import base_path, PROGRAM_LAUNCHED, Version
 from utility.gui import yesno
@@ -77,7 +78,7 @@ def dump_event_info(current_state, event, label=None):
     #import traceback; print ''.join(traceback.format_stack())
 
 
-class App(SingletonPlugin):
+class App(SingletonPlugin, AppDataController):
     implements(IPlugin)
     '''
 INFO:  <Plugin App 'microdrop.app'>
@@ -97,6 +98,15 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             'microdrop.gui.main_window_controller',
             'microdrop.gui.protocol_controller',
             'microdrop.gui.protocol_grid_controller',]
+
+    AppFields = Form.of(
+        Enum.named('update_automatically').using(default=0, optional=True)\
+            .valued('auto-update',
+                'check for updates, but ask before installing',
+                '''don't check for updates'''),
+        String.named('server_url').using(default='http://microfluidics.utoronto.ca/update',
+                optional=True, properties=dict(show_in_gui=False)),
+    )
 
     def __init__(self):
         self.name = "microdrop.app"
@@ -229,9 +239,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         return None
 
     def update_check(self):
-        app_update_server_url = self.config.data.get(
-                'microdrop.gui.plugin_manager_controller', {}).get('server_url',
-                        'http://microfluidics.utoronto.ca/update')
+        app_update_server_url = self.config.data.get(self.name, {}).get(
+                'server_url', 'http://microfluidics.utoronto.ca/update')
         logging.debug('[APP UPDATE SERVER] server url: %s' % app_update_server_url)
         app_repository = AppRepository(app_update_server_url)
         current_version = Version.fromstring(self.version)
@@ -266,11 +275,26 @@ Would you like to download the latest version in your browser to upgrade?''' % (
                         raise SystemExit, 'Closing app to allow upgrade installation'
 
     def update_plugins(self):
-        if self.config['microdrop.gui.plugin_manager_controller'][
-                'update_automatically']:
+        update_setting = self.config['microdrop.app']['update_automatically']
+
+        if update_setting == 'auto-update':
+            # Auto-update
+            update = True
+            force = True
+            logging.info('Auto-update')
+        elif update_setting == 'check for updates, but ask before installing':
+            # Check for updates, but ask before installing
+            update = True
+            force = False
+            logging.info('Check for updates, but ask before installing')
+        else:
+            logging.info('Updates disabled')
+            update = False
+
+        if update:
             service = plugin_manager.get_service_instance_by_name(
                     'microdrop.gui.plugin_manager_controller', env='microdrop')
-            if service.update_all_plugins():
+            if service.update_all_plugins(force=force):
                 logging.warning('Plugins have been updated.  The application must be restarted.')
                 raise SystemExit, 'Closing app after plugins auto-upgrade'
             else:
