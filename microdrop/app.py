@@ -266,11 +266,27 @@ Would you like to download the latest version in your browser to upgrade?''' % (
                         raise SystemExit, 'Closing app to allow upgrade installation'
 
     def update_plugins(self):
-        if self.config['microdrop.gui.plugin_manager_controller'][
-                'update_automatically']:
+        update_setting = self.config['microdrop.gui.plugin_manager_controller'][
+                'update_automatically']
+
+        if update_setting == 'auto-update':
+            # Auto-update
+            update = True
+            force = True
+            logging.info('Auto-update')
+        elif update_setting == 'check for updates, but ask before installing':
+            # Check for updates, but ask before installing
+            update = True
+            force = False
+            logging.info('Check for updates, but ask before installing')
+        else:
+            logging.info('Updates disabled')
+            update = False
+
+        if update:
             service = plugin_manager.get_service_instance_by_name(
                     'microdrop.gui.plugin_manager_controller', env='microdrop')
-            if service.update_all_plugins():
+            if service.update_all_plugins(force=force):
                 logging.warning('Plugins have been updated.  The application must be restarted.')
                 raise SystemExit, 'Closing app after plugins auto-upgrade'
             else:

@@ -27,7 +27,7 @@ import tempfile
 import gtk
 from path import path
 import yaml
-from flatland import Form, String, Boolean
+from flatland import Form, String, Enum
 from jsonrpc.proxy import JSONRPCException
 
 from update_repository.plugins.proxy import PluginRepository
@@ -145,7 +145,10 @@ class PluginManagerController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
     AppFields = Form.of(
-        Boolean.named('update_automatically').using(default=False, optional=True),
+        Enum.named('update_automatically').using(default=0, optional=True)\
+            .valued('auto-update',
+                'check for updates, but ask before installing',
+                '''don't check for updates'''),
         String.named('server_url').using(default='http://microfluidics.utoronto.ca/update',
                 optional=True, properties=dict(show_in_gui=False)),
     )
@@ -160,13 +163,13 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         self.e = plugin_manager.PluginGlobals.env('microdrop.managed')
         self.dialog = PluginManagerDialog()
 
-    def update_plugin(self, plugin_controller, verbose=False):
+    def update_plugin(self, plugin_controller, verbose=False, force=False):
         server_url = self.get_app_value('server_url')
         plugin_name = plugin_controller.get_plugin_package_name()
         p = PluginRepository(server_url)
         latest_version = Version(**p.latest_version(plugin_name))
         if plugin_controller.version < latest_version:
-            return self.download_and_install_plugin(plugin_name, force=True)
+            return self.download_and_install_plugin(plugin_name, force=force)
         else:
             message = 'Plugin %s is up to date (version %s)' % (plugin_name,
                     plugin_controller.version)
@@ -182,8 +185,7 @@ class PluginManagerController(SingletonPlugin, AppDataController):
             p = PluginRepository(server_url)
             p.download_latest(plugin_name, temp_dir)
             archive_path = temp_dir.files()[0]
-            self.install_from_archive(archive_path, force=force)
-            return True
+            return self.install_from_archive(archive_path, force=force)
         finally:
             temp_dir.rmtree()
         return False
@@ -215,13 +217,15 @@ class PluginManagerController(SingletonPlugin, AppDataController):
         rename_queue_path.write_bytes(yaml.dump(
                 [(p1.abspath(), p2.abspath()) for p1, p2 in self.rename_queue]))
 
-    def update_all_plugins(self):
+    def update_all_plugins(self, force=False):
         self.update()
         plugin_updated = False
         for p in self.plugins:
-            plugin_name = p.get_plugin_module_name()
+            plugin_name = p.get_plugin_package_name()
             try:
-                plugin_updated = plugin_updated or self.update_plugin(p)
+                result = self.update_plugin(p, force=force)
+                print '[update_all_plugins] plugin_name=%s %s' % (plugin_name, result)
+                plugin_updated = plugin_updated or result
             except JSONRPCException:
                 logging.info('Plugin %s not available on plugin server %s' % (
                         plugin_name, self.get_app_value('server_url')))
@@ -245,20 +249,22 @@ class PluginManagerController(SingletonPlugin, AppDataController):
                 tar_file = tarfile.open(archive_path, 'r:gz')
                 tar_file.extractall(temp_dir)
                 tar_file.close()
-            self.verify_new_plugin(temp_dir, force=force)
+            return self.verify_new_plugin(temp_dir, force=force)
         finally:
             # Post-pone deletion until next program launch
             self.requested_deletions.append(temp_dir)
             self.update()
-        return True
 
     def uninstall_plugin(self, plugin_path):
         self.requested_deletions.append(plugin_path)
         self.update()
 
     def install_plugin(self, plugin_root, install_path):
-        plugin_root.copytree(install_path, symlinks=True,
-                ignore=ignore_patterns('*.pyc'))
+        try:
+            plugin_root.copytree(install_path, symlinks=True,
+                    ignore=ignore_patterns('*.pyc'))
+        except:
+            import pudb; pudb.set_trace()
         app = get_app()
         logging.info('%s installed successfully' % plugin_root.name)
         self.restart_required = True
@@ -289,16 +295,18 @@ class PluginManagerController(SingletonPlugin, AppDataController):
                 return
             else:
                 message = 'Plugin %s version %s is newer than currently '\
-                        'installed version (%s)' % (plugin_metadata.name,
+                        'installed version (%s)' % (plugin_metadata.package_name,
                         plugin_metadata.version, installed_metadata.version)
                 logging.info(message)
                 if not force:
                     response = yesno('''\
     %s
     Would you like to uninstall the previous version and install the new \
-    version?''' % message)
+version?''' % message)
                     if response == gtk.RESPONSE_YES:
                         force = True
+                    else:
+                        return False
                 if force:
                     try:
                         self.uninstall_plugin(installed_plugin_path)
@@ -319,9 +327,9 @@ class PluginManagerController(SingletonPlugin, AppDataController):
             logging.info('%s is not currently installed' % plugin_root.name)
             
             # enable new plugins by default
-            app.config["plugins"]["enabled"].append(plugin_metadata.name)
+            app.config["plugins"]["enabled"].append(plugin_metadata.package_name)
         self.install_plugin(plugin_root, installed_plugin_path)
         app.main_window_controller.info("%s plugin installed successfully." \
-                                        % plugin_metadata.name,
+                                        % plugin_metadata.package_name,
                                         "Install plugin")
         return True
