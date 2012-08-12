@@ -246,6 +246,17 @@ else:
                     for the selected steps
             """
             pass
+
+        def on_app_options_changed(self, plugin_name):
+            """
+            Handler called when the app options are changed for a particular
+            plugin.  This will, for example, allow for GUI elements to be
+            updated.
+
+            Parameters:
+                plugin : plugin name for which the app options changed
+            """
+            pass
         
         def on_step_options_changed(self, plugin, step_number):
             """
