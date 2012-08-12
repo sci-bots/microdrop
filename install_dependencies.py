@@ -162,7 +162,6 @@ if __name__ == "__main__":
               ("pyparsing", "pip"),
               ("pyutilib", "pip"),
               ("blinker", "pip"),
-              ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/tarball/pre_object_tree"),
               ("configobj", "pip"),
               ("yaml", "pip", "pyyaml"),
               ("nose", "pip"),
