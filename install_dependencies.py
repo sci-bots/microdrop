@@ -257,8 +257,8 @@ if __name__ == "__main__":
        not os.path.isdir(os.path.join("microdrop", "gst")):
         packages.append(('binary_dependencies',
                          'zip',
-                         'http://microfluidics.utoronto.ca/git/microdrop___dependencies.git/snapshot/b9517eda426e42d3a74f0e580bba7261c16f8a06.zip',
-                         'microdrop___dependencies-b9517ed',
+                         'http://microfluidics.utoronto.ca/git/microdrop___dependencies.git/snapshot/91714880d27f981cf18a46ccc3cd9b20e1e9c3c9.zip',
+                         'microdrop___dependencies-9171488',
                          os.path.abspath('microdrop')))
 
     if len(packages)>0:
