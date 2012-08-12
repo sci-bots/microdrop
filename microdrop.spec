@@ -1,6 +1,5 @@
 # -*- mode: python -*-
 from path import path
-import pygtkhelpers
 import matplotlib
 
 try:
@@ -16,12 +15,7 @@ extra_py = []
 a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
             'microdrop\\microdrop.py'] + extra_py,
-            excludes=['opencv', 'flatland',])
-
-for mod in [pygtkhelpers]:
-	mod_path = path(mod.__file__).parent
-	a.datas += [(str(mod_path.parent.relpathto(p)), str(p.abspath()), 'DATA')\
-		    for p in mod_path.walkfiles(ignore=[r'\.git', r'site_scons', r'.*\.pyc'])]
+            excludes=['opencv', 'flatland', 'pygtkhelpers', ])
 
 # Copy matplotlib mpl-data files to dist directory.
 matplotlib_path = path(matplotlib.__file__).parent
@@ -37,6 +31,9 @@ if chipmunk_path:
     a.datas += [(chipmunk_path.name, str(chipmunk_path), 'DATA')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\flatland')\
+                    .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
+a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
+            for p in path('microdrop\\pygtkhelpers')\
                     .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\gui').walkfiles('*.glade')]
