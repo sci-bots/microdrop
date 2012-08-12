@@ -56,7 +56,7 @@ def install(package):
         file = download_file(p[2], name, type)
         subprocess.call(file, shell=False)
     elif type=="easy_install":
-        subprocess.call("easy_install " + name, shell=False)
+        subprocess.call("easy_install --upgrade " + name, shell=False)
     elif type=="zip":
         src = os.path.join(CACHE_PATH, name, p[3])
         dst = p[4]
@@ -83,9 +83,9 @@ def install(package):
         copy_tree(src, dst)
     elif type=="pip":
         if len(p)>2:
-            subprocess.call("pip install " + p[2], shell=False)
+            subprocess.call("pip install --upgrade " + p[2], shell=False)
         else:
-            subprocess.call("pip install " + name, shell=False)
+            subprocess.call("pip install --upgrade " + name, shell=False)
     else:
         raise Exception("Invalid type")
         
@@ -162,7 +162,7 @@ if __name__ == "__main__":
               ("pyparsing", "pip"),
               ("pyutilib", "pip"),
               ("blinker", "pip"),
-              ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/tarball/master"),
+              ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/tarball/pre_object_tree"),
               ("configobj", "pip"),
               ("yaml", "pip", "pyyaml"),
               ("nose", "pip"),
