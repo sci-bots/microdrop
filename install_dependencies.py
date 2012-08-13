@@ -176,6 +176,13 @@ if __name__ == "__main__":
         except:
             packages.append(p)
 
+    # Force the upgrade installation of the following packages.
+    # package name, type, url
+    for p in (
+            ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/"\
+                    "tarball/pre_object_tree"), ):
+        packages.append(p)
+
     # python 2.7 specific packages
     if PYTHON_VERSION=="2.7":
         for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.7.msi"),

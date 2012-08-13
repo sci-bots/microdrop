@@ -19,6 +19,3 @@
 [submodule "microdrop/utility"]
 	path = microdrop/utility
 	url = http://microfluidics.utoronto.ca/git/python___utility.git
-[submodule "microdrop/pygtkhelpers_main"]
-	path = microdrop/pygtkhelpers_main
-	url = http://microfluidics.utoronto.ca/git/pygtkhelpers.git
