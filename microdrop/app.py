@@ -257,10 +257,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                     .latest_package_url('microdrop')))
             response = yesno('''\
 
-There is a new version (%s, current version: %s) of the MicroDrop
-application.
+There is a new version of Microdrop available (%s, current version: %s).
 
-Would you like to download the latest version in your browser to upgrade?''' % (
+Would you like to download the latest version in your browser?''' % (
                     latest_version, current_version))
             if response == gtk.RESPONSE_YES:
                 latest_full_url = app_repository.server_url + app_repository\

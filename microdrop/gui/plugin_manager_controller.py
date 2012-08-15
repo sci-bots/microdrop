@@ -224,7 +224,7 @@ class PluginManagerController(SingletonPlugin):
                 logging.info('Plugin %s not available on plugin server %s' % (
                         plugin_name, app.get_app_value('server_url')))
             except IOError:
-                logging.error('Could not connect to plugin repository at: %s' % (
+                logging.info('Could not connect to plugin repository at: %s' % (
                         app.get_app_value('server_url')))
         return plugin_updated
 
