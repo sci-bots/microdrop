@@ -18,7 +18,10 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import time
 from copy import deepcopy
 
@@ -71,14 +74,19 @@ class ExperimentLog():
         if not hasattr(out, 'version'):
             out.version = str(Version(0))
         out._upgrade()
-        # load objects from yaml strings
+        # load objects from serialized strings
         for i in range(len(out.data)):
             for plugin_name, plugin_data in out.data[i].items():
                 try:
-                    out.data[i][plugin_name] = yaml.load(plugin_data)
+                    out.data[i][plugin_name] = pickle.loads(plugin_data)
                 except Exception, e:
-                    logger.error("Couldn't load experiment log data for "
-                                 "plugin: %s. %s." % (plugin_name, e))
+                    logger.debug("Not a valid pickle string ("
+                                 "plugin: %s). %s." % (plugin_name, e))
+                    try:
+                        out.data[i][plugin_name] = yaml.load(plugin_data)
+                    except Exception, e:
+                        logger.error("Couldn't load experiment log data for "
+                                     "plugin: %s. %s." % (plugin_name, e))
         logger.debug("[ExperimentLog].load() loaded in %f s." % \
                      (time.time()-start_time))
         return out
@@ -144,10 +152,15 @@ class ExperimentLog():
 
         if self.data:
             out = deepcopy(self)
-            # serialize plugin dictionaries to yaml strings
+            # serialize plugin dictionaries to strings
             for i in range(len(out.data)):
                 for plugin_name, plugin_data in out.data[i].items():
-                    out.data[i][plugin_name] = yaml.dump(plugin_data)
+                    if format=='pickle':
+                        out.data[i][plugin_name] = pickle.dumps(plugin_data)
+                    elif format=='yaml':
+                        out.data[i][plugin_name] = yaml.dump(plugin_data)
+                    else:
+                        raise TypeError
             with open(filename, 'wb') as f:
                 if format=='pickle':
                     pickle.dump(out, f, -1)
