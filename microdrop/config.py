@@ -94,7 +94,6 @@ class Config():
             ValidationError: There was a problem validating one or more fields.
         """
         if filename:
-            logger.debug("[Config].load(%f)" % filename)
             logger.info("Loading config file from %s" % self.filename)
             if not path(filename).exists():
                 raise IOError
