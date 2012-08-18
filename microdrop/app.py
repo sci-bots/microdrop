@@ -30,7 +30,7 @@ from path import path
 import yaml
 import webbrowser
 from jsonrpc.proxy import JSONRPCException
-from flatland import Form, String, Enum
+from flatland import Form, String, Enum, Boolean
 
 from utility import base_path, PROGRAM_LAUNCHED, Version
 from utility.gui import yesno
@@ -42,11 +42,13 @@ from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
         implements, PluginGlobals
 import plugin_manager
 from plugin_helpers import AppDataController, get_plugin_info
-from logger import logger, CustomHandler, logging
+from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
+    ERROR, CRITICAL
 from gui.plugin_manager_dialog import PluginManagerDialog
 from utility.gui.form_view_dialog import FormViewDialog
 from update_repository.application.proxy import AppRepository
 import app_state
+from utility.pygtkhelpers_widgets import Filepath
 
 
 PluginGlobals.push_env('microdrop')
@@ -106,6 +108,12 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 '''don't check for updates'''),
         String.named('server_url').using(default='http://microfluidics.utoronto.ca/update',
                 optional=True, properties=dict(show_in_gui=False)),
+        Boolean.named('realtime_mode').using(default=False, optional=True,
+            properties=dict(show_in_gui=False)),
+        Filepath.named('log_file').using(default='', optional=True),
+        Boolean.named('log_enabled').using(default=False, optional=True),
+        Enum.named('log_level').using(default='info', optional=True) \
+            .valued('debug', 'info', 'warning', 'error', 'critical'),
     )
 
     def __init__(self):
@@ -221,6 +229,35 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     
     def set_data(self, plugin_name, data):
         self.plugin_data[plugin_name] = data
+
+    def on_app_options_changed(self, plugin_name):
+        if plugin_name == self.name:
+            data = self.get_data(self.name)
+            if 'realtime_mode' in data:
+                self.realtime_mode = data['realtime_mode']
+            if 'log_file' in data and 'log_enabled' in data:
+                self.apply_log_file_config(data['log_file'],
+                        data['log_enabled'])
+            if 'log_level' in data:
+                if data['log_level']=='debug':
+                    logger.setLevel(DEBUG)
+                elif data['log_level']=='info':
+                    logger.setLevel(INFO)
+                elif data['log_level']=='warning':
+                    logger.setLevel(WARNING)
+                elif data['log_level']=='error':
+                    logger.setLevel(ERROR)
+                elif data['log_level']=='critical':
+                    logger.setLevel(CRITICAL)
+                else:
+                    raise TypeError
+
+    def apply_log_file_config(self, log_file, enabled):
+        if enabled and not log_file:
+            logger.error('Log file can only be enabled if a path is selected.')
+            return False
+        self.update_log_file()
+        return True
 
     def on_protocol_swapped(self, protocol):
         self.protocol = protocol

@@ -51,8 +51,11 @@ class ConfigController(SingletonPlugin):
         for section_name, values_dict in self.app.config.data.iteritems():
             service = observers.service(section_name)
             if service:
-                service.set_app_values(values_dict)
-
+                if hasattr(service, 'set_app_values'):
+                    service.set_app_values(values_dict)
+                else:
+                    logger.error('Invalid section in config file: [%s].' % section_name)
+                    self.app.config.data.pop(section_name)
         self._init_devices_dir()
 
     def on_app_exit(self):

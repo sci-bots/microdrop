@@ -95,13 +95,19 @@ class AppDataController(object):
     def set_app_values(self, values_dict):
         if not hasattr(self, 'name'):
             raise NotImplementedError
+        for k in values_dict.keys():
+            if k not in self.AppFields.field_schema_mapping.keys():
+                logger.error("Invalid key (%s) in configuration file section: "
+                             "[%s]." % (k, self.name))
+                # remove invalid key from config file
+                values_dict.pop(k)
         elements = self.AppFields(value=values_dict)
         if not elements.validate():
             raise ValueError('Invalid values: %s' % elements.errors)
-        app = get_app()
-        app_data = app.get_data(self.name)
         values = dict([(k, v.value) for k, v in elements.iteritems()\
                 if v.value is not None])
+        app = get_app()
+        app_data = app.get_data(self.name)
         if app_data:
             app_data.update(values)
         else:

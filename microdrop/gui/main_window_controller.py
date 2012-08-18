@@ -33,9 +33,7 @@ from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     get_service_instance_by_name
 from app_context import get_app
 import app_state
-from logger import logger, DEBUG, INFO, WARNING, ERROR, CRITICAL
-from plugin_helpers import AppDataController
-from utility.pygtkhelpers_widgets import Filepath
+from logger import logger
 from utility.gui import DEFAULTS
 
 
@@ -46,19 +44,10 @@ class MicroDropError(Exception):
 PluginGlobals.push_env('microdrop')
 
 
-class MainWindowController(SingletonPlugin, AppDataController):
+class MainWindowController(SingletonPlugin):
     implements(IPlugin)
     implements(IAppStatePlugin)
     implements(ILoggingPlugin)
-
-    AppFields = Form.of(
-        Boolean.named('realtime_mode').using(default=False, optional=True,
-            properties=dict(show_in_gui=False)),
-        Filepath.named('log_file').using(default='', optional=True),
-        Boolean.named('log_enabled').using(default=False, optional=True),
-        Enum.named('log_level').using(default='info', optional=True) \
-            .valued('debug', 'info', 'warning', 'error', 'critical'),
-    )
 
     def __init__(self):
         self._shutting_down_latch = False
@@ -82,11 +71,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
         self.text_input_dialog.textentry = builder.get_object("textentry")
         self.text_input_dialog.label = builder.get_object("label")
         
-    def set_app_values(self, values_dict):
-        logger.debug('[MainWindowController] set_app_values(): '\
-                    'values_dict=%s' % (values_dict,))
-        super(MainWindowController, self).set_app_values(values_dict)
-
     def on_plugin_enable(self):
         app = get_app()
         app.builder.add_from_file(os.path.join("gui",
@@ -133,7 +117,6 @@ class MainWindowController(SingletonPlugin, AppDataController):
         #hbox1.pack_start(self.video_window)
         #hbox1.show_all()
         #self.pipeline.set_state(gst.STATE_PLAYING)
-        super(MainWindowController, self).on_plugin_enable()
         
     def main(self):
         if get_app().protocol:
@@ -177,30 +160,16 @@ class MainWindowController(SingletonPlugin, AppDataController):
                     'microdrop.gui.plugin_manager_controller', env='microdrop')
         service.dialog.window.set_transient_for(self.view)
         service.dialog.run()
-
-    """
-    def on_menu_debug_activate(self, widget, data=None):
-        app = get_app()
-        step = app.protocol.current_step()
-        dmf_plugin_name = step.plugin_name_lookup(
-            r'wheelerlab.dmf_control_board_', re_pattern=True)
-        logger.info('[MainWindowController] Menu debug activated')
-        observers = ExtensionPoint(IPlugin)
-        service = observers.service(dmf_plugin_name)
-        import random
-        service.set_step_values({'voltage': random.randint(10, 100),
-                'frequency': random.randint(1e3, 100e3),
-                'feedback_enabled': True})
-    """
     
     def on_menu_experiment_logs_activate(self, widget, data=None):
         app = get_app()
         app.experiment_log_controller.on_window_show(widget, data)
 
     def on_realtime_mode_toggled(self, widget, data=None):
+        app = get_app()
         realtime_mode = self.checkbutton_realtime_mode.get_active()
-        self.set_app_values({'realtime_mode': realtime_mode})
-        emit_signal("on_app_options_changed", [self.name], interface=IPlugin)
+        app.set_app_values({'realtime_mode': realtime_mode})
+        emit_signal("on_app_options_changed", [app.name], interface=IPlugin)
 
     def on_menu_app_options_activate(self, widget, data=None):
         from app_options_controller import AppOptionsController
@@ -258,36 +227,11 @@ class MainWindowController(SingletonPlugin, AppDataController):
 
     def on_app_options_changed(self, plugin_name):
         app = get_app()
-        if plugin_name == self.name:
-            data = app.get_data(self.name)
+        if plugin_name == app.name:
+            data = app.get_data(app.name)
             if 'realtime_mode' in data:
-                app.realtime_mode = data['realtime_mode']
                 proxy = proxy_for(self.checkbutton_realtime_mode)
-                proxy.set_widget_value(app.realtime_mode)
-            if 'log_file' in data and 'log_enabled' in data:
-                self.apply_log_file_config(data['log_file'],
-                        data['log_enabled'])
-            if 'log_level' in data:
-                if data['log_level']=='debug':
-                    logger.setLevel(DEBUG)
-                elif data['log_level']=='info':
-                    logger.setLevel(INFO)
-                elif data['log_level']=='warning':
-                    logger.setLevel(WARNING)
-                elif data['log_level']=='error':
-                    logger.setLevel(ERROR)
-                elif data['log_level']=='critical':
-                    logger.setLevel(CRITICAL)
-                else:
-                    raise TypeError
-
-    def apply_log_file_config(self, log_file, enabled):
-        app = get_app()
-        if enabled and not log_file:
-            logger.error('Log file can only be enabled if a path is selected.')
-            return False
-        app.update_log_file()
-        return True
+                proxy.set_widget_value(data['realtime_mode'])
 
     def on_url_clicked(self, widget, data):
         logger.debug("URL clicked: %s" % data)
