@@ -23,7 +23,7 @@ import time
 import webbrowser
 
 import gtk
-from flatland import Form, Boolean
+from flatland import Form, Boolean, Enum
 from pygtkhelpers.proxy import proxy_for
 
 from .dmf_device_view import DmfDeviceView
@@ -33,7 +33,7 @@ from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     get_service_instance_by_name
 from app_context import get_app
 import app_state
-from logger import logger
+from logger import logger, DEBUG, INFO, WARNING, ERROR, CRITICAL
 from plugin_helpers import AppDataController
 from utility.pygtkhelpers_widgets import Filepath
 from utility.gui import DEFAULTS
@@ -56,6 +56,8 @@ class MainWindowController(SingletonPlugin, AppDataController):
             properties=dict(show_in_gui=False)),
         Filepath.named('log_file').using(default='', optional=True),
         Boolean.named('log_enabled').using(default=False, optional=True),
+        Enum.named('log_level').using(default='info', optional=True) \
+            .valued('debug', 'info', 'warning', 'error', 'critical'),
     )
 
     def __init__(self):
@@ -131,6 +133,7 @@ class MainWindowController(SingletonPlugin, AppDataController):
         #hbox1.pack_start(self.video_window)
         #hbox1.show_all()
         #self.pipeline.set_state(gst.STATE_PLAYING)
+        super(MainWindowController, self).on_plugin_enable()
         
     def main(self):
         if get_app().protocol:
@@ -264,6 +267,19 @@ class MainWindowController(SingletonPlugin, AppDataController):
             if 'log_file' in data and 'log_enabled' in data:
                 self.apply_log_file_config(data['log_file'],
                         data['log_enabled'])
+            if 'log_level' in data:
+                if data['log_level']=='debug':
+                    logger.setLevel(DEBUG)
+                elif data['log_level']=='info':
+                    logger.setLevel(INFO)
+                elif data['log_level']=='warning':
+                    logger.setLevel(WARNING)
+                elif data['log_level']=='error':
+                    logger.setLevel(ERROR)
+                elif data['log_level']=='critical':
+                    logger.setLevel(CRITICAL)
+                else:
+                    raise TypeError
 
     def apply_log_file_config(self, log_file, enabled):
         app = get_app()

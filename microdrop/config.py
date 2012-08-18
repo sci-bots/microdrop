@@ -71,10 +71,6 @@ class Config():
         
         # list of enabled plugins
         enabled = string_list(default=list())
-
-        [logging]
-        # log level (valid options are "debug", "info", "warning", and "error")
-        level = option('debug', 'info', 'warning', 'error', default='warning')
         """
 
     def __init__(self):
