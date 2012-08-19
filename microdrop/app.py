@@ -156,6 +156,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         # config model
         self.config = Config()
 
+        # set the log level
+        if self.name in self.config.data and \
+            'log_level' in self.config.data[self.name]:
+            self._set_log_level(self.config.data[self.name]['log_level'])
+
         # Delete paths that were marked during the uninstallation of a plugin.
         # It is necessary to delay the deletion until here due to Windows file
         # locking preventing the deletion of files that are in use.
@@ -239,18 +244,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 self.apply_log_file_config(data['log_file'],
                         data['log_enabled'])
             if 'log_level' in data:
-                if data['log_level']=='debug':
-                    logger.setLevel(DEBUG)
-                elif data['log_level']=='info':
-                    logger.setLevel(INFO)
-                elif data['log_level']=='warning':
-                    logger.setLevel(WARNING)
-                elif data['log_level']=='error':
-                    logger.setLevel(ERROR)
-                elif data['log_level']=='critical':
-                    logger.setLevel(CRITICAL)
-                else:
-                    raise TypeError
+                self._set_log_level(data['log_level'])
 
     def apply_log_file_config(self, log_file, enabled):
         if enabled and not log_file:
@@ -398,6 +392,20 @@ Would you like to download the latest version in your browser?''' % (
                     self.protocol_controller.load_protocol(filename)
         
         self.main_window_controller.main()
+
+    def _set_log_level(self, level):
+        if level=='debug':
+            logger.setLevel(DEBUG)
+        elif level=='info':
+            logger.setLevel(INFO)
+        elif level=='warning':
+            logger.setLevel(WARNING)
+        elif level=='error':
+            logger.setLevel(ERROR)
+        elif level=='critical':
+            logger.setLevel(CRITICAL)
+        else:
+            raise TypeError
 
     def _set_log_file_handler(self, log_file):
         if self.log_file_handler:

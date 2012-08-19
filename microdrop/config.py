@@ -26,7 +26,6 @@ from validate import Validator
 
 from logger import logger
 from utility.user_paths import home_dir, app_data_dir, common_app_data_dir
-from app_context import get_app
 from plugin_manager import ExtensionPoint, IPlugin
 
 
@@ -99,7 +98,6 @@ class Config():
                 raise IOError
             self.filename = path(filename)
         else:
-            logger.debug("[Config].load()")
             if self.filename.exists():
                 logger.info("Loading config file from %s" % self.filename)
             else:
