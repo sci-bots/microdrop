@@ -93,7 +93,7 @@ class MainWindowController(SingletonPlugin):
             self.on_menu_experiment_logs_activate
         app.signals["on_window_destroy"] = self.on_destroy
         app.signals["on_window_delete_event"] = self.on_delete_event
-        app.signals["on_checkbutton_realtime_mode_toggled"] = \
+        app.signals["on_checkbutton_realtime_mode_button_press_event"] = \
                 self.on_realtime_mode_toggled
         app.signals["on_menu_app_options_activate"] = self.on_menu_app_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
@@ -117,7 +117,8 @@ class MainWindowController(SingletonPlugin):
         #hbox1.pack_start(self.video_window)
         #hbox1.show_all()
         #self.pipeline.set_state(gst.STATE_PLAYING)
-        
+
+
     def main(self):
         if get_app().protocol:
             emit_signal("on_step_run")
@@ -166,10 +167,12 @@ class MainWindowController(SingletonPlugin):
         app.experiment_log_controller.on_window_show(widget, data)
 
     def on_realtime_mode_toggled(self, widget, data=None):
+        realtime_mode = not self.checkbutton_realtime_mode.get_active()
+        self.checkbutton_realtime_mode.set_active(realtime_mode)
         app = get_app()
-        realtime_mode = self.checkbutton_realtime_mode.get_active()
         app.set_app_values({'realtime_mode': realtime_mode})
         emit_signal("on_app_options_changed", [app.name], interface=IPlugin)
+        return True
 
     def on_menu_app_options_activate(self, widget, data=None):
         from app_options_controller import AppOptionsController

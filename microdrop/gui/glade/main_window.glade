@@ -537,7 +537,7 @@
                     <property name="use_action_appearance">False</property>
                     <property name="use_underline">True</property>
                     <property name="draw_indicator">True</property>
-                    <signal name="toggled" handler="on_checkbutton_realtime_mode_toggled" swapped="no"/>
+                    <signal name="button-press-event" handler="on_checkbutton_realtime_mode_button_press_event" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -604,7 +604,7 @@
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
                         <property name="image">image_goto_first1</property>
-                        <signal name="clicked" handler="on_button_first_step_clicked" swapped="no"/>
+                        <signal name="button-release-event" handler="on_button_first_step_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -619,7 +619,7 @@
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
                         <property name="image">image_go_back1</property>
-                        <signal name="clicked" handler="on_button_prev_step_clicked" swapped="no"/>
+                        <signal name="button-release-event" handler="on_button_prev_step_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -634,7 +634,7 @@
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
                         <property name="image">image_play1</property>
-                        <signal name="clicked" handler="on_button_run_protocol_clicked" swapped="no"/>
+                        <signal name="button-release-event" handler="on_button_run_protocol_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -649,7 +649,7 @@
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
                         <property name="image">image_go_forward1</property>
-                        <signal name="clicked" handler="on_button_next_step_clicked" swapped="no"/>
+                        <signal name="button-release-event" handler="on_button_next_step_button_release_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -664,7 +664,8 @@
                         <property name="receives_default">True</property>
                         <property name="use_action_appearance">False</property>
                         <property name="image">image_goto_last1</property>
-                        <signal name="clicked" handler="on_button_last_step_clicked" swapped="no"/>
+                        <signal name="button-release-event" handler="on_button_last_step_button_release_event" swapped="no"/>
+                        <signal name="leave-notify-event" handler="on_button_last_step_leave_notify_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">True</property>

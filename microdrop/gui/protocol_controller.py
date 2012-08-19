@@ -42,7 +42,7 @@ from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
 import app_state
-from utility.gui import yesno
+from utility.gui import yesno, contains_pointer
 
 
 PluginGlobals.push_env('microdrop')
@@ -136,11 +136,11 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.menu_save_protocol = app.builder.get_object('menu_save_protocol')
         self.menu_save_protocol_as = app.builder.get_object('menu_save_protocol_as')
 
-        app.signals["on_button_first_step_clicked"] = self.on_first_step
-        app.signals["on_button_prev_step_clicked"] = self.on_prev_step
-        app.signals["on_button_next_step_clicked"] = self.on_next_step
-        app.signals["on_button_last_step_clicked"] = self.on_last_step
-        app.signals["on_button_run_protocol_clicked"] = self.on_run_protocol
+        app.signals["on_button_first_step_button_release_event"] = self.on_first_step
+        app.signals["on_button_prev_step_button_release_event"] = self.on_prev_step
+        app.signals["on_button_next_step_button_release_event"] = self.on_next_step
+        app.signals["on_button_last_step_button_release_event"] = self.on_last_step
+        app.signals["on_button_run_protocol_button_release_event"] = self.on_run_protocol
         app.signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         app.signals["on_menu_load_protocol_activate"] = self.on_load_protocol
         app.signals["on_menu_rename_protocol_activate"] = self.on_rename_protocol
@@ -168,36 +168,51 @@ Protocol is version %s, but only up to version %s is supported with this version
             self.menu_save_protocol.set_property('sensitive', False)
 
     def on_first_step(self, widget=None, data=None):
-        app = get_app()
-        app.protocol.first_step()
-        emit_signal('on_step_run')
+        if contains_pointer(widget):
+            app = get_app()
+            app.protocol.first_step()
+            emit_signal('on_step_run')
+            return True
+        return False
 
     def on_prev_step(self, widget=None, data=None):
-        app = get_app()
-        app.protocol.prev_step()
-        emit_signal('on_step_run')
+        if contains_pointer(widget):
+            app = get_app()
+            app.protocol.prev_step()
+            emit_signal('on_step_run')
+            return True
+        return False
 
     def on_next_step(self, widget=None, data=None):
-        app = get_app()
-        app.protocol.next_step()
-        emit_signal('on_step_run')
+        if contains_pointer(widget):
+            app = get_app()
+            app.protocol.next_step()
+            emit_signal('on_step_run')
+            return True
+        return False
         
     def on_last_step(self, widget=None, data=None):
-        app = get_app()
-        app.protocol.last_step()
-        emit_signal('on_step_run')
-
+        if contains_pointer(widget):
+            app = get_app()
+            app.protocol.last_step()
+            emit_signal('on_step_run')
+            return True
+        return False
+        
     def on_new_protocol(self, widget=None, data=None):
         self.save_check()
         self.create_protocol()
         emit_signal('on_step_run')
 
     def on_run_protocol(self, widget=None, data=None):
-        app = get_app()
-        if app.running:
-            self.pause_protocol()
-        else:
-            self.run_protocol()
+        if contains_pointer(widget):
+            app = get_app()
+            if app.running:
+                self.pause_protocol()
+            else:
+                self.run_protocol()
+            return True
+        return False
 
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()
