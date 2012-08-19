@@ -198,6 +198,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 except (AssertionError,):
                     logger.info('  NOT deleting %s info=%s' % (p, info))
                     continue
+                except (Exception,):
+                    logger.info('  NOT deleting %s' % (plugin_root))
+                    continue
             deletions_path.write_bytes(yaml.dump(requested_deletions))
 
         rename_queue_path = path(self.config.data['plugins']['directory'])\
