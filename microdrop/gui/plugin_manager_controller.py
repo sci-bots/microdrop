@@ -218,7 +218,7 @@ class PluginManagerController(SingletonPlugin):
             plugin_name = p.get_plugin_package_name()
             try:
                 result = self.update_plugin(p, force=force)
-                print '[update_all_plugins] plugin_name=%s %s' % (plugin_name, result)
+                logging.info('[update_all_plugins] plugin_name=%s %s' % (plugin_name, result))
                 plugin_updated = plugin_updated or result
             except JSONRPCException:
                 logging.info('Plugin %s not available on plugin server %s' % (

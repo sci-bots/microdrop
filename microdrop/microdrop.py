@@ -21,6 +21,8 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import sys
 import multiprocessing
+import traceback
+import logging
 
 from path import path
 
@@ -54,8 +56,6 @@ settings.set_property('gtk-alternative-button-order', True)
 
 
 def except_handler(*args, **kwargs):
-    import traceback
-
     print args, kwargs
     traceback.print_tb(args[2])
 

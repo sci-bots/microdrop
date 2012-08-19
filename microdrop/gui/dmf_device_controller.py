@@ -122,8 +122,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                             self.view.transform_matrix = matrix
 
         except (Exception,), why:
-            import traceback
-            traceback.print_exc()
+            logger.info(''.join(traceback.format_exc()()))
             raise
 
     def apply_device_dir(self, device_directory):
@@ -304,7 +303,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                         DmfDevice.load(filename)])
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
-            logger.debug(''.join(traceback.format_stack()))
+            logger.info(''.join(traceback.format_exc()()))
     
     def save_dmf_device(self, save_as=False, rename=False):
         app = get_app()

@@ -316,7 +316,7 @@ def load_plugins(plugins_dir='plugins'):
                 logging.debug(import_statement)
                 exec(import_statement)
             except Exception, why:
-                logging.debug(''.join(traceback.format_exc()))
+                logging.info(''.join(traceback.format_exc()))
                 logging.error('Error loading %s plugin.' % d.name)
 
     # Create an instance of each of the plugins, but set it to disabled
@@ -459,7 +459,7 @@ def emit_signal(function, args=[], interface=IPlugin):
                             (observer.name, function)
                     print >> message, 'Reason:', str(why)
                     logging.error(message.getvalue().strip())
-                logging.error(''.join(traceback.format_stack()))
+                logging.info(''.join(traceback.format_exc()))
     return return_codes
 
 

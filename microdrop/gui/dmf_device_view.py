@@ -272,8 +272,8 @@ class DmfDeviceView(GStreamerVideoView):
                     cairo.FORMAT_ARGB32, width, height, 4 * width)
             cairo_context = cairo.Context(surface)
         except:
-            print "Failed to create cairo surface for buffer"
-            traceback.print_exc()
+            logger.info("Failed to create cairo surface for buffer")
+            logger.info(''.join(traceback.format_exc()()))
             return
         try:
             if self.controller.video_enabled:
@@ -282,8 +282,8 @@ class DmfDeviceView(GStreamerVideoView):
                 overlay_opacity = 1.
             self.draw_on_cairo(cairo_context, alpha=overlay_opacity)
         except:
-            print "Failed cairo render"
-            traceback.print_exc()
+            logger.info("Failed cairo render")
+            logger.info(''.join(traceback.format_exc()()))
 
     def draw_on_cairo(self, cr, alpha=1.0):
         app = get_app()

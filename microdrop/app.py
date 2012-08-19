@@ -20,7 +20,6 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import subprocess
 import re
-import traceback
 import functools
 
 import gtk
@@ -77,7 +76,6 @@ def dump_event_info(current_state, event, label=None):
     logger.debug('[%s] event=%s current_state=%s'\
             % (('%-14s' % label, '')[not label].upper(), event.type.split(' ')[-1],
                     str(current_state),))
-    #import traceback; print ''.join(traceback.format_stack())
 
 
 class App(SingletonPlugin, AppDataController):
