@@ -66,10 +66,6 @@ if not utility.PROGRAM_LAUNCHED:
         __interface_namespace__ = None
 
 
-    class IAmplifier(object):
-        __interface_namespace__ = None
-
-
     class ILoggingPlugin(object):
         __interface_namespace__ = None
 
@@ -123,29 +119,6 @@ else:
             """
             pass
 
-
-    class IAmplifier(Interface):
-        def gain(self, frequency):
-            """
-            Get the gain of an amplifier for a given frequency/frequencies.
-            
-            Parameters:
-                frequency : frequency or list of frequencies
-                
-            Returns:
-                gain or list of gain terms corresponding to the input
-            """
-            pass
-        
-        def frequency_range(self):
-            """
-            Get the range of frequencies over which the amplifier has been
-            calibrated.
-            
-            Returns:
-                Two element list [min_frequency, max_frequency]
-            """
-            pass
     
     class IPlugin(Interface):
         def get_schedule_requests(self, function_name):
