@@ -180,7 +180,9 @@ if __name__ == "__main__":
     # package name, type, url
     for p in (
             ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/"\
-                    "tarball/pre_object_tree"), ):
+                    "tarball/pre_object_tree"), 
+            ('gst_video_source_caps_query', 'pip', 'https://github.com/cfobel/'\
+                    'python___gst_video_source_caps_query/tarball/master'), ):
         packages.append(p)
 
     # python 2.7 specific packages
