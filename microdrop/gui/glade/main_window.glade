@@ -665,7 +665,6 @@
                         <property name="use_action_appearance">False</property>
                         <property name="image">image_goto_last1</property>
                         <signal name="button-release-event" handler="on_button_last_step_button_release_event" swapped="no"/>
-                        <signal name="leave-notify-event" handler="on_button_last_step_leave_notify_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">True</property>
