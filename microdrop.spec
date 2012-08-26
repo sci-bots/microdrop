@@ -16,12 +16,13 @@ extra_py = []
 a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
             'microdrop\\microdrop.py'] + extra_py,
-            excludes=['opencv', 'flatland',])
+            excludes=['opencv', 'flatland', 'pygtkhelpers',])
 
 for mod in [pygtkhelpers]:
-        mod_path = path(mod.__file__).parent
-        a.datas += [(str(mod_path.parent.relpathto(p)), str(p.abspath()), 'DATA')\
-                    for p in mod_path.walkfiles(ignore=[r'\.git', r'site_scons', r'.*\.pyc'])]
+	mod_path = path(mod.__file__).parent
+	a.datas += [(str(mod_path.parent.relpathto(p)), str(p.abspath()), 'DATA')\
+		    for p in mod_path.walkfiles(ignore=[r'\.git', r'site_scons',
+                    r'.*\.pyc'])]
 
 # Copy matplotlib mpl-data files to dist directory.
 matplotlib_path = path(matplotlib.__file__).parent
