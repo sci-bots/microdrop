@@ -23,7 +23,11 @@ def select_video_mode(video_modes):
 
 def select_video_caps():
     video_modes = GstVideoSourceManager.get_available_video_modes(format_='YUY2')
-    return GstVideoSourceManager.get_caps_string(select_video_mode(video_modes))
+    selected_mode = select_video_mode(video_modes)
+    if selected_mode:
+        return GstVideoSourceManager.get_caps_string(selected_mode)
+    else:
+        return None
 
 
 if __name__ == '__main__':
