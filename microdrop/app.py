@@ -240,7 +240,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if plugin_name == self.name:
             data = self.get_data(self.name)
             if 'realtime_mode' in data:
-                self.realtime_mode = data['realtime_mode']
+                if self.realtime_mode != data['realtime_mode']:
+                    self.realtime_mode = data['realtime_mode']
+                    plugin_manager.emit_signal('on_step_run')
             if 'log_file' in data and 'log_enabled' in data:
                 self.apply_log_file_config(data['log_file'],
                         data['log_enabled'])

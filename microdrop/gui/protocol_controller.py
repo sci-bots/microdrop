@@ -406,9 +406,12 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
 
     def on_step_run(self):
-        self._update_labels()
         app = get_app()
+        if app.protocol is None:
+            return
+        
         step = app.protocol.current_step()
+        self._update_labels()
         for plugin_name in step.plugins:
             emit_signal('on_step_options_swapped',
                     [plugin_name,
