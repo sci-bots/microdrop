@@ -19,15 +19,14 @@ class GStreamerVideoView(SlaveView):
     """
     SlaveView for displaying GStreamer video sink
     """
-
     gsignal('video-started', object)
 
-
     def __init__(self, pipeline, force_aspect_ratio=True):
+        super(GStreamerVideoView, self).__init__()
         self.widget = gtk.DrawingArea()
         self.widget.connect('realize', self.on_realize)
         self.window_xid = None
-        self.pipline = pipeline
+        self.pipeline = pipeline
         self.force_aspect_ratio = force_aspect_ratio
         self.start_time = None
         self.sink = None
