@@ -288,15 +288,13 @@ class PluginManagerController(SingletonPlugin):
                 info(message)
                 return
             else:
-                message = 'Plugin %s version %s is newer than currently '\
-                        'installed version (%s)' % (plugin_metadata.package_name,
-                        plugin_metadata.version, installed_metadata.version)
+                message = 'A newer version (%s) of the %s plugin is available' \
+                        ' (current version=%s).' % (plugin_metadata.version,
+                         plugin_metadata.package_name,
+                         installed_metadata.version)
                 logging.info(message)
                 if not force:
-                    response = yesno('''\
-    %s
-    Would you like to uninstall the previous version and install the new \
-version?''' % message)
+                    response = yesno('''%s Would you like to upgrade?''' % message)
                     if response == gtk.RESPONSE_YES:
                         force = True
                     else:
