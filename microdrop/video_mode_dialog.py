@@ -1,5 +1,12 @@
 from pprint import pprint
 
+try:
+    import pygst
+    pygst.require("0.10")
+except ImportError:
+    pass
+import gst
+import glib
 from gst_video_source_caps_query import GstVideoSourceManager, FilteredInput
 
 from utility.pygtkhelpers_widgets import Enum, Form
@@ -37,10 +44,17 @@ def select_video_source():
         return None
     device, caps_str = result
     video_source = GstVideoSourceManager.get_video_source()
-    video_source.set_property('device', device)
+    device_key, devices = GstVideoSourceManager.get_video_source_configs()
+    video_source.set_property(device_key, device)
     filtered_input = FilteredInput('filtered_input', caps_str, video_source)
     return filtered_input
 
 
 if __name__ == '__main__':
-    print select_video_caps()    
+    pipeline = gst.Pipeline()
+    video_sink = gst.element_factory_make('autovideosink', 'video_sink')
+    video_source = select_video_source()
+    pipeline.add(video_sink, video_source)
+    video_source.link(video_sink)
+    pipeline.set_state(gst.STATE_PLAYING)
+    glib.MainLoop().run()
