@@ -47,7 +47,7 @@ PluginGlobals.push_env('microdrop')
 
 class ProtocolController(SingletonPlugin):
     implements(IPlugin)
-    
+
     def __init__(self):
         self.name = "microdrop.gui.protocol_controller"
         self.builder = None
@@ -118,14 +118,14 @@ Protocol is version %s, but only up to version %s is supported with this version
             self.modified = False
             emit_signal("on_protocol_swapped", [app.protocol, p])
         self.run_step()
-        
+
     def create_protocol(self):
         old_protocol = get_app().protocol
         self.modified = True
         p = Protocol()
         emit_signal("on_protocol_swapped", [old_protocol, p])
         self.run_step()
-        
+
     def on_protocol_swapped(self, old_protocol, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
         logging.debug('[ProtocolController] on_protocol_swapped(): plugin_fields=%s' % protocol.plugin_fields)
@@ -133,19 +133,19 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_plugin_enable(self):
         app = get_app()
         self.builder = app.builder
-        
+
         self.textentry_notes = self.builder.get_object("textview_notes")
         self.textentry_notes.set_buffer(UndoableBuffer())
         self.label_step_number = self.builder.get_object("label_step_number")
         self.textentry_protocol_repeats = self.builder.get_object(
-            "textentry_protocol_repeats")        
+            "textentry_protocol_repeats")
 
         self.button_first_step = app.builder.get_object('button_first_step')
         self.button_prev_step = app.builder.get_object('button_prev_step')
         self.button_run_protocol = self.builder.get_object("button_run_protocol")
         self.button_next_step = app.builder.get_object('button_next_step')
         self.button_last_step = app.builder.get_object('button_last_step')
-        
+
         self.menu_protocol = app.builder.get_object('menu_protocol')
         self.menu_new_protocol = app.builder.get_object('menu_new_protocol')
         self.menu_load_protocol = app.builder.get_object('menu_load_protocol')
@@ -169,7 +169,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 self.on_textentry_protocol_repeats_key_press
         app.protocol_controller = self
         self._register_shortcuts()
-        
+
         self.menu_protocol.set_sensitive(False)
         self.menu_new_protocol.set_sensitive(False)
         self.menu_load_protocol.set_sensitive(False)
@@ -178,7 +178,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.button_run_protocol.set_sensitive(False)
         self.button_next_step.set_sensitive(False)
         self.button_last_step.set_sensitive(False)
-        
+
     def on_first_step(self, widget=None, data=None):
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
@@ -199,14 +199,14 @@ Protocol is version %s, but only up to version %s is supported with this version
             app.protocol.next_step()
             return True
         return False
-        
+
     def on_last_step(self, widget=None, data=None):
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.last_step()
             return True
         return False
-        
+
     def on_new_protocol(self, widget=None, data=None):
         self.save_check()
         self.create_protocol()
@@ -242,16 +242,16 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def on_rename_protocol(self, widget=None, data=None):
         self.save_protocol(rename=True)
-    
+
     def on_save_protocol(self, widget=None, data=None):
         self.save_protocol()
-    
+
     def on_save_protocol_as(self, widget=None, data=None):
         self.save_protocol(save_as=True)
 
     def on_textentry_protocol_repeats_focus_out(self, widget, data=None):
         self.on_protocol_repeats_changed()
-    
+
     def on_textentry_protocol_repeats_key_press(self, widget, event):
         if event.keyval == gtk.gdk.keyval_from_name('Return'):
             # user pressed enter
@@ -264,7 +264,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 textentry_validate(self.textentry_protocol_repeats,
                     app.protocol.n_repeats,
                     int)
-    
+
     def save_check(self):
         app = get_app()
         if self.modified:
@@ -325,33 +325,33 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_play"))
         emit_signal("on_protocol_pause")
-        
+
     def run_step(self):
         app = get_app()
         if app.protocol and app.dmf_device and \
         (app.realtime_mode or app.running):
             app.experiment_log.add_step(app.protocol.current_step_number,
                                         app.protocol.current_step_attempt)
-            
+
             self.waiting_for = get_observers("on_step_run", IPlugin).keys()
-            logging.info("[ProcolController.run_step]: waiting for %s" % 
+            logging.info("[ProcolController.run_step]: waiting for %s" %
                           ", ".join(self.waiting_for))
             emit_signal("on_step_run")
-        
+
     def on_step_complete(self, plugin_name, return_value=None):
         app = get_app()
         logging.info("[ProcolController].on_step_complete: %s finished" %
                       plugin_name)
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
-        
+
         # check retern value
         if return_value=='Fail':
             self.pause_protocol()
             logging.error("Protocol failed.")
         elif return_value=='Repeat':
             self.repeat_step = True
-            
+
         if len(self.waiting_for):
             logging.debug("[ProcolController].on_step_complete: still waiting "
                           "for %s" % ", ".join(self.waiting_for))
@@ -403,7 +403,7 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def _update_labels(self):
         app = get_app()
-        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" % 
+        self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" %
             (app.protocol.current_step_number + 1,
             len(app.protocol.steps),
             app.protocol.current_repetition + 1,
