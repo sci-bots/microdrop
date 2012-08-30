@@ -41,7 +41,11 @@ os.environ['PATH'] += ";" + str((GST_PATH / path('bin')).abspath())
 
 # The following imports ensure that the corresponding modules are processed
 # by PyInstaller when generating an EXE.
+import gobject
+import glib
 import gtk
+glib.threads_init()
+gobject.threads_init()
 gtk.gdk.threads_init()
 import blinker
 import matplotlib

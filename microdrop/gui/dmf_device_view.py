@@ -20,11 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 from collections import namedtuple
 from datetime import datetime
-import time
 import traceback
-from math import pi
-import os
-import tempfile
 
 import gtk
 import gobject
@@ -32,8 +28,13 @@ gtk.gdk.threads_init()
 gobject.threads_init()
 import cairo
 import numpy as np
-import yaml
-import gst
+try:
+    import pygst
+    pygst.require("0.10")
+except:
+    pass
+finally:
+    import gst
 
 from .warp_cairo_draw import WarpBin
 from .rated_bin import RatedBin
@@ -47,6 +48,7 @@ from utility.gui import text_entry_dialog
 from utility import is_float
 from logger import logger
 from plugin_manager import emit_signal, IPlugin
+from video_mode_dialog import select_video_source
 
 
 Dims = namedtuple('Dims', 'x y width height')
@@ -68,7 +70,6 @@ class ElectrodeContextMenu(SlaveView):
     gsignal('registration-request')
 
     def disable_video_background(self):
-        app = get_app()
         self.last_frame = None
         self.background = None
 
@@ -227,8 +228,10 @@ class DmfDeviceView(GStreamerVideoView):
             video_src.set_property('pattern', 2)
             return RatedBin('rated_bin', video_src=video_src)
         else:
-            video_src = None
-            return RatedBin('rated_bin', video_src=video_src)
+            gtk.threads_enter()
+            test_video_src = select_video_source()
+            gtk.threads_leave()
+            return test_video_src
 
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)
@@ -245,6 +248,7 @@ class DmfDeviceView(GStreamerVideoView):
 
             device = Dims(*app.dmf_device.get_bounding_box())
             display_dims = Dims(*self.device_area.get_allocation())
+            prev_display_dims = getattr(self, '_prev_display_dims', None)
             display_scale_x = (display_dims.width - 2 * padding) / device.width
             display_scale_y = (display_dims.height - 2 * padding) / device.height
             self.display_scale = min(display_scale_x, display_scale_y)
@@ -258,8 +262,28 @@ class DmfDeviceView(GStreamerVideoView):
                                ((display_dims.width - 2 * padding)\
                                     / self.display_scale - device.width) / 2,
                                 - device.y + padding / self.display_scale)
-            warp_bin = self.pipeline.get_by_name('warp_bin')
-            warp_bin.scale(display_dims.width, display_dims.height)
+            def _set_scale(self):
+                warp_bin = self.pipeline.get_by_name('warp_bin')
+                result = self.pipeline.set_state(gst.STATE_NULL)
+                if result == gst.STATE_CHANGE_ASYNC:
+                    try:
+                        while self.pipeline.get_state()[1] != gst.STATE_NULL:
+                            pass
+                    except:
+                        pass
+                warp_bin.scale(display_dims.width, display_dims.height)
+                result = self.pipeline.set_state(gst.STATE_PLAYING)
+                if result == gst.STATE_CHANGE_ASYNC:
+                    try:
+                        while self.pipeline.get_state()[1] != gst.STATE_PLAYING:
+                            pass
+                    except:
+                        pass
+                return False
+            if display_dims != prev_display_dims:
+                gtk.idle_add(_set_scale, self)
+            self._prev_display_dims = display_dims
+
 
     def _draw_on(self, buf):
         try:
@@ -268,7 +292,6 @@ class DmfDeviceView(GStreamerVideoView):
             height = caps[0]['height']
             video_dims = Dims(0, 0, width, height)
             self.fit_device(video_dims)
-            framerate = caps[0]['framerate']
             surface = cairo.ImageSurface.create_for_data(buf,
                     cairo.FORMAT_ARGB32, width, height, 4 * width)
             cairo_context = cairo.Context(surface)
@@ -326,11 +349,10 @@ class DmfDeviceView(GStreamerVideoView):
         return None
 
     def on_electrode_click(self, electrode, event):
-        app = get_app()
         options = self.controller.get_step_options()
         state = options.state_of_channels
         if event.button == 1:
-            if len(electrode.channels): 
+            if len(electrode.channels):
                 for channel in electrode.channels:
                     if state[channel] > 0:
                         state[channel] = 0
@@ -346,7 +368,7 @@ class DmfDeviceView(GStreamerVideoView):
 
     def on_device_area__key_press_event(self, widget, data=None):
         pass
-    
+
     def on_device_area__button_press_event(self, widget, event):
         '''
         Modifies state of channel based on mouse-click.
@@ -420,7 +442,7 @@ class DmfDeviceView(GStreamerVideoView):
                 self.emit('transform-changed', array)
         gtk.idle_add(do_device_registration)
 
-    
+
 class DeviceRegistrationDialog(RegistrationDialog):
     '''
     This dialog is used to register the video to the DMF device

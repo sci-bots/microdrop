@@ -217,6 +217,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         elif result == gst.STATE_CHANGE_ASYNC:
             while self.view.pipeline.get_state()[1] != gst.STATE_PLAYING:
                 pass
+        return False
 
     def request_frame(self):
         warp_bin = self.view.pipeline.get_by_name('warp_bin')
