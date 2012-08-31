@@ -304,7 +304,6 @@ class DmfDeviceView(GStreamerVideoView):
                 gtk.idle_add(_set_scale, self)
             self._prev_display_dims = display_dims
 
-
     def _draw_on(self, buf):
         try:
             caps = buf.get_caps()

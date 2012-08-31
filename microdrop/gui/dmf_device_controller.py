@@ -173,16 +173,22 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         thread.  Otherwise, dead-lock will occur.  Currently, this is
         ensured by calling this function in a gtk.timeout_add() call.
         '''
-        if not self._video_initialized and self.video_settings:
-            selected_mode = self.video_mode_map[self.video_settings]
-            caps_str = GstVideoSourceManager.get_caps_string(selected_mode)
-            video_source = create_video_source(
-                    selected_mode['device'], caps_str)
-            self.view.set_source(video_source)
-            self._video_initialized = True
-            # Reset _prev_display_dims to force Cairo drawing to
-            # scale to the new video settings.
-            self.view._prev_display_dims = None
+        if not self._video_initialized:
+            if self.video_enabled:
+                if not self._video_initialized and self.video_settings:
+                    self._video_initialized = True
+                    selected_mode = self.video_mode_map[self.video_settings]
+                    caps_str = GstVideoSourceManager.get_caps_string(selected_mode)
+                    video_source = create_video_source(
+                            selected_mode['device'], caps_str)
+                    self.view.set_source(video_source)
+            else:
+                self._video_initialized = True
+                self.view.set_source(self.view.get_video_src())
+            if self._video_initialized:
+                # Reset _prev_display_dims to force Cairo drawing to
+                # scale to the new video settings.
+                self.view._prev_display_dims = None
         return True
 
     def apply_device_dir(self, device_directory):
