@@ -194,12 +194,32 @@ class DmfDeviceView(GStreamerVideoView):
     def stop_recording(self):
         pass
 
-    def get_pipeline(self):
+    def set_source(self, video_source):
+        if self.pipeline:
+            result = self.pipeline.set_state(gst.STATE_NULL)
+            if result == gst.STATE_CHANGE_ASYNC:
+                try:
+                    while self.pipeline.get_state()[1] != gst.STATE_NULL:
+                        pass
+                except:
+                    pass
+            del self._pipeline
+        self.pipeline = self.get_pipeline(video_source)
+        result = self.pipeline.set_state(gst.STATE_PLAYING)
+        if result == gst.STATE_CHANGE_ASYNC:
+            try:
+                while self.pipeline.get_state()[1] != gst.STATE_PLAYING:
+                    pass
+            except:
+                pass
+
+    def get_pipeline(self, video_src=None):
         pipeline = gst.Pipeline('pipeline')
 
         warp_bin = WarpBin('warp_bin', draw_on=self._draw_on)
 
-        video_src = self.get_video_src()
+        if video_src is None:
+            video_src = self.get_video_src()
         video_sink = gst.element_factory_make('autovideosink', 'video_sink')
         tee = gst.element_factory_make('tee', 'tee')
         display_queue = gst.element_factory_make('queue', 'display_queue')
@@ -297,7 +317,7 @@ class DmfDeviceView(GStreamerVideoView):
             cairo_context = cairo.Context(surface)
         except:
             logger.info("Failed to create cairo surface for buffer")
-            logger.info(''.join(traceback.format_exc()()))
+            logger.info(''.join(traceback.format_exc()))
             return
         try:
             if self.controller.video_enabled:

@@ -103,6 +103,7 @@ class AppDataController(object):
                 values_dict.pop(k)
         elements = self.AppFields(value=values_dict)
         if not elements.validate():
+            import pudb; pudb.set_trace()
             raise ValueError('Invalid values: %s' % elements.errors)
         values = dict([(k, v.value) for k, v in elements.iteritems()\
                 if v.value is not None])

@@ -21,6 +21,7 @@ import os
 import traceback
 import shutil
 from datetime import datetime
+import logging
 
 import gtk
 import numpy as np
@@ -33,7 +34,7 @@ from path import path
 import yaml
 import gst
 
-from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog
+from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog, Dims
 from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
@@ -59,30 +60,43 @@ class DmfDeviceOptions(object):
             self.state_of_channels = deepcopy(state_of_channels)
 
 
+from video_mode_dialog import get_video_mode_map, GstVideoSourceManager, create_video_source
+
+
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
-    
+    implements(IAppStatePlugin)
+
+    gtk.threads_enter()
+    video_modes = GstVideoSourceManager.get_available_video_modes(
+            format_='YUY2')
+    video_mode_map = get_video_mode_map(video_modes)
+    video_mode_keys = sorted(video_mode_map.keys())
+    gtk.threads_leave()
+
     AppFields = Form.of(
         Boolean.named('video_enabled').using(default=False, optional=True,
                 properties={'show_in_gui': False}),
         Integer.named('overlay_opacity').using(default=30, optional=True,
-            validators=[ValueAtLeast(minimum=1), ValueAtMost(maximum=100)]),
-        Integer.named('display_fps').using(default=30, optional=True,
-            validators=[ValueAtLeast(minimum=5), ValueAtMost(maximum=100)],
-            properties={'show_in_gui': False}),
+                validators=[ValueAtLeast(minimum=1),
+                        ValueAtMost(maximum=100)]),
         Directory.named('device_directory').using(default='', optional=True),
         String.named('transform_matrix').using(default='', optional=True,
-            properties=dict(show_in_gui=False))
+                properties={'show_in_gui': False}),
+        Enum.named('video_settings').valued(*video_mode_keys).using(
+                optional=True, default=video_mode_keys[0]),
     )
 
     def __init__(self):
-        self.name = "microdrop.gui.dmf_device_controller"        
+        self.name = "microdrop.gui.dmf_device_controller"
         self.view = DmfDeviceView(self, 'device_view')
         self.view.connect('transform-changed', self.on_transform_changed)
         self.view.connect('video-started', self.on_video_started)
         self.previous_device_dir = None
         self.video_enabled = False
         self._modified = False
+        self._video_initialized = False
+        gtk.timeout_add(1000, self._initialize_video)
 
     @property
     def modified(self):
@@ -92,7 +106,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     def modified(self, value):
         self._modified = value
         self.menu_save_dmf_device.set_sensitive(value)
-                
+
     def on_video_started(self, device_view, start_time):
         self.set_app_values(
             dict(transform_matrix=self.get_app_value('transform_matrix')))
@@ -127,10 +141,49 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                         matrix = np.array(matrix, dtype='float32')
                         if self.view.pipeline:
                             self.view.transform_matrix = matrix
-
+                if 'video_settings' in values:
+                    video_settings = values['video_settings']
+                    if video_settings is not None\
+                            and video_settings != self.video_settings:
+                        self.video_settings = video_settings
         except (Exception,), why:
-            logger.info(''.join(traceback.format_exc()()))
+            logger.info(''.join(traceback.format_exc()))
             raise
+
+    @property
+    def video_settings(self):
+        if not hasattr(self, '_video_settings'):
+            self._video_settings = self.video_mode_keys[0]
+        return self._video_settings
+
+    @video_settings.setter
+    def video_settings(self, value):
+        '''
+        When the video_settings are set, we must force the video
+        pipeline to be re-initialized.
+        '''
+        self._video_settings = value
+        self._video_initialized = False
+
+    def _initialize_video(self):
+        '''
+        Initialize video if necessary.
+
+        Note that this function must only be called by the main GTK
+        thread.  Otherwise, dead-lock will occur.  Currently, this is
+        ensured by calling this function in a gtk.timeout_add() call.
+        '''
+        if not self._video_initialized and self.video_settings:
+            selected_mode = self.video_mode_map[self.video_settings]
+            caps_str = GstVideoSourceManager.get_caps_string(selected_mode)
+            video_source = create_video_source(
+                    selected_mode['device'], caps_str)
+            self.view.set_source(video_source)
+            self._video_initialized = True
+            # Reset _prev_display_dims to force Cairo drawing to
+            # scale to the new video settings.
+            self.view._prev_display_dims = None
+        return True
 
     def apply_device_dir(self, device_directory):
         app = get_app()
@@ -186,9 +239,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app.signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
         app.signals["on_menu_import_dmf_device_activate"] = \
                 self.on_import_dmf_device
-        app.signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device 
-        app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device 
-        app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as 
+        app.signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device
+        app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device
+        app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as
         app.dmf_device_controller = self
         defaults = self.get_default_app_options()
         data = app.get_data(self.name)
@@ -260,7 +313,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if result == gst.STATE_CHANGE_ASYNC:
                 while self.view.pipeline.get_state()[1] != gst.STATE_NULL:
                     pass
-        
+
     def get_default_options(self):
         return DmfDeviceOptions()
 
@@ -294,7 +347,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
             logger.info(''.join(traceback.format_exc()))
-    
+
     def save_check(self):
         app = get_app()
         if self.modified:
@@ -302,7 +355,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     % app.dmf_device.name)
             if result == gtk.RESPONSE_YES:
                 self.save_dmf_device()
-    
+
     def save_dmf_device(self, save_as=False, rename=False):
         app = get_app()
 
@@ -338,10 +391,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
             # if the device name has changed
             if name != app.dmf_device.name:
                 app.dmf_device.name = name
-            
+
             # save the device
             app.dmf_device.save(os.path.join(dest,"device"))
-            self.modified = False                    
+            self.modified = False
 
     def on_step_options_changed(self, plugin_name, step_number):
         '''
@@ -375,7 +428,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if channels:
                 # get the state(s) of the channel(s) connected to this electrode
                 states = state_of_channels[channels]
-    
+
                 # if all of the states are the same
                 if len(np.nonzero(states == states[0])[0]) == len(states):
                     if states[0] > 0:
@@ -384,7 +437,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                         color = app.dmf_device.electrodes[id].path.color
                         self.view.electrode_color[id] = [c / 255. for c in color]
                 else:
-                    #TODO: this could be used for resistive heating 
+                    #TODO: this could be used for resistive heating
                     logger.error("not supported yet")
             else:
                 self.view.electrode_color[id] = (1,0,0)
@@ -423,7 +476,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             filename = dialog.get_filename()
             self.load_device(filename)
         dialog.destroy()
-    
+
     def on_import_dmf_device(self, widget, data=None):
         self.save_check()
         app = get_app()
@@ -436,7 +489,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         filter = gtk.FileFilter()
         filter.set_name("*.svg")
         filter.add_pattern("*.svg")
-        dialog.add_filter(filter)  
+        dialog.add_filter(filter)
         dialog.set_default_response(gtk.RESPONSE_OK)
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
@@ -453,7 +506,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_rename_dmf_device(self, widget, data=None):
         self.save_dmf_device(rename=True)
-        
+
     def on_save_dmf_device(self, widget, data=None):
         self.save_dmf_device()
 

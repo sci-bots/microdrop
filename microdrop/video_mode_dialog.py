@@ -14,11 +14,16 @@ from utility.gui import field_entry_dialog
 from utility.gui.form_view_dialog import FormViewDialog
 
 
-def select_video_mode(video_modes):
+def get_video_mode_map(video_modes):
     format_cap = lambda c: '[%s] ' % getattr(c['device'], 'name',
             c['device'])[:20] + '%(width)4d x%(height)4d %(framerate)3dfps '\
                     '(%(fourcc)s)' % c
     video_mode_map = dict([(format_cap(c), c) for c in video_modes]) 
+    return video_mode_map
+
+
+def select_video_mode(video_modes):
+    video_mode_map = get_video_mode_map(video_modes)
     video_keys = sorted(video_mode_map.keys())
     valid, response = field_entry_dialog(Enum.named('video_mode').valued(
             *video_keys), value=video_keys[0])
@@ -43,6 +48,10 @@ def select_video_source():
     if result is None:
         return None
     device, caps_str = result
+    return create_video_source(device, caps_str)
+
+
+def create_video_source(device, caps_str):
     video_source = GstVideoSourceManager.get_video_source()
     device_key, devices = GstVideoSourceManager.get_video_source_configs()
     video_source.set_property(device_key, device)
