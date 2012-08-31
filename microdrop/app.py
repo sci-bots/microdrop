@@ -335,12 +335,10 @@ Would you like to download the latest version in your browser?''' % (
 
     def run(self):
         self.update_check()
-        plugin_manager.load_plugins(self.config['plugins']['directory'])
-
         plugin_manager.emit_signal('on_plugin_enable')
+        plugin_manager.load_plugins(self.config['plugins']['directory'])
         self.update_log_file()
         FormViewDialog.default_parent = self.main_window_controller.view
-                
         self.builder.connect_signals(self.signals)
         self.update_plugins()
 

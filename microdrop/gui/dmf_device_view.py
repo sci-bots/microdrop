@@ -63,7 +63,8 @@ class ElectrodeContextMenu(SlaveView):
     '''
 
     from utility import base_path
-    builder_path = base_path().joinpath('gui', 'glade', 'right_click_popup.glade')
+    builder_path = base_path().joinpath('gui', 'glade',
+        'dmf_device_view_context_menu.glade')
 
     gsignal('registration-request')
 

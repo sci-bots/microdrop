@@ -24,6 +24,7 @@ from collections import namedtuple
 import gtk
 from path import path
 
+from pygtkhelpers.delegates import SlaveView
 from experiment_log import ExperimentLog
 from utility.gui import combobox_set_model_from_list, \
     combobox_get_active_text, textview_get_text
@@ -34,12 +35,34 @@ from dmf_device import DmfDevice
 from app_context import get_app
 from logger import logger
 
+
 class ExperimentLogColumn():
     def __init__(self, name, type, format_string=None):
         self.name = name
         self.type = type
         self.format_string = format_string
 
+
+class ExperimentLogContextMenu(SlaveView):
+    """
+    Slave view for context-menu for an electrode in the DMF device
+    view.
+    """
+    
+    from utility import base_path
+    builder_path = base_path().joinpath('gui', 'glade',
+        'experiment_log_context_menu.glade')
+
+    def popup(self, event):
+        for child in self.menu_popup.get_children():
+            if child.get_visible():
+                self.menu_popup.popup(None, None, None, event.button,
+                                      event.time, None)
+                break
+
+    def add_item(self, menu_item):
+        self.menu_popup.append(menu_item)
+        menu_item.show()
 
 PluginGlobals.push_env('microdrop')
 
@@ -50,7 +73,7 @@ class ExperimentLogController(SingletonPlugin):
     Results = namedtuple('Results', ['log', 'protocol'])
 
     def __init__(self):
-        self.name = "microdrop.gui.experiment_log_controller" 
+        self.name = "microdrop.gui.experiment_log_controller"
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui","glade",
             "experiment_log_window.glade"))
@@ -65,12 +88,18 @@ class ExperimentLogController(SingletonPlugin):
                         ExperimentLogColumn("Voltage (VRMS)", int),
                         ExperimentLogColumn("Frequency (kHz)", float, "%.1f")]
         self.protocol_view.get_selection().connect("changed", self.on_treeview_selection_changed)
+        self.popup = ExperimentLogContextMenu()
 
     def on_plugin_enable(self):
         app = get_app()
         app.experiment_log_controller = self
         self.window.set_title("Experiment logs")
         self.builder.connect_signals(self)
+
+    def on_treeview_protocol_button_press_event(self, widget, event):
+        if event.button == 3:
+            self.popup.popup(event)
+            return True
 
     def update(self):        
         app = get_app()
@@ -202,6 +231,17 @@ class ExperimentLogController(SingletonPlugin):
         experiment_log = ExperimentLog(app.experiment_log.directory)
         emit_signal("on_experiment_log_created", experiment_log)
 
+    def get_selected_data(self):
+        selection = self.protocol_view.get_selection().get_selected_rows()
+        selected_data = []
+        list_store = selection[0]
+        for row in selection[1]:
+            for d in self.results.log.data:
+                if 'time' in d['core'].keys():
+                    if d['core']['time']==selection[0][row][0]:
+                        selected_data.append(d)
+        return selected_data
+
     def on_window_show(self, widget, data=None):
         self.window.show()
         
@@ -267,15 +307,7 @@ class ExperimentLogController(SingletonPlugin):
             self.combobox_log_files.set_active(len(log_files)-1)
     
     def on_treeview_selection_changed(self, widget, data=None):
-        selection = self.protocol_view.get_selection().get_selected_rows()
-        selected_data = []
-        list_store = selection[0]
-        for row in selection[1]:
-            for d in self.results.log.data:
-                if 'time' in d['core'].keys():
-                    if d['core']['time']==selection[0][row][0]:
-                        selected_data.append(d)
-        emit_signal("on_experiment_log_selection_changed", [selected_data])
+        emit_signal("on_experiment_log_selection_changed", [self.get_selected_data()])
 
     def _clear_list_columns(self):
         while len(self.protocol_view.get_columns()):
