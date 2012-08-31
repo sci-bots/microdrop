@@ -440,7 +440,10 @@ class DmfDeviceView(GStreamerVideoView):
                         count=results.width * results.height)
                 array.shape = (results.width, results.height)
                 self.emit('transform-changed', array)
-        gtk.idle_add(do_device_registration)
+            return False
+        gtk.threads_enter()
+        do_device_registration()
+        gtk.threads_leave()
 
 
 class DeviceRegistrationDialog(RegistrationDialog):
