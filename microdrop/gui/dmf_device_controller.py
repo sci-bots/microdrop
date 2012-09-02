@@ -24,6 +24,8 @@ from datetime import datetime
 import logging
 
 import gtk
+gtk.threads_init()
+gtk.gdk.threads_init()
 import numpy as np
 from xml.etree import ElementTree as et
 from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
@@ -61,31 +63,34 @@ class DmfDeviceOptions(object):
 
 
 from video_mode_dialog import get_video_mode_map, GstVideoSourceManager, create_video_source
-
+from gst_video_source_caps_query.gst_video_source_caps_query import DeviceNotFound
 
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
     implements(IAppStatePlugin)
 
-    gtk.threads_enter()
-    video_modes = GstVideoSourceManager.get_available_video_modes(
-            format_='YUY2')
-    video_mode_map = get_video_mode_map(video_modes)
-    video_mode_keys = sorted(video_mode_map.keys())
-    gtk.threads_leave()
+    try:
+        video_modes = GstVideoSourceManager.get_available_video_modes(
+                format_='YUY2')
+        video_mode_map = get_video_mode_map(video_modes)
+        video_mode_keys = sorted(video_mode_map.keys())
+        _video_available = True
+    except DeviceNotFound:
+        _video_available = False
 
-    AppFields = Form.of(
-        Boolean.named('video_enabled').using(default=False, optional=True,
+    field_list = [Boolean.named('video_enabled').using(default=False, optional=True,
                 properties={'show_in_gui': False}),
-        Integer.named('overlay_opacity').using(default=30, optional=True,
-                validators=[ValueAtLeast(minimum=1),
-                        ValueAtMost(maximum=100)]),
         Directory.named('device_directory').using(default='', optional=True),
         String.named('transform_matrix').using(default='', optional=True,
-                properties={'show_in_gui': False}),
-        Enum.named('video_settings').valued(*video_mode_keys).using(
+                properties={'show_in_gui': False}), ]
+    if _video_available:
+        field_list += [Enum.named('video_settings').valued(*video_mode_keys).using(
                 optional=True, default=video_mode_keys[0]),
-    )
+                Integer.named('overlay_opacity').using(default=30, optional=True,
+                        validators=[ValueAtLeast(minimum=1),
+                                ValueAtMost(maximum=100)]),]
+
+    AppFields = Form.of(*field_list)
 
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"
@@ -96,6 +101,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.video_enabled = False
         self._modified = False
         self._video_initialized = False
+        self._gui_initialized = False
         gtk.timeout_add(1000, self._initialize_video)
 
     @property
@@ -115,6 +121,10 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.set_app_values(
             dict(transform_matrix=yaml.dump(array.tolist())))
 
+    def on_gui_ready(self):
+        self._gui_initialized = True
+        gtk.timeout_add(50, self._initialize_video)
+
     def on_app_options_changed(self, plugin_name):
         app = get_app()
         try:
@@ -129,12 +139,11 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                         else:
                             self.video_enabled = False
                         self.set_toggle_state(self.video_enabled)
-                if 'overlay_opacity' in values:
-                    self.view.overlay_opacity = int(values.get('overlay_opacity'))
-                if 'display_fps' in values:
-                    self.view.display_fps = int(values['display_fps'])
                 if 'device_directory' in values:
                     self.apply_device_dir(values['device_directory'])
+                if self.video_enabled:
+                    if'overlay_opacity' in values:
+                        self.view.overlay_opacity = int(values.get('overlay_opacity'))
                 if 'transform_matrix' in values:
                     matrix = yaml.load(values['transform_matrix'])
                     if matrix is not None and len(matrix):
@@ -174,14 +183,15 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         ensured by calling this function in a gtk.timeout_add() call.
         '''
         if not self._video_initialized:
-            if self.video_enabled:
-                if not self._video_initialized and self.video_settings:
-                    self._video_initialized = True
-                    selected_mode = self.video_mode_map[self.video_settings]
-                    caps_str = GstVideoSourceManager.get_caps_string(selected_mode)
-                    video_source = create_video_source(
-                            selected_mode['device'], caps_str)
-                    self.view.set_source(video_source)
+            if self._gui_initialized and self._video_available\
+                    and self.video_enabled and self.view.window_xid\
+                            and self.video_settings:
+                self._video_initialized = True
+                selected_mode = self.video_mode_map[self.video_settings]
+                caps_str = GstVideoSourceManager.get_caps_string(selected_mode)
+                video_source = create_video_source(
+                        selected_mode['device'], caps_str)
+                self.view.set_source(video_source)
             else:
                 self._video_initialized = True
                 self.view.set_source(self.view.get_video_src())
@@ -255,6 +265,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if k not in data:
                 data[k] = v
         app.set_data(self.name, data)
+        if not self._video_available:
+            self.set_app_values(dict(video_enabled=False))
         emit_signal('on_app_options_changed', [self.name])
         gtk.idle_add(self.init_pipeline)
 

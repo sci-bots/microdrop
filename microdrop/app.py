@@ -386,6 +386,7 @@ Would you like to download the latest version in your browser?''' % (
                                             self.config['protocol']['name'])
                     self.protocol_controller.load_protocol(filename)
         
+        plugin_manager.emit_signal('on_gui_ready')
         self.main_window_controller.main()
 
     def _set_log_level(self, level):
