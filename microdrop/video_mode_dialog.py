@@ -1,3 +1,4 @@
+from __future__ import division
 from pprint import pprint
 
 try:
@@ -16,8 +17,9 @@ from utility.gui.form_view_dialog import FormViewDialog
 
 def get_video_mode_map(video_modes):
     format_cap = lambda c: '[%s] ' % getattr(c['device'], 'name',
-            c['device'])[:20] + '%(width)4d x%(height)4d %(framerate)3dfps '\
-                    '(%(fourcc)s)' % c
+            c['device'])[:20] + '{width:4d} {height:4d} {fps:2.0f}fps '\
+                    '({fourcc:s})'.format(
+                            fps=c['framerate'].num / c['framerate'].denom, **c)
     video_mode_map = dict([(format_cap(c), c) for c in video_modes]) 
     return video_mode_map
 
