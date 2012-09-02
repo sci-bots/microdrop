@@ -74,7 +74,10 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 format_='YUY2')
         video_mode_map = get_video_mode_map(video_modes)
         video_mode_keys = sorted(video_mode_map.keys())
-        _video_available = True
+        if video_mode_keys:
+            _video_available = True
+        else:
+            _video_available = False
     except DeviceNotFound:
         _video_available = False
 

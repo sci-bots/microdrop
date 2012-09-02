@@ -248,9 +248,7 @@ class DmfDeviceView(GStreamerVideoView):
             video_src.set_property('pattern', 2)
             return RatedBin('rated_bin', video_src=video_src)
         else:
-            gtk.threads_enter()
             test_video_src = select_video_source()
-            gtk.threads_leave()
             return test_video_src
 
     def on_device_area__realize(self, widget, *args):
