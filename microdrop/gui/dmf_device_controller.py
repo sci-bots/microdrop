@@ -20,35 +20,29 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import traceback
 import shutil
-from datetime import datetime
-import logging
+from copy import deepcopy
 
 import gtk
 gtk.threads_init()
 gtk.gdk.threads_init()
 import numpy as np
-from xml.etree import ElementTree as et
-from pyparsing import Literal, Combine, Optional, Word, Group, OneOrMore, nums
 from flatland import Form, Integer, String, Boolean
 from flatland.validation import ValueAtLeast, ValueAtMost
 from utility.gui import yesno
 from path import path
 import yaml
 import gst
+from pygtkhelpers.ui.extra_widgets import Directory, Enum
+from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 
-from dmf_device_view import DmfDeviceView, DeviceRegistrationDialog, Dims
+from dmf_device_view import DmfDeviceView
 from dmf_device import DmfDevice
-from protocol import Protocol
-from experiment_log import ExperimentLog
-from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
+from plugin_manager import IPlugin, IAppStatePlugin, SingletonPlugin,\
         implements, PluginGlobals, ScheduleRequest, emit_signal
 from app_context import get_app
 from logger import logger
-from opencv.safe_cv import cv
 from plugin_helpers import AppDataController
-from pygtkhelpers.ui.extra_widgets import Directory
-from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
-from utility import is_float, copytree
+from utility import copytree
 
 
 PluginGlobals.push_env('microdrop')
@@ -62,8 +56,11 @@ class DmfDeviceOptions(object):
             self.state_of_channels = deepcopy(state_of_channels)
 
 
-from video_mode_dialog import get_video_mode_map, GstVideoSourceManager, create_video_source
-from gst_video_source_caps_query.gst_video_source_caps_query import DeviceNotFound
+from gst_video_source_caps_query.video_mode_dialog import get_video_mode_map,\
+        GstVideoSourceManager, create_video_source
+from gst_video_source_caps_query.gst_video_source_caps_query import\
+        DeviceNotFound
+
 
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
@@ -81,8 +78,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     except DeviceNotFound:
         _video_available = False
 
-    field_list = [Boolean.named('video_enabled').using(default=False, optional=True,
-                properties={'show_in_gui': False}),
+    field_list = [Boolean.named('video_enabled').using(default=False,
+                        optional=True, properties={'show_in_gui': False}),
         Directory.named('device_directory').using(default='', optional=True),
         String.named('transform_matrix').using(default='', optional=True,
                 properties={'show_in_gui': False}), ]
@@ -129,7 +126,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         gtk.timeout_add(50, self._initialize_video)
 
     def on_app_options_changed(self, plugin_name):
-        app = get_app()
         try:
             if plugin_name == self.name:
                 values = self.get_app_values()
@@ -158,7 +154,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     if video_settings is not None\
                             and video_settings != self.video_settings:
                         self.video_settings = video_settings
-        except (Exception,), why:
+        except (Exception,):
             logger.info(''.join(traceback.format_exc()))
             raise
 
@@ -205,7 +201,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         return True
 
     def apply_device_dir(self, device_directory):
-        app = get_app()
         if not device_directory or \
                 (self.previous_device_dir and\
                 device_directory == self.previous_device_dir):
@@ -327,7 +322,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.view.stop_recording()
 
     def on_app_exit(self):
-        app = get_app()
         self.save_check()
         if self.view.pipeline:
             result = self.view.pipeline.set_state(gst.STATE_NULL)

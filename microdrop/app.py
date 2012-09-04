@@ -30,6 +30,8 @@ import yaml
 import webbrowser
 from jsonrpc.proxy import JSONRPCException
 from flatland import Form, String, Enum, Boolean
+from pygtkhelpers.ui.extra_widgets import Filepath
+from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 
 from utility import base_path, PROGRAM_LAUNCHED, Version
 from utility.gui import yesno
@@ -45,12 +47,10 @@ from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
     ERROR, CRITICAL
 from gui.plugin_manager_dialog import PluginManagerDialog
 from update_repository.application.proxy import AppRepository
-from pygtkhelpers.ui.form_view_dialog import FormViewDialog
-from pygtkhelpers.ui.extra_widgets import Filepath
 
 
 PluginGlobals.push_env('microdrop')
-    
+
 
 # these imports automatically load (and initialize) core singleton plugins
 import gui.experiment_log_controller
@@ -120,7 +120,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     self.version = f.readline().strip()
                 finally:
                     f.close()
-            
+
         self.realtime_mode = False
         self.running = False
         self.builder = gtk.Builder()
@@ -130,7 +130,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         # these members are initialized by plugins
         self.experiment_log_controller = None
         self.config_controller = None
-        self.dmf_device_controller = None 
+        self.dmf_device_controller = None
         self.protocol_controller = None
         self.main_window_controller = None
 
@@ -219,7 +219,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             return data
         else:
             return {}
-    
+
     def set_data(self, plugin_name, data):
         self.plugin_data[plugin_name] = data
 
@@ -266,7 +266,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if update_setting != 'auto-update' and \
         update_setting != 'check for updates, but ask before installing':
             return
-        
+
         app_update_server_url = self.config.data.get(self.name, {}).get(
                 'server_url', 'http://microfluidics.utoronto.ca/update')
         logging.debug('[APP UPDATE SERVER] server url: %s' % app_update_server_url)
@@ -375,7 +375,7 @@ Would you like to download the latest version in your browser?''' % (
 
             # reapply the protocol name to the config file
             self.config['protocol']['name'] = protocol_name
-    
+
             # load the protocol
             if self.config['protocol']['name']:
                 directory = self.get_device_directory()
@@ -385,7 +385,7 @@ Would you like to download the latest version in your browser?''' % (
                                             "protocols",
                                             self.config['protocol']['name'])
                     self.protocol_controller.load_protocol(filename)
-        
+
         plugin_manager.emit_signal('on_gui_ready')
         self.main_window_controller.main()
 
@@ -445,10 +445,10 @@ Would you like to download the latest version in your browser?''' % (
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.dmf_device = dmf_device
-    
+
     def on_protocol_swapped(self, old_protocol, new_protocol):
         self.protocol = new_protocol
-    
+
     def on_experiment_log_created(self, experiment_log):
         self.experiment_log = experiment_log
 
@@ -487,11 +487,11 @@ Would you like to download the latest version in your browser?''' % (
 
     def delete_steps(self, step_ids):
         self.protocol.delete_steps(step_ids)
-        
+
     def cut_steps(self, step_ids):
         self.copy_steps(step_ids)
         self.delete_steps(step_ids)
-        
+
 
 PluginGlobals.pop_env()
 
