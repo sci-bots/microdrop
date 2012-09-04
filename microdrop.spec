@@ -16,7 +16,7 @@ extra_py = []
 a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
             'microdrop\\microdrop.py'] + extra_py,
-            excludes=['opencv', 'flatland',])
+            excludes=['opencv', 'flatland'])
 
 for mod in [pygtkhelpers]:
         mod_path = path(mod.__file__).parent
@@ -39,9 +39,8 @@ a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\flatland')\
                     .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
-            for p in path('microdrop\\gui').walkfiles('*.glade')]
-a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
-            for p in path('microdrop').joinpath('utility', 'gui').walkfiles('*.glade')]
+            for p in path('microdrop').joinpath('gui', 'glade').walkfiles(
+                    '*.glade')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\plugins')\
                     .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]

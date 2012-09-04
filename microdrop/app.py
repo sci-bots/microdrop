@@ -44,9 +44,9 @@ from plugin_helpers import AppDataController, get_plugin_info
 from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
     ERROR, CRITICAL
 from gui.plugin_manager_dialog import PluginManagerDialog
-from utility.gui.form_view_dialog import FormViewDialog
 from update_repository.application.proxy import AppRepository
 import app_state
+from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 from pygtkhelpers.ui.extra_widgets import Filepath
 
 
