@@ -47,7 +47,7 @@ from gui.plugin_manager_dialog import PluginManagerDialog
 from utility.gui.form_view_dialog import FormViewDialog
 from update_repository.application.proxy import AppRepository
 import app_state
-from utility.pygtkhelpers_widgets import Filepath
+from pygtkhelpers.ui.extra_widgets import Filepath
 
 
 PluginGlobals.push_env('microdrop')

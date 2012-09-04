@@ -36,8 +36,8 @@ from update_repository.plugins.proxy import PluginRepository
 import plugin_manager
 from app_context import get_app
 from utility import Version
-from utility.gui import yesno
-from utility.gui.list_select import ListSelectView
+from pygtkhelpers.ui.extra_dialogs import yesno
+from pygtkhelpers.ui.list_select import ListSelectView
 from plugin_manager import get_service_instance_by_name
 
 

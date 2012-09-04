@@ -44,9 +44,9 @@ from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
 from plugin_helpers import AppDataController
-from utility.pygtkhelpers_widgets import Directory
+from pygtkhelpers.ui.extra_widgets import Directory
+from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from utility import is_float, copytree
-from utility.gui import text_entry_dialog
 import app_state
 
 

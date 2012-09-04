@@ -36,8 +36,8 @@ import protocol
 from protocol import Protocol
 from utility import is_float, is_int
 from utility.gui import textentry_validate, register_shortcuts
-from utility.pygtkhelpers_combined_fields import CombinedFields, CombinedRow,\
-        RowFields
+from pygtkhelpers.ui.objectlist.combined_fields import CombinedFields,\
+        CombinedRow, RowFields
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
     implements, PluginGlobals, ScheduleRequest, emit_signal
 from gui.textbuffer_with_undo import UndoableBuffer
