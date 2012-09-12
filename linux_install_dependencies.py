@@ -48,22 +48,6 @@ def download_file(link, name, type):
     return filepath_path
 
 
-def get_zip_packages():
-    packages = []
-    # binary dependencies
-    if not os.path.isdir(os.path.join("microdrop", "devices")) or \
-       not os.path.isdir(os.path.join("microdrop", "lib")) or \
-       not os.path.isdir(os.path.join("microdrop", "share")) or \
-       not os.path.isdir(os.path.join("microdrop", "etc")) or \
-       not os.path.isdir(os.path.join("microdrop", "gst")):
-        packages.append(('binary_dependencies',
-                         'zip',
-                         'http://microfluidics.utoronto.ca/git/microdrop___dependencies.git/snapshot/91714880d27f981cf18a46ccc3cd9b20e1e9c3c9.zip',
-                         'microdrop___dependencies-9171488',
-                         os.path.abspath('microdrop')))
-    return packages
-
-
 def get_apt_packages():
     package_names = re.split('\s+', '''git python-dev python-pip
         python-pyparsing ipython scons python-gtk2 python libboost-all-dev
@@ -139,8 +123,6 @@ if __name__ == '__main__':
             exec("import " + p[0])
         except:
             packages.append(p)
-
-    packages += get_zip_packages()
 
     for p in packages:
         install(p)
