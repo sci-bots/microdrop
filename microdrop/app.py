@@ -273,6 +273,12 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         return None
 
     def update_check(self):
+        update_setting = self.config['microdrop.app']['update_automatically']
+        logging.debug('udate_automatically=%s' % update_setting)
+        if update_setting != 'auto-update' and \
+        update_setting != 'check for updates, but ask before installing':
+            return
+        
         app_update_server_url = self.config.data.get(self.name, {}).get(
                 'server_url', 'http://microfluidics.utoronto.ca/update')
         logging.debug('[APP UPDATE SERVER] server url: %s' % app_update_server_url)
@@ -280,7 +286,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         current_version = Version.fromstring(self.version)
         try:
             latest_version = Version(**app_repository.latest_version('microdrop'))
-        except (JSONRPCException, IOError):
+        except:
             logging.info('Could not connect to application update server: %s',
                     app_update_server_url)
             return
