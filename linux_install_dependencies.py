@@ -51,7 +51,8 @@ def download_file(link, name, type):
 def get_apt_packages():
     package_names = re.split('\s+', '''git python-dev python-pip
         python-pyparsing ipython scons python-gtk2 python libboost-all-dev
-        python-matplotlib python-numpy python-scipy python-jinja2 avrdude''')
+        python-matplotlib python-numpy python-scipy python-jinja2 avrdude
+        gcc-avr avr-libc python-lxml python-opencv''')
     return [(name, 'apt') for name in package_names]
 
 
