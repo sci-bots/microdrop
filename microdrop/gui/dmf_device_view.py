@@ -20,35 +20,28 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 from collections import namedtuple
 from datetime import datetime
-import traceback
+import time
+import socket
+import os
+import signal
 
 import gtk
 import gobject
 gtk.gdk.threads_init()
 gobject.threads_init()
-import cairo
 import numpy as np
-try:
-    import pygst
-    pygst.require("0.10")
-except:
-    pass
-finally:
-    import gst
+from pygst_utils.video_view.gtk_view import GtkVideoView
+from pygst_utils.bin.server import server_popen
+from jsonrpclib import Server
 
-from .warp_cairo_draw import WarpBin
-from .rated_bin import RatedBin
-from .gstreamer_view import GStreamerVideoView
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
 from app_context import get_app
-from opencv.safe_cv import cv
 from opencv.registration_dialog import RegistrationDialog
 from utility.gui import text_entry_dialog
 from utility import is_float
 from logger import logger
 from plugin_manager import emit_signal, IPlugin
-from video_mode_dialog import select_video_source
 
 
 Dims = namedtuple('Dims', 'x y width height')
@@ -142,7 +135,7 @@ class ElectrodeContextMenu(SlaveView):
         menu_item.show()
 
 
-class DmfDeviceView(GStreamerVideoView):
+class DmfDeviceView(GtkVideoView):
     '''
     Slave view for DMF device view.
 
@@ -164,6 +157,7 @@ class DmfDeviceView(GStreamerVideoView):
 
     def __init__(self, dmf_device_controller, name):
         self.controller = dmf_device_controller
+        self.pipeline = None
         self.display_scale = 1
         self.video_scale = 1
         self.last_frame_time = datetime.now()
@@ -175,14 +169,21 @@ class DmfDeviceView(GStreamerVideoView):
         self._transform_matrix = None
         self.overlay_opacity = None
         self.pixmap = None
+        self._server = None
+        self._server_process = None
+        self._server_pids = []
+        self._set_window_title = False
 
         self.popup = ElectrodeContextMenu(self)
-        self.popup.connect('registration-request', self.on_register)
+        #self.popup.connect('registration-request', self.on_register)
         self.force_aspect_ratio = False
         self.sink = None
         self.window_xid = None
         SlaveView.__init__(self)
         #self.pipeline = self.get_pipeline()
+
+    def create_ui(self, *args, **kwargs):
+        self.widget = self.device_area
 
     def grab_frame(self):
         #return self.play_bin.grab_frame()
@@ -194,66 +195,32 @@ class DmfDeviceView(GStreamerVideoView):
     def stop_recording(self):
         pass
 
-    def set_source(self, video_source):
-        if self.pipeline:
-            result = self.pipeline.set_state(gst.STATE_NULL)
-            if result == gst.STATE_CHANGE_ASYNC:
-                try:
-                    while self.pipeline.get_state()[1] != gst.STATE_NULL:
-                        pass
-                except:
-                    pass
-            del self._pipeline
-        self.pipeline = self.get_pipeline(video_source)
-        result = self.pipeline.set_state(gst.STATE_PLAYING)
-        if result == gst.STATE_CHANGE_ASYNC:
-            try:
-                while self.pipeline.get_state()[1] != gst.STATE_PLAYING:
-                    pass
-            except:
-                pass
-
-    def get_pipeline(self, video_src=None):
-        pipeline = gst.Pipeline('pipeline')
-
-        warp_bin = WarpBin('warp_bin', draw_on=self._draw_on)
-
-        if video_src is None:
-            video_src = self.get_video_src()
-        video_sink = gst.element_factory_make('autovideosink', 'video_sink')
-        tee = gst.element_factory_make('tee', 'tee')
-        display_queue = gst.element_factory_make('queue', 'display_queue')
-        pipeline.add(video_src, tee, display_queue, warp_bin, video_sink)
-
-        video_src.link(tee)
-        tee.link(display_queue)
-        display_queue.link(warp_bin)
-        warp_bin.link(video_sink)
-
-        clock = pipeline.get_clock()
-        clock.set_property('clock-type', 0)
-
-        return pipeline
-
-    def get_video_src(self):
-        blank_screen = False
-        if not hasattr(self.controller, 'video_enabled') or not\
-                self.controller.video_enabled:
-            blank_screen = True
-        elif not self.controller.video_enabled:
-            blank_screen = True
-
-        if blank_screen:
-            video_src = gst.element_factory_make('videotestsrc', 'test_src')
-            video_src.set_property('pattern', 2)
-            return RatedBin('rated_bin', video_src=video_src)
-        else:
-            test_video_src = select_video_source()
-            return test_video_src
-
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)
+        # Connect to JSON-RPC server and request to run the pipeline
+        self._server_process = server_popen()
+        time.sleep(1)
+        self._server = Server('http://localhost:8080')
+        retry_count = 0
+        server_success = False
+        while retry_count < 3:
+            try:
+                self._server_pids.append(self._server.get_pid())
+                self._server.create_process(self.window_xid)
+                self._server_pids.append(self._server.get_process_pid(self.window_xid))
+                response = self._server.select_video_caps(self.window_xid)
+                device, caps_str = response['device'], response['caps_str']
+                server_success = True
+                break
+            except socket.error:
+                retry_count += 1
+        if not server_success:
+            raise RuntimeError, 'Could not connect to GStreamer service on'\
+                    ' port 8080.'
+        self._server.create_pipeline(self.window_xid, (device, caps_str))
+        self._server.start_pipeline(self.window_xid)
 
+    """
     def on_device_area__size_allocate(self, *args):
         x, y, width, height = self.device_area.get_allocation()
         self.pixmap = gtk.gdk.Pixmap(self.device_area.window, width, height)
@@ -461,6 +428,17 @@ class DmfDeviceView(GStreamerVideoView):
         gtk.threads_enter()
         do_device_registration()
         gtk.threads_leave()
+    """
+
+    def on_device_area__destroy(self, *args):
+        if self._server is not None:
+            logger.info('[DmfDeviceView] on_device_area__destroy')
+            self._server.stop_pipeline(self.window_xid)
+            self._server = None
+            self._server_process = None
+            for pid in self._server_pids:
+                os.kill(pid, signal.SIGKILL)
+        return False
 
 
 class DeviceRegistrationDialog(RegistrationDialog):

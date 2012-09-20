@@ -18,27 +18,35 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
+import time
+import signal
 import traceback
 import shutil
 from copy import deepcopy
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 import gtk
 gtk.threads_init()
 gtk.gdk.threads_init()
 import numpy as np
-from flatland import Form, Integer, String, Boolean
-from flatland.validation import ValueAtLeast, ValueAtMost
+from flatland import Form, String, Boolean
 from utility.gui import yesno
 from path import path
 import yaml
 import gst
-from pygtkhelpers.ui.extra_widgets import Directory, Enum
+from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
+from jsonrpclib import Server
+from pygst_utils.bin.server import server_popen
+from pygst_utils.video_mode import GstVideoSourceManager, create_video_source
 
 from dmf_device_view import DmfDeviceView
 from dmf_device import DmfDevice
-from plugin_manager import IPlugin, IAppStatePlugin, SingletonPlugin,\
-        implements, PluginGlobals, ScheduleRequest, emit_signal
+from plugin_manager import IPlugin, SingletonPlugin, implements, PluginGlobals,\
+        ScheduleRequest, emit_signal
 from app_context import get_app
 from logger import logger
 from plugin_helpers import AppDataController
@@ -56,39 +64,27 @@ class DmfDeviceOptions(object):
             self.state_of_channels = deepcopy(state_of_channels)
 
 
-from gst_video_source_caps_query.video_mode_dialog import get_video_mode_map,\
-        GstVideoSourceManager, create_video_source
-from gst_video_source_caps_query.gst_video_source_caps_query import\
-        DeviceNotFound
-
-
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
-    implements(IAppStatePlugin)
 
-    try:
-        video_modes = GstVideoSourceManager.get_available_video_modes(
-                format_='YUY2')
-        video_mode_map = get_video_mode_map(video_modes)
-        video_mode_keys = sorted(video_mode_map.keys())
-        if video_mode_keys:
-            _video_available = True
-        else:
-            _video_available = False
-    except DeviceNotFound:
-        _video_available = False
+    server_process = server_popen()
+    time.sleep(1)
+    server = Server('http://localhost:8080')
+    server.create_process(0)
+    video_mode_map = pickle.loads(str(server.get_video_mode_map(0)))
+    pids = [server.get_pid(), server.get_process_pid(0)]
+    for pid in pids:
+        os.kill(pid, signal.SIGKILL)
+    del pids
+    del server
+    del server_process
+    print video_mode_map
 
     field_list = [Boolean.named('video_enabled').using(default=False,
-                        optional=True, properties={'show_in_gui': False}),
+                optional=True, properties={'show_in_gui': False}),
         Directory.named('device_directory').using(default='', optional=True),
         String.named('transform_matrix').using(default='', optional=True,
                 properties={'show_in_gui': False}), ]
-    if _video_available:
-        field_list += [Enum.named('video_settings').valued(*video_mode_keys).using(
-                optional=True, default=video_mode_keys[0]),
-                Integer.named('overlay_opacity').using(default=30, optional=True,
-                        validators=[ValueAtLeast(minimum=1),
-                                ValueAtMost(maximum=100)]),]
 
     AppFields = Form.of(*field_list)
 
@@ -96,7 +92,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.name = "microdrop.gui.dmf_device_controller"
         self.view = DmfDeviceView(self, 'device_view')
         self.view.connect('transform-changed', self.on_transform_changed)
-        self.view.connect('video-started', self.on_video_started)
+        #self.view.connect('video-started', self.on_video_started)
         self.previous_device_dir = None
         self.video_enabled = False
         self._modified = False
@@ -123,7 +119,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     def on_gui_ready(self):
         self._gui_initialized = True
-        gtk.timeout_add(50, self._initialize_video)
+        #gtk.timeout_add(50, self._initialize_video)
 
     def on_app_options_changed(self, plugin_name):
         try:
@@ -263,15 +259,13 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if k not in data:
                 data[k] = v
         app.set_data(self.name, data)
-        if not self._video_available:
-            self.set_app_values(dict(video_enabled=False))
         emit_signal('on_app_options_changed', [self.name])
-        gtk.idle_add(self.init_pipeline)
 
         # disable menu items until a device is loaded
         self.menu_rename_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device_as.set_sensitive(False)
+        gtk.idle_add(self.init_pipeline)
 
     def init_pipeline(self):
         self.view.pipeline = self.view.get_pipeline()
