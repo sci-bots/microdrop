@@ -303,7 +303,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                         DmfDevice.load(filename)])
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
-            logger.info(''.join(traceback.format_exc()()))
+            logger.info(''.join(traceback.format_exc()))
     
     def save_dmf_device(self, save_as=False, rename=False):
         app = get_app()
