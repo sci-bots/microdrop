@@ -168,7 +168,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             self.menu_save_protocol.set_property('sensitive', False)
 
     def on_first_step(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget):
+        if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.first_step()
             emit_signal('on_step_run')
@@ -176,7 +176,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         return False
 
     def on_prev_step(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget):
+        if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.prev_step()
             emit_signal('on_step_run')
@@ -184,7 +184,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         return False
 
     def on_next_step(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget):
+        if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.next_step()
             emit_signal('on_step_run')
@@ -192,7 +192,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         return False
         
     def on_last_step(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget):
+        if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.last_step()
             emit_signal('on_step_run')
@@ -205,7 +205,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_step_run')
 
     def on_run_protocol(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget):
+        if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             if app.running:
                 self.pause_protocol()
