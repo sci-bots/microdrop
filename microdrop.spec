@@ -42,8 +42,7 @@ a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop').joinpath('gui', 'glade').walkfiles(
                     '*.glade')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
-            for p in path('microdrop\\plugins')\
-                    .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
+            for p in [path('microdrop\\plugins\\__init__.py')]]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\devices').walkfiles()]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\

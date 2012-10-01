@@ -257,8 +257,8 @@ class PluginManagerController(SingletonPlugin):
         try:
             plugin_root.copytree(install_path, symlinks=True,
                     ignore=ignore_patterns('*.pyc'))
-        except:
-            import pudb; pudb.set_trace()
+        except Exception, why:
+            logging.error('Error installing plugin. %s.', why)
         app = get_app()
         logging.info('%s installed successfully' % plugin_root.name)
         self.restart_required = True
