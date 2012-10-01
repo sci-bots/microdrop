@@ -100,7 +100,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             'microdrop.gui.protocol_grid_controller',]
 
     AppFields = Form.of(
-        Enum.named('update_automatically').using(default=0, optional=True)\
+        Enum.named('update_automatically').using(default=1, optional=True)\
             .valued('auto-update',
                 'check for updates, but ask before installing',
                 '''don't check for updates'''),
@@ -340,8 +340,8 @@ Would you like to download the latest version in your browser?''' % (
                 logging.info('No plugins have been updated')
 
     def run(self):
-        self.update_check()
         plugin_manager.emit_signal('on_plugin_enable')
+        self.update_check()
         plugin_manager.load_plugins(self.config['plugins']['directory'])
         self.update_log_file()
         FormViewDialog.default_parent = self.main_window_controller.view
