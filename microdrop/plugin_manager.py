@@ -247,13 +247,22 @@ else:
             """
             Handler called whenever a step is executed.
 
-            Returns:
-                True if the step should be run again (e.g., if a feedback
-                plugin wants to signal that the step should be repeated)
+            Plugins that handle this signal must emit the on_step_complete
+            signal once they have completed the step. The protocol controller
+            will wait until all plugins have completed the current step before
+            proceeding.
             """
             pass
 
-        def on_step_complete(self, return_value=None):
+        def on_step_complete(self, plugin_name, return_value=None):
+            """
+            Handler called whenever a plugin completes a step.
+            
+            return_value can be one of:
+                None
+                'Repeat' - repeat the step
+                or 'Fail' - unrecoverable error (stop the protocol)
+            """
             pass
 
         def get_step_form_class(self):

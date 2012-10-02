@@ -33,7 +33,7 @@ from utility import Version, VersionError, FutureVersionError
 
 
 class Protocol():
-    class_version = str(Version(0,1))
+    class_version = str(Version(0,2))
     
     def __init__(self, name=None):
         self.steps = [Step()]
@@ -41,6 +41,7 @@ class Protocol():
         self.plugin_data = {}
         self.plugin_fields = {}
         self.n_repeats=1
+        self.current_step_attempt = 0
         self.current_step_number = 0
         self.current_repetition = 0
         self.version = self.class_version
@@ -114,6 +115,10 @@ class Protocol():
                     for k, v in step.plugin_data.items():
                         step.plugin_data[k] = yaml.dump(v)
                 self.version = str(Version(0,1))
+                logger.info('[Protocol] upgrade to version %s' % self.version)
+            if version < Version(0,2):
+                self.current_step_attempt = 0
+                self.version = str(Version(0,2))
                 logger.info('[Protocol] upgrade to version %s' % self.version)
         # else the versions are equal and don't need to be upgraded
 

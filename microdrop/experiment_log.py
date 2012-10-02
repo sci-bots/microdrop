@@ -185,9 +185,10 @@ class ExperimentLog():
             os.mkdir(log_path)
         return log_path
 
-    def add_step(self, step_number):
-        self.data.append({'core':{"step": step_number, 
-                         "time": time.time() - self.start_time()}})
+    def add_step(self, step_number, attempt=0):
+        self.data.append({'core':{'step': step_number, 
+                         'time': time.time() - self.start_time(),
+                         'attempt': attempt}})
 
     def add_data(self, data, plugin_name='core'):
         if len(self.data)==0:

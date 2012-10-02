@@ -56,6 +56,7 @@ class ProtocolController(SingletonPlugin):
         self.name = "microdrop.gui.protocol_controller"
         self.builder = None
         self.waiting_for = []
+        self.repeat_step = False
         self.label_step_number = None
         self.label_step_number = None
         self.button_run_protocol = None
@@ -330,11 +331,13 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_pause"))
         emit_signal("on_protocol_run")
+        app.protocol.current_step_attempt = 0
         self.run_step()
 
     def pause_protocol(self):
         app = get_app()
         app.running = False
+        app.protocol.current_step_attempt = 0
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_play"))
         emit_signal("on_protocol_pause")
@@ -366,48 +369,46 @@ Protocol is version %s, but only up to version %s is supported with this version
                             % (plugin_name),
                     print >> sio, [service.get_step_value(f) for f in fields]
             logging.debug(sio.getvalue())
+
+        app.experiment_log.add_step(app.protocol.current_step_number,
+                                    app.protocol.current_step_attempt)
         
         self.waiting_for = get_observers("on_step_run", IPlugin).keys()
         logging.debug("[ProcolController.run_step]: waiting for %s" % 
                       ", ".join(self.waiting_for))
         emit_signal("on_step_run")
-        """
-        attempt=0
-        while True:
-            app.experiment_log.add_step(app.protocol.current_step_number)
-            if attempt > 0:
-                app.experiment_log.add_data({"attempt":attempt})
-            return_codes = emit_signal("on_step_run")
-            if 'Fail' in return_codes.values():
-                self.pause_protocol()
-                logging.error("Protocol failed.")
-                break
-            elif 'Repeat' in return_codes.values():
-                attempt+=1
-            else:
-                break
-        else:
-            emit_signal("on_step_run")
-        """
-
+        
     def on_step_complete(self, plugin_name, return_value=None):
         app = get_app()
         logging.debug("[ProcolController].on_step_complete: %s finished" %
                       plugin_name)
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
+        
+        # check retern value
+        if return_value=='Fail':
+            self.pause_protocol()
+            logging.error("Protocol failed.")
+        elif return_value=='Repeat':
+            self.repeat_step = True
+            
         if len(self.waiting_for):
             logging.debug("[ProcolController].on_step_complete: still waiting "
                           "for %s" % ", ".join(self.waiting_for))
         # if all plugins have completed the current step, go to the next step
         elif app.running:
-            if app.protocol.current_step_number < len(app.protocol) - 1:
-                self.on_next_step()
-            elif app.protocol.current_repetition < app.protocol.n_repeats - 1:
-                app.protocol.next_repetition()
+            if self.repeat_step:
+                app.protocol.current_step_attempt += 1
                 self.run_step()
-            else: # we're on the last step
-                self.pause_protocol()
+            else:
+                app.protocol.current_step_attempt = 0
+                if app.protocol.current_step_number < len(app.protocol)-1:
+                    self.on_next_step()
+                elif app.protocol.current_repetition < app.protocol.n_repeats-1:
+                    app.protocol.next_repetition()
+                    self.run_step()
+                else: # we're on the last step
+                    self.pause_protocol()
 
     def _get_dmf_control_fields(self, step_number):
         step = get_app().protocol.get_step(step_number)
