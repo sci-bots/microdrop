@@ -38,7 +38,7 @@ from utility.gui import register_shortcuts, textentry_validate,\
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
         implements, PluginGlobals, ScheduleRequest, emit_signal,\
         get_service_class, get_service_instance, get_service_instance_by_name,\
-        IAppStatePlugin
+        IAppStatePlugin, get_observers
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
 import app_state
@@ -55,6 +55,7 @@ class ProtocolController(SingletonPlugin):
     def __init__(self):
         self.name = "microdrop.gui.protocol_controller"
         self.builder = None
+        self.waiting_for = []
         self.label_step_number = None
         self.label_step_number = None
         self.button_run_protocol = None
@@ -108,7 +109,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                 self.create_protocol(p, state=app_state.LOAD_PROTOCOL) 
             else:
                 self.swap_protocol(p)
-        emit_signal('on_step_run')
+        self.run_step()
 
     def on_protocol_created(self, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
@@ -171,7 +172,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.first_step()
-            emit_signal('on_step_run')
+            self.run_step()
             return True
         return False
 
@@ -179,7 +180,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.prev_step()
-            emit_signal('on_step_run')
+            self.run_step()
             return True
         return False
 
@@ -187,7 +188,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.next_step()
-            emit_signal('on_step_run')
+            self.run_step()
             return True
         return False
         
@@ -195,14 +196,14 @@ Protocol is version %s, but only up to version %s is supported with this version
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.last_step()
-            emit_signal('on_step_run')
+            self.run_step()
             return True
         return False
         
     def on_new_protocol(self, widget=None, data=None):
         self.save_check()
         self.create_protocol()
-        emit_signal('on_step_run')
+        self.run_step()
 
     def on_run_protocol(self, widget=None, data=None):
         if widget is None or contains_pointer(widget, data.get_coords()):
@@ -256,7 +257,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             textentry_validate(self.textentry_protocol_repeats,
                 app.protocol.n_repeats,
                 int)
-        emit_signal('on_step_run')
+        self.run_step()
     
     def save_check(self):
         app = get_app()
@@ -329,12 +330,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_pause"))
         emit_signal("on_protocol_run")
-        gtk.idle_add(self._run_protocol)
-        
-    def _run_protocol(self):
-        app = get_app()
-        while app.running:
-            self.run_step()
+        self.run_step()
 
     def pause_protocol(self):
         app = get_app()
@@ -342,35 +338,76 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_play"))
         emit_signal("on_protocol_pause")
-        app.experiment_log_controller.save()
         
     def run_step(self):
+        logging.debug("[ProtocolController].run_step")
         app = get_app()
-        if app.realtime_mode or app.running:
-            attempt=0
-            while True:
-                app.experiment_log.add_step(app.protocol.current_step_number)
-                if attempt > 0:
-                    app.experiment_log.add_data({"attempt":attempt})
-                return_codes = emit_signal("on_step_run")
-                if 'Fail' in return_codes.values():
-                    self.pause_protocol()
-                    logging.error("Protocol failed.")
-                    break
-                elif 'Repeat' in return_codes.values():
-                    attempt+=1
-                else:
-                    break
+        if app.protocol is None:
+            return
+        
+        self._update_labels()
+        step = app.protocol.current_step()
+        for plugin_name in step.plugins:
+            emit_signal('on_step_options_swapped',
+                    [plugin_name,
+                    app.protocol.current_step_number],
+                    interface=IPlugin)
+        with closing(StringIO()) as sio:
+            for plugin_name, fields in app.protocol.plugin_fields.iteritems():
+                observers = ExtensionPoint(IPlugin)
+                service = observers.service(plugin_name)
+                if service is None:
+                    # We can end up here if a service has been disabled.
+                    # TODO: protocol.plugin_fields should likely be updated
+                    #    whenever a plugin is enabled/disabled...
+                    continue
+                if hasattr(service, 'get_step_value'):
+                    print >> sio, '[ProtocolController] plugin.name=%s field_values='\
+                            % (plugin_name),
+                    print >> sio, [service.get_step_value(f) for f in fields]
+            logging.debug(sio.getvalue())
+        
+        self.waiting_for = get_observers("on_step_run", IPlugin).keys()
+        logging.debug("[ProcolController.run_step]: waiting for %s" % 
+                      ", ".join(self.waiting_for))
+        emit_signal("on_step_run")
+        """
+        attempt=0
+        while True:
+            app.experiment_log.add_step(app.protocol.current_step_number)
+            if attempt > 0:
+                app.experiment_log.add_data({"attempt":attempt})
+            return_codes = emit_signal("on_step_run")
+            if 'Fail' in return_codes.values():
+                self.pause_protocol()
+                logging.error("Protocol failed.")
+                break
+            elif 'Repeat' in return_codes.values():
+                attempt+=1
+            else:
+                break
         else:
-            data = {}
             emit_signal("on_step_run")
+        """
 
-        if app.protocol.current_step_number < len(app.protocol) - 1:
-            app.protocol.next_step()
-        elif app.protocol.current_repetition < app.protocol.n_repeats - 1:
-            app.protocol.next_repetition()
-        else: # we're on the last step
-            self.pause_protocol()
+    def on_step_complete(self, plugin_name, return_value=None):
+        app = get_app()
+        logging.debug("[ProcolController].on_step_complete: %s finished" %
+                      plugin_name)
+        if plugin_name in self.waiting_for:
+            self.waiting_for.remove(plugin_name)
+        if len(self.waiting_for):
+            logging.debug("[ProcolController].on_step_complete: still waiting "
+                          "for %s" % ", ".join(self.waiting_for))
+        # if all plugins have completed the current step, go to the next step
+        elif app.running:
+            if app.protocol.current_step_number < len(app.protocol) - 1:
+                self.on_next_step()
+            elif app.protocol.current_repetition < app.protocol.n_repeats - 1:
+                app.protocol.next_repetition()
+                self.run_step()
+            else: # we're on the last step
+                self.pause_protocol()
 
     def _get_dmf_control_fields(self, step_number):
         step = get_app().protocol.get_step(step_number)
@@ -404,33 +441,6 @@ Protocol is version %s, but only up to version %s is supported with this version
         app = get_app()
         app.set_data(self.name, values)
         emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
-
-    def on_step_run(self):
-        app = get_app()
-        if app.protocol is None:
-            return
-        
-        step = app.protocol.current_step()
-        self._update_labels()
-        for plugin_name in step.plugins:
-            emit_signal('on_step_options_swapped',
-                    [plugin_name,
-                    app.protocol.current_step_number],
-                    interface=IPlugin)
-        with closing(StringIO()) as sio:
-            for plugin_name, fields in app.protocol.plugin_fields.iteritems():
-                observers = ExtensionPoint(IPlugin)
-                service = observers.service(plugin_name)
-                if service is None:
-                    # We can end up here if a service has been disabled.
-                    # TODO: protocol.plugin_fields should likely be updated
-                    #    whenever a plugin is enabled/disabled...
-                    continue
-                if hasattr(service, 'get_step_value'):
-                    print >> sio, '[ProtocolController] plugin.name=%s field_values='\
-                            % (plugin_name),
-                    print >> sio, [service.get_step_value(f) for f in fields]
-            logging.debug(sio.getvalue())
 
     def on_step_swapped(self, original_step_number, step_number):
         self._update_labels()

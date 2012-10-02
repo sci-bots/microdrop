@@ -279,6 +279,9 @@ class ExperimentLogController(SingletonPlugin):
                                 'data')
         self.results.log.save(filename)
 
+    def on_protocol_pause(self):
+        self.save()
+
     def on_dmf_device_created(self, dmf_device):
         self.on_dmf_device_swapped(None, dmf_device)
 

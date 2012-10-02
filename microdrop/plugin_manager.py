@@ -253,6 +253,9 @@ else:
             """
             pass
 
+        def on_step_complete(self, return_value=None):
+            pass
+
         def get_step_form_class(self):
             pass
 
@@ -406,33 +409,43 @@ def get_schedule(observers, function):
         return observers.keys()
 
 
+def get_observers(function, interface=IPlugin):
+    observers = {}
+    for obs in ExtensionPoint(interface):
+        if hasattr(obs, function):
+            observers[obs.name] = obs
+    return observers
+
+
 def emit_signal(function, args=[], interface=IPlugin):
-    observers = dict([(obs.name, obs) for obs in ExtensionPoint(interface)])
+    observers = get_observers(function, interface)
     schedule = get_schedule(observers, function)
     return_codes = {}
     for observer_name in schedule:
+        # allow gtk to process events to keep gui responsive
+        while gtk.events_pending():
+            gtk.main_iteration()
         observer = observers[observer_name]
-        if hasattr(observer, function):
-            logging.debug('emit_signal: %s.%s()' % (observer.name, function))                    
-            try:
-                if type(args) is not list:
-                    args = [args]
-                f = getattr(observer, function)
-                return_codes[observer.name] = f(*args)
-            except Exception, why:
-                with closing(StringIO()) as message:
-                    if hasattr(observer, "name"):
-                        if interface == ILoggingPlugin:
-                            # If this is a logging plugin, do not try to log
-                            # since that will result in infinite recursion. 
-                            # Instead, just continue onto the next plugin.
-                            continue
-                        print >> message, \
-                            '%s plugin crashed processing %s signal.' % \
-                            (observer.name, function)
-                    print >> message, 'Reason:', str(why)
-                    logging.error(message.getvalue().strip())
-                logging.info(''.join(traceback.format_exc()))
+        logging.debug('emit_signal: %s.%s()' % (observer.name, function))                    
+        try:
+            if type(args) is not list:
+                args = [args]
+            f = getattr(observer, function)
+            return_codes[observer.name] = f(*args)
+        except Exception, why:
+            with closing(StringIO()) as message:
+                if hasattr(observer, "name"):
+                    if interface == ILoggingPlugin:
+                        # If this is a logging plugin, do not try to log
+                        # since that will result in infinite recursion. 
+                        # Instead, just continue onto the next plugin.
+                        continue
+                    print >> message, \
+                        '%s plugin crashed processing %s signal.' % \
+                        (observer.name, function)
+                print >> message, 'Reason:', str(why)
+                logging.error(message.getvalue().strip())
+            logging.info(''.join(traceback.format_exc()))
     return return_codes
 
 

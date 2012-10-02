@@ -367,6 +367,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_step_run(self):
         self._update()
+        emit_signal("on_step_complete", self.name)
 
     def _notify_observers_step_options_swapped(self):
         app = get_app()
