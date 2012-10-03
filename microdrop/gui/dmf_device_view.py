@@ -354,10 +354,11 @@ class DmfDeviceView(GStreamerVideoView):
         '''
         app = get_app()
         self.widget.grab_focus()
-        # Determine which electrode was clicked (if any)
-        electrode = self.get_clicked_electrode(event)
-        if electrode:
-            self.on_electrode_click(electrode, event)
+        if app.dmf_device:
+            # Determine which electrode was clicked (if any)
+            electrode = self.get_clicked_electrode(event)
+            if electrode:
+                self.on_electrode_click(electrode, event)
         return True
 
     def on_message(self, bus, message):
