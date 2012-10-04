@@ -20,10 +20,6 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 from collections import namedtuple
 from datetime import datetime
-import time
-import socket
-import os
-import signal
 
 import gtk
 import gobject
@@ -31,8 +27,8 @@ gtk.gdk.threads_init()
 gobject.threads_init()
 import numpy as np
 from pygst_utils.video_view.gtk_view import GtkVideoView
-from pygst_utils.bin.server import server_popen
-from jsonrpclib import Server
+from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
+from pygst_utils.elements.draw_queue import DrawQueue, get_example_draw_queue
 
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
@@ -135,6 +131,47 @@ class ElectrodeContextMenu(SlaveView):
         menu_item.show()
 
 
+first_dim = 0
+second_dim = 1
+
+
+class CartesianSpace(object):
+    def __init__(self, width, height, offset=None):
+        self.dims = (width, height)
+        self._scale = 1.
+        if offset is None:
+            self._offset = (0, 0)
+        else:
+            self._offset = offset
+        if width >= height:
+            self.largest_dim = first_dim
+        else:
+            self.largest_dim = second_dim
+
+    @property
+    def height(self):
+        return self.dims[second_dim]
+
+    @property
+    def width(self):
+        return self.dims[first_dim]
+
+    @property
+    def scale(self):
+        return self._scale
+
+    def translate_normalized(self, x, y):
+        return np.array([x, y]) * self.dims + self._offset
+
+    def normalized_coords(self, x, y):
+        return np.array([(x - self._offset[first_dim]) / self.width,
+                (y - self._offset[second_dim]) / self.height])
+
+    def update_scale(self, scale_dims):
+        dim = self.largest_dim
+        self._scale = scale_dims[dim] / self.dims[dim]
+
+
 class DmfDeviceView(GtkVideoView):
     '''
     Slave view for DMF device view.
@@ -169,9 +206,7 @@ class DmfDeviceView(GtkVideoView):
         self._transform_matrix = None
         self.overlay_opacity = None
         self.pixmap = None
-        self._server = None
-        self._server_process = None
-        self._server_pids = []
+        self._proxy = None
         self._set_window_title = False
 
         self.popup = ElectrodeContextMenu(self)
@@ -180,7 +215,6 @@ class DmfDeviceView(GtkVideoView):
         self.sink = None
         self.window_xid = None
         SlaveView.__init__(self)
-        #self.pipeline = self.get_pipeline()
 
     def create_ui(self, *args, **kwargs):
         self.widget = self.device_area
@@ -195,36 +229,95 @@ class DmfDeviceView(GtkVideoView):
     def stop_recording(self):
         pass
 
+    def update_draw_queue(self):
+        if self.window_xid and self._proxy:
+            if self.controller.video_enabled:
+                overlay_opacity = self.overlay_opacity / 100.
+            else:
+                overlay_opacity = 1.
+            x, y, width, height = self.device_area.get_allocation()
+            self._proxy.set_draw_queue(self.window_xid,
+                    self.get_draw_queue(width, height, overlay_opacity))
+
+    def get_draw_queue(self, width, height, alpha=1.0):
+        '''
+        TODO:
+            -create draw queue based on current device
+                (Currently, the device is not being scaled properly)
+            -modify GStreamer CairoDrawBase to allow the draw_queue to be updated
+                dynamically through set_property('draw-queue', ...)
+        '''
+        #return get_example_draw_queue(width, height)
+        app = get_app()
+        if app.dmf_device:
+            d = DrawQueue()
+            x, y, device_width, device_height = app.dmf_device.get_bounding_box()
+            padding = 20
+            if device_width > device_height:
+                drawing_width = width - 2 * padding
+                drawing_height = drawing_width * (device_height / device_width)
+                drawing_x = padding
+                drawing_y = (height - drawing_height) / 2
+            else:
+                drawing_height = height - 2 * padding
+                drawing_width = drawing_height * (device_width / device_height)
+                drawing_x = (width - drawing_width) / 2
+                drawing_y = padding
+            w_scale = drawing_width / device_width
+            h_scale = drawing_height / device_height
+            d.translate(drawing_x, drawing_y)
+            d.scale(w_scale, h_scale)
+            d.translate(-x, -y)
+            for id, electrode in app.dmf_device.electrodes.iteritems():
+                if self.electrode_color.keys().count(id):
+                    r, g, b = self.electrode_color[id]
+                    self.draw_electrode(electrode, d, (b, g, r, alpha))
+            return d
+
+    def draw_electrode(self, electrode, cr, color=None):
+        p = electrode.path
+        cr.save()
+        if color is None:
+            color = [v / 255. for v in p.color]
+        if len(color) < 4:
+            color += [1.] * (len(color) - 4)
+        cr.set_source_rgba(*color)
+        for loop in p.loops:
+            cr.move_to(*loop.verts[0])
+            for v in loop.verts[1:]:
+                cr.line_to(*v)
+            cr.close_path()
+            cr.fill()
+        cr.restore()
+
+    def _initialize_video(self, device, caps_str, filepath=None, bitrate=None):
+        # Connect to JSON-RPC server and request to run the pipeline
+        self._proxy = WindowServiceProxy(59000)
+        self._proxy.create_process(self.window_xid, False)
+        x, y, width, height = self.widget.get_allocation()
+        draw_queue = self.get_draw_queue(width, height)
+        self._proxy.create_pipeline(self.window_xid, (device, caps_str), filepath,
+                bitrate, draw_queue)
+        self._proxy.start_pipeline(self.window_xid)
+        self._proxy.scale(self.window_xid, width, height)
+        self.update_draw_queue()
+
+    def destroy_video_proxy(self):
+        if self._proxy is not None:
+            self._proxy.close()
+            self._proxy = None
+
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)
-        # Connect to JSON-RPC server and request to run the pipeline
-        self._server_process = server_popen()
-        time.sleep(1)
-        self._server = Server('http://localhost:8080')
-        retry_count = 0
-        server_success = False
-        while retry_count < 3:
-            try:
-                self._server_pids.append(self._server.get_pid())
-                self._server.create_process(self.window_xid)
-                self._server_pids.append(self._server.get_process_pid(self.window_xid))
-                response = self._server.select_video_caps(self.window_xid)
-                device, caps_str = response['device'], response['caps_str']
-                server_success = True
-                break
-            except socket.error:
-                retry_count += 1
-        if not server_success:
-            raise RuntimeError, 'Could not connect to GStreamer service on'\
-                    ' port 8080.'
-        self._server.create_pipeline(self.window_xid, (device, caps_str))
-        self._server.start_pipeline(self.window_xid)
 
-    """
     def on_device_area__size_allocate(self, *args):
         x, y, width, height = self.device_area.get_allocation()
-        self.pixmap = gtk.gdk.Pixmap(self.device_area.window, width, height)
+        print '[on_device_area__size_allocate] {}'.format((x, y, width, height))
 
+    def on_device_area__destroy(self, *args):
+        self.destroy_video_proxy()
+
+    """
     def fit_device(self, video_dims, padding=None):
         app = get_app()
         if app.dmf_device and len(app.dmf_device.electrodes):
@@ -429,16 +522,6 @@ class DmfDeviceView(GtkVideoView):
         do_device_registration()
         gtk.threads_leave()
     """
-
-    def on_device_area__destroy(self, *args):
-        if self._server is not None:
-            logger.info('[DmfDeviceView] on_device_area__destroy')
-            self._server.stop_pipeline(self.window_xid)
-            self._server = None
-            self._server_process = None
-            for pid in self._server_pids:
-                os.kill(pid, signal.SIGKILL)
-        return False
 
 
 class DeviceRegistrationDialog(RegistrationDialog):

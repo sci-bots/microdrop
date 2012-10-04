@@ -18,8 +18,6 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-import time
-import signal
 import traceback
 import shutil
 from copy import deepcopy
@@ -32,16 +30,15 @@ import gtk
 gtk.threads_init()
 gtk.gdk.threads_init()
 import numpy as np
-from flatland import Form, String, Boolean
+from flatland import Form, String, Boolean, Integer
 from utility.gui import yesno
 from path import path
 import yaml
 import gst
-from pygtkhelpers.ui.extra_widgets import Directory
+from pygtkhelpers.ui.extra_widgets import Directory, Enum
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
-from jsonrpclib import Server
-from pygst_utils.bin.server import server_popen
-from pygst_utils.video_mode import GstVideoSourceManager, create_video_source
+from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
+from pygst_utils.video_mode import GstVideoSourceManager
 
 from dmf_device_view import DmfDeviceView
 from dmf_device import DmfDevice
@@ -67,24 +64,29 @@ class DmfDeviceOptions(object):
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
-    server_process = server_popen()
-    time.sleep(1)
-    server = Server('http://localhost:8080')
-    server.create_process(0)
-    video_mode_map = pickle.loads(str(server.get_video_mode_map(0)))
-    pids = [server.get_pid(), server.get_process_pid(0)]
-    for pid in pids:
-        os.kill(pid, signal.SIGKILL)
-    del pids
-    del server
-    del server_process
-    print video_mode_map
+    with WindowServiceProxy(port=59000) as w:
+        video_mode_map = w.get_video_mode_map()
+        if video_mode_map:
+            _video_available = True
+        else:
+            _video_available = False
+        video_mode_keys = sorted(video_mode_map.keys())
+        if _video_available:
+            device_key, devices = w.get_video_source_configs()
+
 
     field_list = [Boolean.named('video_enabled').using(default=False,
-                optional=True, properties={'show_in_gui': False}),
+                optional=True, properties={'show_in_gui': True}),
+        Integer.named('overlay_opacity').using(default=50, optional=True),
         Directory.named('device_directory').using(default='', optional=True),
         String.named('transform_matrix').using(default='', optional=True,
                 properties={'show_in_gui': False}), ]
+
+
+    if _video_available:
+        video_mode_enum = Enum.named('video_mode').valued(*video_mode_keys
+                ).using(default=video_mode_keys[0], optional=True)
+        field_list.append(video_mode_enum)
 
     AppFields = Form.of(*field_list)
 
@@ -97,6 +99,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.video_enabled = False
         self._modified = False
         self._video_initialized = False
+        self._video_enabled = False
         self._gui_initialized = False
         gtk.timeout_add(1000, self._initialize_video)
 
@@ -109,6 +112,16 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self._modified = value
         self.menu_save_dmf_device.set_sensitive(value)
 
+    @property
+    def video_enabled(self):
+        return self._video_enabled
+
+    @video_enabled.setter
+    def video_enabled(self, value):
+        if not self._video_available and value:
+            raise ValueError, 'Video cannot be enabled with no sources.'
+        self._video_enabled = value
+
     def on_video_started(self, device_view, start_time):
         self.set_app_values(
             dict(transform_matrix=self.get_app_value('transform_matrix')))
@@ -119,21 +132,22 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     def on_gui_ready(self):
         self._gui_initialized = True
-        #gtk.timeout_add(50, self._initialize_video)
+        gtk.timeout_add(50, self._initialize_video)
 
     def on_app_options_changed(self, plugin_name):
         try:
             if plugin_name == self.name:
                 values = self.get_app_values()
-                if 'video_enabled' in values:
-                    self.video_enabled = getattr(self, 'video_enabled', False)
+                if self._video_available and 'video_enabled' in values:
                     video_enabled = values['video_enabled']
+                    print '[on_app_options_changed] video_enabled={}'.format(
+                            video_enabled)
                     if not (self.video_enabled and video_enabled):
                         if video_enabled:
                             self.video_enabled = True
                         else:
                             self.video_enabled = False
-                        self.set_toggle_state(self.video_enabled)
+                        self.reset_video()
                 if 'device_directory' in values:
                     self.apply_device_dir(values['device_directory'])
                 if self.video_enabled:
@@ -145,28 +159,32 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                         matrix = np.array(matrix, dtype='float32')
                         if self.view.pipeline:
                             self.view.transform_matrix = matrix
-                if 'video_settings' in values:
-                    video_settings = values['video_settings']
-                    if video_settings is not None\
-                            and video_settings != self.video_settings:
-                        self.video_settings = video_settings
+                if 'video_mode' in values:
+                    video_mode = values['video_mode']
+                    if video_mode is not None\
+                            and video_mode != self.video_mode:
+                        self.video_mode = video_mode
         except (Exception,):
             logger.info(''.join(traceback.format_exc()))
             raise
 
     @property
-    def video_settings(self):
-        if not hasattr(self, '_video_settings'):
-            self._video_settings = self.video_mode_keys[0]
-        return self._video_settings
+    def video_mode(self):
+        if not hasattr(self, '_video_mode'):
+            self._video_mode = self.video_mode_keys[0]
+        return self._video_mode
 
-    @video_settings.setter
-    def video_settings(self, value):
+    @video_mode.setter
+    def video_mode(self, value):
         '''
-        When the video_settings are set, we must force the video
+        When the video_mode are set, we must force the video
         pipeline to be re-initialized.
         '''
-        self._video_settings = value
+        self._video_mode = value
+        self.reset_video()
+
+    def reset_video(self):
+        self.view.destroy_video_proxy()
         self._video_initialized = False
 
     def _initialize_video(self):
@@ -180,20 +198,23 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         if not self._video_initialized:
             if self._gui_initialized and self._video_available\
                     and self.video_enabled and self.view.window_xid\
-                            and self.video_settings:
+                            and self.video_mode:
                 self._video_initialized = True
-                selected_mode = self.video_mode_map[self.video_settings]
+                selected_mode = self.video_mode_map[self.video_mode]
                 caps_str = GstVideoSourceManager.get_caps_string(selected_mode)
-                video_source = create_video_source(
-                        selected_mode['device'], caps_str)
-                self.view.set_source(video_source)
+                self.view._initialize_video(str(selected_mode['device']),
+                        str(caps_str))
             else:
+                x, y, width, height = self.view.widget.get_allocation()
+                self.view._initialize_video('',
+                        'video/x-raw-yuv,width={},height={}'.format(
+                                width, height))
                 self._video_initialized = True
-                self.view.set_source(self.view.get_video_src())
             if self._video_initialized:
                 # Reset _prev_display_dims to force Cairo drawing to
                 # scale to the new video settings.
                 self.view._prev_display_dims = None
+                #import pudb; pudb.set_trace()
         return True
 
     def apply_device_dir(self, device_directory):
@@ -239,13 +260,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_save_dmf_device = app.builder.get_object('menu_save_dmf_device')
         self.menu_save_dmf_device_as = app.builder.get_object('menu_save_dmf_device_as')
 
-        self.menu_video = gtk.CheckMenuItem('Video enabled')
-        self.menu_video.show_all()
-        self.video_toggled_handler = self.menu_video.connect('toggled', self.on_menu_video__toggled)
-        self.set_toggle_state(self.video_enabled)
-
-        app.main_window_controller.menu_tools.append(self.menu_video)
-
         app.signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
         app.signals["on_menu_import_dmf_device_activate"] = \
                 self.on_import_dmf_device
@@ -285,23 +299,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def request_frame(self):
         warp_bin = self.view.pipeline.get_by_name('warp_bin')
         warp_bin.grab_frame(self._on_new_frame)
-
-    def on_menu_video__toggled(self, widget):
-        app = get_app()
-        enable = widget.get_active()
-        result = yesno('To %s video, the application must be restarted.  '\
-                '''Restart now?''' % ('enable' if enable else 'disable'))
-        if result == gtk.RESPONSE_YES:
-            self.set_app_values(dict(video_enabled=enable))
-            app.main_window_controller.on_destroy(None)
-        else:
-            self.set_toggle_state(not enable)
-
-    def set_toggle_state(self, value):
-        if hasattr(self, 'menu_video'):
-            self.menu_video.handler_block(self.video_toggled_handler)
-            self.menu_video.set_active(value)
-            self.menu_video.handler_unblock(self.video_toggled_handler)
 
     def grab_frame(self):
         return self.view.grab_frame()
@@ -450,6 +447,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     logger.error("not supported yet")
             else:
                 self.view.electrode_color[id] = (1,0,0)
+        self.view.update_draw_queue()
 
     def get_schedule_requests(self, function_name):
         """
