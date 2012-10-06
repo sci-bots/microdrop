@@ -20,32 +20,28 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import subprocess
 import re
-import functools
 
 import gtk
 gtk.gdk.threads_init()
-import numpy as np
 from path import path
 import yaml
 import webbrowser
 from jsonrpc.proxy import JSONRPCException
+from jsonrpc.json import JSONDecodeException
 from flatland import Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 
-from utility import base_path, PROGRAM_LAUNCHED, Version
+from utility import base_path, Version
 from utility.gui import yesno
-from dmf_device import DmfDevice
-from protocol import Protocol, Step
+from protocol import Step
 from config import Config
-from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
         implements, PluginGlobals
 import plugin_manager
 from plugin_helpers import AppDataController, get_plugin_info
 from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
     ERROR, CRITICAL
-from gui.plugin_manager_dialog import PluginManagerDialog
 from update_repository.application.proxy import AppRepository
 
 
@@ -244,9 +240,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.update_log_file()
         return True
 
-    def on_protocol_swapped(self, protocol):
-        self.protocol = protocol
-
     @property
     def plugins(self):
         return set(self.plugin_data.keys())
@@ -262,9 +255,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
     def update_check(self):
         update_setting = self.config['microdrop.app']['update_automatically']
-        logging.debug('udate_automatically=%s' % update_setting)
-        if update_setting != 'auto-update' and \
-        update_setting != 'check for updates, but ask before installing':
+        if update_setting not in ('auto-update',
+                'check for updates, but ask before installing'):
             return
 
         app_update_server_url = self.config.data.get(self.name, {}).get(
@@ -274,8 +266,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         current_version = Version.fromstring(self.version)
         try:
             latest_version = Version(**app_repository.latest_version('microdrop'))
-        except:
-            logging.info('Could not connect to application update server: %s',
+        except (JSONRPCException, JSONDecodeException, IOError):
+            logging.warning('Could not connect to application update server: %s',
                     app_update_server_url)
             return
         if current_version < latest_version:

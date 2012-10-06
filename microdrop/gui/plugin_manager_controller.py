@@ -29,6 +29,7 @@ from path import path
 import yaml
 from flatland import Form, String, Enum
 from jsonrpc.proxy import JSONRPCException
+from jsonrpc.json import JSONDecodeException
 
 from update_repository.plugins.proxy import PluginRepository
 import plugin_manager
@@ -116,12 +117,13 @@ class PluginController(object):
 
     def on_button_update_clicked(self, widget, data=None):
         plugin_name = self.get_plugin_package_name()
+        app = get_app()
         try:
             self.controller.update_plugin(self, verbose=True)
         except IOError:
             logging.warning('Could not connect to plugin server: %s',
                     app.get_app_value('server_url'))
-        except JSONRPCException:
+        except (JSONRPCException, JSONDecodeException):
             logging.warning('Plugin %s not available on plugin server %s' % (
                     plugin_name, app.get_app_value('server_url')))
             return True
@@ -220,7 +222,7 @@ class PluginManagerController(SingletonPlugin):
                 result = self.update_plugin(p, force=force)
                 logging.info('[update_all_plugins] plugin_name=%s %s' % (plugin_name, result))
                 plugin_updated = plugin_updated or result
-            except JSONRPCException:
+            except (JSONRPCException, JSONDecodeException):
                 logging.info('Plugin %s not available on plugin server %s' % (
                         plugin_name, app.get_app_value('server_url')))
             except IOError:
@@ -277,7 +279,7 @@ class PluginManagerController(SingletonPlugin):
                 .joinpath(plugin_root.name)
         installed_metadata = get_plugin_info(installed_plugin_path)
         plugin_installed = False
-        
+
         if installed_metadata:
             logging.info('Currently installed: %s' % (installed_metadata,))
             if installed_metadata.version >= plugin_metadata.version:
@@ -317,7 +319,7 @@ class PluginManagerController(SingletonPlugin):
         else:
             # There is no valid version of this plugin currently installed.
             logging.info('%s is not currently installed' % plugin_root.name)
-            
+
             # enable new plugins by default
             app.config["plugins"]["enabled"].append(plugin_metadata.package_name)
         self.install_plugin(plugin_root, installed_plugin_path)
