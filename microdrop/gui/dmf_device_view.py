@@ -194,12 +194,6 @@ class DmfDeviceView(GtkVideoView):
         #return self.play_bin.grab_frame()
         return None
 
-    def start_recording(self, video_path):
-        pass
-
-    def stop_recording(self):
-        pass
-
     def update_draw_queue(self):
         if self.window_xid and self._proxy:
             if self.controller.video_enabled:
@@ -263,10 +257,10 @@ class DmfDeviceView(GtkVideoView):
         self._proxy.create_process(self.window_xid, False)
         x, y, width, height = self.widget.get_allocation()
         draw_queue = self.get_draw_queue(width, height)
-        self._proxy.create_pipeline(self.window_xid, (device, caps_str), filepath,
-                bitrate, draw_queue)
-        self._proxy.start_pipeline(self.window_xid)
+        self._proxy.create_pipeline(self.window_xid, (device, caps_str),
+                filepath, bitrate, draw_queue)
         self._proxy.scale(self.window_xid, width, height)
+        self._proxy.start_pipeline(self.window_xid)
         self.update_draw_queue()
 
     def destroy_video_proxy(self):

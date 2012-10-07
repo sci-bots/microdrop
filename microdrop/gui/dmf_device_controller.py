@@ -84,8 +84,11 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 ).using(default=video_mode_keys[0], optional=True)
         video_enabled_boolean = Boolean.named('video_enabled').using(default=False, optional=True,
                 properties={'show_in_gui': True})
+        recording_enabled_boolean = Boolean.named('recording_enabled').using(
+                default=True, optional=True, properties={'show_in_gui': True})
         field_list.append(video_mode_enum)
         field_list.append(video_enabled_boolean)
+        field_list.append(recording_enabled_boolean)
 
     AppFields = Form.of(*field_list)
 
@@ -94,11 +97,14 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.view = DmfDeviceView(self, 'device_view')
         self.view.connect('transform-changed', self.on_transform_changed)
         self.previous_device_dir = None
-        self.video_enabled = False
+        self.recording_enabled = False
         self._modified = False
         self._video_initialized = False
         self._video_enabled = False
         self._gui_initialized = False
+        self._bitrate = None
+        self._record_path = None
+        self._recording = False
         gtk.timeout_add(1000, self._initialize_video)
 
     @property
@@ -161,6 +167,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                                 return False
                             return True
                         gtk.timeout_add(10, update_transform, self, matrix)
+                if 'recording_enabled' in values:
+                    self.recording_enabled = values['recording_enabled']
                 if 'video_mode' in values:
                     video_mode = values['video_mode']
                     if video_mode is not None\
@@ -204,19 +212,24 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 self._video_initialized = True
                 selected_mode = self.video_mode_map[self.video_mode]
                 caps_str = GstVideoSourceManager.get_caps_string(selected_mode)
+                if self.recording_enabled:
+                    bitrate = self._bitrate
+                    record_path = self._record_path
+                else:
+                    bitrate = None
+                    record_path = None
                 self.view._initialize_video(str(selected_mode['device']),
-                        str(caps_str))
+                        str(caps_str), record_path, bitrate)
+                self.set_app_values(
+                    dict(transform_matrix=self.get_app_value('transform_matrix')))
+                if self.recording_enabled:
+                    self._recording = True
             else:
                 x, y, width, height = self.view.widget.get_allocation()
                 self.view._initialize_video('',
                         'video/x-raw-yuv,width={},height={}'.format(
                                 width, height))
                 self._video_initialized = True
-            if self._video_initialized:
-                # Reset _prev_display_dims to force Cairo drawing to
-                # scale to the new video settings.
-                self.view._prev_display_dims = None
-                #import pudb; pudb.set_trace()
         return True
 
     def apply_device_dir(self, device_directory):
@@ -282,14 +295,31 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_save_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device_as.set_sensitive(False)
 
+    def stop_recording(self):
+        self._bitrate = None
+        self._record_path = None
+        self.reset_video()
+        self._recording = False
+        logging.info('[DmfDeviceController] recording stopped')
+
+    def start_recording(self, record_path):
+        self._bitrate = 150000
+        self._record_path = str(path(record_path).abspath())
+        self._recording = False
+        self.reset_video()
+        logging.info('[DmfDeviceController] recording to: {}'.format(
+                self._record_path))
+
     def on_protocol_run(self):
         app = get_app()
         log_dir = path(app.experiment_log.get_log_path())
         video_path = log_dir.joinpath('%s.avi' % log_dir.name)
-        self.view.start_recording(video_path)
+        if self.recording_enabled:
+            self.start_recording(video_path)
 
     def on_protocol_pause(self):
-        self.view.stop_recording()
+        if self._recording:
+            self.stop_recording()
 
     def on_app_exit(self):
         self.save_check()
@@ -501,8 +531,5 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_dmf_device_changed(self, dmf_device):
         self.modified = True
-
-    def _on_new_frame(self, cv_img):
-        emit_signal('on_new_frame', [cv_img])
 
 PluginGlobals.pop_env()
