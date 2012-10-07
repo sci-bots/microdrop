@@ -30,15 +30,14 @@ import gtk
 gtk.threads_init()
 gtk.gdk.threads_init()
 import numpy as np
-from flatland import Form, String, Boolean, Integer
+from flatland import Form, Integer, String, Boolean
 from utility.gui import yesno
 from path import path
 import yaml
-import gst
 from pygtkhelpers.ui.extra_widgets import Directory, Enum
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
-from pygst_utils.video_mode import GstVideoSourceManager
+from pygst_utils.video_source import GstVideoSourceManager
 
 from dmf_device_view import DmfDeviceView
 from dmf_device import DmfDevice
@@ -94,7 +93,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.name = "microdrop.gui.dmf_device_controller"
         self.view = DmfDeviceView(self, 'device_view')
         self.view.connect('transform-changed', self.on_transform_changed)
-        #self.view.connect('video-started', self.on_video_started)
         self.previous_device_dir = None
         self.video_enabled = False
         self._modified = False
@@ -140,8 +138,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 values = self.get_app_values()
                 if self._video_available and 'video_enabled' in values:
                     video_enabled = values['video_enabled']
-                    print '[on_app_options_changed] video_enabled={}'.format(
-                            video_enabled)
                     if not (self.video_enabled and video_enabled):
                         if video_enabled:
                             self.video_enabled = True
@@ -157,8 +153,14 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     matrix = yaml.load(values['transform_matrix'])
                     if matrix is not None and len(matrix):
                         matrix = np.array(matrix, dtype='float32')
-                        if self.view.pipeline:
-                            self.view.transform_matrix = matrix
+                        def update_transform(self, matrix):
+                            if self.view._proxy:
+                                transform_str = ','.join([str(v) for v in matrix.flatten()])
+                                self.view._proxy.set_warp_transform(self.view.window_xid,
+                                        transform_str)
+                                return False
+                            return True
+                        gtk.timeout_add(10, update_transform, self, matrix)
                 if 'video_mode' in values:
                     video_mode = values['video_mode']
                     if video_mode is not None\
@@ -279,29 +281,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_rename_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device_as.set_sensitive(False)
-        gtk.idle_add(self.init_pipeline)
-
-    def init_pipeline(self):
-        self.view.pipeline = self.view.get_pipeline()
-        result = self.view.pipeline.set_state(gst.STATE_PLAYING)
-        if result == gst.STATE_CHANGE_FAILURE and self.video_enabled:
-            logger.warning(
-                    'Error starting video.  Disabling video and restarting ' \
-                            'the application.')
-            self.set_app_values(dict(video_enabled=False))
-            app = get_app()
-            gtk.idle_add(app.main_window_controller.on_destroy, None)
-        elif result == gst.STATE_CHANGE_ASYNC:
-            while self.view.pipeline.get_state()[1] != gst.STATE_PLAYING:
-                pass
-        return False
-
-    def request_frame(self):
-        warp_bin = self.view.pipeline.get_by_name('warp_bin')
-        warp_bin.grab_frame(self._on_new_frame)
-
-    def grab_frame(self):
-        return self.view.grab_frame()
 
     def on_protocol_run(self):
         app = get_app()
@@ -314,11 +293,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_app_exit(self):
         self.save_check()
-        if self.view.pipeline:
-            result = self.view.pipeline.set_state(gst.STATE_NULL)
-            if result == gst.STATE_CHANGE_ASYNC:
-                while self.view.pipeline.get_state()[1] != gst.STATE_NULL:
-                    pass
 
     def get_default_options(self):
         return DmfDeviceOptions()
