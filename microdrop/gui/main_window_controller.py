@@ -23,6 +23,7 @@ import time
 import webbrowser
 
 import gtk
+gtk.threads_init()
 from flatland import Form, Boolean, Enum
 from pygtkhelpers.proxy import proxy_for
 

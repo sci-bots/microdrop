@@ -21,6 +21,7 @@ import os
 import traceback
 import shutil
 from copy import deepcopy
+import logging
 try:
     import cPickle as pickle
 except ImportError:
@@ -63,7 +64,7 @@ class DmfDeviceOptions(object):
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
-    with WindowServiceProxy(port=59000) as w:
+    with WindowServiceProxy(59000) as w:
         video_mode_map = w.get_video_mode_map()
         if video_mode_map:
             _video_available = True
@@ -160,10 +161,11 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     if matrix is not None and len(matrix):
                         matrix = np.array(matrix, dtype='float32')
                         def update_transform(self, matrix):
-                            if self.view._proxy:
-                                transform_str = ','.join([str(v) for v in matrix.flatten()])
-                                self.view._proxy.set_warp_transform(self.view.window_xid,
-                                        transform_str)
+                            if self.view._proxy and self.view._proxy\
+                                    .pipeline_available():
+                                transform_str = ','.join([str(v)
+                                        for v in matrix.flatten()])
+                                self.view._proxy.set_warp_transform(transform_str)
                                 return False
                             return True
                         gtk.timeout_add(10, update_transform, self, matrix)
@@ -219,7 +221,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     bitrate = None
                     record_path = None
                 self.view._initialize_video(str(selected_mode['device']),
-                        str(caps_str), record_path, bitrate)
+                        str(caps_str), record_path=record_path, bitrate=bitrate)
                 self.set_app_values(
                     dict(transform_matrix=self.get_app_value('transform_matrix')))
                 if self.recording_enabled:
@@ -323,6 +325,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_app_exit(self):
         self.save_check()
+        self.view.destroy_video_proxy()
 
     def get_default_options(self):
         return DmfDeviceOptions()

@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 from collections import namedtuple
 from datetime import datetime
+import time
 try:
     import cPickle as pickle
 except ImportError:
@@ -202,7 +203,7 @@ class DmfDeviceView(GtkVideoView):
                 overlay_opacity = 1.
             x, y, width, height = self.device_area.get_allocation()
             draw_queue = self.get_draw_queue(width, height, overlay_opacity)
-            self._proxy.set_draw_queue(self.window_xid, draw_queue)
+            self._proxy.set_draw_queue(draw_queue)
 
     def get_draw_queue(self, width, height, alpha=1.0):
         app = get_app()
@@ -251,22 +252,33 @@ class DmfDeviceView(GtkVideoView):
             cr.fill()
         cr.restore()
 
-    def _initialize_video(self, device, caps_str, filepath=None, bitrate=None):
+    def _initialize_video(self, device, caps_str, bitrate=None, record_path=None):
         # Connect to JSON-RPC server and request to run the pipeline
         self._proxy = WindowServiceProxy(59000)
-        self._proxy.create_process(self.window_xid, False)
+        self._proxy.window_xid(self.window_xid)
+
         x, y, width, height = self.widget.get_allocation()
         draw_queue = self.get_draw_queue(width, height)
-        self._proxy.create_pipeline(self.window_xid, (device, caps_str),
-                filepath, bitrate, draw_queue)
-        self._proxy.scale(self.window_xid, width, height)
-        self._proxy.start_pipeline(self.window_xid)
+        self._proxy.create(device, caps_str, bitrate=bitrate, record_path=record_path,
+                draw_queue=draw_queue, with_scale=True, with_warp=True)
+        self._proxy.scale(width, height)
+        self._proxy.start()
         self.update_draw_queue()
 
     def destroy_video_proxy(self):
         if self._proxy is not None:
-            self._proxy.close()
-            self._proxy = None
+            print '[destroy_video_proxy]'
+            try:
+                self._proxy.stop()
+                print '  \->SUCCESS'
+            except:
+                print '  \->ERROR'
+                import traceback
+                traceback.print_exc()
+            finally:
+                self._proxy.close()
+                self._proxy = None
+                print '  --- CLOSED ---'
 
     def on_device_area__realize(self, widget, *args):
         self.on_realize(widget)
@@ -331,11 +343,10 @@ class DmfDeviceView(GtkVideoView):
 
     def on_register(self, *args, **kwargs):
         if self._proxy is not None:
-            self._proxy.request_frame(self.window_xid)
+            self._proxy.request_frame()
             def process_frame(self):
                 #draw_queue = self.get_draw_queue(*self.view_space.dims)
-                pickled_frame = self._proxy.get_frame(self.window_xid)
-                frame = pickle.loads(str(pickled_frame))
+                frame = self._proxy.get_frame()
                 if frame is not None:
                     cv_im = cv.CreateMat(frame.shape[0], frame.shape[1], cv.CV_8UC3)
                     cv.SetData(cv_im, frame.tostring(), frame.shape[1] * frame.shape[2])

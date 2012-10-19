@@ -12,6 +12,8 @@ except ImportError:
     chipmunk_path = None
     print 'Could not import pymunk'
 
+import zmq
+
 extra_py = []
 a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
@@ -31,6 +33,12 @@ a.datas += [(str(matplotlib_path.relpathto(p)), str(p.abspath()), 'DATA')\
 
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\opencv').walkfiles(ignore=[r'\.git', r'site_scons', r'.*\.pyc'])]
+
+zmq_dll_path = path(zmq.__file__).parent.joinpath('libzmq.dll')
+if not zmq_dll_path.isfile():
+    raise IOError, 'Cannot find zmq DLL: %s' % zmq_dll_path
+
+a.datas += [(zmq_dll_path.name, str(zmq_dll_path), 'DATA')]
 
 if chipmunk_path:
     print 'adding %s to data' % chipmunk_path
