@@ -282,9 +282,6 @@ class ExperimentLogController(SingletonPlugin):
     def on_protocol_pause(self):
         self.save()
 
-    def on_dmf_device_created(self, dmf_device):
-        self.on_dmf_device_swapped(None, dmf_device)
-
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         app = get_app()
         device_path = None

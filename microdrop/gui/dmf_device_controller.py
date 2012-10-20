@@ -38,8 +38,7 @@ from dmf_device import DmfDevice
 from protocol import Protocol
 from experiment_log import ExperimentLog
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
-        implements, PluginGlobals, ScheduleRequest, emit_signal,\
-        IAppStatePlugin
+        implements, PluginGlobals, ScheduleRequest, emit_signal
 from app_context import get_app
 from logger import logger
 from opencv.safe_cv import cv
@@ -47,7 +46,6 @@ from plugin_helpers import AppDataController
 from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from utility import is_float, copytree
-import app_state
 
 
 PluginGlobals.push_env('microdrop')
@@ -63,7 +61,6 @@ class DmfDeviceOptions(object):
 
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
-    implements(IAppStatePlugin)
     
     AppFields = Form.of(
         Boolean.named('video_enabled').using(default=False, optional=True,
@@ -85,7 +82,17 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self.view.connect('video-started', self.on_video_started)
         self.previous_device_dir = None
         self.video_enabled = False
-        
+        self._modified = False
+
+    @property
+    def modified(self):
+        return self._modified
+
+    @modified.setter
+    def modified(self, value):
+        self._modified = value
+        self.menu_save_dmf_device.set_sensitive(value)
+                
     def on_video_started(self, device_view, start_time):
         self.set_app_values(
             dict(transform_matrix=self.get_app_value('transform_matrix')))
@@ -161,7 +168,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.event_box_dmf_device.add(self.view.device_area)
         self.event_box_dmf_device.show_all()
         self.view.connect('channel-state-changed',
-                lambda x, y: self._notify_observers_step_options_swapped())
+                lambda x, y: self._notify_observers_step_options_changed())
 
         self.menu_load_dmf_device = app.builder.get_object('menu_load_dmf_device')
         self.menu_import_dmf_device = app.builder.get_object('menu_import_dmf_device')
@@ -191,6 +198,11 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app.set_data(self.name, data)
         emit_signal('on_app_options_changed', [self.name])
         gtk.idle_add(self.init_pipeline)
+
+        # disable menu items until a device is loaded
+        self.menu_rename_dmf_device.set_sensitive(False)
+        self.menu_save_dmf_device.set_sensitive(False)
+        self.menu_save_dmf_device_as.set_sensitive(False)
 
     def init_pipeline(self):
         self.view.pipeline = self.view.get_pipeline()
@@ -230,20 +242,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def grab_frame(self):
         return self.view.grab_frame()
 
-    def on_protocol_swapped(self, *args):
-        self.set_overlay()
-
-    def on_protocol_created(self, *args):
-        self.set_overlay()
-
-    def set_overlay(self):
-        app = get_app()
-        if app.protocol:
-            step_number = app.protocol.current_step_number + 1
-            total_steps = len(app.protocol)
-            #self.view.play_bin.text_overlay.set_property('text',
-                    #'Step: %s/%s' % (step_number, total_steps))
-
     def on_protocol_run(self):
         app = get_app()
         log_dir = path(app.experiment_log.get_log_path())
@@ -253,21 +251,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_protocol_pause(self):
         self.view.stop_recording()
 
-    def on_post_event(self, state, event):
-        if type(state) in [app_state.DirtyDeviceDirtyProtocol,
-                app_state.DirtyDeviceProtocol, app_state.DirtyDeviceNoProtocol]:
-            self.menu_save_dmf_device.set_property('sensitive', True)
-        else:
-            self.menu_save_dmf_device.set_property('sensitive', False)
-
     def on_app_exit(self):
         app = get_app()
-        state = app.state.current_state
-        if type(state) in [app_state.DirtyDeviceDirtyProtocol,
-                app_state.DirtyDeviceProtocol, app_state.DirtyDeviceNoProtocol]:
-            result = yesno('Device %s has unsaved changes.  Save now?' % app.dmf_device.name)
-            if result == gtk.RESPONSE_YES:
-                self.save_dmf_device()
+        self.save_check()
         if self.view.pipeline:
             result = self.view.pipeline.set_state(gst.STATE_NULL)
             if result == gst.STATE_CHANGE_ASYNC:
@@ -293,17 +279,28 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def load_device(self, filename):
         app = get_app()
         try:
-            original_device = get_app().dmf_device
-            if original_device is None:
-                app.state.trigger_event(app_state.LOAD_DEVICE)
-                emit_signal("on_dmf_device_created", DmfDevice.load(filename))
+            device = DmfDevice.load(filename)
+            if path(filename).parent.parent != app.get_device_directory():
+                logger.info('[DmfDeviceController].load_device: '
+                             'Import new device.')
+                self.modified=True
             else:
-                app.state.trigger_event(app_state.LOAD_DEVICE)
-                emit_signal("on_dmf_device_swapped", [original_device,
-                        DmfDevice.load(filename)])
+                logger.info('[DmfDeviceController].load_device: '
+                             'load existing device.')
+                self.modified=False
+            emit_signal("on_dmf_device_swapped", [app.dmf_device,
+                                                  device])
         except Exception, e:
             logger.error('Error loading device. %s: %s.' % (type(e), e))
             logger.info(''.join(traceback.format_exc()))
+    
+    def save_check(self):
+        app = get_app()
+        if self.modified:
+            result = yesno('Device %s has unsaved changes.  Save now?'\
+                    % app.dmf_device.name)
+            if result == gtk.RESPONSE_YES:
+                self.save_dmf_device()
     
     def save_dmf_device(self, save_as=False, rename=False):
         app = get_app()
@@ -340,14 +337,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
             # if the device name has changed
             if name != app.dmf_device.name:
                 app.dmf_device.name = name
-                emit_signal("on_dmf_device_created", app.dmf_device)
             
             # save the device
             app.dmf_device.save(os.path.join(dest,"device"))
-            app.state.trigger_event(app_state.DEVICE_SAVED)
-                    
-    def on_step_options_swapped(self, plugin_name, step_number):
-        self.on_step_options_changed(plugin_name, step_number)
+            self.modified = False                    
 
     def on_step_options_changed(self, plugin_name, step_number):
         '''
@@ -359,23 +352,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 and plugin_name == self.name:
             self._update()
 
-    def on_step_created(self, step_number):
-        self.set_overlay()
-
-    def on_step_swapped(self, original_step_number, step_number):
-        self.set_overlay()
-
-    def on_step_run(self):
+    def on_step_swapped(self, old_step_number, step_number):
         self._update()
-        emit_signal("on_step_complete", self.name)
-
-    def _notify_observers_step_options_swapped(self):
-        app = get_app()
-        if not app.dmf_device:
-            return
-        emit_signal('on_step_options_swapped',
-                    [self.name, app.protocol.current_step_number],
-                    interface=IPlugin)
 
     def _notify_observers_step_options_changed(self):
         app = get_app()
@@ -420,13 +398,14 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                     self.name),
                     ScheduleRequest('microdrop.gui.main_window_controller',
                                     self.name)]
-        elif function_name in ['on_dmf_device_swapped', 'on_dmf_device_created']:
+        elif function_name == 'on_dmf_device_swapped':
             return [ScheduleRequest('microdrop.app', self.name),]
         return []
 
     # GUI callbacks
 
     def on_load_dmf_device(self, widget, data=None):
+        self.save_check()
         app = get_app()
         directory = app.get_device_directory()
         dialog = gtk.FileChooserDialog(title="Load device",
@@ -443,9 +422,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
             filename = dialog.get_filename()
             self.load_device(filename)
         dialog.destroy()
-        self._notify_observers_step_options_swapped()
     
     def on_import_dmf_device(self, widget, data=None):
+        self.save_check()
         app = get_app()
         dialog = gtk.FileChooserDialog(title="Import device",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -459,15 +438,18 @@ directory)?''' % (device_directory, self.previous_device_dir))
         dialog.add_filter(filter)  
         dialog.set_default_response(gtk.RESPONSE_OK)
         response = dialog.run()
-
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            app.dmf_device = DmfDevice.load_svg(filename)
-            app.state.trigger_event(app_state.IMPORT_DEVICE)
-            emit_signal("on_dmf_device_created", [app.dmf_device])
+            try:
+                dmf_device = DmfDevice.load_svg(filename)
+                self.modified = True
+                emit_signal("on_dmf_device_swapped", [app.dmf_device,
+                                                      dmf_device])
+            except Exception, e:
+                logger.error('Error importing device. %s: %s.' % (type(e), e))
+                logger.info(''.join(traceback.format_exc()))
         dialog.destroy()
-        self._notify_observers_step_options_swapped()
-        
+
     def on_rename_dmf_device(self, widget, data=None):
         self.save_dmf_device(rename=True)
         
@@ -477,11 +459,13 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_save_dmf_device_as(self, widget, data=None):
         self.save_dmf_device(save_as=True)
 
-    def on_dmf_device_created(self, dmf_device):
-        self.on_dmf_device_swapped(None, dmf_device)
+    def on_dmf_device_swapped(self, old_device, new_device):
+        self.menu_rename_dmf_device.set_sensitive(True)
+        self.menu_save_dmf_device_as.set_sensitive(True)
+        self._update()
 
-    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        self._notify_observers_step_options_changed()
+    def on_dmf_device_changed(self, dmf_device):
+        self.modified = True
 
     def _on_new_frame(self, cv_img):
         emit_signal('on_new_frame', [cv_img])

@@ -29,10 +29,9 @@ from pygtkhelpers.proxy import proxy_for
 from .dmf_device_view import DmfDeviceView
 from utility import wrap_string, is_float
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ILoggingPlugin, emit_signal, IAppStatePlugin, \
+    implements, PluginGlobals, ScheduleRequest, ILoggingPlugin, emit_signal, \
     get_service_instance_by_name
 from app_context import get_app
-import app_state
 from logger import logger
 from utility.gui import DEFAULTS
 
@@ -46,7 +45,6 @@ PluginGlobals.push_env('microdrop')
 
 class MainWindowController(SingletonPlugin):
     implements(IPlugin)
-    implements(IAppStatePlugin)
     implements(ILoggingPlugin)
 
     def __init__(self):
@@ -85,6 +83,7 @@ class MainWindowController(SingletonPlugin):
         self.checkbutton_realtime_mode = app.builder.get_object("checkbutton_realtime_mode")
         self.menu_tools = app.builder.get_object("menu_tools")
         self.menu_view = app.builder.get_object("menu_view")
+        self.menu_experiment_logs = app.builder.get_object("menu_experiment_logs")
 
         app.signals["on_menu_quit_activate"] = self.on_destroy
         app.signals["on_menu_about_activate"] = self.on_about
@@ -98,30 +97,17 @@ class MainWindowController(SingletonPlugin):
         app.signals["on_menu_app_options_activate"] = self.on_menu_app_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
 
-        #app.signals["on_menu_debug_activate"] = self.on_menu_debug_activate
-
         self.builder = gtk.Builder()
         self.builder.add_from_file(os.path.join("gui",
                                                 "glade",
                                                 "about_dialog.glade"))
         app.main_window_controller = self
         self.protocol_list_view = None
-        hbox1 = app.builder.get_object("hbox1")
-        #self.device_view = DmfDeviceView('cairo_draw', draw_func=lambda x: self.draw_on(x)))
-        #self.device_view = DmfDeviceView('cairo_draw')
-        #self.device_view = CairoDrawBase('cairo_draw', draw_func=lambda x: self.draw_on(x))
-        #self.pipeline = get_video_pipeline(self.device_view)
-        #self.video_view = GStreamerVideoView(self.pipeline)
-        #self.video_window = self.video_view.widget
-        #self.video_window.set_size_request(640, 480)
-        #hbox1.pack_start(self.video_window)
-        #hbox1.show_all()
-        #self.pipeline.set_state(gst.STATE_PLAYING)
 
-
+        self.checkbutton_realtime_mode.set_sensitive(False)
+        self.menu_experiment_logs.set_sensitive(False)
+        
     def main(self):
-        if get_app().protocol:
-            emit_signal("on_step_run")
         gtk.main()
 
     def get_text_input(self, title, label, default_value=""):
@@ -259,22 +245,13 @@ class MainWindowController(SingletonPlugin):
         _kwargs['get_string'] = self.get_protocol_string
         self.update_label(self.label_protocol_name, obj=obj, **_kwargs)
 
-    def on_post_event(self, state, event):
-        if type(state) in [app_state.DeviceDirtyProtocol, app_state.DirtyDeviceDirtyProtocol]:
-            self.update_protocol_name_label(modified=True)
-        else:
-            self.update_protocol_name_label(modified=False)
-        if type(state) in [app_state.DirtyDeviceDirtyProtocol,
-                app_state.DirtyDeviceProtocol, app_state.DirtyDeviceNoProtocol]:
-            self.update_device_name_label(modified=True)
-        else:
-            self.update_device_name_label(modified=False)
-
-    def on_protocol_created(self, protocol):
-        self.update_protocol_name_label(protocol)
-
     def on_protocol_swapped(self, old_protocol, protocol):
-        self.update_protocol_name_label(protocol)
+        self.on_protocol_changed()
+
+    def on_protocol_changed(self):
+        app = get_app()
+        self.update_protocol_name_label(modified= \
+                                        app.protocol_controller.modified)
 
     def on_experiment_log_created(self, experiment_log):
         self.label_experiment_id.set_text("Experiment: %s" % str(experiment_log.experiment_id))
@@ -291,18 +268,27 @@ class MainWindowController(SingletonPlugin):
         _kwargs['get_string'] = self.get_device_string
         self.update_label(self.label_device_name, obj=obj, **_kwargs)
 
-    def on_dmf_device_created(self, dmf_device):
-        self.update_device_name_label(dmf_device)
-
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        self.update_device_name_label(dmf_device)
+        self.checkbutton_realtime_mode.set_sensitive(True)
+        self.menu_experiment_logs.set_sensitive(True)
+        self.update_device_name_label(dmf_device, modified= \
+                                      get_app().dmf_device_controller.modified)
 
-    def on_step_created(self, step_number):
-        logger.debug('[MainWindowController] on_step_created[%d]', step_number)
+    def on_dmf_device_changed(self):
+        self.update_device_name_label(modified= \
+                                      get_app().dmf_device_controller.modified)
 
-    def on_step_swapped(self, original_step_number, step_number):
-        logger.debug('[MainWindowController] on_step_swapped[%d->%d]',
-                original_step_number, step_number)
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_plugin_enable':
+            return [ScheduleRequest(self.name, 'microdrop.app')]
+        elif function_name == 'on_protocol_swapped':
+            # make sure app reference is updated first
+            return [ScheduleRequest('microdrop.app', self.name)]
+        return []
 
 
 PluginGlobals.pop_env()

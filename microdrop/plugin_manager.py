@@ -58,10 +58,6 @@ if not utility.PROGRAM_LAUNCHED:
         __interface_namespace__ = None
 
 
-    class IAppStatePlugin(object):    
-        __interface_namespace__ = None
-
-
     class IWaveformGenerator(object):
         __interface_namespace__ = None
 
@@ -89,14 +85,6 @@ else:
             pass
 
         def on_critical(self, record):
-            pass
-
-
-    class IAppStatePlugin(Interface):    
-        def on_pre_event(self, state, event):
-            pass
-
-        def on_post_event(self, state, event):
             pass
 
 
@@ -177,6 +165,19 @@ else:
             """
             pass
 
+        def on_protocol_swapped(self, old_protocol, protocol):
+            """
+            Handler called when a different protocol is swapped in (e.g., when
+            a protocol is loaded or a new protocol is created).
+            """
+            pass
+        
+        def on_protocol_changed(self):
+            """
+            Handler called when a protocol is modified.
+            """
+            pass
+        
         def on_protocol_run(self):
             """
             Handler called when a protocol starts running.
@@ -189,20 +190,22 @@ else:
             """
             pass
 
-        def on_dmf_device_created(self, dmf_device):
-            """
-            Handler called when the DMF device is created (e.g., when a new device
-            is imported).
-            """
-            pass
-
         def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
             """
             Handler called when a different DMF device is swapped in (e.g., when
             a new device is loaded).
             """
             pass
-        
+
+        def on_dmf_device_changed(self):
+            """
+            Handler called when a DMF device is modified (e.g., channel
+            assignment, scaling, etc.). This signal is also sent when a new
+            device is imported or loaded from outside of the main device
+            directory.
+            """
+            pass
+
         def on_experiment_log_created(self, experiment_log):
             """
             Handler called when a new experiment log is created (e.g., when a
@@ -243,9 +246,29 @@ else:
             """
             pass
 
+        def on_step_options_swapped(self, plugin, old_step_number, step_number):
+            """
+            Handler called when the step options are changed for a particular
+            plugin.  This will, for example, allow for GUI elements to be
+            updated based on step specified.
+
+            Parameters:
+                plugin : plugin instance for which the step options changed
+                step_number : step number that the options changed for
+            """
+            pass
+
+        def on_step_swapped(self, old_step_number, step_number):
+            """
+            Handler called when the current step is swapped.
+            """
+            pass
+
+
         def on_step_run(self):
             """
-            Handler called whenever a step is executed.
+            Handler called whenever a step is executed. Note that this signal
+            is only emitted in realtime mode or if a protocol is running.
 
             Plugins that handle this signal must emit the on_step_complete
             signal once they have completed the step. The protocol controller
@@ -265,19 +288,13 @@ else:
             """
             pass
 
+        def on_step_created(self, step_number):
+            pass
+
         def get_step_form_class(self):
             pass
 
         def get_step_values(self, step_number=None):
-            pass
-
-        def on_step_swapped(self, original_step_number, new_step_number):
-            pass
-
-        def on_step_changed(self, step_number):
-            pass
-
-        def on_step_created(self, step_number):
             pass
 
     class IVideoPlugin(Interface):
@@ -326,10 +343,6 @@ def log_summary():
         logging.info('\t %s' % observer)
     observers = ExtensionPoint(IVideoPlugin)
     logging.info('Registered video plugins:')
-    for observer in observers:
-        logging.info('\t %s' % observer)
-    observers = ExtensionPoint(IAppStatePlugin)
-    logging.info('Registered app state plugins:')
     for observer in observers:
         logging.info('\t %s' % observer)
 

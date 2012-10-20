@@ -25,9 +25,12 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+from StringIO import StringIO
+from contextlib import closing
+
 import yaml
 
-import plugin_manager
+from plugin_manager import emit_signal, IPlugin, ExtensionPoint
 from logger import logger
 from utility import Version, VersionError, FutureVersionError
 
@@ -115,11 +118,11 @@ class Protocol():
                     for k, v in step.plugin_data.items():
                         step.plugin_data[k] = yaml.dump(v)
                 self.version = str(Version(0,1))
-                logger.info('[Protocol] upgrade to version %s' % self.version)
+                logger.debug('[Protocol] upgrade to version %s' % self.version)
             if version < Version(0,2):
                 self.current_step_attempt = 0
                 self.version = str(Version(0,2))
-                logger.info('[Protocol] upgrade to version %s' % self.version)
+                logger.debug('[Protocol] upgrade to version %s' % self.version)
         # else the versions are equal and don't need to be upgraded
 
     @property
@@ -199,14 +202,12 @@ class Protocol():
         if value is None:
             value = Step()
         self.steps.insert(step_number, value)
-        plugin_manager.emit_signal('on_step_created',
-                args=[self.current_step_number])
+        emit_signal('on_step_created', args=[self.current_step_number])
 
     def delete_step(self, step_number):
         step_to_remove = self.steps[step_number]
         del self.steps[step_number]
-        plugin_manager.emit_signal('on_step_removed',
-            args=[step_number, step_to_remove])
+        emit_signal('on_step_removed', args=[step_number, step_to_remove])
 
         if len(self.steps) == 0:
             # If we deleted the last remaining step, we need to insert a new
@@ -250,11 +251,31 @@ class Protocol():
     def last_step(self):
         self.goto_step(len(self.steps) - 1)
 
-    def goto_step(self, step):
-        original_step = self.current_step_number
-        self.current_step_number = step
-        plugin_manager.emit_signal('on_step_swapped', args=[original_step, step])
-
+    def goto_step(self, step_number):
+        logging.debug('[Protocol].goto_step(%s)' % step_number)
+        self.current_step_number = step_number
+        original_step_number = self.current_step_number
+        for plugin_name in self.current_step().plugins:
+            emit_signal('on_step_options_swapped',
+                    [plugin_name,
+                    original_step_number,
+                    step_number],
+                    interface=IPlugin)
+        with closing(StringIO()) as sio:
+            for plugin_name, fields in self.plugin_fields.iteritems():
+                observers = ExtensionPoint(IPlugin)
+                service = observers.service(plugin_name)
+                if service is None:
+                    # We can end up here if a service has been disabled.
+                    # TODO: protocol.plugin_fields should likely be updated
+                    #    whenever a plugin is enabled/disabled...
+                    continue
+                if hasattr(service, 'get_step_value'):
+                    print >> sio, '[ProtocolController] plugin.name=%s field_values='\
+                            % (plugin_name),
+                    print >> sio, [service.get_step_value(f) for f in fields]
+            logging.debug(sio.getvalue())
+        emit_signal('on_step_swapped', [original_step_number, step_number])
 
 class Step(object):
     def __init__(self, plugin_data=None):

@@ -21,8 +21,6 @@ import os
 import math
 import time
 import logging
-from StringIO import StringIO
-from contextlib import closing
 import re
 import shutil
 
@@ -38,10 +36,9 @@ from utility.gui import register_shortcuts, textentry_validate,\
 from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
         implements, PluginGlobals, ScheduleRequest, emit_signal,\
         get_service_class, get_service_instance, get_service_instance_by_name,\
-        IAppStatePlugin, get_observers
+        get_observers
 from gui.textbuffer_with_undo import UndoableBuffer
 from app_context import get_app
-import app_state
 from utility.gui import yesno, contains_pointer
 
 
@@ -50,7 +47,6 @@ PluginGlobals.push_env('microdrop')
 
 class ProtocolController(SingletonPlugin):
     implements(IPlugin)
-    implements(IAppStatePlugin)
     
     def __init__(self):
         self.name = "microdrop.gui.protocol_controller"
@@ -59,8 +55,22 @@ class ProtocolController(SingletonPlugin):
         self.repeat_step = False
         self.label_step_number = None
         self.label_step_number = None
+        self.button_first_step = None
+        self.button_prev_step = None
         self.button_run_protocol = None
+        self.button_next_step = None
+        self.button_last_step = None
         self.textentry_protocol_repeats = None
+        self._modified = False
+
+    @property
+    def modified(self):
+        return self._modified
+
+    @modified.setter
+    def modified(self, value):
+        self._modified = value
+        self.menu_save_protocol.set_sensitive(value)
 
     def _register_shortcuts(self):
         app = get_app()
@@ -85,7 +95,6 @@ class ProtocolController(SingletonPlugin):
 
     def load_protocol(self, filename):
         app = get_app()
-        original_protocol = app.protocol
         p = None
         try:
             p = Protocol.load(filename)
@@ -106,20 +115,21 @@ Protocol is version %s, but only up to version %s is supported with this version
         except Exception, why:
             logging.error("Could not open %s. %s" % (filename, why))
         if p:
-            if original_protocol is None:
-                self.create_protocol(p, state=app_state.LOAD_PROTOCOL) 
-            else:
-                self.swap_protocol(p)
+            self.modified = False
+            emit_signal("on_protocol_swapped", [app.protocol, p])
         self.run_step()
-
-    def on_protocol_created(self, protocol):
-        protocol.plugin_fields = emit_signal('get_step_fields')
-        logging.debug('[ProtocolController] on_protocol_created(): plugin_fields=%s' % protocol.plugin_fields)
+        
+    def create_protocol(self):
+        old_protocol = get_app().protocol
+        self.modified = True
+        p = Protocol()
+        emit_signal("on_protocol_swapped", [old_protocol, p])
+        self.run_step()
         
     def on_protocol_swapped(self, old_protocol, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
         logging.debug('[ProtocolController] on_protocol_swapped(): plugin_fields=%s' % protocol.plugin_fields)
-        
+
     def on_plugin_enable(self):
         app = get_app()
         self.builder = app.builder
@@ -129,7 +139,12 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.label_step_number = self.builder.get_object("label_step_number")
         self.textentry_protocol_repeats = self.builder.get_object(
             "textentry_protocol_repeats")        
+
+        self.button_first_step = app.builder.get_object('button_first_step')
+        self.button_prev_step = app.builder.get_object('button_prev_step')
         self.button_run_protocol = self.builder.get_object("button_run_protocol")
+        self.button_next_step = app.builder.get_object('button_next_step')
+        self.button_last_step = app.builder.get_object('button_last_step')
         
         self.menu_protocol = app.builder.get_object('menu_protocol')
         self.menu_new_protocol = app.builder.get_object('menu_new_protocol')
@@ -154,26 +169,20 @@ Protocol is version %s, but only up to version %s is supported with this version
                 self.on_textentry_protocol_repeats_key_press
         app.protocol_controller = self
         self._register_shortcuts()
-
-    def on_post_event(self, state, event):
-        if type(state) in [app_state.NoDeviceNoProtocol]:
-            self.menu_protocol.set_property('sensitive', False)
-            self.menu_new_protocol.set_property('sensitive', False)
-            self.menu_load_protocol.set_property('sensitive', False)
-        else:
-            self.menu_protocol.set_property('sensitive', True)
-            self.menu_new_protocol.set_property('sensitive', True)
-            self.menu_load_protocol.set_property('sensitive', True)
-        if type(state) in [app_state.DeviceDirtyProtocol, app_state.DirtyDeviceDirtyProtocol]:
-            self.menu_save_protocol.set_property('sensitive', True)
-        else:
-            self.menu_save_protocol.set_property('sensitive', False)
-
+        
+        self.menu_protocol.set_sensitive(False)
+        self.menu_new_protocol.set_sensitive(False)
+        self.menu_load_protocol.set_sensitive(False)
+        self.button_first_step.set_sensitive(False)
+        self.button_prev_step.set_sensitive(False)
+        self.button_run_protocol.set_sensitive(False)
+        self.button_next_step.set_sensitive(False)
+        self.button_last_step.set_sensitive(False)
+        
     def on_first_step(self, widget=None, data=None):
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.first_step()
-            self.run_step()
             return True
         return False
 
@@ -181,7 +190,6 @@ Protocol is version %s, but only up to version %s is supported with this version
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.prev_step()
-            self.run_step()
             return True
         return False
 
@@ -189,7 +197,6 @@ Protocol is version %s, but only up to version %s is supported with this version
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.next_step()
-            self.run_step()
             return True
         return False
         
@@ -197,14 +204,12 @@ Protocol is version %s, but only up to version %s is supported with this version
         if widget is None or contains_pointer(widget, data.get_coords()):
             app = get_app()
             app.protocol.last_step()
-            self.run_step()
             return True
         return False
         
     def on_new_protocol(self, widget=None, data=None):
         self.save_check()
         self.create_protocol()
-        self.run_step()
 
     def on_run_protocol(self, widget=None, data=None):
         if widget is None or contains_pointer(widget, data.get_coords()):
@@ -254,17 +259,15 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def on_protocol_repeats_changed(self):
         app = get_app()
-        app.protocol.n_repeats = \
-            textentry_validate(self.textentry_protocol_repeats,
-                app.protocol.n_repeats,
-                int)
-        self.run_step()
+        if app.protocol:
+            app.protocol.n_repeats = \
+                textentry_validate(self.textentry_protocol_repeats,
+                    app.protocol.n_repeats,
+                    int)
     
     def save_check(self):
         app = get_app()
-        state = app.state.current_state
-        if type(state) in [app_state.DeviceDirtyProtocol,
-                app_state.DirtyDeviceDirtyProtocol]:
+        if self.modified:
             result = yesno('Protocol %s has unsaved changes.  Save now?'\
                     % app.protocol.name)
             if result == gtk.RESPONSE_YES:
@@ -297,34 +300,15 @@ Protocol is version %s, but only up to version %s is supported with this version
                 # if the protocol name has changed
                 if name != app.protocol.name:
                     app.protocol.name = name
-                    self.swap_protocol(app.protocol)
 
                 # if we're renaming
                 if rename and os.path.isfile(src):
                     shutil.move(src, dest)
                 else: # save the file
                     app.protocol.save(dest)
-                    app.state.trigger_event(app_state.PROTOCOL_SAVED)
+                self.modified = False
+                emit_signal("on_protocol_changed")
 
-    def swap_protocol(self, protocol, state=None):
-        app = get_app()
-        original_protocol = app.protocol
-        if state is None:
-            state = app_state.LOAD_PROTOCOL
-        app.protocol = protocol
-        emit_signal("on_protocol_swapped", [original_protocol, app.protocol])
-        app.state.trigger_event(state)
-
-    def create_protocol(self, protocol=None, state=None):
-        app = get_app()
-        if state is None:
-            state = app_state.NEW_PROTOCOL
-        if protocol is None:
-            protocol = Protocol()
-        app.protocol = protocol
-        emit_signal("on_protocol_created", app.protocol)
-        app.state.trigger_event(state)
-    
     def run_protocol(self):
         app = get_app()
         app.running = True
@@ -343,44 +327,20 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal("on_protocol_pause")
         
     def run_step(self):
-        logging.debug("[ProtocolController].run_step")
         app = get_app()
-        if app.protocol is None:
-            return
-        
-        self._update_labels()
-        step = app.protocol.current_step()
-        for plugin_name in step.plugins:
-            emit_signal('on_step_options_swapped',
-                    [plugin_name,
-                    app.protocol.current_step_number],
-                    interface=IPlugin)
-        with closing(StringIO()) as sio:
-            for plugin_name, fields in app.protocol.plugin_fields.iteritems():
-                observers = ExtensionPoint(IPlugin)
-                service = observers.service(plugin_name)
-                if service is None:
-                    # We can end up here if a service has been disabled.
-                    # TODO: protocol.plugin_fields should likely be updated
-                    #    whenever a plugin is enabled/disabled...
-                    continue
-                if hasattr(service, 'get_step_value'):
-                    print >> sio, '[ProtocolController] plugin.name=%s field_values='\
-                            % (plugin_name),
-                    print >> sio, [service.get_step_value(f) for f in fields]
-            logging.debug(sio.getvalue())
-
-        app.experiment_log.add_step(app.protocol.current_step_number,
-                                    app.protocol.current_step_attempt)
-        
-        self.waiting_for = get_observers("on_step_run", IPlugin).keys()
-        logging.debug("[ProcolController.run_step]: waiting for %s" % 
-                      ", ".join(self.waiting_for))
-        emit_signal("on_step_run")
+        if app.protocol and app.dmf_device and \
+        (app.realtime_mode or app.running):
+            app.experiment_log.add_step(app.protocol.current_step_number,
+                                        app.protocol.current_step_attempt)
+            
+            self.waiting_for = get_observers("on_step_run", IPlugin).keys()
+            logging.info("[ProcolController.run_step]: waiting for %s" % 
+                          ", ".join(self.waiting_for))
+            emit_signal("on_step_run")
         
     def on_step_complete(self, plugin_name, return_value=None):
         app = get_app()
-        logging.debug("[ProcolController].on_step_complete: %s finished" %
+        logging.info("[ProcolController].on_step_complete: %s finished" %
                       plugin_name)
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
@@ -406,7 +366,6 @@ Protocol is version %s, but only up to version %s is supported with this version
                     self.on_next_step()
                 elif app.protocol.current_repetition < app.protocol.n_repeats-1:
                     app.protocol.next_repetition()
-                    self.run_step()
                 else: # we're on the last step
                     self.pause_protocol()
 
@@ -419,16 +378,11 @@ Protocol is version %s, but only up to version %s is supported with this version
             return service.get_step_values(step_number)
         return None
 
-    def on_step_options_swapped(self, plugin, step_number):
-        self.on_step_options_changed(plugin, step_number)
-
     def on_step_options_changed(self, plugin, step_number):
-        logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, step_number=%s'\
-            % (plugin, step_number))
-        app = get_app()
-        if app.protocol:
-            step = app.protocol.steps[step_number]
-            app.state.trigger_event(app_state.PROTOCOL_CHANGED)
+        logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, '
+                      'step_number=%s' % (plugin, step_number))
+        self.modified = True
+        emit_signal('on_protocol_changed')
 
     def set_app_values(self, values_dict):
         logging.debug('[ProtocolController] set_app_values(): '\
@@ -445,6 +399,7 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def on_step_swapped(self, original_step_number, step_number):
         self._update_labels()
+        self.run_step()
 
     def _update_labels(self):
         app = get_app()
@@ -455,17 +410,20 @@ Protocol is version %s, but only up to version %s is supported with this version
             app.protocol.n_repeats))
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
 
-    def on_dmf_device_created(self, dmf_device):
-        self.create_protocol()
-
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        self.menu_protocol.set_sensitive(True)
+        self.menu_new_protocol.set_sensitive(True)
+        self.menu_load_protocol.set_sensitive(True)
+        self.button_first_step.set_sensitive(True)
+        self.button_prev_step.set_sensitive(True)
+        self.button_run_protocol.set_sensitive(True)
+        self.button_next_step.set_sensitive(True)
+        self.button_last_step.set_sensitive(True)
         self.create_protocol()
 
     def on_app_exit(self):
         app = get_app()
-        state = app.state.current_state
-        if type(state) in [app_state.DeviceDirtyProtocol,
-                app_state.DirtyDeviceDirtyProtocol]:
+        if self.modified:
             result = yesno('Protocol %s has unsaved changes.  Save now?'\
                     % app.protocol.name)
             if result == gtk.RESPONSE_YES:
@@ -479,6 +437,10 @@ Protocol is version %s, but only up to version %s is supported with this version
         if function_name == 'on_plugin_enable':
             return [ScheduleRequest('microdrop.gui.main_window_controller',
                                     self.name)]
+        elif function_name == 'on_dmf_device_swapped':
+            # make sure that the app gets a reference to the device before we
+            # create a new protocol
+            return [ScheduleRequest('microdrop.app', self.name)]
         return []
 
 PluginGlobals.pop_env()

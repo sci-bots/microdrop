@@ -119,6 +119,10 @@ class ProtocolGridView(CombinedFields):
         app = get_app()
         app.cut_steps(self.selected_ids)
 
+    def select_row(self, row):
+        if row not in self.selected_ids:        
+            self.set_cursor(row)
+
     def on_row_changed(self, list_, row_id, row, field_name, value):
         for form_name, uuid_code in self.uuid_mapping.iteritems():
             field_set_prefix = self.field_set_prefix % uuid_code
@@ -143,17 +147,14 @@ class ProtocolGridView(CombinedFields):
                     service.set_step_values(form_step.attrs, step_number=step_number)
 
     def on_selection_changed(self, grid_view):
-        logging.debug('[CombinedFields] selection changed')
-        #import pudb; pudb.set_trace()
-        selected_row_ids = self.selected_ids
-        if selected_row_ids:
-            # A single row is selected
+        if self.selected_ids:
+            logging.debug('[ProtocolGridView].on_selection_changed: '
+                         'selected_ids=%s' % str(self.selected_ids))
             app = get_app()
-            selected_row_id = selected_row_ids[0]
-            if selected_row_id != app.protocol.current_step_number:
-                logging.debug('[CombinedFields] selected_row_id=%d' % selected_row_id)
-                app.protocol.goto_step(selected_row_id)
-                emit_signal('on_step_run')
+            logging.debug('\tcurrent_step_number=%d' % \
+                         (app.protocol.current_step_number))
+            if app.protocol.current_step_number not in self.selected_ids:
+                app.protocol.goto_step(self.selected_ids[0])
 
 
 PluginGlobals.push_env('microdrop')
@@ -194,25 +195,22 @@ class ProtocolGridController(SingletonPlugin):
     def test(self, *args, **kwargs):
         print 'args=%s, kwargs=%s' % (args, kwargs)
         print 'attrs=%s' % args[1].attrs
-
-    def on_step_options_swapped(self, plugin, step_number):
-        self.select_current_step()
-
+    
     def on_step_options_changed(self, plugin, step_number):
         if self.widget is None:
             return
         self.widget._on_step_options_changed(plugin, step_number)
 
     def on_protocol_swapped(self, old_protocol, protocol):
-        self.on_protocol_created(protocol)
-
-    def on_protocol_created(self, protocol):
         self.update_grid(protocol)
+
+    def on_protocol_changed(self):
+        self.update_grid(get_app().protocol)
 
     def set_fields_filter(self, combined_fields, enabled_fields_by_plugin):
         app = get_app()
         self.enabled_fields = enabled_fields_by_plugin
-        self.widget.selected_ids = [app.protocol.current_step_number]
+        self.widget.select_row(app.protocol.current_step_number)
         logging.debug('[ProtocolGridController] set_fields_filter: %s' % self.enabled_fields)
 
     def update_grid(self, protocol=None):
@@ -221,7 +219,7 @@ class ProtocolGridController(SingletonPlugin):
             protocol = app.protocol
         if protocol is None:
             return
-        logging.debug('[ProtocolGridController] on_step_run():')
+        logging.debug('[ProtocolGridController].update_grid:')
         logging.debug('[ProtocolGridController]   plugin_fields=%s' % protocol.plugin_fields)
         forms = emit_signal('get_step_form_class')
 
@@ -255,7 +253,7 @@ class ProtocolGridController(SingletonPlugin):
         self.widget = combined_fields
         if self.widget:
             self.widget.show_all()
-            self.selected_ids = [app.protocol.current_step_number]
+            self.widget.select_row(app.protocol.current_step_number)
             self._register_shortcuts()
             self.window.add(self.widget)
 
@@ -289,20 +287,6 @@ class ProtocolGridController(SingletonPlugin):
         }
         register_shortcuts(view, shortcuts, enabled_widgets=[self.widget])
 
-    def select_current_step(self): 
-        if self.widget is None:
-            return
-        app = get_app()
-        s = self.widget.get_selection()
-        model, rows = s.get_selected_rows()
-        if rows:
-            selected_row_id = rows[0][0]
-        else:
-            selected_row_id = -1
-        if selected_row_id != app.protocol.current_step_number:
-            s.select_path(app.protocol.current_step_number)
-        self.widget.show_all()
-
     def get_schedule_requests(self, function_name):
         """
 
@@ -311,27 +295,25 @@ class ProtocolGridController(SingletonPlugin):
         """
         if function_name == 'on_plugin_enable':
             return [ScheduleRequest('microdrop.gui.main_window_controller', self.name)]
+        elif function_name == 'on_protocol_swapped':
+            # ensure that the app's reference to the new protocol gets set
+            return [ScheduleRequest('microdrop.app', self.name)]
         return []
 
     def on_step_created(self, step_number):
-        app = get_app()
         logging.debug('[ProtocolGridController] on_step_created[%d]', step_number)
         self.update_grid()
-        self.widget.selected_ids = [app.protocol.current_step_number]
 
     def on_step_swapped(self, original_step_number, step_number):
-        self.widget.selected_ids = [step_number]
         logging.debug('[ProtocolGridController] on_step_swapped[%d->%d]',
                 original_step_number, step_number)
+        self.widget.select_row(get_app().protocol.current_step_number)
 
     def on_step_removed(self, step_number, step):
         app = get_app()
         logging.debug('[ProtocolGridController] on_step_removed[%d]',
                 step_number)
         self.update_grid()
-        if app.protocol.steps:
-            self.widget.selected_ids = [min(len(app.protocol.steps) - 1,
-                    app.protocol.current_step_number)]
 
 
 PluginGlobals.pop_env()

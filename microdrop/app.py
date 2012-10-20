@@ -45,7 +45,6 @@ from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
     ERROR, CRITICAL
 from gui.plugin_manager_dialog import PluginManagerDialog
 from update_repository.application.proxy import AppRepository
-import app_state
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 from pygtkhelpers.ui.extra_widgets import Filepath
 
@@ -54,7 +53,6 @@ PluginGlobals.push_env('microdrop')
     
 
 # these imports automatically load (and initialize) core singleton plugins
-import gui.app_state_controller
 import gui.experiment_log_controller
 import gui.config_controller
 import gui.main_window_controller
@@ -67,15 +65,6 @@ import gui.app_options_controller
 
 def test(*args, **kwargs):
     print 'args=%s\nkwargs=%s' % (args, kwargs)
-
-
-def dump_event_info(current_state, event, label=None):
-    match = re.search(r'app_state.(?P<state_name>.*?)\s+', str(current_state))
-    if match:
-        current_state = match.group('state_name')
-    logger.debug('[%s] event=%s current_state=%s'\
-            % (('%-14s' % label, '')[not label].upper(), event.type.split(' ')[-1],
-                    str(current_state),))
 
 
 class App(SingletonPlugin, AppDataController):
@@ -91,7 +80,6 @@ INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
 INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     '''
     core_plugins = ['microdrop.app',
-            'microdrop.gui.app_state_controller',
             'microdrop.gui.config_controller',
             'microdrop.gui.dmf_device_controller',
             'microdrop.gui.experiment_log_controller',
@@ -145,7 +133,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.dmf_device_controller = None 
         self.protocol_controller = None
         self.main_window_controller = None
-        self.state = app_state.AppState()
 
         # Enable custom logging handler
         logger.addHandler(CustomHandler())
@@ -242,7 +229,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             if 'realtime_mode' in data:
                 if self.realtime_mode != data['realtime_mode']:
                     self.realtime_mode = data['realtime_mode']
-                    plugin_manager.emit_signal('on_step_run')
+                    if self.protocol_controller:
+                        self.protocol_controller.run_step()
             if 'log_file' in data and 'log_enabled' in data:
                 self.apply_log_file_config(data['log_file'],
                         data['log_enabled'])
@@ -454,20 +442,11 @@ Would you like to download the latest version in your browser?''' % (
             else:
                 self._destroy_log_file_handler()
 
-    def on_dmf_device_created(self, dmf_device):
-        self.dmf_device = dmf_device
-
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.dmf_device = dmf_device
     
     def on_protocol_swapped(self, old_protocol, new_protocol):
         self.protocol = new_protocol
-    
-    def on_step_options_changed(self, plugin, step_number):
-        self.state.trigger_event(app_state.PROTOCOL_CHANGED)
-    
-    def on_protocol_created(self, protocol):
-        self.protocol = protocol
     
     def on_experiment_log_created(self, experiment_log):
         self.experiment_log = experiment_log

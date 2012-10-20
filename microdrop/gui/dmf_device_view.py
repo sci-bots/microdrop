@@ -47,7 +47,6 @@ from utility.gui import text_entry_dialog
 from utility import is_float
 from logger import logger
 from plugin_manager import emit_signal, IPlugin
-import app_state
 
 
 Dims = namedtuple('Dims', 'x y width height')
@@ -106,7 +105,7 @@ class ElectrodeContextMenu(SlaveView):
                             [self.model.controller.name,
                              app.protocol.current_step_number],
                             interface=IPlugin)
-                app.state.trigger_event(app_state.DEVICE_CHANGED)
+                emit_signal('on_dmf_device_changed')
             except:
                 logger.error("Invalid channel.")
 
@@ -125,6 +124,7 @@ class ElectrodeContextMenu(SlaveView):
                     float(area)/self.last_electrode_clicked.area()
             else:
                 logger.error("Area value is invalid.")
+        emit_signal('on_dmf_device_changed')
 
     def on_register_device__activate(self, widget, data=None):
         self.emit('registration-request')
@@ -337,7 +337,6 @@ class DmfDeviceView(GStreamerVideoView):
                     else:
                         state[channel] = 1
                 self.emit('channel-state-changed', electrode.channels[:])
-                emit_signal('on_step_run')
             else:
                 logger.error("No channel assigned to electrode.")
         elif event.button == 3:

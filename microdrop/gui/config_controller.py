@@ -79,19 +79,21 @@ class ConfigController(SingletonPlugin):
         if not dmf_device_directory.isdir():
             devices.copytree(dmf_device_directory)
                     
-    def on_dmf_device_created(self, dmf_device):
-        self.on_dmf_device_swapped(None, dmf_device)
-
+    def on_dmf_device_changed(self):
+        if self.app.dmf_device.name != self.app.config['dmf_device']['name']:
+            self.app.config['dmf_device']['name'] = self.app.dmf_device.name
+            self.app.config.save()
+    
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        self.app.config['dmf_device']['name'] = dmf_device.name
+        self.on_dmf_device_changed()
         
-    def on_protocol_created(self, protocol):
-        self.app.config['protocol']['name'] = protocol.name
-        self.app.config.save()
+    def on_protocol_changed(self):
+        if self.app.protocol.name != self.app.config['protocol']['name']:
+            self.app.config['protocol']['name'] = self.app.protocol.name
+            self.app.config.save()
 
     def on_protocol_swapped(self, old_protocol, protocol):
-        self.app.config['protocol']['name'] = protocol.name
-        self.app.config.save()
+        self.on_protocol_changed()
 
     def on_app_options_changed(self, plugin_name):
         if self.app is None:
@@ -116,6 +118,14 @@ class ConfigController(SingletonPlugin):
         """
         if function_name == 'on_plugin_enable':
             return [ScheduleRequest("microdrop.gui.main_window_controller",
+                                    self.name)]
+        elif function_name == 'on_protocol_swapped':
+            # make sure that the app's protocol reference is valid
+            return [ScheduleRequest("microdrop.app",
+                                    self.name)]
+        elif function_name == 'on_dmf_device_swapped':
+            # make sure that the app's dmf device reference is valid
+            return [ScheduleRequest("microdrop.app",
                                     self.name)]
         return []
 
