@@ -106,7 +106,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self._bitrate = None
         self._record_path = None
         self._recording = False
-        gtk.timeout_add(1000, self._initialize_video)
 
     @property
     def modified(self):
