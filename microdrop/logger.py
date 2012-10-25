@@ -23,6 +23,6 @@ class CustomHandler(logging.Handler):
             plugin_manager.emit_signal('on_critical', [record], interface=ILoggingPlugin)
 
 #logging.basicConfig(format='[%(levelname)s-%(threadName)10s]: %(message)s', level=DEBUG)
-logging.basicConfig(format='[%(levelname)s]: %(message)s', level=DEBUG)
+logging.basicConfig(format='[%(levelname)s]: %(message)s', level=INFO)
 
 logger = logging.getLogger()

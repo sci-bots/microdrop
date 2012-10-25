@@ -23,6 +23,7 @@ import time
 import webbrowser
 
 import gtk
+gtk.threads_init()
 from flatland import Form, Boolean, Enum
 from pygtkhelpers.proxy import proxy_for
 
@@ -60,7 +61,7 @@ class MainWindowController(SingletonPlugin):
         self.menu_tools = None
         self.menu_view = None
         gtk.link_button_set_uri_hook(self.on_url_clicked)
-        
+
         builder = gtk.Builder()
         builder.add_from_file(os.path.join("gui",
                               "glade",
@@ -68,7 +69,7 @@ class MainWindowController(SingletonPlugin):
         self.text_input_dialog = builder.get_object("window")
         self.text_input_dialog.textentry = builder.get_object("textentry")
         self.text_input_dialog.label = builder.get_object("label")
-        
+
     def on_plugin_enable(self):
         app = get_app()
         app.builder.add_from_file(os.path.join("gui",
@@ -106,7 +107,7 @@ class MainWindowController(SingletonPlugin):
 
         self.checkbutton_realtime_mode.set_sensitive(False)
         self.menu_experiment_logs.set_sensitive(False)
-        
+
     def main(self):
         gtk.main()
 
@@ -147,7 +148,7 @@ class MainWindowController(SingletonPlugin):
                     'microdrop.gui.plugin_manager_controller', env='microdrop')
         service.dialog.window.set_transient_for(self.view)
         service.dialog.run()
-    
+
     def on_menu_experiment_logs_activate(self, widget, data=None):
         app = get_app()
         app.experiment_log_controller.on_window_show(widget, data)
@@ -177,7 +178,7 @@ class MainWindowController(SingletonPlugin):
     def error(self, message, title="Error"):
         dialog = gtk.MessageDialog(self.view,
                                    gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   gtk.MESSAGE_ERROR, 
+                                   gtk.MESSAGE_ERROR,
                                    gtk.BUTTONS_CLOSE, message)
         dialog.set_title(title)
         result = dialog.run()
@@ -187,7 +188,7 @@ class MainWindowController(SingletonPlugin):
     def warning(self, message, title="Warning"):
         dialog = gtk.MessageDialog(self.view,
                                    gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   gtk.MESSAGE_WARNING, 
+                                   gtk.MESSAGE_WARNING,
                                    gtk.BUTTONS_CLOSE, message)
         dialog.set_title(title)
         result = dialog.run()
@@ -195,7 +196,7 @@ class MainWindowController(SingletonPlugin):
         return result
 
     def question(self, message, title=""):
-        dialog = gtk.MessageDialog(self.view, 
+        dialog = gtk.MessageDialog(self.view,
                                    gtk.DIALOG_DESTROY_WITH_PARENT,
                                    gtk.MESSAGE_QUESTION,
                                    gtk.BUTTONS_YES_NO, message)
@@ -205,9 +206,9 @@ class MainWindowController(SingletonPlugin):
         return result
 
     def info(self, message, title=""):
-        dialog = gtk.MessageDialog(self.view, 
+        dialog = gtk.MessageDialog(self.view,
                                    gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   gtk.MESSAGE_INFO, 
+                                   gtk.MESSAGE_INFO,
                                    gtk.BUTTONS_CLOSE, message)
         dialog.set_title(title)
         result = dialog.run()

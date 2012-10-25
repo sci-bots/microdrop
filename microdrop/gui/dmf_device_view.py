@@ -21,10 +21,10 @@ from __future__ import division
 from collections import namedtuple
 from datetime import datetime
 import time
-import traceback
-from math import pi
-import os
-import tempfile
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 import gtk
 import gobject
@@ -32,17 +32,15 @@ gtk.gdk.threads_init()
 gobject.threads_init()
 import cairo
 import numpy as np
-import yaml
-import gst
+from pygst_utils.video_view.gtk_view import GtkVideoView
+from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
+from pygst_utils.elements.draw_queue import DrawQueue
+from geo_util import CartesianSpace
 
-from .warp_cairo_draw import WarpBin
-from .rated_bin import RatedBin
-from .gstreamer_view import GStreamerVideoView
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
 from app_context import get_app
-from opencv.safe_cv import cv
-from opencv.registration_dialog import RegistrationDialog
+from opencv.registration_dialog import RegistrationDialog, cv
 from utility.gui import text_entry_dialog
 from utility import is_float
 from logger import logger
@@ -68,7 +66,6 @@ class ElectrodeContextMenu(SlaveView):
     gsignal('registration-request')
 
     def disable_video_background(self):
-        app = get_app()
         self.last_frame = None
         self.background = None
 
@@ -141,7 +138,11 @@ class ElectrodeContextMenu(SlaveView):
         menu_item.show()
 
 
-class DmfDeviceView(GStreamerVideoView):
+first_dim = 0
+second_dim = 1
+
+
+class DmfDeviceView(GtkVideoView):
     '''
     Slave view for DMF device view.
 
@@ -171,9 +172,14 @@ class DmfDeviceView(GStreamerVideoView):
         self.display_offset = (0,0)
         self.electrode_color = {}
         self.background = None
-        self._transform_matrix = None
         self.overlay_opacity = None
         self.pixmap = None
+        self._proxy = None
+        self._set_window_title = False
+
+        self.svg_space = None
+        self.view_space = None
+        self.drawing_space = None
 
         self.popup = ElectrodeContextMenu(self)
         self.popup.connect('registration-request', self.on_register)
@@ -181,121 +187,54 @@ class DmfDeviceView(GStreamerVideoView):
         self.sink = None
         self.window_xid = None
         SlaveView.__init__(self)
-        #self.pipeline = self.get_pipeline()
+
+    def create_ui(self, *args, **kwargs):
+        self.widget = self.device_area
 
     def grab_frame(self):
         #return self.play_bin.grab_frame()
         return None
 
-    def start_recording(self, video_path):
-        pass
-
-    def stop_recording(self):
-        pass
-
-    def get_pipeline(self):
-        pipeline = gst.Pipeline('pipeline')
-
-        warp_bin = WarpBin('warp_bin', draw_on=self._draw_on)
-
-        video_src = self.get_video_src()
-        video_sink = gst.element_factory_make('autovideosink', 'video_sink')
-        tee = gst.element_factory_make('tee', 'tee')
-        display_queue = gst.element_factory_make('queue', 'display_queue')
-        pipeline.add(video_src, tee, display_queue, warp_bin, video_sink)
-
-        video_src.link(tee)
-        tee.link(display_queue)
-        display_queue.link(warp_bin)
-        warp_bin.link(video_sink)
-
-        clock = pipeline.get_clock()
-        clock.set_property('clock-type', 0)
-
-        return pipeline
-
-    def get_video_src(self):
-        blank_screen = False
-        if not hasattr(self.controller, 'video_enabled') or not\
-                self.controller.video_enabled:
-            blank_screen = True
-        elif not self.controller.video_enabled:
-            blank_screen = True
-
-        if blank_screen:
-            video_src = gst.element_factory_make('videotestsrc', 'test_src')
-            video_src.set_property('pattern', 2)
-            return RatedBin('rated_bin', video_src=video_src)
-        else:
-            video_src = None
-            return RatedBin('rated_bin', video_src=video_src)
-
-    def on_device_area__realize(self, widget, *args):
-        self.on_realize(widget)
-
-    def on_device_area__size_allocate(self, *args):
-        x, y, width, height = self.device_area.get_allocation()
-        self.pixmap = gtk.gdk.Pixmap(self.device_area.window, width, height)
-
-    def fit_device(self, video_dims, padding=None):
-        app = get_app()
-        if app.dmf_device and len(app.dmf_device.electrodes):
-            if padding is None:
-                padding = 10
-
-            device = Dims(*app.dmf_device.get_bounding_box())
-            display_dims = Dims(*self.device_area.get_allocation())
-            display_scale_x = (display_dims.width - 2 * padding) / device.width
-            display_scale_y = (display_dims.height - 2 * padding) / device.height
-            self.display_scale = min(display_scale_x, display_scale_y)
-            if display_scale_x < display_scale_y: # center device vertically
-                self.display_offset = (-device.x + padding / self.display_scale,
-                               -device.y + padding / self.display_scale + \
-                               ((display_dims.height - 2 * padding)\
-                                        / self.display_scale - device.height) / 2)
-            else:  # center device horizontally
-                self.display_offset = (-device.x + padding / self.display_scale +  \
-                               ((display_dims.width - 2 * padding)\
-                                    / self.display_scale - device.width) / 2,
-                                - device.y + padding / self.display_scale)
-            warp_bin = self.pipeline.get_by_name('warp_bin')
-            warp_bin.scale(display_dims.width, display_dims.height)
-
-    def _draw_on(self, buf):
-        try:
-            caps = buf.get_caps()
-            width = caps[0]['width']
-            height = caps[0]['height']
-            video_dims = Dims(0, 0, width, height)
-            self.fit_device(video_dims)
-            framerate = caps[0]['framerate']
-            surface = cairo.ImageSurface.create_for_data(buf,
-                    cairo.FORMAT_ARGB32, width, height, 4 * width)
-            cairo_context = cairo.Context(surface)
-        except:
-            logger.info("Failed to create cairo surface for buffer")
-            logger.info(''.join(traceback.format_exc()()))
-            return
-        try:
+    def update_draw_queue(self):
+        if self.window_xid and self._proxy:
             if self.controller.video_enabled:
                 overlay_opacity = self.overlay_opacity / 100.
             else:
                 overlay_opacity = 1.
-            self.draw_on_cairo(cairo_context, alpha=overlay_opacity)
-        except:
-            logger.info("Failed cairo render")
-            logger.info(''.join(traceback.format_exc()()))
+            x, y, width, height = self.device_area.get_allocation()
+            draw_queue = self.get_draw_queue(width, height, overlay_opacity)
+            self._proxy.set_draw_queue(draw_queue)
 
-    def draw_on_cairo(self, cr, alpha=1.0):
+    def get_draw_queue(self, width, height, alpha=1.0):
         app = get_app()
-        x, y = self.display_offset
-        cr.scale(self.display_scale, self.display_scale)
-        cr.translate(x, y)
         if app.dmf_device:
+            d = DrawQueue()
+            x, y, device_width, device_height = app.dmf_device.get_bounding_box()
+            self.svg_space = CartesianSpace(device_width, device_height,
+                    offset=(x, y))
+            padding = 20
+            if device_width > device_height:
+                drawing_width = width - 2 * padding
+                drawing_height = drawing_width * (device_height / device_width)
+                drawing_x = padding
+                drawing_y = (height - drawing_height) / 2
+            else:
+                drawing_height = height - 2 * padding
+                drawing_width = drawing_height * (device_width / device_height)
+                drawing_x = (width - drawing_width) / 2
+                drawing_y = padding
+            self.drawing_space = CartesianSpace(drawing_width, drawing_height,
+                offset=(drawing_x, drawing_y))
+            scale = np.array(self.drawing_space.dims) / np.array(
+                    self.svg_space.dims)
+            d.translate(*self.drawing_space._offset)
+            d.scale(*scale)
+            d.translate(*(-np.array(self.svg_space._offset)))
             for id, electrode in app.dmf_device.electrodes.iteritems():
                 if self.electrode_color.keys().count(id):
                     r, g, b = self.electrode_color[id]
-                    self.draw_electrode(electrode, cr, (b, g, r, alpha))
+                    self.draw_electrode(electrode, d, (b, g, r, alpha))
+            return d
 
     def draw_electrode(self, electrode, cr, color=None):
         p = electrode.path
@@ -313,24 +252,82 @@ class DmfDeviceView(GStreamerVideoView):
             cr.fill()
         cr.restore()
 
-    def translate_coords(self, x, y):
-        translated = (x / self.display_scale - self.display_offset[0], y / self.display_scale - self.display_offset[1])
-        return translated
+    def _initialize_video(self, device, caps_str, bitrate=None, record_path=None):
+        # Connect to JSON-RPC server and request to run the pipeline
+        self._proxy = WindowServiceProxy(59000)
+        self._proxy.window_xid(self.window_xid)
+
+        x, y, width, height = self.widget.get_allocation()
+        draw_queue = self.get_draw_queue(width, height)
+        self._proxy.create(device, caps_str, bitrate=bitrate, record_path=record_path,
+                draw_queue=draw_queue, with_scale=True, with_warp=True)
+        self._proxy.scale(width, height)
+        self._proxy.start()
+        self.update_draw_queue()
+
+    def destroy_video_proxy(self):
+        if self._proxy is not None:
+            print '[destroy_video_proxy]'
+            try:
+                self._proxy.stop()
+                print '  \->SUCCESS'
+            except:
+                print '  \->ERROR'
+                import traceback
+                traceback.print_exc()
+            finally:
+                self._proxy.close()
+                self._proxy = None
+                print '  --- CLOSED ---'
+
+    def on_device_area__realize(self, widget, *args):
+        self.on_realize(widget)
+
+    def on_device_area__size_allocate(self, *args):
+        '''
+        Called when the device DrawingArea widget has been realized.
+
+        Here, we need to reset the CartesianSpace instance representing
+        the drawing area.
+        '''
+        x, y, width, height = self.device_area.get_allocation()
+        self.view_space = CartesianSpace(width, height)
+
+    def on_device_area__destroy(self, *args):
+        self.destroy_video_proxy()
 
     def get_clicked_electrode(self, event):
         app = get_app()
-        shape = app.dmf_device.body_group.space.point_query_first(
-                self.translate_coords(*event.get_coords()))
-        if shape:
-            return app.dmf_device.get_electrode_from_body(shape.body)
+        if self.svg_space and self.drawing_space:
+            # Get the click coordinates, normalized to the bounding box of the
+            # DMF device drawing (NOT the entire device drawing area)
+            normalized_coords = self.drawing_space.normalized_coords(
+                    *event.get_coords())
+            # Conduct a point query in the SVG space to see which electrode (if
+            # any) was clicked.  Note that the normalized coordinates are
+            # translated to get the coordinates relative to the SVG space.
+            shape = app.dmf_device.body_group.space.point_query_first(
+                    self.svg_space.translate_normalized(*normalized_coords))
+            if shape:
+                return app.dmf_device.get_electrode_from_body(shape.body)
         return None
 
+    def on_device_area__button_press_event(self, widget, event):
+        '''
+        Modifies state of channel based on mouse-click.
+        '''
+        self.widget.grab_focus()
+        # Determine which electrode was clicked (if any)
+        electrode = self.get_clicked_electrode(event)
+        if electrode:
+            self.on_electrode_click(electrode, event)
+        return True
+
     def on_electrode_click(self, electrode, event):
-        app = get_app()
         options = self.controller.get_step_options()
         state = options.state_of_channels
         if event.button == 1:
-            if len(electrode.channels): 
+            if len(electrode.channels):
                 for channel in electrode.channels:
                     if state[channel] > 0:
                         state[channel] = 0
@@ -344,56 +341,29 @@ class DmfDeviceView(GStreamerVideoView):
                     register_enabled=self.controller.video_enabled)
         return True
 
-    def on_device_area__key_press_event(self, widget, data=None):
-        pass
-    
-    def on_device_area__button_press_event(self, widget, event):
-        '''
-        Modifies state of channel based on mouse-click.
-        '''
-        app = get_app()
-        self.widget.grab_focus()
-        if app.dmf_device:
-            # Determine which electrode was clicked (if any)
-            electrode = self.get_clicked_electrode(event)
-            if electrode:
-                self.on_electrode_click(electrode, event)
-        return True
-
-    def on_message(self, bus, message):
-        super(DmfDeviceView, self).on_message(bus, message)
-        t = message.type
-        if t == gst.MESSAGE_STATE_CHANGED:
-            if message.src == self.pipeline and\
-                    message.structure['new-state'] == gst.STATE_PLAYING:
-                if self.transform_matrix is not None:
-                    self.transform_matrix = self.transform_matrix
-            else:
-                pass
-
-    @property
-    def transform_matrix(self):
-        return self._transform_matrix
-
-    @transform_matrix.setter
-    def transform_matrix(self, transform_matrix):
-        self._transform_matrix = transform_matrix
-        transform_str = ','.join([str(v)
-                for v in transform_matrix.flatten()])
-        warp_bin = self.pipeline.get_by_name('warp_bin')
-        if warp_bin:
-            warp_bin.warper.set_property('transform-matrix', transform_str)
-
     def on_register(self, *args, **kwargs):
-        warp_bin = self.pipeline.get_by_name('warp_bin')
-        warp_bin.grab_frame(self._on_register_frame_grabbed)
+        if self._proxy is not None:
+            self._proxy.request_frame()
+            def process_frame(self):
+                #draw_queue = self.get_draw_queue(*self.view_space.dims)
+                frame = self._proxy.get_frame()
+                if frame is not None:
+                    cv_im = cv.CreateMat(frame.shape[0], frame.shape[1], cv.CV_8UC3)
+                    cv.SetData(cv_im, frame.tostring(), frame.shape[1] * frame.shape[2])
+                    cv_scaled = cv.CreateMat(500, 600, cv.CV_8UC3)
+                    cv.Resize(cv_im, cv_scaled)
+                    self._on_register_frame_grabbed(cv_scaled)
+                    return False
+                return True
+            gtk.timeout_add(10, process_frame, self)
 
     def _on_register_frame_grabbed(self, cv_img):
         x, y, width, height = self.device_area.get_allocation()
         # Create a cairo surface to draw device on
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         cr = cairo.Context(surface)
-        self.draw_on_cairo(cr)
+        draw_queue = self.get_draw_queue(width, height)
+        draw_queue.render(cr)
 
         size = (width, height)
         # Write cairo surface to cv image in RGBA format
@@ -416,11 +386,21 @@ class DmfDeviceView(GStreamerVideoView):
             if results:
                 array = np.fromstring(results.tostring(), dtype='float32',
                         count=results.width * results.height)
+                # If the transform matrix is the default, set it to the
+                # identity matrix.  This will simply reset the transform.
+                if array.flatten()[-1] == 1 and array.sum() == 1:
+                    array = np.identity(results.width, dtype=np.float32)
                 array.shape = (results.width, results.height)
                 self.emit('transform-changed', array)
-        gtk.idle_add(do_device_registration)
+            return False
+        gtk.threads_enter()
+        do_device_registration()
+        gtk.threads_leave()
 
-    
+    def on_device_area__key_press_event(self, widget, data=None):
+        pass
+
+
 class DeviceRegistrationDialog(RegistrationDialog):
     '''
     This dialog is used to register the video to the DMF device

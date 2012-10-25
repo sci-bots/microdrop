@@ -41,8 +41,13 @@ os.environ['PATH'] += ";" + str((GST_PATH / path('bin')).abspath())
 
 # The following imports ensure that the corresponding modules are processed
 # by PyInstaller when generating an EXE.
+import zmq
+import gobject
+import glib
 import gtk
-gtk.gdk.threads_init()
+glib.threads_init()
+gobject.threads_init()
+gtk.threads_init()
 import blinker
 import matplotlib
 from PIL import Image, ImageFont, ImageDraw
@@ -74,7 +79,7 @@ if __name__ == '__main__':
 
     from app import App
     from app_context import get_app
-    
+
     my_app = get_app()
     sys.excepthook = except_handler
     my_app.run()
