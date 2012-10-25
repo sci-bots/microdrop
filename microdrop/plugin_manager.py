@@ -54,7 +54,7 @@ ScheduleRequest = namedtuple('ScheduleRequest', 'before after')
 # running, we are just being imported here, so declare plugin interfaces as
 # plain-old objects, rather than Interface sub-classes.
 if not utility.PROGRAM_LAUNCHED:
-    class IPlugin(object):    
+    class IPlugin(object):
         __interface_namespace__ = None
 
 
@@ -66,7 +66,7 @@ if not utility.PROGRAM_LAUNCHED:
         __interface_namespace__ = None
 
 
-    class IVideoPlugin(object):    
+    class IVideoPlugin(object):
         __interface_namespace__ = None
 
 
@@ -92,22 +92,22 @@ else:
         def set_voltage(self, voltage):
             """
             Set the waveform voltage.
-            
+
             Parameters:
                 voltage : RMS voltage
             """
             pass
-        
+
         def set_frequency(self, frequency):
             """
             Set the waveform frequency.
-            
+
             Parameters:
                 frequency : frequency in Hz
             """
             pass
 
-    
+
     class IPlugin(Interface):
         def get_schedule_requests(self, function_name):
             """
@@ -121,22 +121,22 @@ else:
             Handler called once the plugin instance is disabled.
             """
             pass
-        
+
         def on_plugin_enable(self):
             """
             Handler called once the plugin instance is enabled.
-            
+
             Note: if you inherit your plugin from AppDataController and don't
             implement this handler, by default, it will automatically load all
             app options from the config file. If you decide to overide the
             default handler, you should call:
-                
+
                 super(PluginClass, self).on_plugin_enable()
-                
+
             to retain this functionality.
             """
             pass
-        
+
         def on_plugin_enabled(self, env, plugin):
             """
             Handler called to notify that a plugin has been enabled.
@@ -147,7 +147,7 @@ else:
             that is being enabled.
             """
             pass
-        
+
         def on_plugin_disabled(self, env, plugin):
             """
             Handler called to notify that a plugin has been disabled.
@@ -158,10 +158,10 @@ else:
             that is being disabled.
             """
             pass
-        
+
         def on_app_exit(self):
             """
-            Handler called just before the Microdrop application exists. 
+            Handler called just before the Microdrop application exists.
             """
             pass
 
@@ -171,19 +171,19 @@ else:
             a protocol is loaded or a new protocol is created).
             """
             pass
-        
+
         def on_protocol_changed(self):
             """
             Handler called when a protocol is modified.
             """
             pass
-        
+
         def on_protocol_run(self):
             """
             Handler called when a protocol starts running.
             """
             pass
-        
+
         def on_protocol_pause(self):
             """
             Handler called when a protocol is paused.
@@ -212,7 +212,7 @@ else:
             protocol finishes running.
             """
             pass
-        
+
         def on_experiment_log_selection_changed(self, data):
             """
             Handler called whenever the experiment log selection changes.
@@ -233,7 +233,7 @@ else:
                 plugin : plugin name for which the app options changed
             """
             pass
-        
+
         def on_step_options_changed(self, plugin, step_number):
             """
             Handler called when the step options are changed for a particular
@@ -280,7 +280,7 @@ else:
         def on_step_complete(self, plugin_name, return_value=None):
             """
             Handler called whenever a plugin completes a step.
-            
+
             return_value can be one of:
                 None
                 'Repeat' - repeat the step
@@ -307,10 +307,10 @@ def load_plugins(plugins_dir='plugins'):
     logging.info('Loading plugins:')
     if plugins_dir.parent.abspath() not in sys.path:
         sys.path.insert(0, plugins_dir.parent.abspath())
-    
+
     for d in plugins_dir.dirs():
         package = (d / path('microdrop'))
-        if package.isdir(): 
+        if package.isdir():
             try:
                 logging.info('\t %s' % package.abspath())
                 import_statement = 'import %s.%s.microdrop' % \
@@ -444,11 +444,8 @@ def emit_signal(function, args=[], interface=IPlugin):
     schedule = get_schedule(observers, function)
     return_codes = {}
     for observer_name in schedule:
-        # allow gtk to process events to keep gui responsive
-        while gtk.events_pending():
-            gtk.main_iteration()
         observer = observers[observer_name]
-        logging.debug('emit_signal: %s.%s()' % (observer.name, function))                    
+        logging.debug('emit_signal: %s.%s()' % (observer.name, function))
         try:
             if type(args) is not list:
                 args = [args]
@@ -459,7 +456,7 @@ def emit_signal(function, args=[], interface=IPlugin):
                 if hasattr(observer, "name"):
                     if interface == ILoggingPlugin:
                         # If this is a logging plugin, do not try to log
-                        # since that will result in infinite recursion. 
+                        # since that will result in infinite recursion.
                         # Instead, just continue onto the next plugin.
                         continue
                     print >> message, \
