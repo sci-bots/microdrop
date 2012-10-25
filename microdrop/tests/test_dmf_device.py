@@ -7,7 +7,6 @@ from dmf_device import DmfDevice
 from utility import Version
 from svg_model.svgload.svg_parser import SvgParser, parse_warning
 from svg_model.path_group import PathGroup
-#from opencv.silence import Silence
 
 
 def test_load_dmf_device():

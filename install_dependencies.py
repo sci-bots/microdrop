@@ -179,8 +179,8 @@ if __name__ == "__main__":
     # Force the upgrade installation of the following packages.
     # package name, type, url
     for p in (
-            ("opencv", "pip", "https://github.com/cfobel/python___opencv_examples/"\
-                    "tarball/master"),
+            ("opencv_helpers", "pip", "https://github.com/cfobel/"\
+                    "python___opencv_examples/tarball/master"),
             ("pygst_utils", "pip", "https://github.com/cfobel/pygst_utils/"\
                     "tarball/zeromq"),
             ("pygst_utils_windows_server", "pip", "https://github.com/"\

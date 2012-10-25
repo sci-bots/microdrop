@@ -40,7 +40,7 @@ from geo_util import CartesianSpace
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
 from app_context import get_app
-from opencv.registration_dialog import RegistrationDialog, cv
+from opencv_helpers.registration_dialog import RegistrationDialog, cv
 from utility.gui import text_entry_dialog
 from utility import is_float
 from logger import logger
@@ -414,7 +414,8 @@ class DeviceRegistrationDialog(RegistrationDialog):
 
     def get_glade_path(self):
         from utility import base_path
-        return base_path().joinpath('opencv', 'glade', 'registration_demo.glade')
+        return base_path().joinpath('opencv_helpers', 'glade',
+                'registration_demo.glade')
 
     def get_original_image(self):
         return self.device_image
