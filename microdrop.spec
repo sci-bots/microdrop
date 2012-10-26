@@ -2,7 +2,7 @@
 from path import path
 import pygtkhelpers
 import matplotlib
-import opencv
+import opencv_helpers
 import pygst_utils
 import pygst_utils_windows_server
 
@@ -21,10 +21,10 @@ extra_py = []
 a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
             'microdrop\\microdrop.py'] + extra_py,
-            excludes=['opencv', 'flatland', 'pygtkhelpers', 'pygst_utils',
+            excludes=['opencv_helpers', 'flatland', 'pygtkhelpers', 'pygst_utils',
                     'pygst_utils_windows_server', ])
 
-for mod in [pygtkhelpers, pygst_utils, pygst_utils_windows_server, opencv]:
+for mod in [pygtkhelpers, pygst_utils, pygst_utils_windows_server, opencv_helpers]:
     mod_path = path(mod.__file__).parent
     a.datas += [(str(mod_path.parent.relpathto(p)), str(p.abspath()), 'DATA')\
             for p in mod_path.walkfiles(ignore=[r'\.git', r'site_scons',
@@ -45,7 +45,7 @@ a.datas += [(zmq_dll_path.name, str(zmq_dll_path), 'DATA')]
 if chipmunk_path:
     print 'adding %s to data' % chipmunk_path
     a.datas += [(chipmunk_path.name, str(chipmunk_path), 'DATA')]
-open_cv_glade_path = path(opencv.__file__).parent.joinpath('glade')
+open_cv_glade_path = path(opencv_helpers.__file__).parent.joinpath('glade')
 a.datas += [(str(open_cv_glade_path.parent.relpathto(p)), str(p.abspath()),
         'DATA') for p in open_cv_glade_path.walkfiles(ignore=[r'site_scons',
                                                                r'.*\.pyc'])]
