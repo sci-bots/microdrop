@@ -200,6 +200,7 @@ if __name__ == "__main__":
                   ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.win32-py2.7.exe/download"),
                   ("PIL", "exe", "http://microfluidics.utoronto.ca/software/PIL-1.1.7.win32-py2.7.exe"),
                   ("lxml", "exe", "http://pypi.python.org/packages/2.7/l/lxml/lxml-2.3.win32-py2.7.exe#md5=9c02aae672870701377750121f5a6f84"),
+                  ("zmq", "msi", "https://github.com/downloads/zeromq/pyzmq/pyzmq-2.2.0.win32-py2.7.msi"),
                   ):
             try:
                 exec("import " + p[0])
