@@ -88,7 +88,7 @@ def install(package):
             subprocess.call("pip install --upgrade " + name, shell=False)
     else:
         raise Exception("Invalid type")
-        
+
 
 def download_file(link, name, type):
     filepath_path = os.path.join(CACHE_PATH,"%s.%s" % (name,type))
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         print "The following packages need to be installed before continuing:"
         for p in packages:
             print "\t%s" % p[0]
-        
+
         for p in packages:
             install(p)
 
@@ -179,10 +179,17 @@ if __name__ == "__main__":
     # Force the upgrade installation of the following packages.
     # package name, type, url
     for p in (
+            ("opencv", "pip", "https://github.com/cfobel/python___opencv_examples/"\
+                    "tarball/master"),
+            ("pygst_utils", "pip", "https://github.com/cfobel/pygst_utils/"\
+                    "tarball/zeromq"),
+            ("pygst_utils_windows_server", "pip", "https://github.com/"\
+             "downloads/cfobel/pygst_utils/"\
+             "pygst_utils_windows_server-0.1.0.tar.gz"),
+            ("geo_util", "pip", "https://github.com/cfobel/python___geo_util/"\
+                    "tarball/master"),
             ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/"\
-                    "tarball/pre_object_tree"), 
-            ('gst_video_source_caps_query', 'pip', 'https://github.com/cfobel/'\
-                    'python___gst_video_source_caps_query/tarball/master'), ):
+                    "tarball/pre_object_tree")):
         packages.append(p)
 
     # python 2.7 specific packages
@@ -273,14 +280,14 @@ if __name__ == "__main__":
         print "The following packages need to be installed:"
         for p in packages:
             print "\t%s" % p[0]
-        
+
         for p in packages:
             install(p)
 
     # configure pyinstaller
     print "configuring pyinstaller..."
     subprocess.call("python C:\pyinstaller\Configure.py")
- 
+
     # fix pyutilib for exporting
     PYTHON_PATH = os.path.dirname(sys.executable)
     if os.path.isdir(os.path.join(PYTHON_PATH, "Lib", "site-packages",
@@ -309,7 +316,7 @@ if __name__ == "__main__":
                 warnings.append("Warning: %s exists but you need to "\
                       "add it to your path." % d)
                 break
-    
+
     print "\nAll dependencies are installed."
 
     if len(warnings)>0:

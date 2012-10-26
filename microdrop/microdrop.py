@@ -32,6 +32,10 @@ except ImportError:
     print "Import error"
     sys.path.append(path(__file__).parent)
     import utility as utility
+import jsonrpclib
+import jsonrpclib.SimpleJSONRPCServer
+import cgi
+import pygtk
 
 # Add gst binaries and plugins to the path/python path
 GST_PATH = path(__file__).parent / path('gst')

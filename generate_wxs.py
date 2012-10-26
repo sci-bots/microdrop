@@ -18,11 +18,11 @@ WXS_TEMPLATE = '''\
                 Comments='Microdrop'
                 Manufacturer='Wheeler Microfluidics Lab'
                 InstallerVersion='200' Compressed='yes' />
- 
+
         <Media Id='1' Cabinet='product.cab' EmbedCab='yes' />
 
         <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
- 
+
         <Upgrade Id="048f3511-0a49-11e1-a03e-080027963a76">
             <UpgradeVersion OnlyDetect="yes" Minimum="{{ version }}" Property="NEWERVERSIONDETECTED" IncludeMinimum="no" />
             <UpgradeVersion OnlyDetect="no" Maximum="{{ version }}" Property="OLDERVERSIONBEINGUPGRADED" IncludeMaximum="no" />
@@ -53,7 +53,7 @@ WXS_TEMPLATE = '''\
     <!-- Step 2: Add the shortcut to your installer package -->
     <DirectoryRef Id="ApplicationProgramsFolder">
         <Component Id="ApplicationShortcut" Guid="9f3fb577-2e2f-4a53-8df2-9e9f7fcb79a6" >
-            <Shortcut Id="ApplicationStartMenuShortcut" Name="Microdrop" 
+            <Shortcut Id="ApplicationStartMenuShortcut" Name="Microdrop"
                 Description="My Application Description"
                 Target="[{{ root }}]microdrop.exe"
                         WorkingDirectory="{{ root }}"/>
@@ -61,10 +61,10 @@ WXS_TEMPLATE = '''\
             <RegistryValue Root="HKCU" Key="Software\Microsoft\Microdrop" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
         </Component>
     </DirectoryRef>
- 
+
     <Feature Id='{{ id }}' Title='{{ title }}' Level='1'>{% for c in components %}
         <ComponentRef Id='{{ c.id }}' />{% endfor %}
-        <ComponentRef Id="ApplicationShortcut" />   
+        <ComponentRef Id="ApplicationShortcut" />
     </Feature>
 
     <Property Id="WIXUI_INSTALLDIR" Value="{{ root }}" />
@@ -89,7 +89,7 @@ class Component(object):
         else:
             self.filename = self.filepath.name
         self.source = self.filepath
-        
+
     def _get_guid(self):
         md5 = self.filepath._hash('md5')
         md5.update(self.filepath)
@@ -177,7 +177,8 @@ def generate_wxs(root_path, version):
     root = dw.xml_tree(root_path)
 
     extra_dirs = ['etc', 'gui', 'mpl-data', 'share', 'pygtkhelpers', 'opencv',
-        'flatland', 'support', 'gst' ]
+            'flatland', 'support', 'gst', 'pygst_utils', 'glade',
+            'pygst_utils_windows_server']
     children = dict([(name, dw.xml_tree(root_path.joinpath(name),
             recursive=True)) for name in extra_dirs])
 
@@ -214,7 +215,7 @@ Generates a WiX input file for Microdrop.""",
                     required=True,
                     help='install version')
     args = parser.parse_args()
-    
+
     return args
 
 
