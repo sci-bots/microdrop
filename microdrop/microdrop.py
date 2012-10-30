@@ -46,6 +46,9 @@ os.environ['PATH'] += ";" + str((GST_PATH / path('bin')).abspath())
 # The following imports ensure that the corresponding modules are processed
 # by PyInstaller when generating an EXE.
 import zmq
+import zmq.utils.strtypes
+import zmq.utils.jsonapi
+import zmq.core.pysocket
 import gobject
 import glib
 import gtk
