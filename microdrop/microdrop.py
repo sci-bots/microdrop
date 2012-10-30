@@ -57,7 +57,6 @@ gobject.threads_init()
 gtk.threads_init()
 import blinker
 import matplotlib
-from PIL import Image, ImageFont, ImageDraw
 import utility.uuid_minimal
 import scipy.optimize
 

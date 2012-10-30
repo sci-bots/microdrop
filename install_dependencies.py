@@ -139,7 +139,7 @@ if __name__ == "__main__":
     # script.
     for p in (("setuptools", "py", "http://python-distribute.org/distribute_setup.py"),
               ("pip", "easy_install"),
-              ("path", "pip", "http://microfluidics.utoronto.ca/git/path.py.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip")
+              ("path", "pip", "http://microfluidics.utoronto.ca/git/python___path.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip")
               ):
         try:
             exec("import " + p[0])
@@ -181,11 +181,8 @@ if __name__ == "__main__":
     for p in (
             ("opencv_helpers", "pip", "https://github.com/cfobel/"\
                     "python___opencv_examples/tarball/master"),
-            ("pygst_utils", "pip", "https://github.com/cfobel/pygst_utils/"\
-                    "tarball/zeromq"),
-            ("pygst_utils_windows_server", "pip", "https://github.com/"\
-             "downloads/cfobel/pygst_utils/"\
-             "pygst_utils_windows_server-0.1.0.tar.gz"),
+            ("pygst_utils", "pip", "http://microfluidics.utoronto.ca/git/python___pygst_utils.git/snapshot/140abacc16f5b85d44bc6bba655c816bbf2059c4.zip"),
+            ("pygst_utils_windows_server", "pip", "http://microfluidics.utoronto.ca/downloads/pygst_utils_windows_server-0.1.2.tar.gz"),
             ("geo_util", "pip", "https://github.com/cfobel/python___geo_util/"\
                     "tarball/master"),
             ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/"\
@@ -198,7 +195,6 @@ if __name__ == "__main__":
                   ("numpy", "exe", "http://sourceforge.net/projects/numpy/files/NumPy/1.6.1/numpy-1.6.1-win32-superpack-python2.7.exe/download"),
                   ("scipy", "exe", "http://sourceforge.net/projects/scipy/files/scipy/0.10.1/scipy-0.10.1-win32-superpack-python2.7.exe/download"),
                   ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.win32-py2.7.exe/download"),
-                  ("PIL", "exe", "http://microfluidics.utoronto.ca/software/PIL-1.1.7.win32-py2.7.exe"),
                   ("lxml", "exe", "http://pypi.python.org/packages/2.7/l/lxml/lxml-2.3.win32-py2.7.exe#md5=9c02aae672870701377750121f5a6f84"),
                   ("zmq", "msi", "https://github.com/downloads/zeromq/pyzmq/pyzmq-2.2.0.win32-py2.7.msi"),
                   ):
@@ -207,21 +203,8 @@ if __name__ == "__main__":
             except:
                 packages.append(p)
 
-    # python 2.6 specific packages
-    elif PYTHON_VERSION=="2.6":
-        for p in (("gtk", "msi", "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.0.win32-py2.6.msi"),
-                  ("numpy", "exe", "http://sourceforge.net/projects/numpy/files/NumPy/1.3.0/numpy-1.3.0-win32-superpack-python2.6.exe/download"),
-                  ("scipy", "exe", "http://sourceforge.net/projects/scipy/files/scipy/0.10.1/scipy-0.10.1-win32-superpack-python2.6.exe/download"),
-                  ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.0.1/matplotlib-1.0.1.win32-py2.6.exe/download"),
-                  ("PIL", "exe", "http://effbot.org/downloads/PIL-1.1.7.win32-py2.6.exe"),
-                  ("lxml", "exe", "http://pypi.python.org/packages/2.6/l/lxml/lxml-2.3.win32-py2.6.exe#md5=4135a4ac2abe3cb1ef0fa9f198fe3c51")
-                  ):
-            try:
-                exec("import " + p[0])
-            except:
-                packages.append(p)
     else:
-        print "Microdrop only supports Python 2.6 and 2.7."
+        print "Microdrop only supports Python 2.7."
         exit(1)
 
     # check if ipython is installed
@@ -232,9 +215,7 @@ if __name__ == "__main__":
     try:
         exec("import " + "win32api")
     except:
-        if PYTHON_VERSION=="2.6":
-            packages.append(("pywin32", "exe", "http://sourceforge.net/projects/pywin32/files/pywin32/Build216/pywin32-216.win32-py2.6.exe/download"))
-        elif PYTHON_VERSION=="2.7":
+        if PYTHON_VERSION=="2.7":
             packages.append(("pywin32", "exe", "http://sourceforge.net/projects/pywin32/files/pywin32/Build216/pywin32-216.win32-py2.7.exe/download"))
 
     # check if pyinstaller is installed
@@ -263,7 +244,7 @@ if __name__ == "__main__":
     if path_exists==False:
         packages.append(("WiX",
                          "msi",
-                         "http://microfluidics.utoronto.ca/software/Wix35.msi"))
+                         "http://microfluidics.utoronto.ca/downloads/Wix35.msi"))
 
     # binary dependencies
     if not os.path.isdir(os.path.join("microdrop", "devices")) or \
