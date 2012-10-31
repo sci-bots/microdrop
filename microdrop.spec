@@ -5,6 +5,9 @@ import matplotlib
 import opencv_helpers
 import pygst_utils
 import pygst_utils_windows_server
+import pygst
+pygst.require('0.10')
+import gst
 
 try:
     import pymunk
@@ -22,9 +25,9 @@ a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             os.path.join(HOMEPATH,'support\\useUnicode.py'),
             'microdrop\\microdrop.py'] + extra_py,
             excludes=['opencv_helpers', 'flatland', 'pygtkhelpers', 'pygst_utils',
-                    'pygst_utils_windows_server', ])
+                    'pygst_utils_windows_server', 'gst', ])
 
-for mod in [pygtkhelpers, pygst_utils, pygst_utils_windows_server, opencv_helpers]:
+for mod in [gst, pygtkhelpers, pygst_utils, pygst_utils_windows_server, opencv_helpers]:
     mod_path = path(mod.__file__).parent
     a.datas += [(str(mod_path.parent.relpathto(p)), str(p.abspath()), 'DATA')\
             for p in mod_path.walkfiles(ignore=[r'\.git', r'site_scons',
@@ -63,8 +66,6 @@ a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\devices').walkfiles()]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\etc').walkfiles()]
-a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
-            for p in path('microdrop\\gst').walkfiles()]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\share').walkfiles()]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\

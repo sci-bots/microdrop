@@ -37,14 +37,11 @@ import jsonrpclib.SimpleJSONRPCServer
 import cgi
 import pygtk
 
-# Add gst binaries and plugins to the path/python path
-GST_PATH = path(__file__).parent / path('gst')
-os.environ['GST_PLUGIN_PATH'] = str((GST_PATH / path('plugins')).abspath())
-sys.path.append(os.environ['GST_PLUGIN_PATH'])
-os.environ['PATH'] += ";" + str((GST_PATH / path('bin')).abspath())
-
 # The following imports ensure that the corresponding modules are processed
 # by PyInstaller when generating an EXE.
+import pygst
+pygst.require('0.10')
+import gst
 import zmq
 import zmq.utils.strtypes
 import zmq.utils.jsonapi

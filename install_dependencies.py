@@ -181,8 +181,8 @@ if __name__ == "__main__":
     for p in (
             ("opencv_helpers", "pip", "https://github.com/cfobel/"\
                     "python___opencv_examples/tarball/master"),
-            ("pygst_utils", "pip", "http://microfluidics.utoronto.ca/git/python___pygst_utils.git/snapshot/140abacc16f5b85d44bc6bba655c816bbf2059c4.zip"),
-            ("pygst_utils_windows_server", "pip", "http://microfluidics.utoronto.ca/downloads/pygst_utils_windows_server-0.1.2.tar.gz"),
+            ("pygst_utils", "pip", "http://microfluidics.utoronto.ca/git/python___pygst_utils.git/snapshot/43fc5539bf72c282afcbf5efb02a74efde46201d.zip"),
+            ("pygst_utils_windows_server", "pip", "http://microfluidics.utoronto.ca/downloads/pygst_utils_windows_server-0.1.6.tar.gz"),
             ("geo_util", "pip", "https://github.com/cfobel/python___geo_util/"\
                     "tarball/master"),
             ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/"\
@@ -197,6 +197,7 @@ if __name__ == "__main__":
                   ("matplotlib", "exe", "http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.1.0/matplotlib-1.1.0.win32-py2.7.exe/download"),
                   ("lxml", "exe", "http://pypi.python.org/packages/2.7/l/lxml/lxml-2.3.win32-py2.7.exe#md5=9c02aae672870701377750121f5a6f84"),
                   ("zmq", "msi", "https://github.com/downloads/zeromq/pyzmq/pyzmq-2.2.0.win32-py2.7.msi"),
+                  ("pygst", "pip", "http://microfluidics.utoronto.ca/git/python___pygst.git/snapshot/43321ed8c1c59881a6bddd076b7fe19338b88f3e.zip"),
                   ):
             try:
                 exec("import " + p[0])
@@ -248,14 +249,12 @@ if __name__ == "__main__":
 
     # binary dependencies
     if not os.path.isdir(os.path.join("microdrop", "devices")) or \
-       not os.path.isdir(os.path.join("microdrop", "lib")) or \
        not os.path.isdir(os.path.join("microdrop", "share")) or \
-       not os.path.isdir(os.path.join("microdrop", "etc")) or \
-       not os.path.isdir(os.path.join("microdrop", "gst")):
+       not os.path.isdir(os.path.join("microdrop", "etc")):
         packages.append(('binary_dependencies',
                          'zip',
-                         'http://microfluidics.utoronto.ca/git/microdrop___dependencies.git/snapshot/91714880d27f981cf18a46ccc3cd9b20e1e9c3c9.zip',
-                         'microdrop___dependencies-9171488',
+                         'http://microfluidics.utoronto.ca/git/microdrop___dependencies.git/snapshot/47e48bdfb1418e120e38032ab33601fc818c9fbb.zip',
+                         'microdrop___dependencies-47e48bd',
                          os.path.abspath('microdrop')))
 
     if len(packages)>0:
