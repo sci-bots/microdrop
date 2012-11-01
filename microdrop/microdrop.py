@@ -29,7 +29,6 @@ from path import path
 try:
     import utility as utility
 except ImportError:
-    print "Import error"
     sys.path.append(path(__file__).parent)
     import utility as utility
 import jsonrpclib
@@ -39,9 +38,14 @@ import pygtk
 
 # The following imports ensure that the corresponding modules are processed
 # by PyInstaller when generating an EXE.
-import pygst
-pygst.require('0.10')
-import gst
+try:
+    # this may not be necessary on all systems
+    import pygst
+    pygst.require('0.10')
+except:
+    pass
+finally:
+    import gst
 import zmq
 import zmq.utils.strtypes
 import zmq.utils.jsonapi
