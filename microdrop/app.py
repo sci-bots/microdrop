@@ -70,7 +70,8 @@ INFO:  <Plugin App 'microdrop.app'>
 INFO:  <Plugin ConfigController 'microdrop.gui.config_controller'>
 INFO:  <Plugin DmfControlBoardPlugin 'wheelerlab.dmf_control_board_1.2'>
 INFO:  <Plugin DmfDeviceController 'microdrop.gui.dmf_device_controller'>
-INFO:  <Plugin ExperimentLogController 'microdrop.gui.experiment_log_controller'>
+INFO:  <Plugin ExperimentLogController
+         'microdrop.gui.experiment_log_controller'>
 INFO:  <Plugin MainWindowController 'microdrop.gui.main_window_controller'>
 INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
 INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
@@ -84,18 +85,24 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             'microdrop.gui.protocol_grid_controller',]
 
     AppFields = Form.of(
-        Enum.named('update_automatically').using(default=1, optional=True)\
-            .valued('auto-update',
+        Enum.named('update_automatically' #pylint: disable-msg=E1101,E1120
+            ).using(default=1, optional=True
+            ).valued('auto-update',
                 'check for updates, but ask before installing',
                 '''don't check for updates'''),
-        String.named('server_url').using(default='http://microfluidics.utoronto.ca/update',
-                optional=True, properties=dict(show_in_gui=False)),
-        Boolean.named('realtime_mode').using(default=False, optional=True,
+        String.named('server_url').using( #pylint: disable-msg=E1120
+            default='http://microfluidics.utoronto.ca/update',
+            optional=True, properties=dict(show_in_gui=False)),
+        Boolean.named('realtime_mode').using( #pylint: disable-msg=E1120
+            default=False, optional=True,
             properties=dict(show_in_gui=False)),
-        Filepath.named('log_file').using(default='', optional=True),
-        Boolean.named('log_enabled').using(default=False, optional=True),
-        Enum.named('log_level').using(default='info', optional=True) \
-            .valued('debug', 'info', 'warning', 'error', 'critical'),
+        Filepath.named('log_file').using( #pylint: disable-msg=E1120
+            default='', optional=True),
+        Boolean.named('log_enabled').using( #pylint: disable-msg=E1120
+            default=False, optional=True),
+        Enum.named('log_level').using( #pylint: disable-msg=E1101, E1120
+            default='info', optional=True 
+            ).valued('debug', 'info', 'warning', 'error', 'critical'),
     )
 
     def __init__(self):
@@ -154,8 +161,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             for p in requested_deletions:
                 try:
                     if p != p.abspath():
-                        logger.info('    (warning) ignoring path %s since it is '\
-                                'not absolute' % p)
+                        logger.info('    (warning) ignoring path %s since it '\
+                            'is not absolute' % p)
                         continue
                     if p.isdir():
                         # Test to make sure this looks like a plugin
