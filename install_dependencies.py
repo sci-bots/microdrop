@@ -181,8 +181,8 @@ if __name__ == "__main__":
     for p in (
             ("opencv_helpers", "pip", "https://github.com/cfobel/"\
                     "python___opencv_examples/tarball/master"),
-            ("pygst_utils", "pip", "http://microfluidics.utoronto.ca/git/python___pygst_utils.git/snapshot/43fc5539bf72c282afcbf5efb02a74efde46201d.zip"),
-            ("pygst_utils_windows_server", "pip", "http://microfluidics.utoronto.ca/downloads/pygst_utils_windows_server-0.1.6.tar.gz"),
+            ("pygst_utils", "pip", "http://microfluidics.utoronto.ca/git/python___pygst_utils.git/snapshot/a3494f7c3b2db8e5bab3afe2832482dd23f1b1f9.zip"),
+            ("pygst_utils_windows_server", "pip", "http://microfluidics.utoronto.ca/downloads/pygst_utils_windows_server-0.1.8.tar.gz"),
             ("geo_util", "pip", "https://github.com/cfobel/python___geo_util/"\
                     "tarball/master"),
             ("pygtkhelpers", "pip", "https://github.com/cfobel/pygtkhelpers/"\
