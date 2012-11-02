@@ -1,6 +1,7 @@
 # -*- mode: python -*-
 from path import path
 import pygtkhelpers
+import flatland
 import matplotlib
 import opencv_helpers
 import pygst_utils
@@ -27,7 +28,7 @@ a = Analysis([os.path.join(HOMEPATH,'support\\_mountzlib.py'),
             excludes=['opencv_helpers', 'flatland', 'pygtkhelpers', 'pygst_utils',
                     'pygst_utils_windows_server', 'gst', ])
 
-for mod in [gst, pygtkhelpers, pygst_utils, pygst_utils_windows_server, opencv_helpers]:
+for mod in [gst, flatland, pygtkhelpers, pygst_utils, pygst_utils_windows_server, opencv_helpers]:
     mod_path = path(mod.__file__).parent
     a.datas += [(str(mod_path.parent.relpathto(p)), str(p.abspath()), 'DATA')\
             for p in mod_path.walkfiles(ignore=[r'\.git', r'site_scons',
@@ -52,9 +53,6 @@ open_cv_glade_path = path(opencv_helpers.__file__).parent.joinpath('glade')
 a.datas += [(str(open_cv_glade_path.parent.relpathto(p)), str(p.abspath()),
         'DATA') for p in open_cv_glade_path.walkfiles(ignore=[r'site_scons',
                                                                r'.*\.pyc'])]
-a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
-            for p in path('microdrop\\flatland')\
-                    .walkfiles(ignore=[r'site_scons', r'.*\.pyc'])]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\
             for p in path('microdrop\\gui').walkfiles('*.glade')]
 a.datas += [(str(path('microdrop').relpathto(p)), str(p.abspath()), 'DATA')\

@@ -157,7 +157,8 @@ if __name__ == "__main__":
     packages = []
 
     # package name, type, url
-    for p in (("pyvisa", "exe", "http://sourceforge.net/projects/pyvisa/files/PyVISA/1.3/PyVISA-1.3.win32.exe/download"),
+    for p in (("flatland", "pip", "http://microfluidics.utoronto.ca/git/python___flatland.git/snapshot/a5111ec9f822f7a42fdb69752f023bcec97257bd.zip"),
+              ("pyvisa", "exe", "http://sourceforge.net/projects/pyvisa/files/PyVISA/1.3/PyVISA-1.3.win32.exe/download"),
               ("sympy", "exe", "http://sympy.googlecode.com/files/sympy-0.7.1.win32.exe"),
               ("pyparsing", "pip"),
               ("pyutilib", "pip"),
