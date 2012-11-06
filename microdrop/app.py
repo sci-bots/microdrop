@@ -372,18 +372,19 @@ Would you like to download the latest version in your browser?''' % (
                                            'device')
                 self.dmf_device_controller.load_device(device_path)
 
-            # reapply the protocol name to the config file
-            self.config['protocol']['name'] = protocol_name
-
-            # load the protocol
-            if self.config['protocol']['name']:
-                directory = self.get_device_directory()
-                if directory:
-                    filename = os.path.join(directory,
-                                            self.config['dmf_device']['name'],
-                                            "protocols",
-                                            self.config['protocol']['name'])
-                    self.protocol_controller.load_protocol(filename)
+            if self.dmf_device:
+                # reapply the protocol name to the config file
+                self.config['protocol']['name'] = protocol_name
+    
+                # load the protocol
+                if self.config['protocol']['name']:
+                    directory = self.get_device_directory()
+                    if directory:
+                        filename = os.path.join(directory,
+                            self.config['dmf_device']['name'],
+                            "protocols",
+                            self.config['protocol']['name'])
+                        self.protocol_controller.load_protocol(filename)
 
         plugin_manager.emit_signal('on_gui_ready')
         self.main_window_controller.main()
