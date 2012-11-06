@@ -344,8 +344,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def load_device(self, filename):
         app = get_app()
+        self.modified=False
+        device = app.dmf_device
         try:
-            device = DmfDevice.load(filename)
+            device = DmfDevice.load(str(filename))
             if path(filename).parent.parent != app.get_device_directory():
                 logger.info('[DmfDeviceController].load_device: '
                              'Import new device.')
@@ -353,11 +355,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
             else:
                 logger.info('[DmfDeviceController].load_device: '
                              'load existing device.')
-                self.modified=False
             emit_signal("on_dmf_device_swapped", [app.dmf_device,
                                                   device])
         except Exception, e:
-            logger.error('Error loading device. %s: %s.' % (type(e), e))
+            logger.error('Error loading device: %s.' % e)
             logger.info(''.join(traceback.format_exc()))
 
     def save_check(self):

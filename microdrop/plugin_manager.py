@@ -206,9 +206,9 @@ else:
             """
             pass
 
-        def on_experiment_log_created(self, experiment_log):
+        def on_experiment_log_changed(self, experiment_log):
             """
-            Handler called when a new experiment log is created (e.g., when a
+            Handler called when the current experiment log changes (e.g., when a
             protocol finishes running.
             """
             pass

@@ -231,7 +231,7 @@ class MainWindowController(SingletonPlugin):
         if protocol is None:
             protocol = get_app().protocol
         if protocol is None:
-            return ''
+            return 'Protocol: None'
         return 'Protocol: %s' % protocol.name
 
     def update_label(self, label, obj=None, modified=False, get_string=str):
@@ -254,14 +254,16 @@ class MainWindowController(SingletonPlugin):
         self.update_protocol_name_label(modified= \
                                         app.protocol_controller.modified)
 
-    def on_experiment_log_created(self, experiment_log):
-        self.label_experiment_id.set_text("Experiment: %s" % str(experiment_log.experiment_id))
+    def on_experiment_log_changed(self, experiment_log):
+        if experiment_log:
+            self.label_experiment_id.set_text("Experiment: %s" % 
+                                              str(experiment_log.experiment_id))
 
     def get_device_string(self, device=None):
         if device is None:
             device = get_app().dmf_device
         if device is None:
-            return ''
+            return 'Device: None'
         return 'Device: %s' % device.name
 
     def update_device_name_label(self, obj=None, **kwargs):

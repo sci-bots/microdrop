@@ -80,8 +80,11 @@ class ConfigController(SingletonPlugin):
             devices.copytree(dmf_device_directory)
                     
     def on_dmf_device_changed(self):
-        if self.app.dmf_device.name != self.app.config['dmf_device']['name']:
-            self.app.config['dmf_device']['name'] = self.app.dmf_device.name
+        device_name = None
+        if self.app.dmf_device:
+            device_name = self.app.dmf_device.name
+        if self.app.config['dmf_device']['name'] != device_name:
+            self.app.config['dmf_device']['name'] = device_name
             self.app.config.save()
     
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):

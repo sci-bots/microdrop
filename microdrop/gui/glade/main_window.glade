@@ -486,7 +486,7 @@
                     <property name="xalign">0</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
-                    <property name="label" translatable="yes">Device name:</property>
+                    <property name="label" translatable="yes">Device:</property>
                     <property name="use_markup">True</property>
                   </object>
                   <packing>
@@ -502,7 +502,7 @@
                     <property name="xalign">0</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
-                    <property name="label" translatable="yes">Protocol name:</property>
+                    <property name="label" translatable="yes">Protocol:</property>
                     <property name="use_markup">True</property>
                   </object>
                   <packing>

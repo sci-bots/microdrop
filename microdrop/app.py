@@ -372,19 +372,20 @@ Would you like to download the latest version in your browser?''' % (
                                            'device')
                 self.dmf_device_controller.load_device(device_path)
 
-            if self.dmf_device:
-                # reapply the protocol name to the config file
-                self.config['protocol']['name'] = protocol_name
-    
-                # load the protocol
-                if self.config['protocol']['name']:
-                    directory = self.get_device_directory()
-                    if directory:
-                        filename = os.path.join(directory,
-                            self.config['dmf_device']['name'],
-                            "protocols",
-                            self.config['protocol']['name'])
-                        self.protocol_controller.load_protocol(filename)
+        # if we successfully loaded a device
+        if self.dmf_device:
+            # reapply the protocol name to the config file
+            self.config['protocol']['name'] = protocol_name
+
+            # load the protocol
+            if self.config['protocol']['name']:
+                directory = self.get_device_directory()
+                if directory:
+                    filename = os.path.join(directory,
+                        self.config['dmf_device']['name'],
+                        "protocols",
+                        self.config['protocol']['name'])
+                    self.protocol_controller.load_protocol(filename)
 
         plugin_manager.emit_signal('on_gui_ready')
         self.main_window_controller.main()
@@ -449,7 +450,7 @@ Would you like to download the latest version in your browser?''' % (
     def on_protocol_swapped(self, old_protocol, new_protocol):
         self.protocol = new_protocol
 
-    def on_experiment_log_created(self, experiment_log):
+    def on_experiment_log_changed(self, experiment_log):
         self.experiment_log = experiment_log
 
     def get_device_directory(self):

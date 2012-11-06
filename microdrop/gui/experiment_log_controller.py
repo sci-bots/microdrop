@@ -229,7 +229,7 @@ class ExperimentLogController(SingletonPlugin):
         
         # create a new log
         experiment_log = ExperimentLog(app.experiment_log.directory)
-        emit_signal("on_experiment_log_created", experiment_log)
+        emit_signal("on_experiment_log_changed", experiment_log)
 
     def get_selected_data(self):
         selection = self.protocol_view.get_selection().get_selected_rows()
@@ -284,17 +284,16 @@ class ExperimentLogController(SingletonPlugin):
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         app = get_app()
-        device_path = None
-        if dmf_device.name:
+        experiment_log = None
+        if dmf_device and dmf_device.name:
             device_path = os.path.join(app.get_device_directory(),
                                        dmf_device.name, "logs")
-        experiment_log = ExperimentLog(device_path)
-        app.experiment_log = experiment_log
-        emit_signal("on_experiment_log_created", experiment_log)
+            experiment_log = ExperimentLog(device_path)
+        emit_signal("on_experiment_log_changed", experiment_log)
 
-    def on_experiment_log_created(self, experiment_log):
+    def on_experiment_log_changed(self, experiment_log):
         log_files = []
-        if path(experiment_log.directory).isdir():
+        if experiment_log and path(experiment_log.directory).isdir():
             for d in path(experiment_log.directory).dirs():
                 f = d / path("data")
                 if f.isfile():

@@ -411,15 +411,16 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        self.menu_protocol.set_sensitive(True)
-        self.menu_new_protocol.set_sensitive(True)
-        self.menu_load_protocol.set_sensitive(True)
-        self.button_first_step.set_sensitive(True)
-        self.button_prev_step.set_sensitive(True)
-        self.button_run_protocol.set_sensitive(True)
-        self.button_next_step.set_sensitive(True)
-        self.button_last_step.set_sensitive(True)
-        self.create_protocol()
+        if dmf_device:
+            self.menu_protocol.set_sensitive(True)
+            self.menu_new_protocol.set_sensitive(True)
+            self.menu_load_protocol.set_sensitive(True)
+            self.button_first_step.set_sensitive(True)
+            self.button_prev_step.set_sensitive(True)
+            self.button_run_protocol.set_sensitive(True)
+            self.button_next_step.set_sensitive(True)
+            self.button_last_step.set_sensitive(True)
+            self.create_protocol()
 
     def on_app_exit(self):
         app = get_app()
