@@ -204,9 +204,6 @@ class ProtocolGridController(SingletonPlugin):
     def on_protocol_swapped(self, old_protocol, protocol):
         self.update_grid(protocol)
 
-    def on_protocol_changed(self):
-        self.update_grid(get_app().protocol)
-
     def set_fields_filter(self, combined_fields, enabled_fields_by_plugin):
         app = get_app()
         self.enabled_fields = enabled_fields_by_plugin
