@@ -117,18 +117,17 @@ Protocol is version %s, but only up to version %s is supported with this version
         if p:
             self.modified = False
             emit_signal("on_protocol_swapped", [app.protocol, p])
-        self.run_step()
 
     def create_protocol(self):
         old_protocol = get_app().protocol
         self.modified = True
         p = Protocol()
         emit_signal("on_protocol_swapped", [old_protocol, p])
-        self.run_step()
 
     def on_protocol_swapped(self, old_protocol, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
         logging.debug('[ProtocolController] on_protocol_swapped(): plugin_fields=%s' % protocol.plugin_fields)
+        self.run_step()
 
     def on_plugin_enable(self):
         app = get_app()
@@ -314,8 +313,8 @@ Protocol is version %s, but only up to version %s is supported with this version
         app.running = True
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_pause"))
-        emit_signal("on_protocol_run")
         app.protocol.current_step_attempt = 0
+        emit_signal("on_protocol_run")
         self.run_step()
 
     def pause_protocol(self):
@@ -383,6 +382,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                       'step_number=%s' % (plugin, step_number))
         self.modified = True
         emit_signal('on_protocol_changed')
+        self.run_step()
 
     def set_app_values(self, values_dict):
         logging.debug('[ProtocolController] set_app_values(): '\
@@ -398,6 +398,9 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
 
     def on_step_swapped(self, original_step_number, step_number):
+        logging.debug('[ProtocolController.on_step_swapped] '
+                      'original_step_number=%s, step_number=%s' % 
+                      (original_step_number, step_number))
         self._update_labels()
         self.run_step()
 
