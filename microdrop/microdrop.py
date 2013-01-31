@@ -31,8 +31,6 @@ try:
 except ImportError:
     sys.path.append(path(__file__).parent)
     import utility as utility
-import jsonrpclib
-import jsonrpclib.SimpleJSONRPCServer
 import cgi
 import pygtk
 
