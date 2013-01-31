@@ -532,7 +532,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_save_dmf_device_as.set_sensitive(True)
         self._update()
 
-    def on_dmf_device_changed(self, dmf_device):
+    def on_dmf_device_changed(self):
         self.modified = True
 
 PluginGlobals.pop_env()
