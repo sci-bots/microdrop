@@ -530,6 +530,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_dmf_device_swapped(self, old_device, new_device):
         self.menu_rename_dmf_device.set_sensitive(True)
         self.menu_save_dmf_device_as.set_sensitive(True)
+        if old_device is None:
+            # need to reset the video to display the device
+            self.reset_video()
         self._update()
 
     def on_dmf_device_changed(self):
