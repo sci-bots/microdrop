@@ -86,7 +86,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         video_enabled_boolean = Boolean.named('video_enabled').using(default=False, optional=True,
                 properties={'show_in_gui': True})
         recording_enabled_boolean = Boolean.named('recording_enabled').using(
-                default=False, optional=True, properties={'show_in_gui': True})
+                default=False, optional=True, properties={'show_in_gui': False})
         field_list.append(video_mode_enum)
         field_list.append(video_enabled_boolean)
         field_list.append(recording_enabled_boolean)
