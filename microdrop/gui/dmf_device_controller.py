@@ -506,17 +506,17 @@ directory)?''' % (device_directory, self.previous_device_dir))
         dialog.add_filter(filter)
         dialog.set_default_response(gtk.RESPONSE_OK)
         response = dialog.run()
+        filename = dialog.get_filename()
+        dialog.destroy()
         if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
             try:
                 dmf_device = DmfDevice.load_svg(filename)
                 self.modified = True
                 emit_signal("on_dmf_device_swapped", [app.dmf_device,
-                                                      dmf_device])
+                                                          dmf_device])
             except Exception, e:
-                logger.error('Error importing device. %s: %s.' % (type(e), e))
+                logger.error('Error importing device. %s' % e)
                 logger.info(''.join(traceback.format_exc()))
-        dialog.destroy()
 
     def on_rename_dmf_device(self, widget, data=None):
         self.save_dmf_device(rename=True)

@@ -84,10 +84,9 @@ class DmfDevice():
         with warnings.catch_warnings(record=True) as warning_list:
             path_group = PathGroup.load_svg(svg_path, on_error=parse_warning)
         if warning_list:
-            logger.warning('''\
-    The following paths could not be parsed properly have been ignored:
-
-    %s''' % '\n'.join([str(w.message) for w in warning_list]))
+            logger.warning('The following paths could not be parsed properly '
+                           'and have been ignored:\n%s' % \
+                           '\n'.join([str(w.message) for w in warning_list]))
         # Assign the color blue to all paths that have no colour assigned
         for p in path_group.paths.values():
             if p.color is None:
