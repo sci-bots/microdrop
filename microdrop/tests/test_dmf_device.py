@@ -69,5 +69,5 @@ def test_import_device(root=None):
         root = path(__file__).parent
     else:
         root = path(root)
-    for i in range(5):
+    for i in range(6):
         yield _import_device, i, root
