@@ -22,12 +22,12 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import yaml
 import warnings
-
-import numpy as np
+from math import sqrt
 
 from logger import logger
+import numpy as np
+import yaml
 from utility import Version, FutureVersionError
 from svg_model.geo_path import Path, ColoredPath, Loop
 from svg_model.svgload.path_parser import LoopTracer, ParseError
@@ -91,6 +91,24 @@ class DmfDevice():
         for p in path_group.paths.values():
             if p.color is None:
                 p.color = (0, 0, 255)
+            
+            # If the first and last vertices in a loop are too close together,
+            # it can cause tessellation to fail (Ticket # 106).
+            for loop in p.loops:
+                # distance between first and last point in a loop
+                d = sqrt((loop.verts[0][0] - loop.verts[-1][0])**2 + \
+                    (loop.verts[0][1] - loop.verts[-1][1])**2)
+
+                # diagonal across device bounding box
+                device_diag = sqrt(path_group.get_bounding_box()[2]**2 + \
+                     path_group.get_bounding_box()[3]**2)
+
+                # If the distance between the vertices is below a threshold,
+                # remove the last vertex (the threshold is scaled by the device
+                # diagonal so that we are insensitive to device size).
+                if d/device_diag < 1e-3:
+                    loop.verts.pop()
+
         dmf_device = DmfDevice()
         dmf_device.add_path_group(path_group)
         dmf_device.init_body_group()
