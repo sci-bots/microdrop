@@ -329,8 +329,9 @@ Protocol is version %s, but only up to version %s is supported with this version
         app = get_app()
         if app.protocol and app.dmf_device and \
         (app.realtime_mode or app.running):
-            app.experiment_log.add_step(app.protocol.current_step_number,
-                                        app.protocol.current_step_attempt)
+            if app.experiment_log:
+                app.experiment_log.add_step(app.protocol.current_step_number,
+                                            app.protocol.current_step_attempt)
 
             self.waiting_for = get_observers("on_step_run", IPlugin).keys()
             logging.info("[ProcolController.run_step]: waiting for %s" %
