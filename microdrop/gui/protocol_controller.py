@@ -351,6 +351,8 @@ Protocol is version %s, but only up to version %s is supported with this version
             logging.error("Protocol failed.")
         elif return_value=='Repeat':
             self.repeat_step = True
+        else:
+            self.repeat_step = False
 
         if len(self.waiting_for):
             logging.debug("[ProcolController].on_step_complete: still waiting "
