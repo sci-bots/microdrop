@@ -164,8 +164,6 @@ class DmfDeviceView(GtkVideoView):
 
     def __init__(self, dmf_device_controller, name):
         self.controller = dmf_device_controller
-        self.display_scale = 1
-        self.video_scale = 1
         self.last_frame_time = datetime.now()
         self.last_frame = None
         self.video_offset = (0,0)
@@ -213,7 +211,7 @@ class DmfDeviceView(GtkVideoView):
             self.svg_space = CartesianSpace(device_width, device_height,
                     offset=(x, y))
             padding = 20
-            if device_width > device_height:
+            if width/device_width < height/device_height:
                 drawing_width = width - 2 * padding
                 drawing_height = drawing_width * (device_height / device_width)
                 drawing_x = padding

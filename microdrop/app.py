@@ -28,7 +28,7 @@ import yaml
 import webbrowser
 from jsonrpc.proxy import JSONRPCException
 from jsonrpc.json import JSONDecodeException
-from flatland import Form, String, Enum, Boolean
+from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 
@@ -85,6 +85,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             'microdrop.gui.protocol_grid_controller',]
 
     AppFields = Form.of(
+        Integer.named('width').using(default=1000, optional=True),
+        Integer.named('height').using(default=600, optional=True),
         Enum.named('update_automatically' #pylint: disable-msg=E1101,E1120
             ).using(default=1, optional=True
             ).valued('auto-update',
@@ -239,6 +241,12 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                         data['log_enabled'])
             if 'log_level' in data:
                 self._set_log_level(data['log_level'])
+            if 'width' in data and 'height' in data:
+                self.main_window_controller.view.set_size_request(
+                    data['width'], data['height'])
+                # allow window to resize before other signals are processed
+                while gtk.events_pending():
+                    gtk.main_iteration()
 
     def apply_log_file_config(self, log_file, enabled):
         if enabled and not log_file:
