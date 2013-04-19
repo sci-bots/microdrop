@@ -282,6 +282,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app.signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device
         app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device
         app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as
+        app.signals["on_event_box_dmf_device_size_allocate"] = self.on_size_allocate
         app.dmf_device_controller = self
         defaults = self.get_default_app_options()
         data = app.get_data(self.name)
@@ -429,6 +430,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         emit_signal('on_step_options_changed',
                     [self.name, app.protocol.current_step_number],
                     interface=IPlugin)
+
+    def on_size_allocate(self, widget, data=None):
+        self.reset_video()
 
     def _update(self):
         app = get_app()
