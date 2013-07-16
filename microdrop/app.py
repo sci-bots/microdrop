@@ -68,7 +68,6 @@ class App(SingletonPlugin, AppDataController):
     '''
 INFO:  <Plugin App 'microdrop.app'>
 INFO:  <Plugin ConfigController 'microdrop.gui.config_controller'>
-INFO:  <Plugin DmfControlBoardPlugin 'wheelerlab.dmf_control_board_1.2'>
 INFO:  <Plugin DmfDeviceController 'microdrop.gui.dmf_device_controller'>
 INFO:  <Plugin ExperimentLogController
          'microdrop.gui.experiment_log_controller'>
