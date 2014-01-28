@@ -29,8 +29,8 @@ from flatland.schema import Form
 
 from app_context import get_app
 from logger import logger
-from plugin_manager import IPlugin, SingletonPlugin, implements, IVideoPlugin,\
-        ExtensionPoint, emit_signal
+from plugin_manager import (IPlugin, SingletonPlugin, implements, IVideoPlugin,
+                            ExtensionPoint, emit_signal)
 
 
 class AppOptionsController:

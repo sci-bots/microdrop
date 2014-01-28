@@ -32,12 +32,13 @@ import yaml
 from flatland import Form, String
 from jsonrpc.proxy import JSONRPCException
 
-from gui.plugin_download_dialog import PluginDownloadDialog
-from update_repository.plugins.proxy import PluginRepository
-from app_context import get_app
-from utility import Version
-from utility.gui import yesno
-from plugin_manager import get_service_instance_by_name, get_plugin_package_name
+from ..gui.plugin_download_dialog import PluginDownloadDialog
+from ..update_repository.plugins.proxy import PluginRepository
+from ..app_context import get_app
+from ..utility import Version
+from ..utility.gui import yesno
+from ..plugin_manager import (get_service_instance_by_name,
+                              get_plugin_package_name)
 
 
 class PluginManagerDialog(object):

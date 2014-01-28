@@ -32,7 +32,6 @@ gtk.threads_init()
 gtk.gdk.threads_init()
 import numpy as np
 from flatland import Form, Integer, String, Boolean
-from utility.gui import yesno
 from path import path
 import yaml
 from pygtkhelpers.ui.extra_widgets import Directory, Enum
@@ -40,15 +39,15 @@ from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
 from pygst_utils.video_source import GstVideoSourceManager
 
-from dmf_device_view import DmfDeviceView
-from dmf_device import DmfDevice
-from plugin_manager import IPlugin, SingletonPlugin, implements, PluginGlobals,\
+from ..app_context import get_app
+from ..dmf_device import DmfDevice
+from ..logger import logger
+from ..plugin_helpers import AppDataController
+from ..plugin_manager import IPlugin, SingletonPlugin, implements, PluginGlobals,\
         ScheduleRequest, emit_signal
-from app_context import get_app
-from logger import logger
-from plugin_helpers import AppDataController
-from utility import copytree
-
+from ..utility.gui import yesno
+from ..utility import copytree
+from .dmf_device_view import DmfDeviceView
 
 PluginGlobals.push_env('microdrop')
 
@@ -345,9 +344,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def load_device(self, filename):
         app = get_app()
-        self.modified=False
+        self.modified = False
         device = app.dmf_device
         try:
+            logger.info('[DmfDeviceController].load_device: %s' % filename)
             device = DmfDevice.load(str(filename))
             if path(filename).parent.parent != app.get_device_directory():
                 logger.info('[DmfDeviceController].load_device: '

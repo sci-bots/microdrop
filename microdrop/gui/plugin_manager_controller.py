@@ -30,25 +30,27 @@ import yaml
 from flatland import Form, String, Enum
 from jsonrpc.proxy import JSONRPCException
 from jsonrpc.json import JSONDecodeException
-
 from update_repository.plugins.proxy import PluginRepository
-import plugin_manager
-from app_context import get_app
-from utility import Version
-from utility.gui import yesno
-from plugin_helpers import AppDataController, get_plugin_info
-from plugin_manager import get_service_instance_by_name, IPlugin, implements,\
-        SingletonPlugin
-from gui.plugin_manager_dialog import PluginManagerDialog
+
+from ..app_context import get_app
+from ..utility import Version
+from ..utility.gui import yesno
+from ..plugin_helpers import AppDataController, get_plugin_info
+from ..plugin_manager import (get_service_instance_by_name, IPlugin,
+                              implements, SingletonPlugin, PluginGlobals,
+                              get_service_instance, get_plugin_package_name,
+                              enable as enable_service,
+                              disable as disable_service)
+from ..gui.plugin_manager_dialog import PluginManagerDialog
 
 
 class PluginController(object):
     def __init__(self, controller, name):
         self.controller = controller
         self.name = name
-        self.e = plugin_manager.PluginGlobals.env('microdrop.managed')
+        self.e = PluginGlobals.env('microdrop.managed')
         self.plugin_class = self.e.plugin_registry[name]
-        self.service = plugin_manager.get_service_instance(self.plugin_class)
+        self.service = get_service_instance(self.plugin_class)
         self.box = gtk.HBox()
         self.label = gtk.Label('%s' % self.service.name)
         self.label.set_alignment(0, 0.5)
@@ -80,7 +82,7 @@ class PluginController(object):
         return not(self.service is None or not self.service.enabled())
 
     def update(self):
-        self.service = plugin_manager.get_service_instance(self.plugin_class)
+        self.service = get_service_instance(self.plugin_class)
         if self.enabled():
             self.button.set_label('Disable')
         else:
@@ -88,9 +90,9 @@ class PluginController(object):
 
     def toggle_enabled(self):
         if not self.enabled():
-            plugin_manager.enable(self.service.name)
+            enable_service(self.service.name)
         else:
-            plugin_manager.disable(self.service.name)
+            disable_service(self.service.name)
         self.update()
 
     def get_widget(self):
@@ -130,7 +132,7 @@ class PluginController(object):
         return True
 
     def get_plugin_package_name(self):
-        return plugin_manager.get_plugin_package_name(self.plugin_class.__module__)
+        return get_plugin_package_name(self.plugin_class.__module__)
 
     def get_plugin_path(self, plugin_name=None):
         if plugin_name is None:
@@ -153,7 +155,7 @@ class PluginManagerController(SingletonPlugin):
         self.requested_deletions = []
         self.rename_queue = []
         self.restart_required = False
-        self.e = plugin_manager.PluginGlobals.env('microdrop.managed')
+        self.e = PluginGlobals.env('microdrop.managed')
         self.dialog = PluginManagerDialog()
 
     def update_plugin(self, plugin_controller, verbose=False, force=False):

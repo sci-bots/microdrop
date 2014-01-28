@@ -22,14 +22,14 @@ import os
 import gtk
 from path import path
 
-from logger import logger
-from dmf_device import DmfDevice
-from protocol import Protocol
-from plugin_manager import IPlugin, SingletonPlugin, implements, \
-    PluginGlobals, ExtensionPoint, ScheduleRequest
-from app_context import get_app
-from utility.user_paths import home_dir
-from config import get_skeleton_path
+from ..logger import logger
+from ..dmf_device import DmfDevice
+from ..protocol import Protocol
+from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
+                              PluginGlobals, ExtensionPoint, ScheduleRequest)
+from ..app_context import get_app
+from ..utility.user_paths import home_dir
+from ..config import get_skeleton_path
 
 
 PluginGlobals.push_env('microdrop')
@@ -37,7 +37,7 @@ PluginGlobals.push_env('microdrop')
 
 class ConfigController(SingletonPlugin):
     implements(IPlugin)
-        
+
     def __init__(self):
         self.name = "microdrop.gui.config_controller"
         self.app = None
@@ -60,7 +60,7 @@ class ConfigController(SingletonPlugin):
 
     def on_app_exit(self):
         self.app.config.save()
-        
+
     def _init_devices_dir(self):
         app = get_app()
         directory = app.get_device_directory()
@@ -78,7 +78,7 @@ class ConfigController(SingletonPlugin):
         devices = get_skeleton_path('devices')
         if not dmf_device_directory.isdir():
             devices.copytree(dmf_device_directory)
-                    
+
     def on_dmf_device_changed(self):
         device_name = None
         if self.app.dmf_device:
@@ -86,10 +86,10 @@ class ConfigController(SingletonPlugin):
         if self.app.config['dmf_device']['name'] != device_name:
             self.app.config['dmf_device']['name'] = device_name
             self.app.config.save()
-    
+
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.on_dmf_device_changed()
-        
+
     def on_protocol_changed(self):
         if self.app.protocol.name != self.app.config['protocol']['name']:
             self.app.config['protocol']['name'] = self.app.protocol.name

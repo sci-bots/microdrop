@@ -36,8 +36,8 @@ from utility import base_path, Version
 from utility.gui import yesno
 from protocol import Step
 from config import Config
-from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin,\
-        implements, PluginGlobals
+from plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
+                            implements, PluginGlobals)
 import plugin_manager
 from plugin_helpers import AppDataController, get_plugin_info
 from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
@@ -102,7 +102,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         Boolean.named('log_enabled').using( #pylint: disable-msg=E1120
             default=False, optional=True),
         Enum.named('log_level').using( #pylint: disable-msg=E1101, E1120
-            default='info', optional=True 
+            default='info', optional=True
             ).valued('debug', 'info', 'warning', 'error', 'critical'),
     )
 

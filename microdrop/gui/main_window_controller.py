@@ -28,13 +28,14 @@ from flatland import Form, Boolean, Enum
 from pygtkhelpers.proxy import proxy_for
 
 from .dmf_device_view import DmfDeviceView
-from utility import wrap_string, is_float
-from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ScheduleRequest, ILoggingPlugin, emit_signal, \
-    get_service_instance_by_name
-from app_context import get_app
-from logger import logger
-from utility.gui import DEFAULTS
+from ..utility import wrap_string, is_float
+from ..plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
+                              implements, PluginGlobals, ScheduleRequest,
+                              ILoggingPlugin, emit_signal,
+                              get_service_instance_by_name)
+from ..app_context import get_app
+from ..logger import logger
+from ..utility.gui import DEFAULTS
 
 
 class MicroDropError(Exception):
@@ -256,7 +257,7 @@ class MainWindowController(SingletonPlugin):
 
     def on_experiment_log_changed(self, experiment_log):
         if experiment_log:
-            self.label_experiment_id.set_text("Experiment: %s" % 
+            self.label_experiment_id.set_text("Experiment: %s" %
                                               str(experiment_log.experiment_id))
 
     def get_device_string(self, device=None):

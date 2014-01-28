@@ -47,7 +47,6 @@ finally:
 import zmq
 import zmq.utils.strtypes
 import zmq.utils.jsonapi
-import zmq.core.pysocket
 import gobject
 import glib
 import gtk

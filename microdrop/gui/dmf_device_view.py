@@ -36,15 +36,15 @@ from pygst_utils.video_view.gtk_view import GtkVideoView
 from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
 from pygst_utils.elements.draw_queue import DrawQueue
 from geo_util import CartesianSpace
-
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
-from app_context import get_app
 from opencv_helpers.registration_dialog import RegistrationDialog, cv
-from utility.gui import text_entry_dialog
-from utility import is_float
-from logger import logger
-from plugin_manager import emit_signal, IPlugin
+
+from ..app_context import get_app
+from ..utility.gui import text_entry_dialog
+from ..utility import is_float
+from ..logger import logger
+from ..plugin_manager import emit_signal, IPlugin
 
 
 Dims = namedtuple('Dims', 'x y width height')
