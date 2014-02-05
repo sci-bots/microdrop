@@ -75,9 +75,13 @@ class ConfigController(SingletonPlugin):
             service.set_app_values({'device_directory': directory})
         dmf_device_directory = path(directory)
         dmf_device_directory.parent.makedirs_p()
-        devices = get_skeleton_path('devices')
-        if not dmf_device_directory.isdir():
-            devices.copytree(dmf_device_directory)
+        try:
+            devices = get_skeleton_path('devices')
+        except IOError:
+            pass
+        else:
+            if not dmf_device_directory.isdir():
+                devices.copytree(dmf_device_directory)
 
     def on_dmf_device_changed(self):
         device_name = None

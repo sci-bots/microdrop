@@ -143,15 +143,26 @@ class Config():
     def _init_plugins_dir(self):
         if self.data['plugins']['directory'] is None:
             if os.name == 'nt':
-                self.data['plugins']['directory'] = home_dir().joinpath('Microdrop', 'plugins')
+                self.data['plugins']['directory'] = (home_dir()
+                                                     .joinpath('Microdrop',
+                                                               'plugins'))
             else:
-                self.data['plugins']['directory'] = home_dir().joinpath('.microdrop', 'plugins')
+                self.data['plugins']['directory'] = (home_dir()
+                                                     .joinpath('.microdrop',
+                                                               'plugins'))
         plugins_directory = path(self.data['plugins']['directory'])
         plugins_directory.parent.makedirs_p()
-        plugins = get_skeleton_path('plugins')
-        if not plugins_directory.isdir():
-            # Copy plugins directory to app data directory, keeping symlinks
-            # intact.  If we don't keep symlinks as they are, we might end up
-            # with infinite recursion.
-            plugins.copytree(plugins_directory, symlinks=True,
-                ignore=ignore_patterns('*.pyc'))
+        try:
+            plugins = get_skeleton_path('plugins')
+        except IOError:
+            if not plugins_directory.isdir():
+                plugins_directory.makedirs_p()
+        else:
+            if not plugins_directory.isdir():
+                # Copy plugins directory to app data directory, keeping
+                # symlinks intact.  If we don't keep symlinks as they are, we
+                # might end up with infinite recursion.
+                plugins.copytree(plugins_directory, symlinks=True,
+                                 ignore=ignore_patterns('*.pyc'))
+        if not plugins_directory.joinpath('__init__.py').isfile():
+            plugins_directory.joinpath('__init__.py').touch()

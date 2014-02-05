@@ -1,54 +1,51 @@
 from distutils.core import setup
-import py2exe
-import glob
 
-setup(
-    windows= [
-        {
-            "script": "microdrop/microdrop.py", # Main Python script    
-            "icon_resources": [(0, "microdrop.ico")] # Icon to embed into the PE file.
-        }
-    ],
-    # compressed and optimize reduce the size
-    options = {"py2exe": {
-        "compressed": 1,
-        "optimize": 2,
-        "includes": ['atk','gtk','gobject','cairo','gio','pango',
-                    'pangocairo'],
-        "excludes": ['_gtkagg', '_tkagg', 'bsddb', 'curses', 'email',
-            'pywin.debugger','pywin.debugger.dbgcon', 'pywin.dialogs',
-            'tcl', 'Tkconstants', 'Tkinter'],
-        "packages": ["microdrop/hardware.dmf_control_board", "glib._glib"],
-        "dll_excludes": ["API-MS-Win-Core-Debug-L1-1-0.dll",
-            "API-MS-Win-Core-DelayLoad-L1-1-0.dll",
-            "API-MS-Win-Core-ErrorHandling-L1-1-0.dll",
-            "API-MS-Win-Core-File-L1-1-0.dll",
-            "API-MS-Win-Core-Handle-L1-1-0.dll",
-            "API-MS-Win-Core-Heap-L1-1-0.dll",
-            "API-MS-Win-Core-IO-L1-1-0.dll",
-            "API-MS-Win-Core-Interlocked-L1-1-0.dll",
-            "API-MS-Win-Core-LibraryLoader-L1-1-0.dll",
-            "API-MS-Win-Core-LocalRegistry-L1-1-0.dll",
-            "API-MS-Win-Core-Localization-L1-1-0.dll",
-            "API-MS-Win-Core-Misc-L1-1-0.dll",
-            "API-MS-Win-Core-ProcessEnvironment-L1-1-0.dll",
-            "API-MS-Win-Core-ProcessThreads-L1-1-0.dll",
-            "API-MS-Win-Core-Profile-L1-1-0.dll",
-            "API-MS-Win-Core-String-L1-1-0.dll",
-            "API-MS-Win-Core-Synch-L1-1-0.dll",
-            "API-MS-Win-Core-SysInfo-L1-1-0.dll",
-            "DNSAPI.DLL",
-            "MSIMG32.DLL",
-            "NSI.dll",
-            "USP10.DLL"],
-        "bundle_files": 3,
-        "dist_dir": "microdrop",
-        "xref": False,
-        "skip_archive": False,
-        "ascii": False,
-        "custom_boot_script": "",
-        }
-    },
-    data_files=[("microdrop/gui/glade", glob.glob("microdrop/gui/glade/*.*"))]
-)
 
+setup(name='microdrop',
+      version='0.0.1',
+      description='Microdrop is a graphical user interface for the DropBot '
+                  'Digital Microfluidics control system',
+      keywords='digital microfluidics dmf automation dropbot microdrop',
+      author='Ryan Fobel and Christian Fobel',
+      url='http://microfluidics.utoronto.ca/microdrop',
+      license='GPL',
+      long_description='''
+Microdrop is a graphical user interface for the [DropBot][1] digital
+microfluidics control system (described in detail in [Fobel et al., Appl.
+Phys. Lett. 102, 193513 (2013)][2]). If you use this information in work that
+you publish, please cite as appropriate.
+
+[1]: http://microfluidics.utoronto.ca/microdrop
+[2]: http://dx.doi.org/10.1063/1.4807118'''.strip(),
+      packages=['microdrop',
+                'microdrop.gui',
+                'microdrop.gui.textbuffer_with_undo',
+                'microdrop.opencv',
+                'microdrop.svg_model',
+                'microdrop.svg_model.svgload',
+                'microdrop.task_scheduler',
+                'microdrop.tests',
+                'microdrop.update_repository',
+                'microdrop.update_repository.application',
+                'microdrop.update_repository.application.scripts',
+                'microdrop.update_repository.plugins',
+                'microdrop.update_repository.plugins.scripts',
+                'microdrop.update_repository.repository',
+                'microdrop.utility',
+                'microdrop.utility.gui',
+                'microdrop.utility.tests'],
+      package_data={'microdrop.svg_model': ['README', 'LICENSE',
+                                            'circles.svg'],
+                    'microdrop.tests': ['devices/*', 'experiment_logs/*',
+                                        'protocols/*', 'svg_files/*.svg',
+                                        'buildbot/master.cfg'],
+                    'microdrop.opencv': ['videocapture/*.png',
+                                         'videocapture/*.pil',
+                                         'videocapture/*.jpg', 'cvwin/*.dll',
+                                         'cvwin/*.pyd'],
+                    'microdrop.gui.textbuffer_with_undo': ['LICENSE'],
+                    'microdrop.gui': ['glade/*.glade'],
+                    'microdrop.update_repository':
+                    ['config/postgresql/*', 'config/apache/*',
+                     'config/app_data/.empty_file',
+                     'config/plugin_data/.empty_file']})
