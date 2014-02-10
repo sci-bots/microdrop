@@ -23,10 +23,11 @@ from shutil import ignore_patterns
 from path import path
 from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
+from microdrop_utility import base_path
+from microdrop_utility.user_paths import (home_dir, app_data_dir,
+                                          common_app_data_dir)
 
 from .logger import logger
-from .utility import base_path
-from .utility.user_paths import home_dir, app_data_dir, common_app_data_dir
 from .plugin_manager import ExtensionPoint, IPlugin
 
 

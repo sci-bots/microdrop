@@ -32,12 +32,12 @@ import yaml
 
 from plugin_manager import emit_signal, IPlugin, ExtensionPoint
 from logger import logger
-from utility import Version, VersionError, FutureVersionError
+from microdrop_utility import Version, VersionError, FutureVersionError
 
 
 class Protocol():
     class_version = str(Version(0,2))
-    
+
     def __init__(self, name=None):
         self.steps = [Step()]
         self.name = None
@@ -163,7 +163,7 @@ class Protocol():
         # convert plugin data objects to strings
         for k, v in out.plugin_data.items():
             out.plugin_data[k] = yaml.dump(v)
-        
+
         for step in out.steps:
             for k, v in step.plugin_data.items():
                 step.plugin_data[k] = yaml.dump(v)
@@ -234,12 +234,12 @@ class Protocol():
             self.next_step()
         else:
             self.goto_step(self.current_step_number + 1)
-        
+
     def next_repetition(self):
         if self.current_repetition < self.n_repeats - 1:
             self.current_repetition += 1
             self.goto_step(0)
-            
+
     def prev_step(self):
         if self.current_step_number > 0:
             self.goto_step(self.current_step_number - 1)

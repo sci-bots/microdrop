@@ -23,16 +23,17 @@ from collections import namedtuple
 import gtk
 from path import path
 from pygtkhelpers.delegates import SlaveView
+from microdrop_utility.gui import (combobox_set_model_from_list,
+                                   combobox_get_active_text, textview_get_text)
 
 from ..experiment_log import ExperimentLog
-from ..utility.gui import (combobox_set_model_from_list,
-                           combobox_get_active_text, textview_get_text)
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, emit_signal)
 from ..protocol import Protocol
 from ..dmf_device import DmfDevice
 from ..app_context import get_app
 from ..logger import logger
+from .. import glade_path
 
 
 class ExperimentLogColumn():
@@ -48,9 +49,7 @@ class ExperimentLogContextMenu(SlaveView):
     view.
     """
 
-    from ..utility import base_path
-    builder_path = base_path().joinpath('gui', 'glade',
-        'experiment_log_context_menu.glade')
+    builder_path = glade_path().joinpath('experiment_log_context_menu.glade')
 
     def popup(self, event):
         for child in self.menu_popup.get_children():
@@ -70,12 +69,12 @@ class ExperimentLogController(SingletonPlugin):
     implements(IPlugin)
 
     Results = namedtuple('Results', ['log', 'protocol'])
+    builder_path = glade_path().joinpath('experiment_log_window.glade')
 
     def __init__(self):
         self.name = "microdrop.gui.experiment_log_controller"
         self.builder = gtk.Builder()
-        self.builder.add_from_file(os.path.join("gui","glade",
-            "experiment_log_window.glade"))
+        self.builder.add_from_file(self.builder_path)
         self.window = self.builder.get_object("window")
         self.combobox_log_files = self.builder.get_object("combobox_log_files")
         self.results = self.Results(None, None)

@@ -32,8 +32,8 @@ from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 
-from utility import base_path, Version
-from utility.gui import yesno
+from microdrop_utility import base_path, Version
+from microdrop_utility.gui import yesno
 from protocol import Step
 from config import Config
 from plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
@@ -42,7 +42,7 @@ import plugin_manager
 from plugin_helpers import AppDataController, get_plugin_info
 from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
     ERROR, CRITICAL
-from update_repository.application.proxy import AppRepository
+from application_repository.application.proxy import AppRepository
 
 
 PluginGlobals.push_env('microdrop')

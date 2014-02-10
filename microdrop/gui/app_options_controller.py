@@ -31,15 +31,15 @@ from app_context import get_app
 from logger import logger
 from plugin_manager import (IPlugin, SingletonPlugin, implements, IVideoPlugin,
                             ExtensionPoint, emit_signal)
+from .. import glade_path
 
 
 class AppOptionsController:
     def __init__(self):
         app = get_app()
         builder = gtk.Builder()
-        builder.add_from_file(os.path.join("gui",
-                                           "glade",
-                                           "app_options_dialog.glade"))
+        builder.add_from_file(glade_path()
+                              .joinpath("app_options_dialog.glade"))
         self.dialog = builder.get_object("app_options_dialog")
         self.frame_core_plugins = builder.get_object("frame_core_plugins")
         self.core_plugins_vbox = builder.get_object("core_plugins_vbox")

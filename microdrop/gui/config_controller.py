@@ -19,16 +19,13 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 
-import gtk
 from path import path
+from microdrop_utility.user_paths import home_dir
 
 from ..logger import logger
-from ..dmf_device import DmfDevice
-from ..protocol import Protocol
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ExtensionPoint, ScheduleRequest)
 from ..app_context import get_app
-from ..utility.user_paths import home_dir
 from ..config import get_skeleton_path
 
 
@@ -54,7 +51,8 @@ class ConfigController(SingletonPlugin):
                 if hasattr(service, 'set_app_values'):
                     service.set_app_values(values_dict)
                 else:
-                    logger.error('Invalid section in config file: [%s].' % section_name)
+                    logger.error('Invalid section in config file: [%s].' %
+                                 section_name)
                     self.app.config.data.pop(section_name)
         self._init_devices_dir()
 
@@ -105,7 +103,8 @@ class ConfigController(SingletonPlugin):
     def on_app_options_changed(self, plugin_name):
         if self.app is None:
             return
-        logger.debug('[ConfigController] on_app_options_changed: %s' % plugin_name)
+        logger.debug('[ConfigController] on_app_options_changed: %s' %
+                     plugin_name)
         observers = ExtensionPoint(IPlugin)
         service = observers.service(plugin_name)
         if service:

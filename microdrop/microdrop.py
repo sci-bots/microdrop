@@ -18,45 +18,12 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
 import sys
 import multiprocessing
 import traceback
-import logging
 
-from path import path
-
-try:
-    import utility as utility
-except ImportError:
-    sys.path.append(path(__file__).parent)
-    import utility as utility
-import cgi
-import pygtk
-
-# The following imports ensure that the corresponding modules are processed
-# by PyInstaller when generating an EXE.
-try:
-    # this may not be necessary on all systems
-    import pygst
-    pygst.require('0.10')
-except:
-    pass
-finally:
-    import gst
-import zmq
-import zmq.utils.strtypes
-import zmq.utils.jsonapi
-import gobject
-import glib
+import microdrop_utility
 import gtk
-glib.threads_init()
-gobject.threads_init()
-gtk.threads_init()
-import blinker
-import matplotlib
-import utility.uuid_minimal
-import scipy.optimize
 
 settings = gtk.settings_get_default()
 # Use a button ordering more consistent with Windows
@@ -73,14 +40,7 @@ if __name__ == '__main__':
     if hasattr(sys, 'frozen'):
         print 'Enabling multiprocessing freeze support.'
         multiprocessing.freeze_support()
-    utility.PROGRAM_LAUNCHED = True
-    # Change directory to where microdrop.py resides, so this program can be
-    # run from any directory.
-    root_dir = utility.base_path().abspath()
-    from logger import logger
-    logger.info('Root directory: %s' % root_dir)
-    os.chdir(root_dir)
-
+    microdrop_utility.PROGRAM_LAUNCHED = True
     from app import App
     from app_context import get_app
 

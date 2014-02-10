@@ -28,7 +28,7 @@ from math import sqrt
 from logger import logger
 import numpy as np
 import yaml
-from utility import Version, FutureVersionError
+from microdrop_utility import Version, FutureVersionError
 from svg_model.geo_path import Path, ColoredPath, Loop
 from svg_model.svgload.path_parser import LoopTracer, ParseError
 from svg_model.svgload.svg_parser import parse_warning

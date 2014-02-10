@@ -26,8 +26,8 @@ import logging
 import re
 
 from path import path
-
 import task_scheduler
+
 from interfaces import (Plugin, IPlugin, PluginGlobals, ExtensionPoint,
                         IWaveformGenerator, ILoggingPlugin, IVideoPlugin,
                         SingletonPlugin, implements)

@@ -23,13 +23,13 @@ from copy import deepcopy
 import gtk
 from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
                                                         CombinedRow, RowFields)
+from textbuffer_with_undo import UndoableBuffer
+from microdrop_utility.gui import register_shortcuts
 
-from ..utility.gui import register_shortcuts
 from ..plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                               implements, PluginGlobals, ScheduleRequest,
                               emit_signal)
 from ..app_context import get_app
-from .textbuffer_with_undo import UndoableBuffer
 
 
 class ProtocolGridView(CombinedFields):

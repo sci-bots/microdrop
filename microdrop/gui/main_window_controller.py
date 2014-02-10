@@ -18,24 +18,20 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-import sys
-import time
 import webbrowser
 
 import gtk
 gtk.threads_init()
-from flatland import Form, Boolean, Enum
 from pygtkhelpers.proxy import proxy_for
+from microdrop_utility import wrap_string
+from microdrop_utility.gui import DEFAULTS
 
-from .dmf_device_view import DmfDeviceView
-from ..utility import wrap_string, is_float
-from ..plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
-                              implements, PluginGlobals, ScheduleRequest,
-                              ILoggingPlugin, emit_signal,
-                              get_service_instance_by_name)
+from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
+                              PluginGlobals, ScheduleRequest, ILoggingPlugin,
+                              emit_signal, get_service_instance_by_name)
 from ..app_context import get_app
 from ..logger import logger
-from ..utility.gui import DEFAULTS
+from .. import glade_path
 
 
 class MicroDropError(Exception):
@@ -48,6 +44,8 @@ PluginGlobals.push_env('microdrop')
 class MainWindowController(SingletonPlugin):
     implements(IPlugin)
     implements(ILoggingPlugin)
+
+    builder_path = glade_path().joinpath("main_window.glade")
 
     def __init__(self):
         self._shutting_down_latch = False
@@ -64,18 +62,14 @@ class MainWindowController(SingletonPlugin):
         gtk.link_button_set_uri_hook(self.on_url_clicked)
 
         builder = gtk.Builder()
-        builder.add_from_file(os.path.join("gui",
-                              "glade",
-                              "text_input_dialog.glade"))
+        builder.add_from_file(glade_path().joinpath("text_input_dialog.glade"))
         self.text_input_dialog = builder.get_object("window")
         self.text_input_dialog.textentry = builder.get_object("textentry")
         self.text_input_dialog.label = builder.get_object("label")
 
     def on_plugin_enable(self):
         app = get_app()
-        app.builder.add_from_file(os.path.join("gui",
-                                               "glade",
-                                               "main_window.glade"))
+        app.builder.add_from_file(self.builder_path)
         self.view = app.builder.get_object("window")
         DEFAULTS.parent_widget = self.view
         self.label_control_board_status = app.builder.get_object("label_control_board_status")
@@ -100,9 +94,7 @@ class MainWindowController(SingletonPlugin):
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
 
         self.builder = gtk.Builder()
-        self.builder.add_from_file(os.path.join("gui",
-                                                "glade",
-                                                "about_dialog.glade"))
+        self.builder.add_from_file(glade_path().joinpath('about_dialog.glade'))
         app.main_window_controller = self
         self.protocol_list_view = None
 
