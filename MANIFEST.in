@@ -1,0 +1,50 @@
+include README.md
+include setup.py
+include microdrop/__init__.py
+include microdrop/app.py
+include microdrop/app_context.py
+include microdrop/config.py
+include microdrop/dmf_device.py
+include microdrop/experiment_log.py
+include microdrop/interfaces.py
+include microdrop/logger.py
+include microdrop/microdrop.py
+include microdrop/plugin_helpers.py
+include microdrop/plugin_manager.py
+include microdrop/protocol.py
+include microdrop/gui/__init__.py
+include microdrop/gui/app_options_controller.py
+include microdrop/gui/config_controller.py
+include microdrop/gui/dmf_device_controller.py
+include microdrop/gui/dmf_device_view.py
+include microdrop/gui/experiment_log_controller.py
+include microdrop/gui/field_filter_controller.py
+include microdrop/gui/main_window_controller.py
+include microdrop/gui/plugin_download_dialog.py
+include microdrop/gui/plugin_manager_controller.py
+include microdrop/gui/plugin_manager_dialog.py
+include microdrop/gui/protocol_controller.py
+include microdrop/gui/protocol_grid_controller.py
+include microdrop/gui/glade/about_dialog.glade
+include microdrop/gui/glade/app_options_dialog.glade
+include microdrop/gui/glade/configuration_dialog.glade
+include microdrop/gui/glade/dmf_device_view.glade
+include microdrop/gui/glade/dmf_device_view_context_menu.glade
+include microdrop/gui/glade/experiment_log_context_menu.glade
+include microdrop/gui/glade/experiment_log_window.glade
+include microdrop/gui/glade/main_window.glade
+include microdrop/gui/glade/plugin_download_dialog.glade
+include microdrop/gui/glade/plugin_manager_dialog.glade
+include microdrop/gui/glade/text_input_dialog.glade
+include microdrop/tests/__init__.py
+include microdrop/tests/test_dmf_device.py
+include microdrop/tests/test_experiment_log.py
+include microdrop/tests/test_protocol.py
+include microdrop/tests/update_dmf_control_board.py
+include microdrop/tests/buildbot/master.cfg
+recursive-include microdrop/tests/devices *.*
+recursive-include microdrop/tests/experiment_logs *.*
+recursive-include microdrop/tests/protocols *.*
+recursive-include microdrop/tests/svg_files *.*
+include version.py
+include RELEASE-VERSION
