@@ -376,6 +376,15 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 self.save_dmf_device()
 
     def save_dmf_device(self, save_as=False, rename=False):
+        '''
+        Save device configuration.
+
+        If `save_as=True`, we are saving a copy of the current device with a
+        new name.
+
+        If `rename=True`, we are saving the current device with a new name _(no
+        new copy is created)_.
+        '''
         app = get_app()
 
         name = app.dmf_device.name
@@ -388,13 +397,16 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 name = ""
 
         if name:
-            # current file name
+            # Construct the directory name for the current device.
             if app.dmf_device.name:
                 src = os.path.join(app.get_device_directory(),
                                    app.dmf_device.name)
+            # Construct the directory name for the new device _(which is the
+            # same as the current device, if we are not renaming or "saving
+            # as")_.
             dest = os.path.join(app.get_device_directory(), name)
 
-            # if we're renaming, move the old directory
+            # If we're renaming, move the old directory.
             if rename and os.path.isdir(src):
                 if src == dest:
                     return
@@ -404,15 +416,20 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     return
                 shutil.move(src, dest)
 
+            # Create the directory for the new device name, if it doesn't
+            # exist.
             if os.path.isdir(dest) == False:
                 os.mkdir(dest)
 
-            # if the device name has changed
+            # If the device name has changed, update the application device
+            # state.
+            # TODO: Update GUI to reflect updated name.
             if name != app.dmf_device.name:
                 app.dmf_device.name = name
 
-            # save the device
-            app.dmf_device.save(os.path.join(dest,"device"))
+            # Save the device to the new target directory.
+            app.dmf_device.save(os.path.join(dest, "device"))
+            # Reset modified status, since save acts as a checkpoint.
             self.modified = False
 
     def on_step_options_changed(self, plugin_name, step_number):
