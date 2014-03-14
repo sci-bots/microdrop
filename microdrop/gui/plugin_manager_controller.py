@@ -161,7 +161,20 @@ class PluginManagerController(SingletonPlugin):
         plugin_name = plugin_controller.get_plugin_package_name()
         p = PluginRepository(server_url)
         latest_version = Version(**p.latest_version(plugin_name))
-        if plugin_controller.version < latest_version:
+
+        # Check the plugin tag versus the tag of latest version from the
+        # update respository. If they are different, it's a sign that they
+        # the currently installed plugin may be incompatible.
+        if plugin_controller.version.tags != latest_version.tags:
+            if yesno('The currently installed plugin (%s-%s) is from a '
+                     'different branch and may not be compatible with '
+                     'this version of Microdrop. Would you like to download '
+                     'a compatible version?' % (plugin_name,
+                                                plugin_controller.version)
+                     ) == gtk.RESPONSE_YES:
+                return self.download_and_install_plugin(plugin_name,
+                                                        force=force)
+        elif plugin_controller.version < latest_version:
             return self.download_and_install_plugin(plugin_name, force=force)
         else:
             message = 'Plugin %s is up to date (version %s)' % (
@@ -283,7 +296,9 @@ class PluginManagerController(SingletonPlugin):
 
         if installed_metadata:
             logging.info('Currently installed: %s' % (installed_metadata,))
-            if installed_metadata.version >= plugin_metadata.version:
+            if installed_metadata.version.tags == \
+                    plugin_metadata.version.tags and \
+                    installed_metadata.version >= plugin_metadata.version:
                 # Installed version is up-to-date
                 message = ('Plugin %s is up-to-date (version %s).  Skipping '
                            'installation.' % installed_metadata)
