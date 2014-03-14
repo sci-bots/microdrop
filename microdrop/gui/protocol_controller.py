@@ -18,28 +18,22 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-import math
-import time
 import logging
-import re
 import shutil
 
 import gtk
-import gobject
-import numpy as np
+from textbuffer_with_undo import UndoableBuffer
+from microdrop_utility import is_float, is_int, FutureVersionError
+from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
+                                   textentry_validate, text_entry_dialog)
 
-import protocol
-from protocol import Protocol
-from utility import is_float, is_int, FutureVersionError
-from utility.gui import register_shortcuts, textentry_validate,\
-        text_entry_dialog
-from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-        implements, PluginGlobals, ScheduleRequest, emit_signal,\
-        get_service_class, get_service_instance, get_service_instance_by_name,\
-        get_observers
-from gui.textbuffer_with_undo import UndoableBuffer
-from app_context import get_app
-from utility.gui import yesno, contains_pointer
+from ..protocol import Protocol
+from ..plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
+                              implements, PluginGlobals, ScheduleRequest,
+                              emit_signal, get_service_class,
+                              get_service_instance,
+                              get_service_instance_by_name, get_observers)
+from ..app_context import get_app
 
 
 PluginGlobals.push_env('microdrop')
@@ -402,7 +396,7 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def on_step_swapped(self, original_step_number, step_number):
         logging.debug('[ProtocolController.on_step_swapped] '
-                      'original_step_number=%s, step_number=%s' % 
+                      'original_step_number=%s, step_number=%s' %
                       (original_step_number, step_number))
         self._update_labels()
         self.run_step()

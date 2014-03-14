@@ -1,54 +1,42 @@
 from distutils.core import setup
-import py2exe
-import glob
 
-setup(
-    windows= [
-        {
-            "script": "microdrop/microdrop.py", # Main Python script    
-            "icon_resources": [(0, "microdrop.ico")] # Icon to embed into the PE file.
-        }
-    ],
-    # compressed and optimize reduce the size
-    options = {"py2exe": {
-        "compressed": 1,
-        "optimize": 2,
-        "includes": ['atk','gtk','gobject','cairo','gio','pango',
-                    'pangocairo'],
-        "excludes": ['_gtkagg', '_tkagg', 'bsddb', 'curses', 'email',
-            'pywin.debugger','pywin.debugger.dbgcon', 'pywin.dialogs',
-            'tcl', 'Tkconstants', 'Tkinter'],
-        "packages": ["microdrop/hardware.dmf_control_board", "glib._glib"],
-        "dll_excludes": ["API-MS-Win-Core-Debug-L1-1-0.dll",
-            "API-MS-Win-Core-DelayLoad-L1-1-0.dll",
-            "API-MS-Win-Core-ErrorHandling-L1-1-0.dll",
-            "API-MS-Win-Core-File-L1-1-0.dll",
-            "API-MS-Win-Core-Handle-L1-1-0.dll",
-            "API-MS-Win-Core-Heap-L1-1-0.dll",
-            "API-MS-Win-Core-IO-L1-1-0.dll",
-            "API-MS-Win-Core-Interlocked-L1-1-0.dll",
-            "API-MS-Win-Core-LibraryLoader-L1-1-0.dll",
-            "API-MS-Win-Core-LocalRegistry-L1-1-0.dll",
-            "API-MS-Win-Core-Localization-L1-1-0.dll",
-            "API-MS-Win-Core-Misc-L1-1-0.dll",
-            "API-MS-Win-Core-ProcessEnvironment-L1-1-0.dll",
-            "API-MS-Win-Core-ProcessThreads-L1-1-0.dll",
-            "API-MS-Win-Core-Profile-L1-1-0.dll",
-            "API-MS-Win-Core-String-L1-1-0.dll",
-            "API-MS-Win-Core-Synch-L1-1-0.dll",
-            "API-MS-Win-Core-SysInfo-L1-1-0.dll",
-            "DNSAPI.DLL",
-            "MSIMG32.DLL",
-            "NSI.dll",
-            "USP10.DLL"],
-        "bundle_files": 3,
-        "dist_dir": "microdrop",
-        "xref": False,
-        "skip_archive": False,
-        "ascii": False,
-        "custom_boot_script": "",
-        }
-    },
-    data_files=[("microdrop/gui/glade", glob.glob("microdrop/gui/glade/*.*"))]
-)
+import version
 
+
+setup(name='microdrop',
+      version=version.getVersion(),
+      description='Microdrop is a graphical user interface for the DropBot '
+                  'Digital Microfluidics control system',
+      keywords='digital microfluidics dmf automation dropbot microdrop',
+      author='Ryan Fobel and Christian Fobel',
+      author_email='ryan@fobel.net, christian@fobel.net',
+      url='http://microfluidics.utoronto.ca/microdrop',
+      license='GPL',
+      long_description='\n%s\n' % open('README.md', 'rt').read(),
+      packages=['microdrop',
+                'microdrop.gui',
+                'microdrop.tests'],
+      package_data={'microdrop.tests': ['devices/*', 'experiment_logs/*',
+                                        'protocols/*', 'svg_files/*.svg',
+                                        'buildbot/master.cfg'],
+                    'microdrop.gui': ['glade/*.glade']},
+      install_requires=['blinker', 'path', 'ipython', 'pyutilib', 'pyparsing',
+                        'configobj', 'pyyaml', 'pyzmq', 'opencv-helpers',
+                        'pygst-utils', 'geo-util', 'pygtkhelpers',
+                        'labix-constraint', 'jsonrpc', 'flatland',
+                        'microdrop_utility', 'svg_model', 'task_scheduler',
+                        'application_repository',
+                        'pygtk_textbuffer_with_undo'],
+      dependency_links=['http://microfluidics.utoronto.ca/git/python___path.git/snapshot/da43890764f1ee508fe6c32582acd69b87240365.zip#egg=path-dev',
+                        'https://github.com/cfobel/opencv_helpers/tarball/master#egg=opencv-helpers-dev',
+                        'git+https://github.com/cfobel/pygst_utils.git@zeromq#egg=pygst-utils-dev',
+                        'git+https://github.com/cfobel/microdrop_utility.git@master#egg=microdrop-utility-dev',
+                        'git+https://github.com/cfobel/pygtk_textbuffer_with_undo.git@master#egg=pygtk-textbuffer-with-undo-dev',
+                        'git+https://github.com/cfobel/application_repository.git@master#egg=application-repository-dev',
+                        'git+https://github.com/cfobel/task_scheduler.git@master#egg=task-scheduler-dev',
+                        'git+https://github.com/cfobel/svg_model.git@master#egg=svg-model-dev',
+                        'https://github.com/cfobel/python___geo_util/tarball/master#egg=geo-util-dev',
+                        'https://github.com/cfobel/pygtkhelpers/tarball/pre_object_tree#egg=pygtkhelpers-dev',
+                        'https://github.com/cfobel/python___labix_constraint/tarball/master#egg=labix-constraint-dev',
+                        'https://github.com/cfobel/python-jsonrpc/tarball/master#egg=jsonrpc-dev',
+                        'http://microfluidics.utoronto.ca/git/python___flatland.git/snapshot/master.zip#egg=flatland-dev'])

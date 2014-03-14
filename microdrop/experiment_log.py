@@ -29,7 +29,7 @@ import numpy as np
 from path import path
 import yaml
 
-from utility import is_int, Version, VersionError, FutureVersionError
+from microdrop_utility import is_int, Version, VersionError, FutureVersionError
 from logger import logger
 
 
@@ -90,7 +90,7 @@ class ExperimentLog():
         logger.debug("[ExperimentLog].load() loaded in %f s." % \
                      (time.time()-start_time))
         return out
-    
+
     def __init__(self, directory=None):
         self.directory = directory
         self.data = []
@@ -142,13 +142,13 @@ class ExperimentLog():
             self.data = new_data
             self.version = str(Version(0,1,0))
         # else the versions are equal and don't need to be upgraded
-        
+
     def save(self, filename=None, format='pickle'):
         if filename==None:
             log_path = self.get_log_path()
             filename = os.path.join(log_path,"data")
         else:
-            log_path = path(filename).parent 
+            log_path = path(filename).parent
 
         if self.data:
             out = deepcopy(self)
@@ -186,7 +186,7 @@ class ExperimentLog():
         return log_path
 
     def add_step(self, step_number, attempt=0):
-        self.data.append({'core':{'step': step_number, 
+        self.data.append({'core':{'step': step_number,
                          'time': time.time() - self.start_time(),
                          'attempt': attempt}})
 

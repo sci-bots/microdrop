@@ -21,18 +21,18 @@ import logging
 
 import gtk
 from pygtkhelpers.ui.list_select import ListSelectView
-from path import path
+from application_repository.plugins.proxy import PluginRepository
 
-from update_repository.plugins.proxy import PluginRepository
 from app_context import get_app
 from plugin_manager import get_service_instance_by_name
+from .. import glade_path
 
 
 class PluginDownloadDialog(object):
     def __init__(self):
         builder = gtk.Builder()
-        builder.add_from_file(path('gui').joinpath('glade',
-                'plugin_download_dialog.glade'))
+        builder.add_from_file(glade_path()
+                              .joinpath('plugin_download_dialog.glade'))
         self.window = builder.get_object('plugin_manager')
         self.vbox_plugins = builder.get_object('vbox_plugins')
         self.list_select_view = None

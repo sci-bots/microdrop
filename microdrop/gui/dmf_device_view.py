@@ -20,11 +20,6 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 from collections import namedtuple
 from datetime import datetime
-import time
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 import gtk
 import gobject
@@ -36,15 +31,16 @@ from pygst_utils.video_view.gtk_view import GtkVideoView
 from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
 from pygst_utils.elements.draw_queue import DrawQueue
 from geo_util import CartesianSpace
-
 from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
-from app_context import get_app
 from opencv_helpers.registration_dialog import RegistrationDialog, cv
-from utility.gui import text_entry_dialog
-from utility import is_float
-from logger import logger
-from plugin_manager import emit_signal, IPlugin
+from microdrop_utility.gui import text_entry_dialog
+from microdrop_utility import is_float
+
+from ..app_context import get_app
+from ..logger import logger
+from ..plugin_manager import emit_signal, IPlugin
+from .. import base_path
 
 
 Dims = namedtuple('Dims', 'x y width height')
@@ -59,7 +55,6 @@ class ElectrodeContextMenu(SlaveView):
     selected from the menu.
     '''
 
-    from utility import base_path
     builder_path = base_path().joinpath('gui', 'glade',
         'dmf_device_view_context_menu.glade')
 
@@ -156,7 +151,6 @@ class DmfDeviceView(GtkVideoView):
     a channel has changed as a result of interaction with the device
     view.
     '''
-    from utility import base_path
     builder_path = base_path().joinpath('gui', 'glade', 'dmf_device_view.glade')
 
     gsignal('channel-state-changed', object)
@@ -411,9 +405,12 @@ class DeviceRegistrationDialog(RegistrationDialog):
         self.video_image = video_image
 
     def get_glade_path(self):
-        from utility import base_path
+        assert(False)  # See TODO.
+        # TODO: Add `base_path` function to `opencv_helpers` and use it's path,
+        # since `opencv_helpers` does not belong to `microdrop` package
+        # anymore, so the following line is broken!
         return base_path().joinpath('opencv_helpers', 'glade',
-                'registration_demo.glade')
+                                    'registration_demo.glade')
 
     def get_original_image(self):
         return self.device_image

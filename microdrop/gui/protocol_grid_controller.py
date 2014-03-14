@@ -17,31 +17,19 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
-import math
-import time
 import logging
-from StringIO import StringIO
-from contextlib import closing
-import re
 from copy import deepcopy
 
-import numpy as np
 import gtk
-import yaml
-import gobject
-from path import path
+from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
+                                                        CombinedRow, RowFields)
+from textbuffer_with_undo import UndoableBuffer
+from microdrop_utility.gui import register_shortcuts
 
-import protocol
-from protocol import Protocol
-from utility import is_float, is_int
-from utility.gui import textentry_validate, register_shortcuts
-from pygtkhelpers.ui.objectlist.combined_fields import CombinedFields,\
-        CombinedRow, RowFields
-from plugin_manager import ExtensionPoint, IPlugin, SingletonPlugin, \
-    implements, PluginGlobals, ScheduleRequest, emit_signal
-from gui.textbuffer_with_undo import UndoableBuffer
-from app_context import get_app
+from ..plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
+                              implements, PluginGlobals, ScheduleRequest,
+                              emit_signal)
+from ..app_context import get_app
 
 
 class ProtocolGridView(CombinedFields):
@@ -120,7 +108,7 @@ class ProtocolGridView(CombinedFields):
         app.cut_steps(self.selected_ids)
 
     def select_row(self, row):
-        if row not in self.selected_ids:        
+        if row not in self.selected_ids:
             self.set_cursor(row)
 
     def on_row_changed(self, list_, row_id, row, field_name, value):
@@ -161,7 +149,7 @@ PluginGlobals.push_env('microdrop')
 
 class ProtocolGridController(SingletonPlugin):
     implements(IPlugin)
-    
+
     def __init__(self):
         self.name = "microdrop.gui.protocol_grid_controller"
         self.builder = None
@@ -188,14 +176,14 @@ class ProtocolGridController(SingletonPlugin):
 
     def on_plugin_enabled(self, env, plugin):
         self.update_grid()
-        
+
     def on_plugin_disabled(self, env, plugin):
         self.update_grid()
-        
+
     def test(self, *args, **kwargs):
         print 'args=%s, kwargs=%s' % (args, kwargs)
         print 'attrs=%s' % args[1].attrs
-    
+
     def on_step_options_changed(self, plugin, step_number):
         if self.widget is None:
             return
@@ -222,7 +210,7 @@ class ProtocolGridController(SingletonPlugin):
 
         steps = protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
-            
+
         if self.enabled_fields is None:
             # Assign directly to _enabled_fields to avoid recursive call into
             # update_grid()

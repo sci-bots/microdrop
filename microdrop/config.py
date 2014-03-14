@@ -23,10 +23,12 @@ from shutil import ignore_patterns
 from path import path
 from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
+from microdrop_utility import base_path
+from microdrop_utility.user_paths import (home_dir, app_data_dir,
+                                          common_app_data_dir)
 
-from logger import logger
-from utility.user_paths import home_dir, app_data_dir, common_app_data_dir
-from plugin_manager import ExtensionPoint, IPlugin
+from .logger import logger
+from .plugin_manager import ExtensionPoint, IPlugin
 
 
 def get_skeleton_path(dir_name):
@@ -38,7 +40,7 @@ def get_skeleton_path(dir_name):
                             % dir_name)
             source_dir = path(dir_name)
     else:
-        source_dir = path(dir_name)
+        source_dir = base_path().joinpath('share', dir_name)
     if not source_dir.isdir():
         raise IOError, '%s/ directory not available.' % source_dir
     return source_dir
@@ -67,7 +69,7 @@ class Config():
         [plugins]
         # directory containing microdrop plugins
         directory = string(default=None)
-        
+
         # list of enabled plugins
         enabled = string_list(default=list())
         """
@@ -133,7 +135,7 @@ class Config():
                     logger.error('The "%s" key in the section "%s" failed '
                                  'validation' % (key, ', '.join(section_list)))
                 else:
-                    logger.error('The following section was missing:%s ' % 
+                    logger.error('The following section was missing:%s ' %
                                  ', '.join(section_list))
             raise ValidationError
         self.data.filename = self.filename
@@ -142,15 +144,26 @@ class Config():
     def _init_plugins_dir(self):
         if self.data['plugins']['directory'] is None:
             if os.name == 'nt':
-                self.data['plugins']['directory'] = home_dir().joinpath('Microdrop', 'plugins')
+                self.data['plugins']['directory'] = (home_dir()
+                                                     .joinpath('Microdrop',
+                                                               'plugins'))
             else:
-                self.data['plugins']['directory'] = home_dir().joinpath('.microdrop', 'plugins')
-        plugins_directory = path(self.data['plugins']['directory'])            
+                self.data['plugins']['directory'] = (home_dir()
+                                                     .joinpath('.microdrop',
+                                                               'plugins'))
+        plugins_directory = path(self.data['plugins']['directory'])
         plugins_directory.parent.makedirs_p()
-        plugins = get_skeleton_path('plugins')
-        if not plugins_directory.isdir():
-            # Copy plugins directory to app data directory, keeping symlinks
-            # intact.  If we don't keep symlinks as they are, we might end up
-            # with infinite recursion.
-            plugins.copytree(plugins_directory, symlinks=True,
-                ignore=ignore_patterns('*.pyc'))
+        try:
+            plugins = get_skeleton_path('plugins')
+        except IOError:
+            if not plugins_directory.isdir():
+                plugins_directory.makedirs_p()
+        else:
+            if not plugins_directory.isdir():
+                # Copy plugins directory to app data directory, keeping
+                # symlinks intact.  If we don't keep symlinks as they are, we
+                # might end up with infinite recursion.
+                plugins.copytree(plugins_directory, symlinks=True,
+                                 ignore=ignore_patterns('*.pyc'))
+        if not plugins_directory.joinpath('__init__.py').isfile():
+            plugins_directory.joinpath('__init__.py').touch()

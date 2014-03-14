@@ -16,10 +16,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-import plugin_manager
-
-
 def get_app():
+    import plugin_manager
+
     class_ = plugin_manager.get_service_class('App', env='microdrop')
     return plugin_manager.get_service_instance(class_, env='microdrop')

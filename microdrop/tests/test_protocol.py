@@ -2,7 +2,7 @@ from path import path
 from nose.tools import raises
 
 from protocol import Protocol
-from utility import Version
+from microdrop_utility import Version
 
 def test_load_protocol():
     """

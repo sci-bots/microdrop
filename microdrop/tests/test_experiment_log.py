@@ -2,7 +2,7 @@ from path import path
 from nose.tools import raises
 
 from experiment_log import ExperimentLog
-from utility import Version
+from microdrop_utility import Version
 
 def test_load_experiment_log():
     """

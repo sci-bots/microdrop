@@ -31,19 +31,22 @@ from path import path
 import yaml
 from flatland import Form, String
 from jsonrpc.proxy import JSONRPCException
+from application_repository.plugins.proxy import PluginRepository
+from microdrop_utility import Version
+from microdrop_utility.gui import yesno
 
-from gui.plugin_download_dialog import PluginDownloadDialog
-from update_repository.plugins.proxy import PluginRepository
-from app_context import get_app
-from utility import Version
-from utility.gui import yesno
-from plugin_manager import get_service_instance_by_name, get_plugin_package_name
+from ..gui.plugin_download_dialog import PluginDownloadDialog
+from ..app_context import get_app
+from ..plugin_manager import (get_service_instance_by_name,
+                              get_plugin_package_name)
+from .. import glade_path
 
 
 class PluginManagerDialog(object):
     def __init__(self):
         builder = gtk.Builder()
-        builder.add_from_file(path('gui').joinpath('glade', 'plugin_manager_dialog.glade'))
+        builder.add_from_file(glade_path()
+                              .joinpath('plugin_manager_dialog.glade'))
         self.window = builder.get_object('plugin_manager')
         self.vbox_plugins = builder.get_object('vbox_plugins')
         builder.connect_signals(self)

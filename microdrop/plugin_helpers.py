@@ -8,8 +8,8 @@ from app_context import get_app
 from logger import logger
 from plugin_manager import IPlugin, ExtensionPoint, emit_signal,\
         get_service_instance_by_name
-from utility import Version
-from utility.git_util import GitUtil
+from microdrop_utility import Version
+from microdrop_utility.git_util import GitUtil
 
 
 PluginMetaData = namedtuple('PluginMetaData',
@@ -54,9 +54,9 @@ class AppDataController(object):
         app = get_app()
         defaults = self.get_default_app_options()
 
-        # update app data from config file        
+        # update app data from config file
         if self.name in app.config.data:
-            self.set_app_values(app.config.data[self.name])        
+            self.set_app_values(app.config.data[self.name])
 
         data = app.get_data(self.name)
         for k, v in defaults.items():
@@ -66,7 +66,7 @@ class AppDataController(object):
 
         if not self.name in app.config.data:
             app.config.data[self.name] = self.get_app_values()
-    
+
     def get_default_app_options(self):
         return dict([(k, v.value) for k,v in self.AppFields.from_defaults().iteritems()])
 
@@ -175,7 +175,7 @@ class StepOptionsController(object):
             if field.value is None:
                 continue
             values[name] = field.value
-        
+
         if values:
             app = get_app()
             step = app.protocol.steps[step_number]

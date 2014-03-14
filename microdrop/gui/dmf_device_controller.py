@@ -32,31 +32,32 @@ gtk.threads_init()
 gtk.gdk.threads_init()
 import numpy as np
 from flatland import Form, Integer, String, Boolean
-from utility.gui import yesno
 from path import path
 import yaml
 from pygtkhelpers.ui.extra_widgets import Directory, Enum
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
 from pygst_utils.video_source import GstVideoSourceManager
+from microdrop_utility.gui import yesno
+from microdrop_utility import copytree
 
-from dmf_device_view import DmfDeviceView
-from dmf_device import DmfDevice
-from plugin_manager import IPlugin, SingletonPlugin, implements, PluginGlobals,\
-        ScheduleRequest, emit_signal
-from app_context import get_app
-from logger import logger
-from plugin_helpers import AppDataController
-from utility import copytree
+from ..app_context import get_app
+from ..dmf_device import DmfDevice
+from ..logger import logger
+from ..plugin_helpers import AppDataController
+from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
+                              PluginGlobals, ScheduleRequest, emit_signal)
+from .dmf_device_view import DmfDeviceView
 
 
 PluginGlobals.push_env('microdrop')
+
 
 class DmfDeviceOptions(object):
     def __init__(self, state_of_channels=None):
         app = get_app()
         if state_of_channels is None:
-            self.state_of_channels = np.zeros(app.dmf_device.max_channel()+1)
+            self.state_of_channels = np.zeros(app.dmf_device.max_channel() + 1)
         else:
             self.state_of_channels = deepcopy(state_of_channels)
 
@@ -78,15 +79,16 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         Integer.named('overlay_opacity').using(default=50, optional=True),
         Directory.named('device_directory').using(default='', optional=True),
         String.named('transform_matrix').using(default='', optional=True,
-                properties={'show_in_gui': False}), ]
+                                               properties={'show_in_gui':
+                                                           False}), ]
 
     if _video_available:
-        video_mode_enum = Enum.named('video_mode').valued(*video_mode_keys
-                ).using(default=video_mode_keys[0], optional=True)
-        video_enabled_boolean = Boolean.named('video_enabled').using(default=False, optional=True,
-                properties={'show_in_gui': True})
+        video_mode_enum = Enum.named('video_mode').valued(
+            *video_mode_keys).using(default=video_mode_keys[0], optional=True)
+        video_enabled_boolean = Boolean.named('video_enabled').using(
+            default=False, optional=True, properties={'show_in_gui': True})
         recording_enabled_boolean = Boolean.named('recording_enabled').using(
-                default=False, optional=True, properties={'show_in_gui': False})
+            default=False, optional=True, properties={'show_in_gui': False})
         field_list.append(video_mode_enum)
         field_list.append(video_enabled_boolean)
         field_list.append(recording_enabled_boolean)
@@ -123,7 +125,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     @video_enabled.setter
     def video_enabled(self, value):
         if not self._video_available and value:
-            raise ValueError, 'Video cannot be enabled with no sources.'
+            raise ValueError('Video cannot be enabled with no sources.')
         self._video_enabled = value
 
     def on_video_started(self, device_view, start_time):
@@ -220,16 +222,18 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                     bitrate = None
                     record_path = None
                 self.view._initialize_video(str(selected_mode['device']),
-                        str(caps_str), record_path=record_path, bitrate=bitrate)
-                self.set_app_values(
-                    dict(transform_matrix=self.get_app_value('transform_matrix')))
+                                            str(caps_str),
+                                            record_path=record_path,
+                                            bitrate=bitrate)
+                self.set_app_values({'transform_matrix':
+                                     self.get_app_value('transform_matrix')})
                 if self.recording_enabled:
                     self._recording = True
             else:
                 x, y, width, height = self.view.widget.get_allocation()
                 self.view._initialize_video('',
-                        'video/x-raw-yuv,width={},height={}'.format(
-                                width, height))
+                                            'video/x-raw-yuv,width={},height={}'
+                                            .format(width, height))
                 self._video_initialized = True
         return True
 
@@ -345,9 +349,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def load_device(self, filename):
         app = get_app()
-        self.modified=False
+        self.modified = False
         device = app.dmf_device
         try:
+            logger.info('[DmfDeviceController].load_device: %s' % filename)
             device = DmfDevice.load(str(filename))
             if path(filename).parent.parent != app.get_device_directory():
                 logger.info('[DmfDeviceController].load_device: '

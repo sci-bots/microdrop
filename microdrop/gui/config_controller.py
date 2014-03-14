@@ -19,17 +19,14 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 
-import gtk
 from path import path
+from microdrop_utility.user_paths import home_dir
 
-from logger import logger
-from dmf_device import DmfDevice
-from protocol import Protocol
-from plugin_manager import IPlugin, SingletonPlugin, implements, \
-    PluginGlobals, ExtensionPoint, ScheduleRequest
-from app_context import get_app
-from utility.user_paths import home_dir
-from config import get_skeleton_path
+from ..logger import logger
+from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
+                              PluginGlobals, ExtensionPoint, ScheduleRequest)
+from ..app_context import get_app
+from ..config import get_skeleton_path
 
 
 PluginGlobals.push_env('microdrop')
@@ -37,7 +34,7 @@ PluginGlobals.push_env('microdrop')
 
 class ConfigController(SingletonPlugin):
     implements(IPlugin)
-        
+
     def __init__(self):
         self.name = "microdrop.gui.config_controller"
         self.app = None
@@ -54,13 +51,14 @@ class ConfigController(SingletonPlugin):
                 if hasattr(service, 'set_app_values'):
                     service.set_app_values(values_dict)
                 else:
-                    logger.error('Invalid section in config file: [%s].' % section_name)
+                    logger.error('Invalid section in config file: [%s].' %
+                                 section_name)
                     self.app.config.data.pop(section_name)
         self._init_devices_dir()
 
     def on_app_exit(self):
         self.app.config.save()
-        
+
     def _init_devices_dir(self):
         app = get_app()
         directory = app.get_device_directory()
@@ -75,10 +73,14 @@ class ConfigController(SingletonPlugin):
             service.set_app_values({'device_directory': directory})
         dmf_device_directory = path(directory)
         dmf_device_directory.parent.makedirs_p()
-        devices = get_skeleton_path('devices')
-        if not dmf_device_directory.isdir():
-            devices.copytree(dmf_device_directory)
-                    
+        try:
+            devices = get_skeleton_path('devices')
+        except IOError:
+            pass
+        else:
+            if not dmf_device_directory.isdir():
+                devices.copytree(dmf_device_directory)
+
     def on_dmf_device_changed(self):
         device_name = None
         if self.app.dmf_device:
@@ -86,10 +88,10 @@ class ConfigController(SingletonPlugin):
         if self.app.config['dmf_device']['name'] != device_name:
             self.app.config['dmf_device']['name'] = device_name
             self.app.config.save()
-    
+
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.on_dmf_device_changed()
-        
+
     def on_protocol_changed(self):
         if self.app.protocol.name != self.app.config['protocol']['name']:
             self.app.config['protocol']['name'] = self.app.protocol.name
@@ -101,7 +103,8 @@ class ConfigController(SingletonPlugin):
     def on_app_options_changed(self, plugin_name):
         if self.app is None:
             return
-        logger.debug('[ConfigController] on_app_options_changed: %s' % plugin_name)
+        logger.debug('[ConfigController] on_app_options_changed: %s' %
+                     plugin_name)
         observers = ExtensionPoint(IPlugin)
         service = observers.service(plugin_name)
         if service:

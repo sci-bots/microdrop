@@ -28,7 +28,7 @@ from math import sqrt
 from logger import logger
 import numpy as np
 import yaml
-from utility import Version, FutureVersionError
+from microdrop_utility import Version, FutureVersionError
 from svg_model.geo_path import Path, ColoredPath, Loop
 from svg_model.svgload.path_parser import LoopTracer, ParseError
 from svg_model.svgload.svg_parser import parse_warning
@@ -50,11 +50,11 @@ class DmfDevice():
         self.y_max = 0
         self.name = None
         self.scale = None
-        self.path_group = None
+        self.path_group = None  # svg_model.path_group.PathGroup
         self.version = self.class_version
         self.body_group = None
-        self.electrode_name_map = None
-        self.name_electrode_map = None
+        self.electrode_name_map = {}
+        self.name_electrode_map = {}
 
     def init_body_group(self):
         if self.path_group is None:
@@ -91,7 +91,7 @@ class DmfDevice():
         for p in path_group.paths.values():
             if p.color is None:
                 p.color = (0, 0, 255)
-            
+
             # If the first and last vertices in a loop are too close together,
             # it can cause tessellation to fail (Ticket # 106).
             for loop in p.loops:
@@ -146,9 +146,9 @@ class DmfDevice():
         if out==None:
             raise TypeError
         # check type
-        if not isinstance(out, cls):
-            print out.__class__, cls
-            raise TypeError
+        #if not isinstance(out, cls):
+            #print out.__class__, cls
+            #raise TypeError
         if not hasattr(out, 'version'):
             out.version = '0'
         out._upgrade()
@@ -171,7 +171,7 @@ class DmfDevice():
         if version > Version.fromstring(self.class_version):
             logger.debug('[DmfDevice] version>class_version')
             raise FutureVersionError
-        elif version < Version.fromstring(self.class_version): 
+        elif version < Version.fromstring(self.class_version):
             if version < Version(0,1):
                 self.version = str(Version(0,1))
                 self.scale = None
@@ -245,7 +245,7 @@ class DmfDevice():
                     raise TypeError
         finally:
             self.body_group = body_group
-        
+
     def get_bounding_box(self):
         return self.path_group.get_bounding_box()
 
@@ -264,14 +264,14 @@ class DmfDevice():
         path.append({'command':'L','x':x,'y':y+height})
         path.append({'command':'Z'})
         return self.add_electrode_path(path)
-    
+
     def max_channel(self):
         max_channel = 0
         for electrode in self.electrodes.values():
             if electrode.channels and max(electrode.channels) > max_channel:
                 max_channel = max(electrode.channels)
         return max_channel
-        
+
 class Electrode:
     next_id = 0
     def __init__(self, path):
