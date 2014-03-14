@@ -1,5 +1,3 @@
-import os
-
 from path import path
 
 

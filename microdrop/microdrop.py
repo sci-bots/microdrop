@@ -19,10 +19,8 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import sys
-import multiprocessing
 import traceback
 
-import microdrop_utility
 import gtk
 
 settings = gtk.settings_get_default()
@@ -36,14 +34,10 @@ def except_handler(*args, **kwargs):
     traceback.print_tb(args[2])
 
 
-if __name__ == '__main__':
-    if hasattr(sys, 'frozen'):
-        print 'Enabling multiprocessing freeze support.'
-        multiprocessing.freeze_support()
-    microdrop_utility.PROGRAM_LAUNCHED = True
+if __name__ == "__main__":
     from app import App
     from app_context import get_app
-
+    
     my_app = get_app()
     sys.excepthook = except_handler
     my_app.run()

@@ -23,3 +23,5 @@ warnmicrodrop.txt
 *.wxs
 microdrop/plugins/*.yml
 RELEASE-VERSION
+.settings/
+src/
