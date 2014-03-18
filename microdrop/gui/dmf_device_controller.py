@@ -355,12 +355,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
             logger.info('[DmfDeviceController].load_device: %s' % filename)
             device = DmfDevice.load(str(filename))
             if path(filename).parent.parent != app.get_device_directory():
-                logger.info('[DmfDeviceController].load_device: '
-                             'Import new device.')
-                self.modified=True
+                logger.info('[DmfDeviceController].load_device: Import new '
+                            'device.')
+                self.modified = True
             else:
-                logger.info('[DmfDeviceController].load_device: '
-                             'load existing device.')
+                logger.info('[DmfDeviceController].load_device: load existing '
+                            'device.')
             emit_signal("on_dmf_device_swapped", [app.dmf_device,
                                                   device])
         except Exception, e:
@@ -370,16 +370,25 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def save_check(self):
         app = get_app()
         if self.modified:
-            result = yesno('Device %s has unsaved changes.  Save now?'\
-                    % app.dmf_device.name)
+            result = yesno('Device %s has unsaved changes.  Save now?' %
+                           app.dmf_device.name)
             if result == gtk.RESPONSE_YES:
                 self.save_dmf_device()
 
     def save_dmf_device(self, save_as=False, rename=False):
+        '''
+        Save device configuration.
+
+        If `save_as=True`, we are saving a copy of the current device with a
+        new name.
+
+        If `rename=True`, we are saving the current device with a new name _(no
+        new copy is created)_.
+        '''
         app = get_app()
 
         name = app.dmf_device.name
-        # if the device has no name, try to get one
+        # If the device has no name, try to get one.
         if save_as or rename or name is None:
             if name is None:
                 name = ""
@@ -388,13 +397,16 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 name = ""
 
         if name:
-            # current file name
+            # Construct the directory name for the current device.
             if app.dmf_device.name:
                 src = os.path.join(app.get_device_directory(),
                                    app.dmf_device.name)
+            # Construct the directory name for the new device _(which is the
+            # same as the current device, if we are not renaming or "saving
+            # as")_.
             dest = os.path.join(app.get_device_directory(), name)
 
-            # if we're renaming, move the old directory
+            # If we're renaming, move the old directory.
             if rename and os.path.isdir(src):
                 if src == dest:
                     return
@@ -404,15 +416,21 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     return
                 shutil.move(src, dest)
 
-            if os.path.isdir(dest) == False:
+            # Create the directory for the new device name, if it doesn't
+            # exist.
+            if not os.path.isdir(dest):
                 os.mkdir(dest)
 
-            # if the device name has changed
+            # If the device name has changed, update the application device
+            # state.
             if name != app.dmf_device.name:
                 app.dmf_device.name = name
+                # Update GUI to reflect updated name.
+                app.main_window_controller.update_device_name_label()
 
-            # save the device
-            app.dmf_device.save(os.path.join(dest,"device"))
+            # Save the device to the new target directory.
+            app.dmf_device.save(os.path.join(dest, "device"))
+            # Reset modified status, since save acts as a checkpoint.
             self.modified = False
 
     def on_step_options_changed(self, plugin_name, step_number):
@@ -421,8 +439,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
         If the change was to options affecting this plugin, update state.
         '''
         app = get_app()
-        if app.protocol.current_step_number == step_number\
-                and plugin_name == self.name:
+        if (app.protocol.current_step_number == step_number and plugin_name ==
+                self.name):
             self._update()
 
     def on_step_swapped(self, old_step_number, step_number):
@@ -448,21 +466,25 @@ directory)?''' % (device_directory, self.previous_device_dir))
         for id, electrode in app.dmf_device.electrodes.iteritems():
             channels = app.dmf_device.electrodes[id].channels
             if channels:
-                # get the state(s) of the channel(s) connected to this electrode
+                # Get the state(s) of the channel(s) connected to this
+                # electrode.
                 states = state_of_channels[channels]
 
-                # if all of the states are the same
+                # If all of the states are the same.
                 if len(np.nonzero(states == states[0])[0]) == len(states):
                     if states[0] > 0:
-                        self.view.electrode_color[id] = (1,1,1)
+                        self.view.electrode_color[id] = (1, 1, 1)
                     else:
                         color = app.dmf_device.electrodes[id].path.color
-                        self.view.electrode_color[id] = [c / 255. for c in color]
+                        self.view.electrode_color[id] = [c / 255.
+                                                         for c in color]
                 else:
-                    #TODO: this could be used for resistive heating
+                    # TODO: This could be used for resistive heating.
                     logger.error("not supported yet")
             else:
-                self.view.electrode_color[id] = (1,0,0)
+                # Assign the color _red_ to any electrode that has no assigned
+                # channels.
+                self.view.electrode_color[id] = (1, 0, 0)
         self.view.update_draw_queue()
 
     def get_schedule_requests(self, function_name):
@@ -476,7 +498,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     ScheduleRequest('microdrop.gui.main_window_controller',
                                     self.name)]
         elif function_name == 'on_dmf_device_swapped':
-            return [ScheduleRequest('microdrop.app', self.name),]
+            return [ScheduleRequest('microdrop.app', self.name)]
         return []
 
     # GUI callbacks
