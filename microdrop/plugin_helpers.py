@@ -1,7 +1,7 @@
 import re
 from collections import namedtuple
 
-from path import path
+from path_helpers import path
 import yaml
 
 from app_context import get_app

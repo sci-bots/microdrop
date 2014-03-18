@@ -1,6 +1,6 @@
 import os
 
-from path import path
+from path_helpers import path
 
 
 def path_find(filename):

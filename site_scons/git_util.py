@@ -2,7 +2,7 @@ import os
 from subprocess import Popen, PIPE, check_call, CalledProcessError
 import re
 
-from path import path
+from path_helpers import path
 
 
 class GitError(Exception):

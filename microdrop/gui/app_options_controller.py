@@ -22,13 +22,13 @@ from copy import deepcopy
 import re
 
 import gtk
-from path import path
+from path_helpers import path
 from pygtkhelpers.proxy import proxy_for
 from pygtkhelpers.forms import FormView
 from flatland.schema import Form
 
 from app_context import get_app
-from logger import logger
+from ..logger import logger
 from plugin_manager import (IPlugin, SingletonPlugin, implements, IVideoPlugin,
                             ExtensionPoint, emit_signal)
 from .. import glade_path

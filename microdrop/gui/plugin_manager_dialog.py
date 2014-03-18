@@ -27,7 +27,7 @@ from collections import namedtuple
 
 import gtk
 from pygtkhelpers.ui.dialogs import open_filechooser, info
-from path import path
+from path_helpers import path
 import yaml
 from flatland import Form, String
 from jsonrpc.proxy import JSONRPCException

@@ -32,7 +32,7 @@ gtk.threads_init()
 gtk.gdk.threads_init()
 import numpy as np
 from flatland import Form, Integer, String, Boolean
-from path import path
+from path_helpers import path
 import yaml
 from pygtkhelpers.ui.extra_widgets import Directory, Enum
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog

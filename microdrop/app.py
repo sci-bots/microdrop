@@ -23,7 +23,7 @@ import re
 
 import gtk
 gtk.gdk.threads_init()
-from path import path
+from path_helpers import path
 import yaml
 import webbrowser
 from jsonrpc.proxy import JSONRPCException
@@ -49,14 +49,14 @@ PluginGlobals.push_env('microdrop')
 
 
 # these imports automatically load (and initialize) core singleton plugins
-import gui.experiment_log_controller
-import gui.config_controller
-import gui.main_window_controller
-import gui.dmf_device_controller
-import gui.protocol_controller
-import gui.protocol_grid_controller
-import gui.plugin_manager_controller
-import gui.app_options_controller
+from .gui import experiment_log_controller
+from .gui import config_controller
+from .gui import main_window_controller
+from .gui import dmf_device_controller
+from .gui import protocol_controller
+from .gui import protocol_grid_controller
+from .gui import plugin_manager_controller
+from .gui import app_options_controller
 
 
 def test(*args, **kwargs):

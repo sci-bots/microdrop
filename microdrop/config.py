@@ -20,7 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 from shutil import ignore_patterns
 
-from path import path
+from path_helpers import path
 from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
 from microdrop_utility import base_path

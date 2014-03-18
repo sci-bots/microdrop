@@ -24,7 +24,7 @@ import tarfile
 import tempfile
 
 import gtk
-from path import path
+from path_helpers import path
 import yaml
 from jsonrpc.proxy import JSONRPCException
 from jsonrpc.json import JSONDecodeException

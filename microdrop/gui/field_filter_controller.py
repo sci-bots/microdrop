@@ -22,7 +22,7 @@ from copy import deepcopy
 import re
 
 import gtk
-from path import path
+from path_helpers import path
 from pygtkhelpers.proxy import proxy_for
 from pygtkhelpers.forms import FormView
 from flatland import Form, Dict, String, Integer, Boolean, Float

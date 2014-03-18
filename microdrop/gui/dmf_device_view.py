@@ -56,7 +56,7 @@ class ElectrodeContextMenu(SlaveView):
     '''
 
     builder_path = base_path().joinpath('gui', 'glade',
-        'dmf_device_view_context_menu.glade')
+                                        'dmf_device_view_context_menu.glade')
 
     gsignal('registration-request')
 
@@ -244,15 +244,17 @@ class DmfDeviceView(GtkVideoView):
             cr.fill()
         cr.restore()
 
-    def _initialize_video(self, device, caps_str, bitrate=None, record_path=None):
+    def _initialize_video(self, device, caps_str, bitrate=None,
+                          record_path=None):
         # Connect to JSON-RPC server and request to run the pipeline
         self._proxy = WindowServiceProxy(59000)
         self._proxy.window_xid(self.window_xid)
 
         x, y, width, height = self.widget.get_allocation()
         draw_queue = self.get_draw_queue(width, height)
-        self._proxy.create(device, caps_str, bitrate=bitrate, record_path=record_path,
-                draw_queue=draw_queue, with_scale=True, with_warp=True)
+        self._proxy.create(device, caps_str, bitrate=bitrate,
+                           record_path=record_path, draw_queue=draw_queue,
+                           with_scale=True, with_warp=True)
         self._proxy.scale(width, height)
         self._proxy.start()
         self.update_draw_queue()

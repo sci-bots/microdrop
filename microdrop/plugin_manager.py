@@ -25,7 +25,7 @@ from collections import namedtuple
 import logging
 import re
 
-from path import path
+from path_helpers import path
 import task_scheduler
 
 from interfaces import (Plugin, IPlugin, PluginGlobals, ExtensionPoint,

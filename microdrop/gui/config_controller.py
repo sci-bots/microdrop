@@ -19,7 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 
-from path import path
+from path_helpers import path
 from microdrop_utility.user_paths import home_dir
 
 from ..logger import logger

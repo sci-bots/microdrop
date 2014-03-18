@@ -1,6 +1,6 @@
 import sys
 import runpy
-from path import path
+from path_helpers import path
 
 
 def base_path():

@@ -26,7 +26,7 @@ import time
 from copy import deepcopy
 
 import numpy as np
-from path import path
+from path_helpers import path
 import yaml
 
 from microdrop_utility import is_int, Version, VersionError, FutureVersionError

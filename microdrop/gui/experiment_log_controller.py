@@ -21,7 +21,7 @@ import time
 from collections import namedtuple
 
 import gtk
-from path import path
+from path_helpers import path
 from pygtkhelpers.delegates import SlaveView
 from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text, textview_get_text)

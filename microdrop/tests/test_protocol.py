@@ -1,4 +1,4 @@
-from path import path
+from path_helpers import path
 from nose.tools import raises
 
 from protocol import Protocol
