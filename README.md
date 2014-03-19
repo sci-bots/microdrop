@@ -15,11 +15,12 @@ application requires the following Python packages to be installed:
 
  - `matplotlib`: Used to plot feedback results, etc.
  - `pygst`: Used for video-processing in the device view.
+ - `pygtk`: [GTK][3] bindings for user-interface.
  - `pyopencv`: Used to transform incoming video feed to register the device in
    the device view to the overlay perspective.
- - `pymunk==2.1.0` _(_not_ the latest)_: Used for detecting the electrode
+ - `pymunk==2.1.0` _(*not* the latest)_: Used for detecting the electrode
    corresponding to each click on the device view
-   _(i.e., [collision detection][3])_.
+   _(i.e., [collision detection][4])_.
 
 Note that these packages contain binary components that typically prevent them
 from being installed using `easy_install` or `pip` without taking special care
@@ -29,7 +30,8 @@ binary packages available for both Windows and Linux, if you search for them.
 
 [1]: http://microfluidics.utoronto.ca/microdrop
 [2]: http://dx.doi.org/10.1063/1.4807118
-[3]: http://chipmunk-physics.net/release/ChipmunkLatest-Docs/#CollisionDetection
+[3]: http://www.pygtk.org/
+[4]: http://chipmunk-physics.net/release/ChipmunkLatest-Docs/#CollisionDetection
 
 
 Credits
