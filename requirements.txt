@@ -1,18 +1,18 @@
-ipython
-pyutilib
-pyparsing
+application_repository
+blinker
 configobj
+flatland-fork
+geo-util
+ipython
+microdrop_utility
+opencv-helpers
+path-helpers
+pygst-utils
+pygtk_textbuffer_with_undo
+pyparsing
+pyutilib
 pyyaml
 pyzmq
--e git+https://github.com/cfobel/python___opencv_examples@master#egg=opencv-helpers-dev
--e git+https://github.com/wheeler-microfluidics/pygst_utils.git@zeromq#egg=pygst-utils-dev
--e git+https://github.com/cfobel/python___geo_util@master#egg=geo-util-dev
--e git+https://github.com/cfobel/pygtkhelpers@pre_object_tree#egg=pygtkhelpers-dev
--e git+https://github.com/cfobel/python___labix_constraint@master#egg=labix-constraint-dev
--e git+https://github.com/cfobel/python-jsonrpc@master#egg=jsonrpc-dev
-http://microfluidics.utoronto.ca/git/python___flatland.git/snapshot/a5111ec9f822f7a42fdb69752f023bcec97257bd.zip
--e git+https://github.com/wheeler-microfluidics/microdrop_utility.git@master#egg=microdrop-utility-dev
--e git+https://github.com/wheeler-microfluidics/pygtk_textbuffer_with_undo.git@master#egg=pygtk-textbuffer-with-undo-dev
--e git+https://github.com/wheeler-microfluidics/application_repository.git@master#egg=application-repository-dev
--e git+https://github.com/wheeler-microfluidics/task_scheduler.git@master#egg=task-scheduler-dev
--e git+https://github.com/wheeler-microfluidics/svg_model.git@master#egg=svg-model-dev
+svg_model
+task_scheduler
+wheeler.pygtkhelpers
