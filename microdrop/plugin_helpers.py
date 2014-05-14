@@ -34,9 +34,13 @@ def get_plugin_info(plugin_root):
     '''
     # Load the plugin properties into a PluginMetaData object
     properties = plugin_root / path('properties.yml')
-    plugin_metadata = PluginMetaData.from_dict(\
-            yaml.load(properties.bytes()))
-    return plugin_metadata
+
+    if not properties.isfile():
+        return None    
+    else:
+        plugin_metadata = PluginMetaData.from_dict(\
+                yaml.load(properties.bytes()))
+        return plugin_metadata
 
 
 class AppDataController(object):

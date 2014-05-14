@@ -115,7 +115,7 @@ class PluginController(object):
                 self.controller.dialog.update()
 
     def on_button_update_clicked(self, widget, data=None):
-        plugin_name = self.get_plugin_package_name()
+        package_name = self.get_plugin_package_name()
         app = get_app()
         try:
             self.controller.update_plugin(self, verbose=True)
@@ -128,15 +128,18 @@ class PluginController(object):
             return True
         return True
 
+    def get_plugin_info(self):
+        return get_plugin_info(self.get_plugin_path())
+
     def get_plugin_package_name(self):
         return get_plugin_package_name(self.plugin_class.__module__)
-
-    def get_plugin_path(self, plugin_name=None):
-        if plugin_name is None:
-            plugin_name = self.get_plugin_package_name()
+    
+    def get_plugin_path(self, packge_name=None):
+        if packge_name is None:
+            packge_name = self.get_plugin_package_name()
         app = get_app()
         return (path(app.config.data['plugins']['directory'])
-                .joinpath(plugin_name))
+                .joinpath(packge_name))
 
     def on_button_clicked(self, widget, data=None):
         self.toggle_enabled()
@@ -158,9 +161,12 @@ class PluginManagerController(SingletonPlugin):
     def update_plugin(self, plugin_controller, verbose=False, force=False):
         app = get_app()
         server_url = app.get_app_value('server_url')
-        plugin_name = plugin_controller.get_plugin_package_name()
+        plugin_metadata = plugin_controller.get_plugin_info()
+        package_name = plugin_metadata.package_name
+        plugin_name = plugin_metadata.plugin_name
+        
         p = PluginRepository(server_url)
-        latest_version = Version(**p.latest_version(plugin_name))
+        latest_version = Version(**p.latest_version(package_name))
 
         # Check the plugin tag versus the tag of latest version from the
         # update respository. If they are different, it's a sign that they
@@ -172,10 +178,10 @@ class PluginManagerController(SingletonPlugin):
                      'a compatible version?' % (plugin_name,
                                                 plugin_controller.version)
                      ) == gtk.RESPONSE_YES:
-                return self.download_and_install_plugin(plugin_name,
+                return self.download_and_install_plugin(package_name,
                                                         force=force)
         elif plugin_controller.version < latest_version:
-            return self.download_and_install_plugin(plugin_name, force=force)
+            return self.download_and_install_plugin(package_name, force=force)
         else:
             message = 'Plugin %s is up to date (version %s)' % (
                 plugin_name, plugin_controller.version)
@@ -184,13 +190,13 @@ class PluginManagerController(SingletonPlugin):
             logging.info(message)
             return False
 
-    def download_and_install_plugin(self, plugin_name, force=False):
+    def download_and_install_plugin(self, package_name, force=False):
         temp_dir = path(tempfile.mkdtemp(prefix='microdrop_plugin_update'))
         try:
             app = get_app()
             server_url = app.get_app_value('server_url')
             p = PluginRepository(server_url)
-            p.download_latest(plugin_name, temp_dir)
+            p.download_latest(package_name, temp_dir)
             archive_path = temp_dir.files()[0]
             return self.install_from_archive(archive_path, force=force)
         finally:
@@ -232,7 +238,7 @@ class PluginManagerController(SingletonPlugin):
         plugin_updated = False
         app = get_app()
         for p in self.plugins:
-            plugin_name = p.get_plugin_package_name()
+            plugin_name = p.get_plugin_info().plugin_name
             try:
                 result = self.update_plugin(p, force=force)
                 logging.info('[update_all_plugins] plugin_name=%s %s' %
@@ -272,17 +278,16 @@ class PluginManagerController(SingletonPlugin):
         self.update()
 
     def install_plugin(self, plugin_root, install_path):
+        plugin_metadata = get_plugin_info(plugin_root)
         try:
             plugin_root.copytree(install_path, symlinks=True,
                                  ignore=ignore_patterns('*.pyc'))
         except Exception, why:
             logging.error('Error installing plugin. %s.', why)
-        logging.info('%s installed successfully' % plugin_root.name)
+        logging.info('%s installed successfully' % plugin_metadata.plugin_name)
         self.restart_required = True
 
-    def verify_new_plugin(self, extracted_path, force=False):
-        assert(len(extracted_path.dirs()) == 1)
-        plugin_root = path(extracted_path.dirs()[0])
+    def verify_new_plugin(self, plugin_root, force=False):
         plugin_metadata = get_plugin_info(plugin_root)
         if plugin_metadata is None:
             logging.error('%s does not contain a valid plugin.' % plugin_root)
@@ -291,7 +296,7 @@ class PluginManagerController(SingletonPlugin):
 
         app = get_app()
         installed_plugin_path = (path(app.config.data['plugins']['directory'])
-                                 .joinpath(plugin_root.name))
+                                 .joinpath(plugin_metadata.package_name))
         installed_metadata = get_plugin_info(installed_plugin_path)
 
         if installed_metadata:
@@ -335,13 +340,14 @@ class PluginManagerController(SingletonPlugin):
                         return False
         else:
             # There is no valid version of this plugin currently installed.
-            logging.info('%s is not currently installed' % plugin_root.name)
+            logging.info('%s is not currently installed' % 
+                         plugin_metadata.plugin_name)
 
             # enable new plugins by default
             app.config["plugins"]["enabled"].append(plugin_metadata
                                                     .package_name)
         self.install_plugin(plugin_root, installed_plugin_path)
         app.main_window_controller.info('%s plugin installed successfully.'
-                                        % plugin_metadata.package_name,
+                                        % plugin_metadata.plugin_name,
                                         'Install plugin')
         return True

@@ -113,7 +113,7 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
 
 
 def get_plugin_package_name(class_name):
-    match = re.search(r'plugins\.(?P<name>.*?)',
+    match = re.search(r'plugins\.(?P<name>.*)',
                       class_name)
     if match is None:
         logging.error('Could not determine package name from: %s'\

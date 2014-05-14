@@ -166,12 +166,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                             'is not absolute' % p)
                         continue
                     if p.isdir():
-                        # Test to make sure this looks like a plugin
-                        if p.joinpath('microdrop').isdir():
-                            plugin_root = p
-                        elif len(p.dirs()) == 1:
-                            plugin_root = path(p.dirs()[0])
-                        info = get_plugin_info(plugin_root)
+                        info = get_plugin_info(p)
                         if info:
                             logger.info('  deleting %s' % p)
                             cwd = os.getcwd()
@@ -188,7 +183,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     logger.info('  NOT deleting %s info=%s' % (p, info))
                     continue
                 except (Exception,):
-                    logger.info('  NOT deleting %s' % (plugin_root))
+                    logger.info('  NOT deleting %s' % (p))
                     continue
             deletions_path.write_bytes(yaml.dump(requested_deletions))
 
