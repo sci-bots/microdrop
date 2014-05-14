@@ -43,7 +43,6 @@ from plugin_helpers import AppDataController, get_plugin_info
 from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
     ERROR, CRITICAL
 from application_repository.application.proxy import AppRepository
-from git_helpers import Git
 
 
 PluginGlobals.push_env('microdrop')
@@ -110,23 +109,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     def __init__(self):
         self.name = "microdrop.app"
         # get the version number
-        self.version = ""
-        try:
-            version = Git(None).describe()
-            branch = Git(None).branch()
-            if branch == "master":
-                tags = ""
-            else:
-                tags = "-" + branch
-            m = re.search('^v(?P<major>\d+)\.(?P<minor>\d+)(-(?P<micro>\d+))?', version)
-            if m.group('micro'):
-                micro = m.group('micro')
-            else:
-                micro = '0'
-            self.version = "%s.%s.%s%s" % (m.group('major'),
-                                           m.group('minor'),
-                                           micro, tags)            
-        except:
+        self.version = str(Version.from_git_repository())
+        if self.version is None:
             if os.path.isfile('version.txt'):
                 try:
                     f = open('version.txt', 'r')

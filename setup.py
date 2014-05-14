@@ -26,5 +26,4 @@ setup(name='microdrop',
                         'geo-util', 'flatland-fork', 'microdrop_utility',
                         'svg_model', 'task_scheduler',
                         'application_repository',
-                        'pygtk_textbuffer_with_undo',
-                        'git_helpers'])
+                        'pygtk_textbuffer_with_undo'])
