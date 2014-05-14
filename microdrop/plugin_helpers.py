@@ -32,15 +32,8 @@ def get_plugin_info(plugin_root):
         (package_name, plugin_name, version)
     If plugin is not installed or invalid, returned tuple will be None.
     '''
-    required_paths = [path('microdrop').joinpath('__init__.py'),
-            path('properties.yml')]
-
-    for p in required_paths:
-        if not (plugin_root / p).isfile():
-            return None
-
     # Load the plugin properties into a PluginMetaData object
-    properties = plugin_root / required_paths[-1]
+    properties = plugin_root / path('properties.yml')
     plugin_metadata = PluginMetaData.from_dict(\
             yaml.load(properties.bytes()))
     return plugin_metadata

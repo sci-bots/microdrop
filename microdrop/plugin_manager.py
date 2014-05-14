@@ -42,18 +42,16 @@ def load_plugins(plugins_dir='plugins'):
     if plugins_dir.parent.abspath() not in sys.path:
         sys.path.insert(0, plugins_dir.parent.abspath())
 
-    for d in plugins_dir.dirs():
-        package = (d / path('microdrop'))
-        if package.isdir():
-            try:
-                logging.info('\t %s' % package.abspath())
-                import_statement = 'import %s.%s.microdrop' % \
-                    (plugins_dir.name, d.name)
-                logging.debug(import_statement)
-                exec(import_statement)
-            except Exception, why:
-                logging.info(''.join(traceback.format_exc()))
-                logging.error('Error loading %s plugin.' % d.name)
+    for package in plugins_dir.dirs():
+        try:
+            logging.info('\t %s' % package.abspath())
+            import_statement = 'import %s.%s' % \
+                (plugins_dir.name, package.name)
+            logging.debug(import_statement)
+            exec(import_statement)
+        except Exception, why:
+            logging.info(''.join(traceback.format_exc()))
+            logging.error('Error loading %s plugin.' % package.name)
 
     # Create an instance of each of the plugins, but set it to disabled
     e = PluginGlobals.env('microdrop.managed')
@@ -115,7 +113,7 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
 
 
 def get_plugin_package_name(class_name):
-    match = re.search(r'plugins\.(?P<name>.*?)\.microdrop',
+    match = re.search(r'plugins\.(?P<name>.*?)',
                       class_name)
     if match is None:
         logging.error('Could not determine package name from: %s'\
