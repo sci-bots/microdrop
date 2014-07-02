@@ -18,7 +18,6 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-import subprocess
 import re
 
 import gtk
@@ -40,8 +39,8 @@ from plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                             implements, PluginGlobals)
 import plugin_manager
 from plugin_helpers import AppDataController, get_plugin_info
-from logger import logger, CustomHandler, logging, DEBUG, INFO, WARNING, \
-    ERROR, CRITICAL
+from logger import (logger, CustomHandler, logging, DEBUG, INFO, WARNING,
+                    ERROR, CRITICAL)
 from application_repository.application.proxy import AppRepository
 
 
@@ -279,7 +278,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                 app_repository.server_url + app_repository\
                                         .latest_package_url('microdrop')))
                 response = yesno('''\
-    
+
 There is a new version of Microdrop available (%s, current version: %s).
 
 Would you like to download the latest version in your browser?''' % (
@@ -298,7 +297,7 @@ Would you like to download the latest version in your browser?''' % (
                                   'Closing app to allow upgrade installation')
         except DifferentVersionTagsError:
             pass
-        
+
     def update_plugins(self):
         update_setting = self.config['microdrop.app']['update_automatically']
 
