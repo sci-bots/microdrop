@@ -181,27 +181,35 @@ class ExperimentLogController(SingletonPlugin):
             self.protocol_view.set_model(protocol_list)
             for d in self.results.log.data:
                 if 'step' in d['core'].keys() and 'time' in d['core'].keys():
-                    step = self.results.protocol[d['core']['step']]
-                    dmf_plugin_name = step.plugin_name_lookup(
-                        r'wheelerlab.dmf_control_board', re_pattern=True)
-                    options = step.get_data(dmf_plugin_name)
-                    vals = []
-                    if not options:
-                        continue
-                    for i, c in enumerate(self.columns):
-                        if c.name=="Time (s)":
-                            vals.append(d['core']['time'])
-                        elif c.name=="Step #":
-                            vals.append(d['core']['step'] + 1)
-                        elif c.name=="Duration (s)":
-                            vals.append(options.duration / 1000.0)
-                        elif c.name=="Voltage (VRMS)":
-                            vals.append(options.voltage)
-                        elif c.name=="Frequency (kHz)":
-                            vals.append(options.frequency / 1000.0)
-                        else:
-                            vals.append(None)
-                    protocol_list.append(vals)
+                    # Only show steps that exist in the protocol (See:
+                    # http://microfluidics.utoronto.ca/microdrop/ticket/153)
+                    #
+                    # This prevents "list index out of range" errors, if a step
+                    # that was saved to the experiment log is deleted, but it is
+                    # still possible to have stale data if the protocol is
+                    # edited in real-time mode.
+                    if d['core']['step'] < len(self.results.protocol):
+                        step = self.results.protocol[d['core']['step']]
+                        dmf_plugin_name = step.plugin_name_lookup(
+                            r'wheelerlab.dmf_control_board', re_pattern=True)
+                        options = step.get_data(dmf_plugin_name)
+                        vals = []
+                        if not options:
+                            continue
+                        for i, c in enumerate(self.columns):
+                            if c.name=="Time (s)":
+                                vals.append(d['core']['time'])
+                            elif c.name=="Step #":
+                                vals.append(d['core']['step'] + 1)
+                            elif c.name=="Duration (s)":
+                                vals.append(options.duration / 1000.0)
+                            elif c.name=="Voltage (VRMS)":
+                                vals.append(options.voltage)
+                            elif c.name=="Frequency (kHz)":
+                                vals.append(options.frequency / 1000.0)
+                            else:
+                                vals.append(None)
+                        protocol_list.append(vals)
         except Exception, why:
             logger.info("[ExperimentLogController].update(): %s" % why)
             self._disable_gui_elements()
