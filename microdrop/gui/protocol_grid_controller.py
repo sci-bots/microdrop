@@ -26,10 +26,10 @@ from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
 from textbuffer_with_undo import UndoableBuffer
 from microdrop_utility.gui import register_shortcuts
 
-from ..plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
+from microdrop.plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                               implements, PluginGlobals, ScheduleRequest,
                               emit_signal)
-from ..app_context import get_app
+from microdrop.app_context import get_app
 
 
 class ProtocolGridView(CombinedFields):
