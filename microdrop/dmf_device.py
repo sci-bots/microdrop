@@ -271,6 +271,21 @@ class DmfDevice():
             if electrode.channels and max(electrode.channels) > max_channel:
                 max_channel = max(electrode.channels)
         return max_channel
+    
+    def actuated_area(self, state_of_all_channels):    
+        if self.scale is None:
+            raise DeviceScaleNotSet()
+        area = 0
+        for id, electrode in self.electrodes.iteritems():
+            channels = self.electrodes[id].channels
+            if channels:
+                # Get the state(s) of the channel(s) connected to this
+                # electrode.
+                states = state_of_all_channels[channels]
+                if len(np.nonzero(states > 0)[0]):
+                    area += electrode.area() * self.scale
+        return area
+
 
 class Electrode:
     next_id = 0

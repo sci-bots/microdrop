@@ -68,7 +68,7 @@ PluginGlobals.push_env('microdrop')
 class ExperimentLogController(SingletonPlugin):
     implements(IPlugin)
 
-    Results = namedtuple('Results', ['log', 'protocol'])
+    Results = namedtuple('Results', ['log', 'protocol', 'dmf_device'])
     builder_path = glade_path().joinpath('experiment_log_window.glade')
 
     def __init__(self):
@@ -77,7 +77,7 @@ class ExperimentLogController(SingletonPlugin):
         self.builder.add_from_file(self.builder_path)
         self.window = self.builder.get_object("window")
         self.combobox_log_files = self.builder.get_object("combobox_log_files")
-        self.results = self.Results(None, None)
+        self.results = self.Results(None, None, None)
         self.protocol_view = self.builder.get_object("treeview_protocol")
         self.protocol_view.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.columns = [ExperimentLogColumn("Time (s)", float, "%.3f"),
@@ -108,8 +108,10 @@ class ExperimentLogController(SingletonPlugin):
             id = combobox_get_active_text(self.combobox_log_files)
             log = path(app.experiment_log.directory) / path(id) / path("data")
             protocol = path(app.experiment_log.directory) / path(id) / path("protocol")
+            dmf_device = path(app.experiment_log.directory) / path(id) / path("device")
             self.results = self.Results(ExperimentLog.load(log),
-                                        Protocol.load(protocol))
+                                        Protocol.load(protocol),
+                                        DmfDevice.load(dmf_device))
             self.builder.get_object("button_load_device").set_sensitive(True)
             self.builder.get_object("button_load_protocol").set_sensitive(True)
             self.builder.get_object("textview_notes").set_sensitive(True)
