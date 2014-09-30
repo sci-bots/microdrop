@@ -17,6 +17,10 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import os
+import subprocess
+import sys
+import platform
 import logging
 from shutil import ignore_patterns
 from zipfile import ZipFile
@@ -115,7 +119,6 @@ class PluginController(object):
                 self.controller.dialog.update()
 
     def on_button_update_clicked(self, widget, data=None):
-        package_name = self.get_plugin_package_name()
         app = get_app()
         try:
             self.controller.update_plugin(self, verbose=True)
@@ -123,8 +126,8 @@ class PluginController(object):
             logging.warning('Could not connect to plugin server: %s',
                             app.get_app_value('server_url'))
         except (JSONRPCException, JSONDecodeException):
-            logging.warning('Plugin %s not available on plugin server %s' %
-                            (plugin_name, app.get_app_value('server_url')))
+            logging.warning('Plugin %s not available on plugin server' %
+                            (app.get_app_value('server_url')))
             return True
         return True
 
@@ -133,7 +136,7 @@ class PluginController(object):
 
     def get_plugin_package_name(self):
         return get_plugin_package_name(self.plugin_class.__module__)
-    
+
     def get_plugin_path(self, packge_name=None):
         if packge_name is None:
             packge_name = self.get_plugin_package_name()
@@ -164,7 +167,7 @@ class PluginManagerController(SingletonPlugin):
         plugin_metadata = plugin_controller.get_plugin_info()
         package_name = plugin_metadata.package_name
         plugin_name = plugin_metadata.plugin_name
-        
+
         p = PluginRepository(server_url)
         latest_version = Version(**p.latest_version(package_name))
 
@@ -282,10 +285,80 @@ class PluginManagerController(SingletonPlugin):
         try:
             plugin_root.copytree(install_path, symlinks=True,
                                  ignore=ignore_patterns('*.pyc'))
+            self.post_install(plugin_metadata, install_path)
+            logging.info('%s installed successfully' %
+                         plugin_metadata.plugin_name)
+
+            self.restart_required = True
         except Exception, why:
             logging.error('Error installing plugin. %s.', why)
-        logging.info('%s installed successfully' % plugin_metadata.plugin_name)
-        self.restart_required = True
+
+    def post_uninstall(self, uninstall_path):
+        # __NB__ The `cwd` directory ["is not considered when searching the
+        # executable, so you can’t specify the program’s path relative to
+        # `cwd`."][cwd].  Therefore, we manually change to the directory
+        # containing the hook script and change back to the original working
+        # directory when we're done.
+        #
+        # [cwd]: https://docs.python.org/2/library/subprocess.html#popen-constructor
+        cwd = os.getcwd()
+        if platform.system() in ('Linux', 'Darwin'):
+            system_name = platform.system()
+            hooks_path = uninstall_path.joinpath('hooks',
+                                                 system_name).abspath()
+            on_uninstall_path = hooks_path.joinpath('on_plugin_uninstall.sh')
+            if on_uninstall_path.isfile():
+                # There is an `on_plugin_uninstall` script to run.
+                try:
+                    os.chdir(hooks_path)
+                    subprocess.check_call(['sh', on_uninstall_path.name,
+                                           sys.executable], cwd=hooks_path)
+                finally:
+                    os.chdir(cwd)
+        elif platform.system() == 'Windows':
+            hooks_path = uninstall_path.joinpath('hooks', 'Windows').abspath()
+            on_uninstall_path = hooks_path.joinpath('on_plugin_uninstall.bat')
+            if on_uninstall_path.isfile():
+                # There is an `on_plugin_uninstall` script to run.
+                try:
+                    os.chdir(hooks_path)
+                    subprocess.check_call([on_uninstall_path.name,
+                                           sys.executable], cwd=hooks_path)
+                finally:
+                    os.chdir(cwd)
+
+    def post_install(self, plugin_metadata, install_path):
+        # __NB__ The `cwd` directory ["is not considered when searching the
+        # executable, so you can’t specify the program’s path relative to
+        # `cwd`."][cwd].  Therefore, we manually change to the directory
+        # containing the hook script and change back to the original working
+        # directory when we're done.
+        #
+        # [cwd]: https://docs.python.org/2/library/subprocess.html#popen-constructor
+        cwd = os.getcwd()
+        if platform.system() in ('Linux', 'Darwin'):
+            system_name = platform.system()
+            hooks_path = install_path.joinpath('hooks', system_name).abspath()
+            on_install_path = hooks_path.joinpath('on_plugin_install.sh')
+            if on_install_path.isfile():
+                # There is an `on_plugin_install` script to run.
+                try:
+                    os.chdir(hooks_path)
+                    subprocess.check_call(['sh', on_install_path.name,
+                                           sys.executable], cwd=hooks_path)
+                finally:
+                    os.chdir(cwd)
+        elif platform.system() == 'Windows':
+            hooks_path = install_path.joinpath('hooks', 'Windows').abspath()
+            on_install_path = hooks_path.joinpath('on_plugin_install.bat')
+            if on_install_path.isfile():
+                # There is an `on_plugin_install` script to run.
+                try:
+                    os.chdir(hooks_path)
+                    subprocess.check_call([on_install_path.name,
+                                           sys.executable], cwd=hooks_path)
+                finally:
+                    os.chdir(cwd)
 
     def verify_new_plugin(self, plugin_root, force=False):
         plugin_metadata = get_plugin_info(plugin_root)
@@ -340,7 +413,7 @@ class PluginManagerController(SingletonPlugin):
                         return False
         else:
             # There is no valid version of this plugin currently installed.
-            logging.info('%s is not currently installed' % 
+            logging.info('%s is not currently installed' %
                          plugin_metadata.plugin_name)
 
             # enable new plugins by default
