@@ -295,7 +295,7 @@ class PluginManagerController(SingletonPlugin):
 
     def post_uninstall(self, uninstall_path):
         # __NB__ The `cwd` directory ["is not considered when searching the
-        # executable, so you can’t specify the program’s path relative to
+        # executable, so you can't specify the program's path relative to
         # `cwd`."][cwd].  Therefore, we manually change to the directory
         # containing the hook script and change back to the original working
         # directory when we're done.
@@ -329,7 +329,7 @@ class PluginManagerController(SingletonPlugin):
 
     def post_install(self, plugin_metadata, install_path):
         # __NB__ The `cwd` directory ["is not considered when searching the
-        # executable, so you can’t specify the program’s path relative to
+        # executable, so you can't specify the program's path relative to
         # `cwd`."][cwd].  Therefore, we manually change to the directory
         # containing the hook script and change back to the original working
         # directory when we're done.
