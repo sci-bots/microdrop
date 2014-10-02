@@ -223,21 +223,23 @@ class ExperimentLogController(SingletonPlugin):
 
     def save(self):
         app = get_app()
-        data = {"software version": app.version}
-        data["device name"] = app.dmf_device.name
-        data["protocol name"] = app.protocol.name
-        data["notes"] = textview_get_text(app.protocol_controller. \
-            builder.get_object("textview_notes"))
-        app.experiment_log.add_data(data)
-        log_path = app.experiment_log.save()
-
-        # save the protocol and device
-        app.protocol.save(os.path.join(log_path,"protocol"))
-        app.dmf_device.save(os.path.join(log_path,"device"))
-
-        # create a new log
-        experiment_log = ExperimentLog(app.experiment_log.directory)
-        emit_signal("on_experiment_log_changed", experiment_log)
+        # only save the current log if it is not empty
+        if len(app.experiment_log.data):
+            data = {"software version": app.version}
+            data["device name"] = app.dmf_device.name
+            data["protocol name"] = app.protocol.name
+            data["notes"] = textview_get_text(app.protocol_controller. \
+                builder.get_object("textview_notes"))
+            app.experiment_log.add_data(data)
+            log_path = app.experiment_log.save()
+    
+            # save the protocol and device
+            app.protocol.save(os.path.join(log_path,"protocol"))
+            app.dmf_device.save(os.path.join(log_path,"device"))
+    
+            # create a new log
+            experiment_log = ExperimentLog(app.experiment_log.directory)
+            emit_signal("on_experiment_log_changed", experiment_log)
 
     def get_selected_data(self):
         selection = self.protocol_view.get_selection().get_selected_rows()
