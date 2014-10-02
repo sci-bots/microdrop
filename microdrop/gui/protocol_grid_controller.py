@@ -274,7 +274,6 @@ class ProtocolGridController(SingletonPlugin):
 
     def get_schedule_requests(self, function_name):
         """
-
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """

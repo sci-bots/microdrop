@@ -199,7 +199,8 @@ def emit_signal(function, args=[], interface=IPlugin):
                     logging.error(message.getvalue().strip())
                 logging.info(''.join(traceback.format_exc()))
         return return_codes
-    except:
+    except Exception, why:
+        logging.error(why)
         #import pudb; pudb.set_trace()
         return {}
 

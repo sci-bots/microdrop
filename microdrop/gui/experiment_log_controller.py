@@ -28,7 +28,7 @@ from microdrop_utility.gui import (combobox_set_model_from_list,
 
 from ..experiment_log import ExperimentLog
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
-                              PluginGlobals, emit_signal)
+                              PluginGlobals, emit_signal, ScheduleRequest)
 from ..protocol import Protocol
 from ..dmf_device import DmfDevice
 from ..app_context import get_app
@@ -317,6 +317,16 @@ class ExperimentLogController(SingletonPlugin):
         # changing the combobox log files will force an update
         if len(log_files):
             self.combobox_log_files.set_active(len(log_files)-1)
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_experiment_log_changed':
+            # ensure that the app's reference to the new experiment log gets set
+            return [ScheduleRequest('microdrop.app', self.name)]
+        return []
 
     def on_treeview_selection_changed(self, widget, data=None):
         emit_signal("on_experiment_log_selection_changed", [self.get_selected_data()])
