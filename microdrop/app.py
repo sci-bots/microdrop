@@ -31,7 +31,7 @@ from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 
-from microdrop_utility import base_path, Version, DifferentVersionTagsError
+from microdrop_utility import base_path, Version
 from microdrop_utility.gui import yesno
 from protocol import Step
 from config import Config
@@ -108,8 +108,15 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     def __init__(self):
         self.name = "microdrop.app"
         # get the version number
-        self.version = str(Version.from_git_repository())
-        if self.version is None:
+        self.version = ""
+        try:
+            version = subprocess.Popen(['git','describe'],
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE,
+                          stdin=subprocess.PIPE).communicate()[0].rstrip()
+            m = re.match('v(\d+)\.(\d+)-(\d+)', version)
+            self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
+        except:
             if os.path.isfile('version.txt'):
                 try:
                     f = open('version.txt', 'r')
@@ -271,32 +278,32 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             logging.warning('Could not connect to application update server: %s',
                     app_update_server_url)
             return
-        try:
-            if current_version < latest_version:
-                logging.info('Current version: %s. There is a new version '\
-                        'available: %s %s' % (current_version, latest_version,
-                                app_repository.server_url + app_repository\
-                                        .latest_package_url('microdrop')))
-                response = yesno('''\
-
+        if current_version < latest_version:
+            logging.info('Current version: %s. There is a new version '
+                         'available: %s %s' % (current_version, latest_version,
+                                               app_repository.server_url +
+                                               app_repository
+                                               .latest_package_url(
+                                                   'microdrop')))
+            response = yesno('''
 There is a new version of Microdrop available (%s, current version: %s).
 
-Would you like to download the latest version in your browser?''' % (
-                        latest_version, current_version))
-                if response == gtk.RESPONSE_YES:
-                    latest_full_url = app_repository.server_url + \
-                        app_repository.latest_package_url('microdrop')
-                    if webbrowser.open_new_tab(latest_full_url):
-                        logging.info('[SUCCESS] software is up-to-date.\n'\
-                            '(installed version: %s, server version: %s)' % (
-                            current_version, latest_version))
-                        try:
-                            self.main_window_controller.on_destroy(None)
-                        except AttributeError:
-                            raise (SystemExit,
-                                  'Closing app to allow upgrade installation')
-        except DifferentVersionTagsError:
-            pass
+Would you like to download the latest version in your browser?''' %
+                             (latest_version, current_version))
+            if response == gtk.RESPONSE_YES:
+                latest_full_url = (app_repository.server_url + app_repository
+                                   .latest_package_url('microdrop'))
+                if webbrowser.open_new_tab(latest_full_url):
+                    logging.info('Closing app after opening browser to latest '
+                                 'version (%s).' % latest_version)
+                    try:
+                        self.main_window_controller.on_destroy(None)
+                    except AttributeError:
+                        raise SystemExit, 'Closing app to allow upgrade installation'
+        else:
+            logging.info('[SUCCESS] software is up-to-date.\n (installed '
+                         'version: %s, server version: %s)' % (current_version,
+                                                               latest_version))
 
     def update_plugins(self):
         update_setting = self.config['microdrop.app']['update_automatically']

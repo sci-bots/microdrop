@@ -25,3 +25,13 @@ microdrop/plugins/*.yml
 RELEASE-VERSION
 .settings/
 src/
+
+# Back-up files.
+*~
+
+# Old submodules.  Now separate Python packages.
+microdrop/gui/textbuffer_with_undo/
+microdrop/svg_model/
+microdrop/task_scheduler/
+microdrop/update_repository/
+microdrop/utility/
