@@ -291,6 +291,9 @@ class ExperimentLogController(SingletonPlugin):
 
     def on_protocol_run(self):
         self.save()
+        
+    def on_app_exit(self):
+        self.save()
 
     def on_protocol_pause(self):
         self.save()
