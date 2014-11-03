@@ -120,8 +120,8 @@ class ProtocolGridView(CombinedFields):
                 service = observers.service(form_name)
                 try:
                     service.set_step_values(form_step.attrs, step_number=row_id)
-                except ValueError:
-                    logging.error('Invalid value.')
+                except ValueError, e:
+                    logging.error('Invalid value.%s' % str(e))
 
     def on_rows_changed(self, list_, row_ids, rows, attr):
         app = get_app()
