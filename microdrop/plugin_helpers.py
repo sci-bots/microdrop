@@ -65,7 +65,11 @@ class AppDataController(object):
             app.config.data[self.name] = self.get_app_values()
 
     def get_default_app_options(self):
-        return dict([(k, v.value) for k,v in self.AppFields.from_defaults().iteritems()])
+        if self.AppFields:
+            return dict([(k, v.value) for 
+                         k,v in self.AppFields.from_defaults().iteritems()])
+        else:
+            return dict()
 
     def get_app_form_class(self):
         return self.AppFields
@@ -90,6 +94,8 @@ class AppDataController(object):
             self.AppFields.field_schema_mapping[key].default
 
     def set_app_values(self, values_dict):
+        if not values_dict:
+            return
         if not hasattr(self, 'name'):
             raise NotImplementedError
         for k in values_dict.keys():

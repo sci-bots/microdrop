@@ -85,11 +85,14 @@ class AppOptionsController:
         for name, form in self.forms.iteritems():
             # For each form, generate a pygtkhelpers formview and append the view
             # onto the end of the plugin vbox
-
-            # Only include fields that do not have show_in_gui set to False in
-            # 'properties' dictionary
-            schema_entries = [f for f in form.field_schema\
-                    if f.properties.get('show_in_gui', True)]
+            
+            if form is None:
+                schema_entries = []
+            else:
+                # Only include fields that do not have show_in_gui set to False in
+                # 'properties' dictionary
+                schema_entries = [f for f in form.field_schema\
+                        if f.properties.get('show_in_gui', True)]
             if not schema_entries:
                 self.no_gui_names.add(name)
                 continue

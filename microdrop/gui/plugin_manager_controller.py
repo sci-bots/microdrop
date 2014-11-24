@@ -379,14 +379,15 @@ class PluginManagerController(SingletonPlugin):
                     installed_metadata.version >= plugin_metadata.version:
                 # Installed version is up-to-date
                 message = ('Plugin %s is up-to-date (version %s).  Skipping '
-                           'installation.' % installed_metadata)
+                           'installation.' % (installed_metadata.plugin_name,
+                           installed_metadata.version))
                 logging.info(message)
                 return
             else:
                 message = ('A newer version (%s) of the %s plugin is available'
                            ' (current version=%s).' % (plugin_metadata.version,
                                                        plugin_metadata
-                                                       .package_name,
+                                                       .plugin_name,
                                                        installed_metadata
                                                        .version))
                 logging.info(message)
