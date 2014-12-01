@@ -21,7 +21,6 @@ import os
 import re
 
 import gtk
-gtk.gdk.threads_init()
 from path_helpers import path
 import yaml
 import webbrowser

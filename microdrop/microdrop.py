@@ -38,6 +38,10 @@ if __name__ == "__main__":
     from app import App
     from app_context import get_app
 
+    gtk.threads_init()
+    gtk.gdk.threads_init()
+    gtk.gdk.threads_enter()
     my_app = get_app()
     sys.excepthook = except_handler
     my_app.run()
+    gtk.gdk.threads_leave()

@@ -23,8 +23,6 @@ from datetime import datetime
 
 import gtk
 import gobject
-gtk.gdk.threads_init()
-gobject.threads_init()
 import cairo
 import numpy as np
 from pygst_utils.video_view.gtk_view import GtkVideoView
