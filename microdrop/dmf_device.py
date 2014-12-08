@@ -34,6 +34,8 @@ from svg_model.svgload.path_parser import LoopTracer, ParseError
 from svg_model.svgload.svg_parser import parse_warning
 from svg_model.path_group import PathGroup
 from svg_model.body_group import BodyGroup
+import svgwrite
+from svgwrite.shapes import Polygon
 
 
 class DeviceScaleNotSet(Exception):
@@ -286,6 +288,17 @@ class DmfDevice():
                     area += electrode.area() * self.scale
         return area
 
+    def to_svg(self):
+        minx, miny, w, h = self.get_bounding_box()
+        dwg = svgwrite.Drawing(size=(w,h))
+        for i, e in self.electrodes.iteritems():
+            c = e.path.color
+            color = 'rgb(%d,%d,%d)' % (c[0],c[1],c[2])
+            p = Polygon([(x-minx,y-miny) \
+                         for x,y in e.path.loops[0].verts], fill=color)
+            dwg.add(p)
+        return dwg.tostring()
+    
 
 class Electrode:
     next_id = 0
