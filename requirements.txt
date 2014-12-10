@@ -10,7 +10,7 @@ path-helpers
 pygst-utils
 pygtk_textbuffer_with_undo
 pyparsing
-pyutilib
+pyutilib==3.9.2706
 pyyaml
 pyzmq
 svg_model
