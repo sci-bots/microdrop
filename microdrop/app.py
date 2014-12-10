@@ -90,7 +90,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 'check for updates, but ask before installing',
                 '''don't check for updates'''),
         String.named('server_url').using( #pylint: disable-msg=E1120
-            default='http://microfluidics.utoronto.ca/update',
+            default='http://microfluidics.utoronto.ca/v1/update',
             optional=True, properties=dict(show_in_gui=False)),
         Boolean.named('realtime_mode').using( #pylint: disable-msg=E1120
             default=False, optional=True,
