@@ -28,8 +28,6 @@ except ImportError:
     import pickle
 
 import gtk
-gtk.threads_init()
-gtk.gdk.threads_init()
 import numpy as np
 from flatland import Form, Integer, String, Boolean
 from path_helpers import path

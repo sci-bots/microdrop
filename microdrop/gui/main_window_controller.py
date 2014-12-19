@@ -21,7 +21,6 @@ import os
 import webbrowser
 
 import gtk
-gtk.threads_init()
 from pygtkhelpers.proxy import proxy_for
 from microdrop_utility import wrap_string
 from microdrop_utility.gui import DEFAULTS
