@@ -116,12 +116,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             m = re.match('v(\d+)\.(\d+)-(\d+)', version)
             self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
         except:
-            if os.path.isfile('version.txt'):
-                try:
-                    f = open('version.txt', 'r')
-                    self.version = f.readline().strip()
-                finally:
-                    f.close()
+            import pkg_resources
+
+            version = pkg_resources.get_distribution('microdrop').version
+            self.version = re.sub('\.dev.*', '',
+                                  re.sub('post', '', version))
 
         self.realtime_mode = False
         self.running = False
