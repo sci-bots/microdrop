@@ -88,10 +88,16 @@ class Protocol():
             out.version = str(Version(0))
         out._upgrade()
         for k, v in out.plugin_data.items():
-            out.plugin_data[k] = yaml.load(v)
+            try:
+                out.plugin_data[k] = pickle.loads(v)
+            except Exception, e:
+                out.plugin_data[k] = yaml.load(v)
         for i in range(len(out)):
             for k, v in out[i].plugin_data.items():
-                out[i].plugin_data[k] = yaml.load(v)
+                try:
+                    out[i].plugin_data[k] = pickle.loads(v)
+                except Exception, e:
+                    out[i].plugin_data[k] = yaml.load(v)
         logger.debug("[Protocol].load() loaded in %f s." % \
                      (time.time()-start_time))
         return out
@@ -162,11 +168,11 @@ class Protocol():
 
         # convert plugin data objects to strings
         for k, v in out.plugin_data.items():
-            out.plugin_data[k] = yaml.dump(v)
+            out.plugin_data[k] = pickle.dumps(v)
 
         for step in out.steps:
             for k, v in step.plugin_data.items():
-                step.plugin_data[k] = yaml.dump(v)
+                step.plugin_data[k] = pickle.dumps(v)
 
         with open(filename, 'wb') as f:
             if format=='pickle':
