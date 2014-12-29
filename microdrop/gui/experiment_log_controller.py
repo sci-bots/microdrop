@@ -224,7 +224,7 @@ class ExperimentLogController(SingletonPlugin):
     def save(self):
         app = get_app()
         # only save the current log if it is not empty
-        if len(app.experiment_log.data):
+        if app.experiment_log and len(app.experiment_log.data):
             data = {"software version": app.version}
             data["device name"] = app.dmf_device.name
             data["protocol name"] = app.protocol.name
