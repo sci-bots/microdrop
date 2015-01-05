@@ -35,3 +35,5 @@ microdrop/svg_model/
 microdrop/task_scheduler/
 microdrop/update_repository/
 microdrop/utility/
+
+setup.py
