@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import pdb
 import os
 import webbrowser
 
@@ -24,6 +25,11 @@ import gtk
 from pygtkhelpers.proxy import proxy_for
 from microdrop_utility import wrap_string
 from microdrop_utility.gui import DEFAULTS
+try:
+    import pudb
+    PUDB_AVAILABLE = True
+except ImportError:
+    PUDB_AVAILABLE = False
 
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, ILoggingPlugin,
@@ -99,6 +105,14 @@ class MainWindowController(SingletonPlugin):
 
         self.checkbutton_realtime_mode.set_sensitive(False)
         self.menu_experiment_logs.set_sensitive(False)
+
+        if app.config.data.get('advanced_ui', False):
+            self.debug_menu_item = gtk.MenuItem('Debug...')
+            self.debug_menu_item.show()
+            self.debug_menu_item.connect('activate', lambda *args:
+                                         pudb.set_trace() if PUDB_AVAILABLE
+                                         else pdb.set_trace())
+            self.menu_tools.append(self.debug_menu_item)
 
     def main(self):
         gtk.main()
