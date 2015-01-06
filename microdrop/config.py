@@ -74,8 +74,11 @@ class Config():
         enabled = string_list(default=list())
         """
 
-    def __init__(self):
-        self.filename = self.default_filename
+    def __init__(self, filename=None):
+        if filename is None:
+            self.filename = self.default_filename
+        else:
+            self.filename = filename
         self.load()
 
     def __getitem__(self, i):

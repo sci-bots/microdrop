@@ -17,8 +17,10 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import sys
 import os
 import re
+import subprocess
 
 import gtk
 from path_helpers import path
@@ -55,6 +57,22 @@ from .gui import protocol_controller
 from .gui import protocol_grid_controller
 from .gui import plugin_manager_controller
 from .gui import app_options_controller
+
+
+def parse_args(args=None):
+    """Parses arguments, returns (options, args)."""
+    from argparse import ArgumentParser
+
+    if args is None:
+        args = sys.argv
+
+    parser = ArgumentParser(description='MicroDrop: graphical user interface '
+                            'for the DropBot Digital Microfluidics control '
+                            'system.')
+    parser.add_argument('-c', '--config', type=path, default=None)
+
+    args = parser.parse_args()
+    return args
 
 
 def test(*args, **kwargs):
@@ -105,14 +123,18 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     )
 
     def __init__(self):
+        args = parse_args()
+
+        print 'Arguments: %s' % args
+
         self.name = "microdrop.app"
         # get the version number
         self.version = ""
         try:
             version = subprocess.Popen(['git','describe'],
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          stdin=subprocess.PIPE).communicate()[0].rstrip()
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       stdin=subprocess.PIPE).communicate()[0].rstrip()
             m = re.match('v(\d+)\.(\d+)-(\d+)', version)
             self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
         except:
@@ -140,7 +162,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.log_file_handler = None
 
         # config model
-        self.config = Config()
+        self.config = Config(args.config)
 
         # set the log level
         if self.name in self.config.data and \
@@ -260,9 +282,10 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         return None
 
     def update_check(self):
-        update_setting = self.config['microdrop.app']['update_automatically']
-        if update_setting not in ('auto-update',
-                'check for updates, but ask before installing'):
+        update_setting = (self.config['microdrop.app']
+                          .get('update_automatically', None))
+        if update_setting not in ('auto-update', 'check for updates, but ask '
+                                  'before installing'):
             return
 
         app_update_server_url = self.config.data.get(self.name, {}).get(
@@ -304,7 +327,8 @@ Would you like to download the latest version in your browser?''' %
                                                               latest_version))
 
     def update_plugins(self):
-        update_setting = self.config['microdrop.app']['update_automatically']
+        update_setting = (self.config['microdrop.app']
+                          .get('update_automatically', None))
 
         if update_setting == 'auto-update':
             # Auto-update
