@@ -114,7 +114,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             default=False, optional=True,
             properties=dict(show_in_gui=False)),
         Filepath.named('log_file').using( #pylint: disable-msg=E1120
-            default='', optional=True),
+            default='', optional=True,
+            properties={'action': gtk.FILE_CHOOSER_ACTION_SAVE}),
         Boolean.named('log_enabled').using( #pylint: disable-msg=E1120
             default=False, optional=True),
         Enum.named('log_level').using( #pylint: disable-msg=E1101, E1120
@@ -165,8 +166,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.config = Config(args.config)
 
         # set the log level
-        if self.name in self.config.data and \
-            'log_level' in self.config.data[self.name]:
+        if self.name in self.config.data and ('log_level' in
+                                              self.config.data[self.name]):
             self._set_log_level(self.config.data[self.name]['log_level'])
 
         # Delete paths that were marked during the uninstallation of a plugin.
@@ -251,7 +252,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                         self.protocol_controller.run_step()
             if 'log_file' in data and 'log_enabled' in data:
                 self.apply_log_file_config(data['log_file'],
-                        data['log_enabled'])
+                                           data['log_enabled'])
             if 'log_level' in data:
                 self._set_log_level(data['log_level'])
             if 'width' in data and 'height' in data:
@@ -356,6 +357,12 @@ Would you like to download the latest version in your browser?''' %
 
     def run(self):
         plugin_manager.emit_signal('on_plugin_enable')
+        log_file = self.get_app_values()['log_file']
+        if not log_file:
+            self.set_app_values({'log_file':
+                                 path(self.config['data_dir'])
+                                 .joinpath('microdrop.log')})
+
         self.update_check()
         plugin_manager.load_plugins(self.config['plugins']['directory'])
         self.update_log_file()
