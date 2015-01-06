@@ -161,7 +161,6 @@ class Config():
             path(self['data_dir']).makedirs_p()
             warnings.warn('Created MicroDrop user data directory: %s' %
                           self['data_dir'])
-        logger.info('User data directory: %s' % self['data_dir'])
 
     def _init_plugins_dir(self):
         if self.data['plugins']['directory'] is None:
@@ -183,4 +182,3 @@ class Config():
                                  ignore=ignore_patterns('*.pyc'))
         if not plugins_directory.joinpath('__init__.py').isfile():
             plugins_directory.joinpath('__init__.py').touch()
-        logger.info('Plugins directory: %s' % self['plugins']['directory'])

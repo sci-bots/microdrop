@@ -366,6 +366,12 @@ Would you like to download the latest version in your browser?''' %
         self.update_check()
         plugin_manager.load_plugins(self.config['plugins']['directory'])
         self.update_log_file()
+
+        logger.info('User data directory: %s' % self.config['data_dir'])
+        logger.info('Plugins directory: %s' %
+                    self.config['plugins']['directory'])
+        logger.info('Devices directory: %s' % self.get_device_directory())
+
         FormViewDialog.default_parent = self.main_window_controller.view
         self.builder.connect_signals(self.signals)
         self.update_plugins()
