@@ -12,7 +12,8 @@ install_requires = ['application_repository', 'blinker', 'configobj',
                     'microdrop_utility', 'opencv-helpers', 'path-helpers',
                     'pygst-utils', 'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'svg_model',
-                    'svgwrite', 'task_scheduler', 'wheeler.pygtkhelpers']
+                    'svgwrite', 'task_scheduler', 'wheeler.pygtkhelpers',
+                    'paver']
 
 
 setup(name='microdrop',
