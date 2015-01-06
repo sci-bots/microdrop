@@ -63,10 +63,7 @@ class ConfigController(SingletonPlugin):
         app = get_app()
         directory = app.get_device_directory()
         if directory is None:
-            if os.name == 'nt':
-                directory = home_dir().joinpath('Microdrop', 'devices')
-            else:
-                directory = home_dir().joinpath('.microdrop', 'devices')
+            directory = path(app.config['data_dir']).joinpath('devices')
             observers = ExtensionPoint(IPlugin)
             plugin_name = 'microdrop.gui.dmf_device_controller'
             service = observers.service(plugin_name)

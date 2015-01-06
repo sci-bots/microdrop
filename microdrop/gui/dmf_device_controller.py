@@ -236,9 +236,9 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         return True
 
     def apply_device_dir(self, device_directory):
-        if not device_directory or \
-                (self.previous_device_dir and\
-                device_directory == self.previous_device_dir):
+        if (not device_directory or (self.previous_device_dir and
+                                     device_directory ==
+                                     self.previous_device_dir)):
             # If the data directory hasn't changed, we do nothing
             return False
 
