@@ -7,12 +7,12 @@ from paver.setuputils import setup
 import version
 
 
-install_requires = ['wheeler.pygtkhelpers', 'blinker', 'path-helpers',
-                    'ipython', 'pyutilib==3.9.2706', 'pyparsing', 'configobj',
-                    'pyyaml', 'pyzmq', 'opencv-helpers', 'pygst-utils',
-                    'geo-util', 'flatland-fork', 'microdrop_utility',
-                    'svg_model', 'task_scheduler', 'application_repository',
-                    'pygtk_textbuffer_with_undo']
+install_requires = ['application_repository', 'blinker', 'configobj',
+                    'flatland-fork', 'geo-util', 'ipython',
+                    'microdrop_utility', 'opencv-helpers', 'path-helpers',
+                    'pygst-utils', 'pygtk_textbuffer_with_undo', 'pyparsing',
+                    'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'svg_model',
+                    'svgwrite', 'task_scheduler', 'wheeler.pygtkhelpers']
 
 
 setup(name='microdrop',
