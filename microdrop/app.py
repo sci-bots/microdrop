@@ -32,7 +32,7 @@ from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 
-from microdrop_utility import base_path, Version
+from microdrop_utility import Version
 from microdrop_utility.gui import yesno
 from protocol import Step
 from config import Config
@@ -43,7 +43,7 @@ from plugin_helpers import AppDataController, get_plugin_info
 from logger import (logger, CustomHandler, logging, DEBUG, INFO, WARNING,
                     ERROR, CRITICAL)
 from application_repository.application.proxy import AppRepository
-
+from . import base_path
 
 PluginGlobals.push_env('microdrop')
 
@@ -404,14 +404,24 @@ Would you like to download the latest version in your browser?''' %
         # automatically overwritten when we load a new device
         protocol_name = self.config['protocol']['name']
 
+        # if there is no device specified in the config file, try choosing one
+        # from the device directory by default
+        device_directory = path(self.get_device_directory())
+        if not self.config['dmf_device']['name']:
+            try:
+                self.config['dmf_device']['name'] = \
+                    device_directory.dirs()[0].name
+            except:
+                pass
+
         # load the device from the config file
         if self.config['dmf_device']['name']:
-            directory = self.get_device_directory()
-            if directory:
-                device_path = os.path.join(directory,
+            if device_directory:
+                device_path = os.path.join(device_directory,
                                            self.config['dmf_device']['name'],
                                            'device')
                 self.dmf_device_controller.load_device(device_path)
+        
 
         # if we successfully loaded a device
         if self.dmf_device:

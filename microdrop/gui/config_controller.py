@@ -26,7 +26,6 @@ from ..logger import logger
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ExtensionPoint, ScheduleRequest)
 from ..app_context import get_app
-from ..config import get_skeleton_path
 
 
 PluginGlobals.push_env('microdrop')
@@ -54,29 +53,9 @@ class ConfigController(SingletonPlugin):
                     logger.error('Invalid section in config file: [%s].' %
                                  section_name)
                     self.app.config.data.pop(section_name)
-        self._init_devices_dir()
 
     def on_app_exit(self):
         self.app.config.save()
-
-    def _init_devices_dir(self):
-        app = get_app()
-        directory = app.get_device_directory()
-        if directory is None:
-            directory = path(app.config['data_dir']).joinpath('devices')
-            observers = ExtensionPoint(IPlugin)
-            plugin_name = 'microdrop.gui.dmf_device_controller'
-            service = observers.service(plugin_name)
-            service.set_app_values({'device_directory': directory})
-        dmf_device_directory = path(directory)
-        dmf_device_directory.parent.makedirs_p()
-        try:
-            devices = get_skeleton_path('devices')
-        except IOError:
-            pass
-        else:
-            if not dmf_device_directory.isdir():
-                devices.copytree(dmf_device_directory)
 
     def on_dmf_device_changed(self):
         device_name = None

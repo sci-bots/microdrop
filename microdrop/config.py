@@ -24,26 +24,11 @@ import warnings
 from path_helpers import path
 from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
-from microdrop_utility import base_path
 from microdrop_utility.user_paths import (home_dir, app_data_dir,
                                           common_app_data_dir)
 
 from .logger import logger
-
-
-def get_skeleton_path(dir_name):
-    logger.debug('get_skeleton_path(%s)' % dir_name)
-    if os.name == 'nt':
-        source_dir = common_app_data_dir().joinpath('Microdrop', dir_name)
-        if not source_dir.isdir():
-            logger.warning('warning: %s does not exist in common AppData dir'\
-                            % dir_name)
-            source_dir = path(dir_name)
-    else:
-        source_dir = base_path().joinpath('share', dir_name)
-    if not source_dir.isdir():
-        raise IOError, '%s/ directory not available.' % source_dir
-    return source_dir
+from . import base_path
 
 
 class ValidationError(Exception):
@@ -167,18 +152,7 @@ class Config():
             self.data['plugins']['directory'] = (path(self['data_dir'])
                                                  .joinpath('plugins'))
         plugins_directory = path(self.data['plugins']['directory'])
-        plugins_directory.parent.makedirs_p()
-        try:
-            plugins = get_skeleton_path('plugins')
-        except IOError:
-            if not plugins_directory.isdir():
-                plugins_directory.makedirs_p()
-        else:
-            if not plugins_directory.isdir():
-                # Copy plugins directory to app data directory, keeping
-                # symlinks intact.  If we don't keep symlinks as they are, we
-                # might end up with infinite recursion.
-                plugins.copytree(plugins_directory, symlinks=True,
-                                 ignore=ignore_patterns('*.pyc'))
+        if not plugins_directory.isdir():
+            plugins_directory.makedirs_p()
         if not plugins_directory.joinpath('__init__.py').isfile():
             plugins_directory.joinpath('__init__.py').touch()

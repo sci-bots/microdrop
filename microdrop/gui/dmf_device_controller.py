@@ -46,7 +46,7 @@ from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
 from .dmf_device_view import DmfDeviceView
-
+from .. import base_path
 
 PluginGlobals.push_env('microdrop')
 
@@ -236,15 +236,24 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         return True
 
     def apply_device_dir(self, device_directory):
-        if (not device_directory or (self.previous_device_dir and
-                                     device_directory ==
-                                     self.previous_device_dir)):
+        app = get_app()
+        
+        # if the device directory is empty or None, set a default
+        if not device_directory:
+            device_directory = path(app.config.data['data_dir']).joinpath(
+                'devices')
+            # copy the default devices
+            base_path().joinpath('devices').copytree(device_directory)
+            self.set_app_values({'device_directory': device_directory})
+        
+        if (self.previous_device_dir and
+            device_directory == self.previous_device_dir):
             # If the data directory hasn't changed, we do nothing
             return False
 
         device_directory = path(device_directory)
-        device_directory.makedirs_p()
         if self.previous_device_dir:
+            device_directory.makedirs_p()
             if device_directory.listdir():
                 result = yesno('Merge?', '''\
 Target directory [%s] is not empty.  Merge contents with
@@ -259,6 +268,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
             for f in original_directory.files():
                 f.copyfile(device_directory.joinpath(f.name))
             original_directory.rmtree()
+        elif not device_directory.isdir():
+            # if the device directory doesn't exist, copy the skeleton dir
+            device_directory.parent.makedirs_p()
+            base_path().joinpath('devices').copytree(device_directory)
         self.previous_device_dir = device_directory
         return True
 
