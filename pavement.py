@@ -13,7 +13,7 @@ install_requires = ['application_repository', 'blinker', 'configobj',
                     'pygst-utils', 'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'svg_model',
                     'svgwrite', 'task_scheduler', 'wheeler.pygtkhelpers',
-                    'paver', 'pip-helpers']
+                    'pip-helpers']
 
 
 setup(name='microdrop',
@@ -26,14 +26,8 @@ setup(name='microdrop',
       url='http://microfluidics.utoronto.ca/microdrop',
       license='GPL',
       long_description='\n%s\n' % open('README.md', 'rt').read(),
-      packages=['microdrop',
-                'microdrop.gui',
-                'microdrop.tests'],
-      package_data={'microdrop.tests': ['devices/*', 'experiment_logs/*',
-                                        'protocols/*', 'svg_files/*.svg',
-                                        'buildbot/master.cfg'],
-                    'microdrop.gui': ['glade/*.glade'],
-                    'microdrop': ['requirements.txt']},
+      packages=['microdrop'],
+      include_package_data=True,
       install_requires=install_requires)
 
 
