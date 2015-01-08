@@ -28,7 +28,8 @@ from microdrop_utility.gui import (combobox_set_model_from_list,
 
 from ..experiment_log import ExperimentLog
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
-                              PluginGlobals, emit_signal, ScheduleRequest)
+                              PluginGlobals, emit_signal, ScheduleRequest,
+                              get_service_names, get_service_instance_by_name)
 from ..protocol import Protocol
 from ..dmf_device import DmfDevice
 from ..app_context import get_app
@@ -154,8 +155,18 @@ class ExperimentLogController(SingletonPlugin):
             data = self.results.log.get("control board software version")
             for val in data:
                 if val:
-                    label += "\n\tFirmware version:%s" % val
+                    label += "\n\tFirmware version: %s" % val
             self.builder.get_object("label_control_board"). \
+                set_text(label)
+
+            label = "Enabled plugins: "
+            data = self.results.log.get("plugins")
+            for val in data:
+                if val:
+                    for k, v in val.iteritems():
+                        label += "\n\t%s %s" % (k, v)
+            
+            self.builder.get_object("label_plugins"). \
                 set_text(label)
 
             label = "Time of experiment: "
@@ -230,6 +241,12 @@ class ExperimentLogController(SingletonPlugin):
             data["protocol name"] = app.protocol.name
             data["notes"] = textview_get_text(app.protocol_controller. \
                 builder.get_object("textview_notes"))
+            plugin_versions = {}
+            for name in get_service_names(env='microdrop.managed'):
+                service = get_service_instance_by_name(name)
+                if service._enable:
+                    plugin_versions[name] = str(service.version)
+            data['plugins'] = plugin_versions
             app.experiment_log.add_data(data)
             log_path = app.experiment_log.save()
     
