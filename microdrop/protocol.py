@@ -30,7 +30,8 @@ from contextlib import closing
 
 import yaml
 
-from plugin_manager import emit_signal, IPlugin, ExtensionPoint
+from plugin_manager import (emit_signal, IPlugin, ExtensionPoint,
+    get_service_names)
 from logger import logger
 from microdrop_utility import Version, VersionError, FutureVersionError
 
@@ -81,23 +82,42 @@ class Protocol():
         if out==None:
             raise TypeError
         out.filename = filename
+        
+        # enable loading of old protocols that were loaded as relative packages
+        # (i.e., not subpackages of microdrop).
+        if str(out.__class__) == 'protocol.Protocol':
+            out.__class__ = cls
+        
         # check type
-        if out.__class__!=cls:
-            raise TypeError
+        if out.__class__ != cls:
+            raise TypeError, "File is wrong type: %s" % out.__class__
         if not hasattr(out, 'version'):
             out.version = str(Version(0))
         out._upgrade()
+
+        enabled_plugins = get_service_names(env='microdrop.managed') + \
+            get_service_names('microdrop')
+        
         for k, v in out.plugin_data.items():
-            try:
-                out.plugin_data[k] = pickle.loads(v)
-            except Exception, e:
-                out.plugin_data[k] = yaml.load(v)
+            if k in enabled_plugins:
+                try:
+                    out.plugin_data[k] = pickle.loads(v)
+                except Exception, e:
+                    out.plugin_data[k] = yaml.load(v)
         for i in range(len(out)):
             for k, v in out[i].plugin_data.items():
-                try:
-                    out[i].plugin_data[k] = pickle.loads(v)
-                except Exception, e:
-                    out[i].plugin_data[k] = yaml.load(v)
+                if k in enabled_plugins:
+                    try:
+                        out[i].plugin_data[k] = pickle.loads(v)
+                    except Exception, e:
+                        # enable loading of old protocols where the
+                        # dmf_device_controller was imported as a relative
+                        # package
+                        v = v.replace('!!python/object:gui.'
+                                          'dmf_device_controller.',
+                                      '!!python/object:microdrop.gui.'
+                                          'dmf_device_controller.')
+                        out[i].plugin_data[k] = yaml.load(v)
         logger.debug("[Protocol].load() loaded in %f s." % \
                      (time.time()-start_time))
         return out

@@ -32,7 +32,8 @@ from ..plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                               implements, PluginGlobals, ScheduleRequest,
                               emit_signal, get_service_class,
                               get_service_instance,
-                              get_service_instance_by_name, get_observers)
+                              get_service_instance_by_name, get_observers,
+                              get_service_names)
 from ..app_context import get_app
 
 
@@ -92,13 +93,6 @@ class ProtocolController(SingletonPlugin):
         p = None
         try:
             p = Protocol.load(filename)
-            for name, data in p.plugin_data.items():
-                observers = ExtensionPoint(IPlugin)
-                service = observers.service(name)
-                if not service:
-                    logging.warning("Protocol "
-                        "requires the %s plugin, however this plugin is "
-                        "not available." % (name))
         except FutureVersionError, why:
             logging.error('''\
 Could not open protocol:
@@ -109,6 +103,38 @@ Protocol is version %s, but only up to version %s is supported with this version
         except Exception, why:
             logging.error("Could not open %s. %s" % (filename, why))
         if p:
+            # check if the protocol contains data from plugins that are not
+            # enabled
+            enabled_plugins = get_service_names(env='microdrop.managed') + \
+                get_service_names('microdrop')
+            missing_plugins = []
+            for k, v in p.plugin_data.items():
+                if k not in enabled_plugins and k not in missing_plugins:
+                    missing_plugins.append(k)
+            for i in range(len(p)):
+                for k, v in p[i].plugin_data.items():
+                    if k not in enabled_plugins and k not in missing_plugins:
+                        missing_plugins.append(k)
+            if missing_plugins:
+                logging.info('load protocol(%s): missing plugins: %s' %
+                             (filename, ", ".join(missing_plugins)))
+                result = yesno('Some data in the protocol "%s" requires '
+                               'plugins that are not currently installed:'
+                               '\n\t%s\nThis data will be ignored unless you '
+                               'install and enable these plugins. Would you'
+                               'like to permanently clear this data from the '
+                               'protocol?' % (p.name,
+                                            ",\n\t".join(missing_plugins)))
+                if result == gtk.RESPONSE_YES:
+                    logging.info('Deleting protocol data for missing items')
+                    for k, v in p.plugin_data.items():
+                        if k in missing_plugins:
+                            del p.plugin_data[k]
+                    for i in range(len(p)):
+                        for k, v in p[i].plugin_data.items():
+                            if k in missing_plugins:
+                                del p[i].plugin_data[k]
+                    self.save_protocol()
             self.modified = False
             emit_signal("on_protocol_swapped", [app.protocol, p])
 
