@@ -356,6 +356,10 @@ Would you like to download the latest version in your browser?''' %
                 logger.info('No plugins have been updated')
 
     def run(self):
+        # set realtime mode to false on startup
+        if 'realtime_mode' in self.config.data[self.name]:
+            self.config.data[self.name]['realtime_mode'] = False
+
         plugin_manager.emit_signal('on_plugin_enable')
         log_file = self.get_app_values()['log_file']
         if not log_file:
