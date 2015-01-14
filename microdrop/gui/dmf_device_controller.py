@@ -242,8 +242,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         if not device_directory:
             device_directory = path(app.config.data['data_dir']).joinpath(
                 'devices')
-            # copy the default devices
-            base_path().joinpath('devices').copytree(device_directory)
             self.set_app_values({'device_directory': device_directory})
         
         if (self.previous_device_dir and

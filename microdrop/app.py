@@ -357,7 +357,8 @@ Would you like to download the latest version in your browser?''' %
 
     def run(self):
         # set realtime mode to false on startup
-        if 'realtime_mode' in self.config.data[self.name]:
+        if self.name in self.config.data and \
+        'realtime_mode' in self.config.data[self.name]:
             self.config.data[self.name]['realtime_mode'] = False
 
         plugin_manager.emit_signal('on_plugin_enable')
