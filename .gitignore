@@ -1,7 +1,6 @@
 download_cache
 logdict*
 microdrop/version.txt
-microdrop/devices/
 microdrop/etc/
 microdrop/share/
 doc
