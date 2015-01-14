@@ -132,19 +132,31 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         # get the version number
         self.version = ""
         try:
+            raise Exception
             version = subprocess.Popen(['git','describe'],
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE,
                                        stdin=subprocess.PIPE).communicate()[0].rstrip()
             m = re.match('v(\d+)\.(\d+)-(\d+)', version)
             self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
+            branch = subprocess.Popen(['git','rev-parse', '--abbrev-ref', 'HEAD'],
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       stdin=subprocess.PIPE).communicate()[0].rstrip()
+            if branch.strip() != 'master':
+                self.version += "-%s" % branch
         except:
             import pkg_resources
 
             version = pkg_resources.get_distribution('microdrop').version
+            
+            dev = ('dev' in version)
+
             self.version = re.sub('\.dev.*', '',
                                   re.sub('post', '', version))
-
+            if dev:
+                self.version += "-dev"
+                
         self.realtime_mode = False
         self.running = False
         self.builder = gtk.Builder()
