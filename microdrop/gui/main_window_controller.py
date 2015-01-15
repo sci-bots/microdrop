@@ -20,6 +20,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import pdb
 import os
 import webbrowser
+import pkg_resources
 
 import gtk
 from pygtkhelpers.proxy import proxy_for
@@ -76,6 +77,8 @@ class MainWindowController(SingletonPlugin):
         app = get_app()
         app.builder.add_from_file(self.builder_path)
         self.view = app.builder.get_object("window")
+        self.view.set_icon_from_file(
+            pkg_resources.resource_filename('microdrop', 'microdrop.ico'))
         DEFAULTS.parent_widget = self.view
         self.label_control_board_status = app.builder.get_object("label_control_board_status")
         self.label_experiment_id = app.builder.get_object("label_experiment_id")
