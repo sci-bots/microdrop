@@ -17,11 +17,23 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
 import sys
 import traceback
+import platform
 
 import gtk
+
+if platform.system() == 'Windows':
+    # When loading Portable MicroDrop on Windows 8.1, the following error
+    # occurs when trying to import `win32com`, etc.:
+    #
+    #     ImportError: DLL load failed: The specified module could not be
+    #     found.
+    #
+    # Importing `pythoncom` *(as done below)* prior to `win32com`, etc. seems
+    # to work around the issue.
+    # See ticket #174.
+    import pythoncom
 
 settings = gtk.settings_get_default()
 # Use a button ordering more consistent with Windows
