@@ -167,7 +167,6 @@ class MainWindowController(SingletonPlugin):
         self.checkbutton_realtime_mode.set_active(realtime_mode)
         app = get_app()
         app.set_app_values({'realtime_mode': realtime_mode})
-        emit_signal("on_app_options_changed", [app.name], interface=IPlugin)
         return True
 
     def on_menu_app_options_activate(self, widget, data=None):
