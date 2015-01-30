@@ -152,10 +152,21 @@ class ExperimentLogController(SingletonPlugin):
             for val in data:
                 if val:
                     label += " v%s" % val
+            serial_number = "" 
+            data = self.results.log.get("control board serial number")
+            for val in data:
+                if val:
+                    serial_number = ", S/N %03d" % val
             data = self.results.log.get("control board software version")
             for val in data:
                 if val:
-                    label += "\n\tFirmware version: %s" % val
+                    label += "\n\t(Firmware: %s%s)" % (val, serial_number)
+            data = self.results.log.get("i2c devices")
+            for val in data:
+                if val:
+                    label += "\ni2c devices:"
+                    for address, description in sorted(val.items()):
+                        label += "\n\t%d: %s" % (address, description)
             self.builder.get_object("label_control_board"). \
                 set_text(label)
 
