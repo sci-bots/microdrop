@@ -182,6 +182,27 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                               self.config.data[self.name]):
             self._set_log_level(self.config.data[self.name]['log_level'])
 
+        # Run post install hooks for freshly installed plugins.
+        # It is necessary to delay the execution of these hooks here due to
+        # Windows file locking preventing the deletion of files that are in use.
+        post_install_queue_path = \
+            path(self.config.data['plugins']['directory']) \
+            .joinpath('post_install_queue.yml')
+        if post_install_queue_path.isfile():
+            post_install_queue = yaml.load(post_install_queue_path.bytes())
+            post_install_queue = map(path, post_install_queue)
+
+            logger.info('[App] processing post install hooks.')
+            for p in post_install_queue:
+                try:
+                    info = get_plugin_info(p)
+                    logger.info("  running post install hook for %s" %
+                                info.plugin_name)
+                    plugin_manager.post_install(p)
+                finally:
+                    post_install_queue.remove(p)
+            post_install_queue_path.write_bytes(yaml.dump(post_install_queue))
+
         # Delete paths that were marked during the uninstallation of a plugin.
         # It is necessary to delay the deletion until here due to Windows file
         # locking preventing the deletion of files that are in use.
@@ -190,6 +211,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if deletions_path.isfile():
             requested_deletions = yaml.load(deletions_path.bytes())
             requested_deletions = map(path, requested_deletions)
+            
             logger.info('[App] processing requested deletions.')
             for p in requested_deletions:
                 try:
@@ -211,8 +233,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                 raise
                             os.chdir(cwd)
                             requested_deletions.remove(p)
+                    else: # if the directory doesn't exist, remove it from the
+                          # list
+                        requested_deletions.remove(p)
                 except (AssertionError,):
-                    logger.info('  NOT deleting %s info=%s' % (p, info))
+                    logger.info('  NOT deleting %s' % (p))
                     continue
                 except (Exception,):
                     logger.info('  NOT deleting %s' % (p))

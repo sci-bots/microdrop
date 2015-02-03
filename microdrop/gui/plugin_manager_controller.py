@@ -156,6 +156,7 @@ class PluginManagerController(SingletonPlugin):
         self.plugins = []
         # Maintain a list of path deletions to be processed on next app launch
         self.requested_deletions = []
+        self.post_install_queue = []
         self.rename_queue = []
         self.restart_required = False
         self.e = PluginGlobals.env('microdrop.managed')
@@ -235,6 +236,11 @@ class PluginManagerController(SingletonPlugin):
         rename_queue_path.write_bytes(yaml.dump([(p1.abspath(), p2.abspath())
                                                  for p1, p2 in
                                                  self.rename_queue]))
+        post_install_queue_path = (path(app.config.data['plugins']['directory'])
+                             .joinpath('post_install_queue.yml'))
+        post_install_queue_path.write_bytes(yaml.dump([p.abspath()
+                                                       for p in self
+                                                       .post_install_queue]))
 
     def update_all_plugins(self, force=False):
         self.update()
@@ -270,7 +276,7 @@ class PluginManagerController(SingletonPlugin):
                 tar_file = tarfile.open(archive_path, 'r:gz')
                 tar_file.extractall(temp_dir)
                 tar_file.close()
-            return self.verify_new_plugin(temp_dir, force=force)
+            return self.verify_and_install_new_plugin(temp_dir, force=force)
         finally:
             # Post-pone deletion until next program launch
             self.requested_deletions.append(temp_dir)
@@ -282,16 +288,10 @@ class PluginManagerController(SingletonPlugin):
 
     def install_plugin(self, plugin_root, install_path):
         plugin_metadata = get_plugin_info(plugin_root)
-        try:
-            plugin_root.copytree(install_path, symlinks=True,
-                                 ignore=ignore_patterns('*.pyc'))
-            self.post_install(plugin_metadata, install_path)
-            logging.info('%s installed successfully' %
-                         plugin_metadata.plugin_name)
-
-            self.restart_required = True
-        except Exception, why:
-            logging.error('Error installing plugin. %s.', why)
+        plugin_root.copytree(install_path, symlinks=True,
+                             ignore=ignore_patterns('*.pyc'))
+        self.post_install_queue.append(install_path)
+        self.restart_required = True
 
     def post_uninstall(self, uninstall_path):
         # __NB__ The `cwd` directory ["is not considered when searching the
@@ -327,40 +327,7 @@ class PluginManagerController(SingletonPlugin):
                 finally:
                     os.chdir(cwd)
 
-    def post_install(self, plugin_metadata, install_path):
-        # __NB__ The `cwd` directory ["is not considered when searching the
-        # executable, so you can't specify the program's path relative to
-        # `cwd`."][cwd].  Therefore, we manually change to the directory
-        # containing the hook script and change back to the original working
-        # directory when we're done.
-        #
-        # [cwd]: https://docs.python.org/2/library/subprocess.html#popen-constructor
-        cwd = os.getcwd()
-        if platform.system() in ('Linux', 'Darwin'):
-            system_name = platform.system()
-            hooks_path = install_path.joinpath('hooks', system_name).abspath()
-            on_install_path = hooks_path.joinpath('on_plugin_install.sh')
-            if on_install_path.isfile():
-                # There is an `on_plugin_install` script to run.
-                try:
-                    os.chdir(hooks_path)
-                    subprocess.check_call(['sh', on_install_path.name,
-                                           sys.executable], cwd=hooks_path)
-                finally:
-                    os.chdir(cwd)
-        elif platform.system() == 'Windows':
-            hooks_path = install_path.joinpath('hooks', 'Windows').abspath()
-            on_install_path = hooks_path.joinpath('on_plugin_install.bat')
-            if on_install_path.isfile():
-                # There is an `on_plugin_install` script to run.
-                try:
-                    os.chdir(hooks_path)
-                    subprocess.check_call([on_install_path.name,
-                                           sys.executable], cwd=hooks_path)
-                finally:
-                    os.chdir(cwd)
-
-    def verify_new_plugin(self, plugin_root, force=False):
+    def verify_and_install_new_plugin(self, plugin_root, force=False):
         plugin_metadata = get_plugin_info(plugin_root)
         if plugin_metadata is None:
             logging.error('%s does not contain a valid plugin.' % plugin_root)
@@ -420,7 +387,12 @@ class PluginManagerController(SingletonPlugin):
             # enable new plugins by default
             app.config["plugins"]["enabled"].append(plugin_metadata
                                                     .package_name)
-        self.install_plugin(plugin_root, installed_plugin_path)
+        try:
+            self.install_plugin(plugin_root, installed_plugin_path)
+            logging.info('%s installed successfully' %
+                         plugin_metadata.plugin_name)
+        except Exception, why:
+            logging.error('Error installing plugin. %s.', why)
         app.main_window_controller.info('%s plugin installed successfully.'
                                         % plugin_metadata.plugin_name,
                                         'Install plugin')

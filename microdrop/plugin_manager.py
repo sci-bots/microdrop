@@ -24,9 +24,13 @@ from contextlib import closing
 from collections import namedtuple
 import logging
 import re
+import os
+import platform
+import subprocess
 
 from path_helpers import path
 import task_scheduler
+import yaml
 
 from interfaces import (Plugin, IPlugin, PluginGlobals, ExtensionPoint,
                         IWaveformGenerator, ILoggingPlugin, IVideoPlugin,
@@ -58,6 +62,40 @@ def load_plugins(plugins_dir='plugins'):
     for class_ in e.plugin_registry.values():
         service = class_()
         service.disable()
+
+
+def post_install(install_path):
+    # __NB__ The `cwd` directory ["is not considered when searching the
+    # executable, so you can't specify the program's path relative to
+    # `cwd`."][cwd].  Therefore, we manually change to the directory
+    # containing the hook script and change back to the original working
+    # directory when we're done.
+    #
+    # [cwd]: https://docs.python.org/2/library/subprocess.html#popen-constructor
+    cwd = os.getcwd()
+    if platform.system() in ('Linux', 'Darwin'):
+        system_name = platform.system()
+        hooks_path = install_path.joinpath('hooks', system_name).abspath()
+        on_install_path = hooks_path.joinpath('on_plugin_install.sh')
+        if on_install_path.isfile():
+            # There is an `on_plugin_install` script to run.
+            try:
+                os.chdir(hooks_path)
+                subprocess.check_call(['sh', on_install_path.name,
+                                       sys.executable], cwd=hooks_path)
+            finally:
+                os.chdir(cwd)
+    elif platform.system() == 'Windows':
+        hooks_path = install_path.joinpath('hooks', 'Windows').abspath()
+        on_install_path = hooks_path.joinpath('on_plugin_install.bat')
+        if on_install_path.isfile():
+            # There is an `on_plugin_install` script to run.
+            try:
+                os.chdir(hooks_path)
+                subprocess.check_call([on_install_path.name,
+                                       sys.executable], cwd=hooks_path)
+            finally:
+                os.chdir(cwd)
 
 
 def log_summary():

@@ -24,6 +24,10 @@ microdrop/plugins/*.yml
 RELEASE-VERSION
 .settings/
 src/
+setup.py
+paver-minilib.zip
+*.egg-info/
+microdrop/requirements.txt
 
 # Back-up files.
 *~
@@ -34,5 +38,3 @@ microdrop/svg_model/
 microdrop/task_scheduler/
 microdrop/update_repository/
 microdrop/utility/
-
-setup.py
