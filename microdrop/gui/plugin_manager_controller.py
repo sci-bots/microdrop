@@ -170,7 +170,10 @@ class PluginManagerController(SingletonPlugin):
         plugin_name = plugin_metadata.plugin_name
 
         p = PluginRepository(server_url)
-        latest_version = Version(**p.latest_version(package_name))
+        latest_version = Version(**p.latest_version(package_name,
+                                                    app_version={'major': 1,
+                                                                 'minor': 0,
+                                                                 'micro': 0}))
 
         # Check the plugin tag versus the tag of latest version from the
         # update respository. If they are different, it's a sign that they

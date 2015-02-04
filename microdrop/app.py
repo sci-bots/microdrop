@@ -108,7 +108,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 'check for updates, but ask before installing',
                 '''don't check for updates'''),
         String.named('server_url').using( #pylint: disable-msg=E1120
-            default='http://microfluidics.utoronto.ca/v1/update',
+            default='http://microfluidics.utoronto.ca/update',
             optional=True, properties=dict(show_in_gui=False)),
         Boolean.named('realtime_mode').using( #pylint: disable-msg=E1120
             default=False, optional=True,
@@ -149,14 +149,14 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             import pkg_resources
 
             version = pkg_resources.get_distribution('microdrop').version
-            
+
             dev = ('dev' in version)
 
             self.version = re.sub('\.dev.*', '',
                                   re.sub('post', '', version))
             if dev:
                 self.version += "-dev"
-                
+
         self.realtime_mode = False
         self.running = False
         self.builder = gtk.Builder()
@@ -463,7 +463,7 @@ Would you like to download the latest version in your browser?''' %
                                            self.config['dmf_device']['name'],
                                            'device')
                 self.dmf_device_controller.load_device(device_path)
-        
+
 
         # if we successfully loaded a device
         if self.dmf_device:

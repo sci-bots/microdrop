@@ -1,13 +1,17 @@
+import sys
 import os
 import pkg_resources
 
-from paver.easy import task, needs
+from paver.easy import task, needs, path
 from paver.setuputils import setup
 
+root_dir = path(__file__).parent.abspath()
+if root_dir not in sys.path:
+    sys.path.insert(0, str(root_dir))
 import version
 
 
-install_requires = ['application_repository', 'blinker', 'configobj',
+install_requires = ['application_repository>=0.4', 'blinker', 'configobj',
                     'flatland-fork', 'geo-util', 'ipython',
                     'microdrop_utility', 'opencv-helpers', 'path-helpers',
                     'pygst-utils', 'pygtk_textbuffer_with_undo', 'pyparsing',
