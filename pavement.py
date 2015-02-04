@@ -13,7 +13,7 @@ install_requires = ['application_repository', 'blinker', 'configobj',
                     'pygst-utils', 'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'svg_model',
                     'svgwrite', 'task_scheduler', 'wheeler.pygtkhelpers',
-                    'pip-helpers']
+                    'pip-helpers>=0.5']
 
 
 setup(name='microdrop',
