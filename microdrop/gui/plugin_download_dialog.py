@@ -54,7 +54,9 @@ class PluginDownloadDialog(object):
 
         server_url = app.get_app_value('server_url')
         p = PluginRepository(server_url)
-        available = set(p.available_packages())
+        available = set(p.available_packages(app_version={'major': 1,
+                                                          'minor': 0,
+                                                          'micro': 0}))
         installed = set([p.get_plugin_package_name()
                 for p in self.controller.plugins])
         to_install = available.difference(installed)

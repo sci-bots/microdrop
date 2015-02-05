@@ -203,7 +203,9 @@ class PluginManagerController(SingletonPlugin):
             app = get_app()
             server_url = app.get_app_value('server_url')
             p = PluginRepository(server_url)
-            p.download_latest(package_name, temp_dir)
+            p.download_latest(package_name, temp_dir, app_version={'major': 1,
+                                                                   'minor': 0,
+                                                                   'micro': 0})
             archive_path = temp_dir.files()[0]
             return self.install_from_archive(archive_path, force=force)
         finally:

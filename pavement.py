@@ -11,7 +11,7 @@ if root_dir not in sys.path:
 import version
 
 
-install_requires = ['application_repository>=0.4', 'blinker', 'configobj',
+install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'flatland-fork', 'geo-util', 'ipython',
                     'microdrop_utility', 'opencv-helpers', 'path-helpers',
                     'pygst-utils', 'pygtk_textbuffer_with_undo', 'pyparsing',

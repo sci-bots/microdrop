@@ -319,11 +319,16 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 return plugin_name
         return None
 
+    def _update_setting(self):
+        if not self.config['microdrop.app'].get('update_automatically', None):
+            self.config['microdrop.app']['update_automatically'] = \
+                'check for updates, but ask before installing'
+        return self.config['microdrop.app']['update_automatically']
+
     def update_check(self):
-        update_setting = (self.config['microdrop.app']
-                          .get('update_automatically', None))
-        if update_setting not in ('auto-update', 'check for updates, but ask '
-                                  'before installing'):
+        if self._update_setting() not in ('auto-update', 
+                                          'check for updates, but ask before '
+                                          'installing'):
             return
 
         app_update_server_url = self.config.data.get(self.name, {}).get(
@@ -365,8 +370,7 @@ Would you like to download the latest version in your browser?''' %
                                                               latest_version))
 
     def update_plugins(self):
-        update_setting = (self.config['microdrop.app']
-                          .get('update_automatically', None))
+        update_setting = self._update_setting()
 
         if update_setting == 'auto-update':
             # Auto-update
