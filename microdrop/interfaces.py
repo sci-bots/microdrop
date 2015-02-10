@@ -231,6 +231,11 @@ else:
             signal once they have completed the step. The protocol controller
             will wait until all plugins have completed the current step before
             proceeding.
+            
+            return_value can be one of:
+                None
+                'Repeat' - repeat the step
+                or 'Fail' - unrecoverable error (stop the protocol)
             """
             pass
 
