@@ -88,7 +88,7 @@ else:
             app options from the config file. If you decide to overide the
             default handler, you should call:
 
-                super(PluginClass, self).on_plugin_enable()
+                AppDataController.on_plugin_enable(self)
 
             to retain this functionality.
             """
