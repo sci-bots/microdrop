@@ -119,12 +119,13 @@ class ProtocolGridView(CombinedFields):
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(form_name)
                 try:
-                    service.set_step_values(form_step.attrs, step_number=row_id)
-                except ValueError, e:
-                    logging.error('Invalid value.%s' % str(e))
+                    service.set_step_values(form_step.attrs,
+                                            step_number=row_id)
+                except ValueError:
+                    logging.error('Invalid value. %s', value)
+                    self._on_step_options_changed(form_name, row_id)
 
     def on_rows_changed(self, list_, row_ids, rows, attr):
-        app = get_app()
         for step_number, step in [(i, self[i]) for i in row_ids]:
             for form_name, uuid_code in self.uuid_mapping.iteritems():
                 field_set_prefix = self.field_set_prefix % uuid_code
