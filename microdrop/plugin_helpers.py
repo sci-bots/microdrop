@@ -155,26 +155,42 @@ class StepOptionsController(object):
         return self.get_step_options(step_number)
 
     def get_step_value(self, name, step_number=None):
-        app = get_app()
-        if not name in self.StepFields.field_schema_mapping:
-            raise KeyError('No field with name %s for plugin %s' % (name, self.name))
         step = self.get_step(step_number)
 
         options = step.get_data(self.name)
         if options:
+            if name not in options and (name in self.StepFields
+                                        .field_schema_mapping):
+                return self.StepFields.from_defaults()[name]
             return options[name]
         return None
 
     def set_step_values(self, values_dict, step_number=None):
+        '''
+        Consider a scenario where most step options are simple types that are
+        supported by `flatland` and can be listed in `StepOptions` (e.g.,
+        `Integer`, `Boolean`, etc.), but there is at least one step option that
+        is a type not supported by `flatland`, such as a `numpy.array`.
+
+        Currently, this requires custom handling for all methods related to
+        step options, as in the case of the DMF control board. Instead, during
+        validation of step option values, we could simply exclude options that
+        are not listed in the `StepOptions` definition from the validation, but
+        pass along *all* values to be saved in the protocol.
+
+        This should maintain backwards compatibility while simplifying the
+        addition of arbitrary Python data types as step options.
+        '''
         step_number = self.get_step_number(step_number)
-        logger.debug('[StepOptionsController] set_step[%d]_values(): '\
-                    'values_dict=%s' % (step_number, values_dict,))
-        el = self.StepFields(value=values_dict)
-        if not el.validate():
-            raise ValueError('Invalid values: %s' % el.errors)
-        options = self.get_step_options(step_number=step_number)
-        values = {}
-        for name, field in el.iteritems():
+        logger.debug('[StepOptionsController] set_step[%d]_values(): '
+                     'values_dict=%s' % (step_number, values_dict))
+        validate_dict = dict([(k, v) for k, v in values_dict.iteritems()
+                              if k in self.StepFields.field_schema_mapping])
+        validation_result = self.StepFields(value=validate_dict)
+        if not validation_result.validate():
+            raise ValueError('Invalid values: %s' % validation_result.errors)
+        values = values_dict.copy()
+        for name, field in validation_result.iteritems():
             if field.value is None:
                 continue
             values[name] = field.value

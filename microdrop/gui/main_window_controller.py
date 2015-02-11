@@ -112,9 +112,29 @@ class MainWindowController(SingletonPlugin):
         if app.config.data.get('advanced_ui', False):
             self.debug_menu_item = gtk.MenuItem('Debug...')
             self.debug_menu_item.show()
+
+            def activate_debugger():
+                try:
+                    plugin = get_service_instance_by_name(
+                        'wheelerlab.dmf_control_board')
+                    control_board = plugin.control_board
+                    #hv_board_servers = (control_board
+                                        #.start_hv_switching_board_servers())
+                    #logger.info('Started the following HV switching board'
+                                #'servers: %s',
+                                #[(6000 + i, k)
+                                 #for i, k in
+                                 #enumerate(hv_board_servers.keys())])
+                except KeyError:
+                    plugin = None
+                    control_board = None
+
+                if PUDB_AVAILABLE:
+                    pudb.set_trace()
+                else:
+                    pdb.set_trace()
             self.debug_menu_item.connect('activate', lambda *args:
-                                         pudb.set_trace() if PUDB_AVAILABLE
-                                         else pdb.set_trace())
+                                         activate_debugger())
             self.menu_tools.append(self.debug_menu_item)
 
     def main(self):
