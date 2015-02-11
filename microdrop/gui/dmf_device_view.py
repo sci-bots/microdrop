@@ -149,7 +149,8 @@ class DmfDeviceView(GtkVideoView):
     a channel has changed as a result of interaction with the device
     view.
     '''
-    builder_path = base_path().joinpath('gui', 'glade', 'dmf_device_view.glade')
+    builder_path = base_path().joinpath('gui', 'glade',
+                                        'dmf_device_view.glade')
 
     gsignal('channel-state-changed', object)
     gsignal('transform-changed', object)
@@ -158,8 +159,8 @@ class DmfDeviceView(GtkVideoView):
         self.controller = dmf_device_controller
         self.last_frame_time = datetime.now()
         self.last_frame = None
-        self.video_offset = (0,0)
-        self.display_offset = (0,0)
+        self.video_offset = (0, 0)
+        self.display_offset = (0, 0)
         self.electrode_color = {}
         self.background = None
         self.overlay_opacity = None

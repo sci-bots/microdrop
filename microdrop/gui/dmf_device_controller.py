@@ -237,15 +237,15 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     def apply_device_dir(self, device_directory):
         app = get_app()
-        
+
         # if the device directory is empty or None, set a default
         if not device_directory:
             device_directory = path(app.config.data['data_dir']).joinpath(
                 'devices')
             self.set_app_values({'device_directory': device_directory})
-        
-        if (self.previous_device_dir and
-            device_directory == self.previous_device_dir):
+
+        if self.previous_device_dir and (device_directory ==
+                                         self.previous_device_dir):
             # If the data directory hasn't changed, we do nothing
             return False
 

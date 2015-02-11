@@ -23,19 +23,18 @@ from copy import deepcopy
 import gtk
 from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
                                                         CombinedRow, RowFields)
-from textbuffer_with_undo import UndoableBuffer
 from microdrop_utility.gui import register_shortcuts
 
 from microdrop.plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
-                              implements, PluginGlobals, ScheduleRequest,
-                              emit_signal)
+                                      implements, PluginGlobals,
+                                      ScheduleRequest, emit_signal)
 from microdrop.app_context import get_app
 
 
 class ProtocolGridView(CombinedFields):
     def __init__(self, forms, enabled_attrs, *args, **kwargs):
         super(ProtocolGridView, self).__init__(forms, enabled_attrs, *args,
-                **kwargs)
+                                               **kwargs)
         self.connect('row-changed', self.on_row_changed)
         self.connect('rows-changed', self.on_rows_changed)
         self.connect('selection-changed', self.on_selection_changed)
@@ -48,16 +47,18 @@ class ProtocolGridView(CombinedFields):
             # Get the step option values from the plugin instance
             attrs = service.get_step_values(step_number=step_number)
             self._update_row_fields(form_name, step_number, attrs)
-            logging.debug('[ProtocolGridView] _on_step_options_changed(): '\
-                    'plugin_name=%s step_number=%s attrs=%s' % (form_name,
-                            step_number, attrs))
+            logging.debug('[ProtocolGridView] _on_step_options_changed(): '
+                          'plugin_name=%s step_number=%s attrs=%s' %
+                          (form_name, step_number, attrs))
 
-    def _get_popup_menu(self, item, column_title, value, row_ids, menu_items=None):
+    def _get_popup_menu(self, item, column_title, value, row_ids,
+                        menu_items=None):
         app = get_app()
         if menu_items is None:
             # Use list of tuples (menu label, callback) rather than a dict to
             # allow ordering.
             menu_items = []
+
         def request_field_filter(*args, **kwargs):
             from .field_filter_controller import FieldFilterController
 
@@ -65,7 +66,8 @@ class ProtocolGridView(CombinedFields):
             response = ffc.run(self.forms, self.enabled_fields_by_form_name)
             if response == gtk.RESPONSE_OK:
                 self.emit('fields-filter-request',
-                        ffc.enabled_fields_by_plugin)
+                          ffc.enabled_fields_by_plugin)
+
         # Add menu entry to select enabled fields for each plugin
         menu_items += [('Select fields...', request_field_filter)]
         # Add seperator
@@ -84,8 +86,10 @@ class ProtocolGridView(CombinedFields):
             #import pudb; pudb.set_trace()
         #menu_items += [('Run pudb...', run_pudb)]
 
-        return super(ProtocolGridView, self)._get_popup_menu(item, column_title, value,
-                row_ids, menu_items)
+        return super(ProtocolGridView, self)._get_popup_menu(item,
+                                                             column_title,
+                                                             value, row_ids,
+                                                             menu_items)
 
     def paste_rows_before(self, *args, **kwargs):
         app = get_app()
@@ -133,20 +137,22 @@ class ProtocolGridView(CombinedFields):
                     form_step = step.get_row_fields(form_name)
                     observers = ExtensionPoint(IPlugin)
                     service = observers.service(form_name)
-                    service.set_step_values(form_step.attrs, step_number=step_number)
+                    service.set_step_values(form_step.attrs,
+                                            step_number=step_number)
 
     def on_selection_changed(self, grid_view):
         if self.selected_ids:
             logging.debug('[ProtocolGridView].on_selection_changed: '
-                         'selected_ids=%s' % str(self.selected_ids))
+                          'selected_ids=%s', self.selected_ids)
             app = get_app()
-            logging.debug('\tcurrent_step_number=%d' % \
-                         (app.protocol.current_step_number))
+            logging.debug('\tcurrent_step_number=%d',
+                          app.protocol.current_step_number)
             if app.protocol.current_step_number not in self.selected_ids:
                 app.protocol.goto_step(self.selected_ids[0])
 
 
 PluginGlobals.push_env('microdrop')
+
 
 class ProtocolGridController(SingletonPlugin):
     implements(IPlugin)
@@ -197,7 +203,8 @@ class ProtocolGridController(SingletonPlugin):
         app = get_app()
         self.enabled_fields = enabled_fields_by_plugin
         self.widget.select_row(app.protocol.current_step_number)
-        logging.debug('[ProtocolGridController] set_fields_filter: %s' % self.enabled_fields)
+        logging.debug('[ProtocolGridController] set_fields_filter: %s',
+                      self.enabled_fields)
 
     def update_grid(self, protocol=None):
         app = get_app()
@@ -206,25 +213,32 @@ class ProtocolGridController(SingletonPlugin):
         if protocol is None:
             return
         logging.debug('[ProtocolGridController].update_grid:')
-        logging.debug('[ProtocolGridController]   plugin_fields=%s' % protocol.plugin_fields)
+        logging.debug('[ProtocolGridController]   plugin_fields=%s',
+                      protocol.plugin_fields)
         forms = emit_signal('get_step_form_class')
 
         steps = protocol.steps
-        logging.debug('[ProtocolGridController]   forms=%s steps=%s' % (forms, steps))
+        logging.debug('[ProtocolGridController]   forms=%s steps=%s', forms,
+                      steps)
 
         if self.enabled_fields is None:
             # Assign directly to _enabled_fields to avoid recursive call into
             # update_grid()
             self._enabled_fields = dict([(form_name,
-                    set(form.field_schema_mapping.keys()))
-                            for form_name, form in forms.items()])
+                                          set(form.field_schema_mapping
+                                              .keys()))
+                                         for form_name, form in forms.items()])
+
         # The step ID column can be hidden by changing show_ids to False
-        combined_fields = ProtocolGridView(forms, self.enabled_fields, show_ids=True)
-        combined_fields.connect('fields-filter-request', self.set_fields_filter)
+        combined_fields = ProtocolGridView(forms, self.enabled_fields,
+                                           show_ids=True)
+        combined_fields.connect('fields-filter-request',
+                                self.set_fields_filter)
 
         for i, step in enumerate(steps):
             values = emit_signal('get_step_values', [i])
-            logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s' % (i, step, values))
+            logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s',
+                          i, step, values)
 
             attributes = dict()
             for form_name, form in combined_fields.forms.iteritems():
@@ -267,10 +281,9 @@ class ProtocolGridController(SingletonPlugin):
             'Delete': FocusWrapper(self, self.widget.delete_rows),
             '<Control>v': FocusWrapper(self, self.widget.paste_rows_after),
             '<Control><Shift>v': FocusWrapper(self,
-                    self.widget.paste_rows_before),
-            '<Control><Shift>i': FocusWrapper(self,
-                    lambda: app.protocol.insert_step()),
-        }
+                                              self.widget.paste_rows_before),
+            '<Control><Shift>i': FocusWrapper(self, lambda:
+                                              app.protocol.insert_step())}
         register_shortcuts(view, shortcuts, enabled_widgets=[self.widget])
 
     def get_schedule_requests(self, function_name):
@@ -279,25 +292,26 @@ class ProtocolGridController(SingletonPlugin):
         instances) for the function specified by function_name.
         """
         if function_name == 'on_plugin_enable':
-            return [ScheduleRequest('microdrop.gui.main_window_controller', self.name)]
+            return [ScheduleRequest('microdrop.gui.main_window_controller',
+                                    self.name)]
         elif function_name == 'on_protocol_swapped':
-            # ensure that the app's reference to the new protocol gets set
+            # Ensure that the app's reference to the new protocol gets set
             return [ScheduleRequest('microdrop.app', self.name)]
         return []
 
     def on_step_created(self, step_number):
-        logging.debug('[ProtocolGridController] on_step_created[%d]', step_number)
+        logging.debug('[ProtocolGridController] on_step_created[%d]',
+                      step_number)
         self.update_grid()
 
     def on_step_swapped(self, original_step_number, step_number):
         logging.debug('[ProtocolGridController] on_step_swapped[%d->%d]',
-                original_step_number, step_number)
+                      original_step_number, step_number)
         self.widget.select_row(get_app().protocol.current_step_number)
 
     def on_step_removed(self, step_number, step):
-        app = get_app()
         logging.debug('[ProtocolGridController] on_step_removed[%d]',
-                step_number)
+                      step_number)
         self.update_grid()
 
 

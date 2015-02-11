@@ -1,4 +1,3 @@
-import re
 from collections import namedtuple
 
 from path_helpers import path
@@ -6,15 +5,16 @@ import yaml
 
 from app_context import get_app
 from logger import logger
-from plugin_manager import IPlugin, ExtensionPoint, emit_signal,\
-        get_service_instance_by_name
+from plugin_manager import IPlugin, ExtensionPoint, emit_signal
 from microdrop_utility import Version
-from microdrop_utility.git_util import GitUtil
 
 
 PluginMetaData = namedtuple('PluginMetaData',
                             'package_name plugin_name version')
-PluginMetaData.as_dict = lambda self: dict([(k, str(v)) for k, v in zip(self._fields, self)])
+PluginMetaData.as_dict = lambda self: dict([(k, str(v))
+                                            for k, v in zip(self._fields,
+                                                            self)])
+
 
 def from_dict(data):
     package_name = data['package_name']
@@ -36,7 +36,7 @@ def get_plugin_info(plugin_root):
     properties = plugin_root / path('properties.yml')
 
     if not properties.isfile():
-        return None    
+        return None
     else:
         plugin_metadata = PluginMetaData.from_dict(\
                 yaml.load(properties.bytes()))
@@ -66,8 +66,9 @@ class AppDataController(object):
 
     def get_default_app_options(self):
         if self.AppFields:
-            return dict([(k, v.value) for 
-                         k,v in self.AppFields.from_defaults().iteritems()])
+            return dict([(k, v.value)
+                         for k, v in
+                         self.AppFields.from_defaults().iteritems()])
         else:
             return dict()
 
@@ -88,10 +89,9 @@ class AppDataController(object):
             raise NotImplementedError
         app = get_app()
         values_dict = app.get_data(self.name)
-        if key in values_dict:
-            return values_dict[key]
-        else:
-            self.AppFields.field_schema_mapping[key].default
+        return values_dict.get(key,
+                               self.AppFields.field_schema_mapping[key]
+                               .default)
 
     def set_app_values(self, values_dict):
         if not values_dict:
@@ -106,10 +106,10 @@ class AppDataController(object):
                 values_dict.pop(k)
         elements = self.AppFields(value=values_dict)
         if not elements.validate():
-            import pudb; pudb.set_trace()
             raise ValueError('Invalid values: %s' % elements.errors)
-        values = dict([(k, v.value) for k, v in elements.iteritems()\
-                if v.value is not None])
+        values = dict([(k, v.value)
+                       for k, v in elements.iteritems()
+                       if v.value is not None])
         app = get_app()
         app_data = app.get_data(self.name)
         if app_data:
@@ -120,7 +120,6 @@ class AppDataController(object):
 
     @staticmethod
     def get_plugin_app_values(plugin_name):
-        app = get_app()
         observers = ExtensionPoint(IPlugin)
         service = observers.service(plugin_name)
         if hasattr(service, 'get_app_values'):
@@ -131,7 +130,6 @@ class AppDataController(object):
 class StepOptionsController(object):
     @staticmethod
     def get_plugin_step_values(plugin_name, step_number=None):
-        app = get_app()
         observers = ExtensionPoint(IPlugin)
         service = observers.service(plugin_name)
         if hasattr(service, 'get_step_values'):
@@ -143,7 +141,7 @@ class StepOptionsController(object):
 
     def get_default_step_options(self):
         return dict([(k, v.value)
-                for k,v in self.StepFields.from_defaults().iteritems()])
+                     for k, v in self.StepFields.from_defaults().iteritems()])
 
     def get_step_form_class(self):
         return self.StepFields
