@@ -1,0 +1,28 @@
+= Version 1.0 =
+* Allow packaging as portable application (i.e., a self-contained folder including all data and config files) which will enable multiple versions of Microdrop to be installed on a system simultaneously
+* Establish a convention for plugin updating (major version of plugins must match the major version of Microdrop)
+* Add `on_plugin_install` hook to plugins (triggered on subsequent program launch). This may be used, for example, to install dependencies.
+* Log serial number, hardware version and software versions of all hardware devices to the experiment log
+* Log all enabled plugins and their versions to the experiment log
+* Turn off realtime mode on startup
+* Allow loading of protocols even if plugins used in the protocol are not available
+* Add `data_dir` setting to config file
+* Add command-line argument to set config file path
+* Other bug fixes
+
+= Version 0.1.706 =
+ * Start new experiment log when user presses play
+ * Bug fixes
+
+= Version 0.1.701 =
+ * Allow resizing of main window
+ * Bug fixes
+
+= Version 0.1.696 =
+ * Add video overlay mode
+ * Bug fixes
+
+= Version 0.1.645 =
+ * GUI remains responsive when running a protocol
+ * Gracefully fail when installing bad plugin
+ * Bug fixes
