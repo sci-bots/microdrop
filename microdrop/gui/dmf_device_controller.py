@@ -63,36 +63,6 @@ class DmfDeviceOptions(object):
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
-    with WindowServiceProxy(59000) as w:
-        video_mode_map = w.get_video_mode_map()
-        if video_mode_map:
-            _video_available = True
-        else:
-            _video_available = False
-        video_mode_keys = sorted(video_mode_map.keys())
-        if _video_available:
-            device_key, devices = w.get_video_source_configs()
-
-    field_list = [
-        Integer.named('overlay_opacity').using(default=50, optional=True),
-        Directory.named('device_directory').using(default='', optional=True),
-        String.named('transform_matrix').using(default='', optional=True,
-                                               properties={'show_in_gui':
-                                                           False}), ]
-
-    if _video_available:
-        video_mode_enum = Enum.named('video_mode').valued(
-            *video_mode_keys).using(default=video_mode_keys[0], optional=True)
-        video_enabled_boolean = Boolean.named('video_enabled').using(
-            default=False, optional=True, properties={'show_in_gui': True})
-        recording_enabled_boolean = Boolean.named('recording_enabled').using(
-            default=False, optional=True, properties={'show_in_gui': False})
-        field_list.append(video_mode_enum)
-        field_list.append(video_enabled_boolean)
-        field_list.append(recording_enabled_boolean)
-
-    AppFields = Form.of(*field_list)
-
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"
         self.view = DmfDeviceView(self, 'device_view')
@@ -106,6 +76,45 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         self._bitrate = None
         self._record_path = None
         self._recording = False
+        self._AppFields = None
+        self._video_available = False
+
+    @property
+    def AppFields(self):
+        if self._AppFields is None:
+            self._AppFields = self._populate_app_fields()
+        return self._AppFields
+
+    def _populate_app_fields(self):
+        with WindowServiceProxy(59000) as w:
+            self.video_mode_map = w.get_video_mode_map()
+            if self.video_mode_map:
+                self._video_available = True
+            else:
+                self._video_available = False
+            self.video_mode_keys = sorted(self.video_mode_map.keys())
+            if self._video_available:
+                self.device_key, self.devices = w.get_video_source_configs()
+
+        field_list = [
+            Integer.named('overlay_opacity').using(default=50, optional=True),
+            Directory.named('device_directory').using(default='', optional=True),
+            String.named('transform_matrix').using(default='', optional=True,
+                                                properties={'show_in_gui':
+                                                            False}), ]
+
+        if self._video_available:
+            video_mode_enum = Enum.named('video_mode').valued(
+                *self.video_mode_keys).using(default=self.video_mode_keys[0],
+                                             optional=True)
+            video_enabled_boolean = Boolean.named('video_enabled').using(
+                default=False, optional=True, properties={'show_in_gui': True})
+            recording_enabled_boolean = Boolean.named('recording_enabled').using(
+                default=False, optional=True, properties={'show_in_gui': False})
+            field_list.append(video_mode_enum)
+            field_list.append(video_enabled_boolean)
+            field_list.append(recording_enabled_boolean)
+        return Form.of(*field_list)
 
     @property
     def modified(self):
