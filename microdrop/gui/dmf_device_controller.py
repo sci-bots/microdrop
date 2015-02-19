@@ -516,7 +516,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     ScheduleRequest('microdrop.gui.main_window_controller',
                                     self.name)]
         elif function_name == 'on_dmf_device_swapped':
-            return [ScheduleRequest('microdrop.app', self.name)]
+            return [ScheduleRequest('microdrop.app', self.name),
+                    ScheduleRequest('microdrop.gui.protocol_controller',
+                                    self.name)]
         return []
 
     # GUI callbacks
