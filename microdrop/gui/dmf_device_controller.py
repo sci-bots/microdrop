@@ -491,7 +491,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 # If all of the states are the same.
                 if len(np.nonzero(states == states[0])[0]) == len(states):
                     if states[0] > 0:
-                        self.view.electrode_color[id] = (1, 1, 1)
+                        self.view.electrode_color[id] = [1, 1, 1]
                     else:
                         color = app.dmf_device.electrodes[id].path.color
                         self.view.electrode_color[id] = [c / 255.
@@ -502,7 +502,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             else:
                 # Assign the color _red_ to any electrode that has no assigned
                 # channels.
-                self.view.electrode_color[id] = (1, 0, 0)
+                self.view.electrode_color[id] = [1, 0, 0]
         self.view.update_draw_queue()
 
     def get_schedule_requests(self, function_name):
