@@ -186,6 +186,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if self.name in self.config.data and ('log_level' in
                                               self.config.data[self.name]):
             self._set_log_level(self.config.data[self.name]['log_level'])
+        logger.info('Running in working directory: %s', os.getcwd())
 
         # Run post install hooks for freshly installed plugins.
         # It is necessary to delay the execution of these hooks here due to
@@ -216,7 +217,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if deletions_path.isfile():
             requested_deletions = yaml.load(deletions_path.bytes())
             requested_deletions = map(path, requested_deletions)
-            
+
             logger.info('[App] processing requested deletions.')
             for p in requested_deletions:
                 try:
@@ -331,7 +332,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         return self.config['microdrop.app']['update_automatically']
 
     def update_check(self):
-        if self._update_setting() not in ('auto-update', 
+        if self._update_setting() not in ('auto-update',
                                           'check for updates, but ask before '
                                           'installing'):
             return
