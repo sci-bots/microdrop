@@ -175,7 +175,12 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.log_file_handler = None
 
         # config model
-        self.config = Config(args.config)
+        try:
+            self.config = Config(args.config)
+        except IOError:
+            logging.error('Could not read configuration file, `%s`.  Make sure'
+                          ' it exists and is readable.', args.config)
+            raise SystemExit(-1)
 
         # set the log level
         if self.name in self.config.data and ('log_level' in

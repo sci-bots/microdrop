@@ -64,7 +64,7 @@ class Config():
             self.filename = self.default_filename
         else:
             self.filename = filename
-        self.load()
+        self.load(self.filename)
 
     def __getitem__(self, i):
         return self.data[i]
