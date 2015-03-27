@@ -35,13 +35,12 @@ class ValidationError(Exception):
     pass
 
 
-class Config():
-    default_directory = app_data_dir()
+class Config(object):
     if os.name == 'nt':
-        default_directory /= path('microdrop')
+        default_config_directory = home_dir().joinpath('Microdrop')
     else:
-        default_directory /= path('.microdrop')
-    default_filename = default_directory / path('microdrop.ini')
+        default_config_directory = app_data_dir().joinpath('.microdrop')
+    default_config_path = default_config_directory / path('microdrop.ini')
     spec = """
         [dmf_device]
         # name of the most recently used DMF device
@@ -61,7 +60,7 @@ class Config():
 
     def __init__(self, filename=None):
         if filename is None:
-            self.filename = self.default_filename
+            self.filename = self.default_config_path
         else:
             self.filename = filename
         self.load(self.filename)
