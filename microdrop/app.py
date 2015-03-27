@@ -186,6 +186,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if self.name in self.config.data and ('log_level' in
                                               self.config.data[self.name]):
             self._set_log_level(self.config.data[self.name]['log_level'])
+        logger.info('Microdrop version: %s', self.version)
         logger.info('Running in working directory: %s', os.getcwd())
 
         # Run post install hooks for freshly installed plugins.
