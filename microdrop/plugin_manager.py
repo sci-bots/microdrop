@@ -31,6 +31,7 @@ import subprocess
 from path_helpers import path
 import task_scheduler
 import yaml
+from run_exe import run_exe
 
 from interfaces import (Plugin, IPlugin, PluginGlobals, ExtensionPoint,
                         IWaveformGenerator, ILoggingPlugin, IVideoPlugin,
@@ -92,8 +93,8 @@ def post_install(install_path):
             # There is an `on_plugin_install` script to run.
             try:
                 os.chdir(hooks_path)
-                subprocess.check_call([on_install_path.name,
-                                       sys.executable], cwd=hooks_path)
+                # Request elevated privileges if an error occurs.
+                run_exe(on_install_path.name, sys.executable, try_admin=True)
             finally:
                 os.chdir(cwd)
 
