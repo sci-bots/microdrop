@@ -88,15 +88,14 @@ def post_install(install_path):
                 os.chdir(cwd)
     elif platform.system() == 'Windows':
         hooks_path = install_path.joinpath('hooks', 'Windows').abspath()
-        on_install_path = hooks_path.joinpath('on_plugin_install.bat')
-        if on_install_path.isfile():
-            # There is an `on_plugin_install` script to run.
-            try:
-                os.chdir(hooks_path)
+        for ext in ('exe', 'bat'):
+            on_install_path = hooks_path.joinpath('on_plugin_install.%s' % ext)
+            if on_install_path.isfile():
+                # There is an `on_plugin_install` script to run.
                 # Request elevated privileges if an error occurs.
-                run_exe(on_install_path.name, sys.executable, try_admin=True)
-            finally:
-                os.chdir(cwd)
+                run_exe(on_install_path.name, '"%s"' % sys.executable,
+                        try_admin=True, working_dir=hooks_path)
+                break
 
 
 def log_summary():
