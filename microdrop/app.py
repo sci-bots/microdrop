@@ -66,7 +66,7 @@ def parse_args(args=None):
     if args is None:
         args = sys.argv
 
-    parser = ArgumentParser(description='MicroDrop: graphical user interface '
+    parser = ArgumentParser(description='Microdrop: graphical user interface '
                             'for the DropBot Digital Microfluidics control '
                             'system.')
     parser.add_argument('-c', '--config', type=path, default=None)

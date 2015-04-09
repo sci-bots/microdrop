@@ -24,7 +24,7 @@ import platform
 import gtk
 
 if platform.system() == 'Windows':
-    # When loading Portable MicroDrop on Windows 8.1, the following error
+    # When loading Portable Microdrop on Windows 8.1, the following error
     # occurs when trying to import `win32com`, etc.:
     #
     #     ImportError: DLL load failed: The specified module could not be

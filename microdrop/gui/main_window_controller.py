@@ -40,9 +40,6 @@ from ..logger import logger
 from .. import glade_path
 
 
-class MicroDropError(Exception):
-    pass
-
 
 PluginGlobals.push_env('microdrop')
 

@@ -138,12 +138,12 @@ class Config(object):
             default_data_dir = home_dir().joinpath('.microdrop')
         if 'data_dir' not in self.data:
             self.data['data_dir'] = default_data_dir
-            warnings.warn('Using default MicroDrop user data path: %s' %
+            warnings.warn('Using default Microdrop user data path: %s' %
                           default_data_dir)
         if not path(self['data_dir']).isdir():
-            warnings.warn('MicroDrop user data directory does not exist.')
+            warnings.warn('Microdrop user data directory does not exist.')
             path(self['data_dir']).makedirs_p()
-            warnings.warn('Created MicroDrop user data directory: %s' %
+            warnings.warn('Created Microdrop user data directory: %s' %
                           self['data_dir'])
 
     def _init_plugins_dir(self):
