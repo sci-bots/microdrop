@@ -59,11 +59,7 @@ class Config(object):
         """
 
     def __init__(self, filename=None):
-        if filename is None:
-            self.filename = self.default_config_path
-        else:
-            self.filename = filename
-        self.load(self.filename)
+        self.load(filename)
 
     def __getitem__(self, i):
         return self.data[i]
@@ -81,17 +77,14 @@ class Config(object):
             ConfigObjError: There was a problem parsing the config file.
             ValidationError: There was a problem validating one or more fields.
         """
-        if filename:
-            logger.info("Loading config file from %s" % self.filename)
-            if not path(filename).exists():
-                raise IOError
-            self.filename = path(filename)
+        if filename is None:
+            logger.info("Using default configuration.")
+            self.filename = self.default_config_path
+        elif not path(filename).exists():
+            raise IOError
         else:
-            if self.filename.exists():
-                logger.info("Loading config file from %s" % self.filename)
-            else:
-                logger.info("Using default configuration.")
-
+            self.filename = filename
+            logger.info("Loading config file from %s" % self.filename)
         self.data = ConfigObj(self.filename, configspec=self.spec.split("\n"))
         self._validate()
 
