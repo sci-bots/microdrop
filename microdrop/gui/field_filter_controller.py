@@ -86,6 +86,9 @@ class FieldFilterController(object):
             # For each form, generate a pygtkhelpers formview and append the view
             # onto the end of the plugin vbox
 
+            if len(form.field_schema) == 0:
+                continue
+
             # Only include fields that do not have show_in_gui set to False in
             # 'properties' dictionary
             schema_entries = [f for f in form.field_schema\
@@ -93,6 +96,8 @@ class FieldFilterController(object):
             gui_form = Form.of(*[Boolean.named(s.name).using(default=True,
                     optional=True) for s in schema_entries])
             FormView.schema_type = gui_form
+            if not schema_entries:
+                continue
             self.form_views[name] = FormView()
             if name in app.core_plugins:
                 self.core_plugins_vbox.pack_start(self.form_views[name].widget)
@@ -115,6 +120,8 @@ class FieldFilterController(object):
             initial_values = {}
 
         for form_name, form in self.forms.iteritems():
+            if not form.field_schema:
+                continue
             form_view = self.form_views[form_name]
             values = initial_values.get(form_name, {})
             for name, field in form_view.form.fields.items():
