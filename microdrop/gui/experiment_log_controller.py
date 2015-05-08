@@ -19,6 +19,7 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import time
 from collections import namedtuple
+import pkg_resources
 
 import gtk
 from path_helpers import path
@@ -34,6 +35,7 @@ from ..protocol import Protocol
 from ..dmf_device import DmfDevice
 from ..app_context import get_app
 from ..logger import logger
+from ..ipython_notebook import IPythonNotebookSession
 from .. import glade_path
 
 
@@ -94,11 +96,45 @@ class ExperimentLogController(SingletonPlugin):
         app.experiment_log_controller = self
         self.window.set_title("Experiment logs")
         self.builder.connect_signals(self)
+        if app.config.data.get('advanced_ui', False):
+            vbox = self.builder.get_object('vbox1')
+            button = gtk.Button('Open IPython notebook')
+            vbox.add(button)
+            button.show()
+
+            def run_ipython_notebook(*args, **kwargs):
+                log_root = self.get_selected_log_root()
+                static_dir = path(pkg_resources.resource_filename('microdrop',
+                                                                  'static'))
+                notebooks_dir = static_dir.joinpath('notebooks')
+                notebook_path = log_root.joinpath('experiment.ipynb')
+                if not notebook_path.isfile():
+                    # Notebook file does not exist, so copy from template.
+                    notebook_template = notebooks_dir.joinpath(notebook_path
+                                                               .name)
+                    notebook_template.copy(notebook_path)
+
+                session = IPythonNotebookSession(daemon=True,
+                                                 notebook_dir=log_root)
+                session.start(notebook_path, cwd=log_root)
+                if not hasattr(app, 'notebooks'):
+                    app.notebooks = []
+                app.notebooks.append(session)
+                logger.info("[ExperimentLogController] started IPython "
+                            "notebook (%s)", notebook_path)
+            button.connect('clicked', run_ipython_notebook)
+        else:
+            logger.info("[ExperimentLogController] Advanced UI disabled")
 
     def on_treeview_protocol_button_press_event(self, widget, event):
         if event.button == 3:
             self.popup.popup(event)
             return True
+
+    def get_selected_log_root(self):
+        app = get_app()
+        id = combobox_get_active_text(self.combobox_log_files)
+        return path(app.experiment_log.directory) / path(id)
 
     def update(self):
         app = get_app()
@@ -106,10 +142,10 @@ class ExperimentLogController(SingletonPlugin):
             self._disable_gui_elements()
             return
         try:
-            id = combobox_get_active_text(self.combobox_log_files)
-            log = path(app.experiment_log.directory) / path(id) / path("data")
-            protocol = path(app.experiment_log.directory) / path(id) / path("protocol")
-            dmf_device = path(app.experiment_log.directory) / path(id) / path("device")
+            log_root = self.get_selected_log_root()
+            log = log_root.joinpath("data")
+            protocol = log_root.joinpath("protocol")
+            dmf_device = log_root.joinpath("device")
             self.results = self.Results(ExperimentLog.load(log),
                                         Protocol.load(protocol),
                                         DmfDevice.load(dmf_device))
@@ -152,7 +188,7 @@ class ExperimentLogController(SingletonPlugin):
             for val in data:
                 if val:
                     label += " v%s" % val
-            serial_number = "" 
+            serial_number = ""
             data = self.results.log.get("control board serial number")
             for val in data:
                 if val:
@@ -176,7 +212,7 @@ class ExperimentLogController(SingletonPlugin):
                 if val:
                     for k, v in val.iteritems():
                         label += "\n\t%s %s" % (k, v)
-            
+
             self.builder.get_object("label_plugins"). \
                 set_text(label)
 
@@ -245,7 +281,7 @@ class ExperimentLogController(SingletonPlugin):
 
     def save(self):
         app = get_app()
-                
+
         # only save the current log if it is not empty (i.e., it contains at
         # least one step)
         if app.experiment_log and \
@@ -263,11 +299,11 @@ class ExperimentLogController(SingletonPlugin):
             data['plugins'] = plugin_versions
             app.experiment_log.add_data(data)
             log_path = app.experiment_log.save()
-    
+
             # save the protocol and device
             app.protocol.save(os.path.join(log_path,"protocol"))
             app.dmf_device.save(os.path.join(log_path,"device"))
-    
+
             # create a new log
             experiment_log = ExperimentLog(app.experiment_log.directory)
             emit_signal("on_experiment_log_changed", experiment_log)
@@ -322,9 +358,14 @@ class ExperimentLogController(SingletonPlugin):
 
     def on_protocol_run(self):
         self.save()
-        
+
     def on_app_exit(self):
         self.save()
+        app = get_app()
+        print 'killing ipython notebooks'
+        if hasattr(app, 'notebooks'):
+            for notebook in app.notebooks:
+                notebook.process.kill()
 
     def on_protocol_pause(self):
         self.save()
