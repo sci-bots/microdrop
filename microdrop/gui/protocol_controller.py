@@ -147,6 +147,7 @@ Protocol is version %s, but only up to version %s is supported with this version
     def on_protocol_swapped(self, old_protocol, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
         logging.debug('[ProtocolController] on_protocol_swapped(): plugin_fields=%s' % protocol.plugin_fields)
+        protocol.first_step()
         self.run_step()
 
     def on_plugin_enable(self):
@@ -467,6 +468,10 @@ Protocol is version %s, but only up to version %s is supported with this version
         elif function_name == 'on_dmf_device_swapped':
             # make sure that the app gets a reference to the device before we
             # create a new protocol
+            return [ScheduleRequest('microdrop.app', self.name)]
+        elif function_name == 'on_protocol_swapped':
+            # make sure that the app gets a reference to the protocol before we
+            # process the on_protocol_swapped signal
             return [ScheduleRequest('microdrop.app', self.name)]
         return []
 
