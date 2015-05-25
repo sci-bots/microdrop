@@ -99,7 +99,9 @@ class ExperimentLogController(SingletonPlugin):
         if app.config.data.get('advanced_ui', False):
             vbox = self.builder.get_object('vbox1')
             button = gtk.Button('Open IPython notebook')
+            button.set_size_request(-1, 75)
             vbox.add(button)
+            vbox.reorder_child(button, 1)
             button.show()
 
             def run_ipython_notebook(*args, **kwargs):
