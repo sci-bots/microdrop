@@ -4,6 +4,7 @@ configobj
 flatland-fork
 geo-util
 ipython
+ipython-helpers
 microdrop_utility
 opencv-helpers
 path-helpers

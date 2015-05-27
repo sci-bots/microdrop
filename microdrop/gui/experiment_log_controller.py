@@ -26,6 +26,7 @@ from path_helpers import path
 from pygtkhelpers.delegates import SlaveView
 from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text, textview_get_text)
+from ipython_helpers.notebook import IPythonNotebookSession
 
 from ..experiment_log import ExperimentLog
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
@@ -35,7 +36,6 @@ from ..protocol import Protocol
 from ..dmf_device import DmfDevice
 from ..app_context import get_app
 from ..logger import logger
-from ..ipython_notebook import IPythonNotebookSession
 from .. import glade_path
 
 
