@@ -1,4 +1,5 @@
 # coding: utf-8
+import webbrowser
 from subprocess import Popen, PIPE
 import sys
 import os
@@ -66,6 +67,17 @@ class IPythonNotebookSession(object):
             raise ValueError('Notebook directory not.  Is the notebook server '
                              'running?')
         return path(self._notebook_dir)
+
+    def resource_filename(self, filename):
+        return self.notebook_dir.joinpath(filename)
+
+    def open(self, filename):
+        notebook_path = self.resource_filename(filename)
+        if not notebook_path.isfile():
+            raise IOError('Notebook path not found: %s' % notebook_path)
+        else:
+            webbrowser.open_new_tab('%snotebooks/%s' % (self.address,
+                                                        filename))
 
     def stop(self):
         if self.daemon and self.process is not None:
