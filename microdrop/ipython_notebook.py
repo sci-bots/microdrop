@@ -1,7 +1,8 @@
 # coding: utf-8
-import pkg_resources
-from subprocess import Popen
+from subprocess import Popen, PIPE
 import sys
+import os
+import re
 
 from path_helpers import path
 
@@ -11,6 +12,10 @@ class IPythonNotebookSession(object):
         self.daemon = daemon
         self.kwargs = kwargs
         self.process = None
+        self.stderr_lines = []
+        self.port = None
+        self.address = None
+        self._notebook_dir = None
 
     @property
     def args(self):
@@ -22,10 +27,49 @@ class IPythonNotebookSession(object):
         return args
 
     def start(self, *args, **kwargs):
+        if 'stderr' in kwargs:
+            raise ValueError('`stderr` must not be specified, since it must be'
+                             ' monitored to determine which port the notebook '
+                             'server is running on.')
         args_ = ('%s' % sys.executable, '-m', 'IPython', 'notebook') + self.args
         args_ = args_ + tuple(args)
-        self.process = Popen(args_, **kwargs)
+        self.process = Popen(args_, stderr=PIPE, **kwargs)
+        self._notebook_dir = os.getcwd()
 
-    def __del__(self):
+        # Determine which port the notebook is running on.
+        cre_address = re.compile(r'The IPython Notebook is running at: '
+                                 r'(?P<address>https?://.*?:'
+                                 r'(?P<port>\d+).*/)$')
+        cre_notebook_dir = re.compile(r'Serving notebooks from local '
+                                      r'directory:\s+(?P<notebook_dir>.*)$')
+        match = None
+        self.stderr_lines = []
+
+        while not self.process.poll() and match is None:
+            stderr_line = self.process.stderr.readline()
+            self.stderr_lines.append(stderr_line)
+            match = cre_address.search(stderr_line)
+            dir_match = cre_notebook_dir.search(stderr_line)
+            if dir_match:
+                self._notebook_dir = dir_match.group('notebook_dir')
+
+        if match:
+            # Notebook was started successfully.
+            self.address = match.group('address')
+            self.port = int(match.group('port'))
+        else:
+            raise IOError(''.join(self.stderr_lines))
+
+    @property
+    def notebook_dir(self):
+        if self._notebook_dir is None:
+            raise ValueError('Notebook directory not.  Is the notebook server '
+                             'running?')
+        return path(self._notebook_dir)
+
+    def stop(self):
         if self.daemon and self.process is not None:
             self.process.kill()
+
+    def __del__(self):
+        self.stop()
