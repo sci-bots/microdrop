@@ -209,7 +209,7 @@ def get_observers(function, interface=IPlugin):
     return observers
 
 
-def emit_signal(function, args=[], interface=IPlugin):
+def emit_signal(function, args=None, interface=IPlugin):
     try:
         observers = get_observers(function, interface)
         schedule = get_schedule(observers, function)
@@ -218,7 +218,9 @@ def emit_signal(function, args=[], interface=IPlugin):
             observer = observers[observer_name]
             logging.debug('emit_signal: %s.%s()' % (observer.name, function))
             try:
-                if type(args) is not list:
+                if args is None:
+                    args = []
+                elif type(args) is not list:
                     args = [args]
                 f = getattr(observer, function)
                 return_codes[observer.name] = f(*args)

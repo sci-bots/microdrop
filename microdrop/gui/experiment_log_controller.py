@@ -23,8 +23,12 @@ import pkg_resources
 
 import gtk
 from path_helpers import path
+from flatland import Form
 from pygtkhelpers.delegates import SlaveView
 from pygtkhelpers.ui.notebook import NotebookManagerView
+from pygtkhelpers.ui.extra_widgets import Directory
+from pygtkhelpers.ui.extra_dialogs import yesno
+from microdrop_utility import copytree
 from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text, textview_get_text)
 
@@ -32,6 +36,7 @@ from ..experiment_log import ExperimentLog
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, emit_signal, ScheduleRequest,
                               get_service_names, get_service_instance_by_name)
+from ..plugin_helpers import AppDataController
 from ..protocol import Protocol
 from ..dmf_device import DmfDevice
 from ..app_context import get_app
@@ -68,11 +73,17 @@ class ExperimentLogContextMenu(SlaveView):
 PluginGlobals.push_env('microdrop')
 
 
-class ExperimentLogController(SingletonPlugin):
+class ExperimentLogController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
     Results = namedtuple('Results', ['log', 'protocol', 'dmf_device'])
     builder_path = glade_path().joinpath('experiment_log_window.glade')
+
+    @property
+    def AppFields(self):
+        return Form.of(
+            Directory.named('notebook_directory').using(default='', optional=True),
+        )
 
     def __init__(self):
         self.name = "microdrop.gui.experiment_log_controller"
@@ -91,27 +102,92 @@ class ExperimentLogController(SingletonPlugin):
         self.protocol_view.get_selection().connect("changed", self.on_treeview_selection_changed)
         self.popup = ExperimentLogContextMenu()
         self.notebook_manager_view = None
+        self.previous_notebook_dir = None
+
+    def apply_notebook_dir(self, notebook_directory):
+        '''
+        Set the notebook directory to the specified directory.
+
+        If the specified directory is empty or `None`, use the default
+        directory (i.e., in the default Microdrop user directory) as the new
+        directory path.
+
+        If no directory was previously set and the specified directory does not
+        exist, copy the default set of notebooks from the `microdrop` package
+        to the new notebook directory.
+
+        If a directory was previously set, copy the contents of the previous
+        directory to the new directory (prompting the user to overwrite if the
+        new directory already exists).
+        '''
+        app = get_app()
+
+        print '[{notebook_directory = "%s"}]' % notebook_directory
+        if not notebook_directory:
+            # The notebook directory is not set (i.e., empty or `None`), so set
+            # a default.
+            data_directory = path(app.config.data['data_dir'])
+            notebook_directory = data_directory.joinpath( 'notebooks')
+            print '[{new notebook_directory = "%s"}]' % notebook_directory
+            app_values = self.get_app_values().copy()
+            app_values['notebook_directory'] = notebook_directory
+            self.set_app_values(app_values)
+
+        if self.previous_notebook_dir and (notebook_directory ==
+                                           self.previous_notebook_dir):
+            # If the data directory hasn't changed, we do nothing
+            return False
+
+        notebook_directory = path(notebook_directory)
+        if self.previous_notebook_dir:
+            notebook_directory.makedirs_p()
+            if notebook_directory.listdir():
+                result = yesno('Merge?', '''\
+Target directory [%s] is not empty.  Merge contents with
+current notebooks [%s] (overwriting common paths in the target
+directory)?''' % (notebook_directory, self.previous_notebook_dir))
+                if not result == gtk.RESPONSE_YES:
+                    return False
+
+            original_directory = path(self.previous_notebook_dir)
+            for d in original_directory.dirs():
+                copytree(d, notebook_directory.joinpath(d.name))
+            for f in original_directory.files():
+                f.copyfile(notebook_directory.joinpath(f.name))
+            original_directory.rmtree()
+        elif not notebook_directory.isdir():
+            # if the notebook directory doesn't exist, copy the skeleton dir
+            notebook_directory.parent.makedirs_p()
+            skeleton_dir = path(pkg_resources.resource_filename('microdrop',
+                                                                'static'))
+            skeleton_dir.joinpath('notebooks').copytree(notebook_directory)
+        self.previous_notebook_dir = notebook_directory
+        # Set the default template directory of the IPython notebook manager
+        # widget to the notebooks directory.
+        self.notebook_manager_view.template_dir = notebook_directory
 
     def on_plugin_enable(self):
+        super(ExperimentLogController, self).on_plugin_enable()
         app = get_app()
         app.experiment_log_controller = self
         self.window.set_title("Experiment logs")
         self.builder.connect_signals(self)
 
-        if app.config.data.get('advanced_ui', False):
-            # Create buttons to manage background IPython notebook sessions.
-            # Sessions are killed when microdrop exits.
-            self.notebook_manager_view = NotebookManagerView()
-            vbox = self.builder.get_object('vbox1')
-            hbox = gtk.HBox()
-            label = gtk.Label('IPython notebook:')
-            hbox.pack_start(label, False, False)
-            hbox.pack_end(self.notebook_manager_view.widget, False, False)
-            vbox.pack_start(hbox, False, False)
-            vbox.reorder_child(hbox, 1)
-            hbox.show_all()
-        else:
-            logger.info("[ExperimentLogController] Advanced UI disabled")
+        app_values = self.get_app_values()
+
+        # Create buttons to manage background IPython notebook sessions.
+        # Sessions are killed when microdrop exits.
+        self.notebook_manager_view = NotebookManagerView()
+        self.apply_notebook_dir(app_values['notebook_directory'])
+
+        vbox = self.builder.get_object('vbox1')
+        hbox = gtk.HBox()
+        label = gtk.Label('IPython notebook:')
+        hbox.pack_start(label, False, False)
+        hbox.pack_end(self.notebook_manager_view.widget, False, False)
+        vbox.pack_start(hbox, False, False)
+        vbox.reorder_child(hbox, 1)
+        hbox.show_all()
 
     def on_treeview_protocol_button_press_event(self, widget, event):
         if event.button == 3:
@@ -269,10 +345,11 @@ class ExperimentLogController(SingletonPlugin):
     def save(self):
         app = get_app()
 
-        # only save the current log if it is not empty (i.e., it contains at
-        # least one step)
-        if app.experiment_log and \
-        len([x for x in app.experiment_log.get('step') if x is not None]):
+        # Only save the current log if it is not empty (i.e., it contains at
+        # least one step).
+        if app.experiment_log and len([x for x in
+                                       app.experiment_log.get('step')
+                                       if x is not None]):
             data = {"software version": app.version}
             data["device name"] = app.dmf_device.name
             data["protocol name"] = app.protocol.name
@@ -298,7 +375,6 @@ class ExperimentLogController(SingletonPlugin):
     def get_selected_data(self):
         selection = self.protocol_view.get_selection().get_selected_rows()
         selected_data = []
-        list_store = selection[0]
         for row in selection[1]:
             for d in self.results.log.data:
                 if 'time' in d['core'].keys():
@@ -390,6 +466,14 @@ class ExperimentLogController(SingletonPlugin):
         if function_name == 'on_experiment_log_changed':
             # ensure that the app's reference to the new experiment log gets set
             return [ScheduleRequest('microdrop.app', self.name)]
+        elif function_name == 'on_plugin_enable':
+            # We use the notebook directory path stored in the configuration in
+            # the `on_plugin_enable` method.  Therefore, we need to schedule
+            # the `config_controller` plugin to handle the `on_plugin_enable`
+            # first, so the configuration will be loaded before reading the
+            # notebook directory.
+            return [ScheduleRequest('microdrop.gui.config_controller',
+                                    self.name)]
         return []
 
     def on_treeview_selection_changed(self, widget, data=None):
