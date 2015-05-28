@@ -24,9 +24,9 @@ import pkg_resources
 import gtk
 from path_helpers import path
 from pygtkhelpers.delegates import SlaveView
+from pygtkhelpers.ui.notebook import NotebookManagerView
 from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text, textview_get_text)
-from ipython_helpers.notebook import IPythonNotebookSession
 
 from ..experiment_log import ExperimentLog
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
@@ -90,41 +90,26 @@ class ExperimentLogController(SingletonPlugin):
                         ExperimentLogColumn("Frequency (kHz)", float, "%.1f")]
         self.protocol_view.get_selection().connect("changed", self.on_treeview_selection_changed)
         self.popup = ExperimentLogContextMenu()
+        self.notebook_manager_view = None
 
     def on_plugin_enable(self):
         app = get_app()
         app.experiment_log_controller = self
         self.window.set_title("Experiment logs")
         self.builder.connect_signals(self)
+
         if app.config.data.get('advanced_ui', False):
+            # Create buttons to manage background IPython notebook sessions.
+            # Sessions are killed when microdrop exits.
+            self.notebook_manager_view = NotebookManagerView()
             vbox = self.builder.get_object('vbox1')
-            button = gtk.Button('Open IPython notebook')
-            button.set_size_request(-1, 75)
-            vbox.add(button)
-            vbox.reorder_child(button, 1)
-            button.show()
-
-            def run_ipython_notebook(*args, **kwargs):
-                log_root = self.get_selected_log_root()
-                static_dir = path(pkg_resources.resource_filename('microdrop',
-                                                                  'static'))
-                notebooks_dir = static_dir.joinpath('notebooks')
-                notebook_path = log_root.joinpath('experiment.ipynb')
-                if not notebook_path.isfile():
-                    # Notebook file does not exist, so copy from template.
-                    notebook_template = notebooks_dir.joinpath(notebook_path
-                                                               .name)
-                    notebook_template.copy(notebook_path)
-
-                session = IPythonNotebookSession(daemon=True,
-                                                 notebook_dir=log_root)
-                session.start(notebook_path, cwd=log_root)
-                if not hasattr(app, 'notebooks'):
-                    app.notebooks = []
-                app.notebooks.append(session)
-                logger.info("[ExperimentLogController] started IPython "
-                            "notebook (%s)", notebook_path)
-            button.connect('clicked', run_ipython_notebook)
+            hbox = gtk.HBox()
+            label = gtk.Label('IPython notebook:')
+            hbox.pack_start(label, False, False)
+            hbox.pack_end(self.notebook_manager_view.widget, False, False)
+            vbox.pack_start(hbox, False, False)
+            vbox.reorder_child(hbox, 1)
+            hbox.show_all()
         else:
             logger.info("[ExperimentLogController] Advanced UI disabled")
 
@@ -363,11 +348,9 @@ class ExperimentLogController(SingletonPlugin):
 
     def on_app_exit(self):
         self.save()
-        app = get_app()
-        print 'killing ipython notebooks'
-        if hasattr(app, 'notebooks'):
-            for notebook in app.notebooks:
-                notebook.process.kill()
+        logger.info('[ExperimentLogController] Killing IPython notebooks')
+        if self.notebook_manager_view is not None:
+            self.notebook_manager_view.stop()
 
     def on_protocol_pause(self):
         self.save()
@@ -394,6 +377,10 @@ class ExperimentLogController(SingletonPlugin):
         # changing the combobox log files will force an update
         if len(log_files):
             self.combobox_log_files.set_active(len(log_files)-1)
+        if self.notebook_manager_view is not None:
+            # Update active notebook directory for notebook_manager_view.
+            log_root = self.get_selected_log_root()
+            self.notebook_manager_view.notebook_dir = log_root
 
     def get_schedule_requests(self, function_name):
         """
