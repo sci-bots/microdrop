@@ -99,7 +99,8 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                         ExperimentLogColumn("Duration (s)", float, "%.3f"),
                         ExperimentLogColumn("Voltage (VRMS)", int),
                         ExperimentLogColumn("Frequency (kHz)", float, "%.1f")]
-        self.protocol_view.get_selection().connect("changed", self.on_treeview_selection_changed)
+        (self.protocol_view.get_selection()
+         .connect("changed", self.on_treeview_selection_changed))
         self.popup = ExperimentLogContextMenu()
         self.notebook_manager_view = None
         self.previous_notebook_dir = None
@@ -390,6 +391,10 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
         return True
 
     def on_combobox_log_files_changed(self, widget, data=None):
+        if self.notebook_manager_view is not None:
+            # Update active notebook directory for notebook_manager_view.
+            log_root = self.get_selected_log_root()
+            self.notebook_manager_view.notebook_dir = log_root
         self.update()
 
     def on_button_load_device_clicked(self, widget, data=None):
