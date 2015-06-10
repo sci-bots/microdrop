@@ -109,8 +109,10 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             'microdrop.gui.protocol_grid_controller',]
 
     AppFields = Form.of(
+        Integer.named('x').using(default=None, optional=True),
+        Integer.named('y').using(default=None, optional=True),
         Integer.named('width').using(default=400, optional=True),
-        Integer.named('height').using(default=600, optional=True),
+        Integer.named('height').using(default=500, optional=True),
         Enum.named('update_automatically' #pylint: disable-msg=E1101,E1120
             ).using(default=1, optional=True
             ).valued('auto-update',
@@ -309,8 +311,13 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             if 'log_level' in data:
                 self._set_log_level(data['log_level'])
             if 'width' in data and 'height' in data:
-                self.main_window_controller.view.set_size_request(
-                    data['width'], data['height'])
+                self.main_window_controller.view.resize(data['width'],
+                                                        data['height'])
+                # allow window to resize before other signals are processed
+                while gtk.events_pending():
+                    gtk.main_iteration()
+            if 'x' in data and 'y' in data:
+                self.main_window_controller.view.move(data['x'], data['y'])
                 # allow window to resize before other signals are processed
                 while gtk.events_pending():
                     gtk.main_iteration()
@@ -499,6 +506,14 @@ Would you like to download the latest version in your browser?''' %
                         self.config['protocol']['name'])
                     self.protocol_controller.load_protocol(filename)
 
+        data = self.get_data("microdrop.app")
+        x = data.get('x', None)
+        y = data.get('y', None)
+        width = data.get('width', 400)
+        height = data.get('height', 600)
+        self.main_window_controller.view.resize(width, height)
+        if x is not None and y is not None:
+            self.main_window_controller.view.move(x, y)
         plugin_manager.emit_signal('on_gui_ready')
         self.main_window_controller.main()
 

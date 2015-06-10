@@ -76,6 +76,7 @@ class MainWindowController(SingletonPlugin):
         app = get_app()
         app.builder.add_from_file(self.builder_path)
         self.view = app.builder.get_object("window")
+        self.vbox2 = app.builder.get_object("vbox2")
         self.view.set_icon_from_file(
             pkg_resources.resource_filename('microdrop', 'microdrop.ico'))
         DEFAULTS.parent_widget = self.view
@@ -154,6 +155,15 @@ class MainWindowController(SingletonPlugin):
     def on_delete_event(self, widget, data=None):
         if not self._shutting_down_latch:
             self._shutting_down_latch = True
+
+            app = get_app()
+            data = app.get_app_values()
+            allocation = self.view.get_allocation()
+            data['width'] = allocation.width
+            data['height'] = allocation.height
+            data['x'], data['y'] = self.view.get_position()
+            app.set_app_values(data)
+
             emit_signal("on_app_exit")
 
     def on_destroy(self, widget, data=None):
