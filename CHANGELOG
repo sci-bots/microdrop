@@ -1,3 +1,6 @@
+= Version 1.0.18 =
+* Add IPython notebook integration
+
 = Version 1.0 =
 * Allow packaging as portable application (i.e., a self-contained folder including all data and config files) which will enable multiple versions of Microdrop to be installed on a system simultaneously
 * Establish a convention for plugin updating (major version of plugins must match the major version of Microdrop)
