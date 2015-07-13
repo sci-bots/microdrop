@@ -19,10 +19,16 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import time
 from collections import namedtuple
+import pkg_resources
 
 import gtk
 from path_helpers import path
+from flatland import Form
 from pygtkhelpers.delegates import SlaveView
+from pygtkhelpers.ui.notebook import NotebookManagerView
+from pygtkhelpers.ui.extra_widgets import Directory
+from pygtkhelpers.ui.extra_dialogs import yesno
+from microdrop_utility import copytree
 from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text, textview_get_text)
 
@@ -30,6 +36,7 @@ from ..experiment_log import ExperimentLog
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, emit_signal, ScheduleRequest,
                               get_service_names, get_service_instance_by_name)
+from ..plugin_helpers import AppDataController
 from ..protocol import Protocol
 from ..dmf_device import DmfDevice
 from ..app_context import get_app
@@ -66,11 +73,17 @@ class ExperimentLogContextMenu(SlaveView):
 PluginGlobals.push_env('microdrop')
 
 
-class ExperimentLogController(SingletonPlugin):
+class ExperimentLogController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
     Results = namedtuple('Results', ['log', 'protocol', 'dmf_device'])
     builder_path = glade_path().joinpath('experiment_log_window.glade')
+
+    @property
+    def AppFields(self):
+        return Form.of(
+            Directory.named('notebook_directory').using(default='', optional=True),
+        )
 
     def __init__(self):
         self.name = "microdrop.gui.experiment_log_controller"
@@ -86,19 +99,106 @@ class ExperimentLogController(SingletonPlugin):
                         ExperimentLogColumn("Duration (s)", float, "%.3f"),
                         ExperimentLogColumn("Voltage (VRMS)", int),
                         ExperimentLogColumn("Frequency (kHz)", float, "%.1f")]
-        self.protocol_view.get_selection().connect("changed", self.on_treeview_selection_changed)
+        (self.protocol_view.get_selection()
+         .connect("changed", self.on_treeview_selection_changed))
         self.popup = ExperimentLogContextMenu()
+        self.notebook_manager_view = None
+        self.previous_notebook_dir = None
+
+    def apply_notebook_dir(self, notebook_directory):
+        '''
+        Set the notebook directory to the specified directory.
+
+        If the specified directory is empty or `None`, use the default
+        directory (i.e., in the default Microdrop user directory) as the new
+        directory path.
+
+        If no directory was previously set and the specified directory does not
+        exist, copy the default set of notebooks from the `microdrop` package
+        to the new notebook directory.
+
+        If a directory was previously set, copy the contents of the previous
+        directory to the new directory (prompting the user to overwrite if the
+        new directory already exists).
+        '''
+        app = get_app()
+
+        print '[{notebook_directory = "%s"}]' % notebook_directory
+        if not notebook_directory:
+            # The notebook directory is not set (i.e., empty or `None`), so set
+            # a default.
+            data_directory = path(app.config.data['data_dir'])
+            notebook_directory = data_directory.joinpath( 'notebooks')
+            print '[{new notebook_directory = "%s"}]' % notebook_directory
+            app_values = self.get_app_values().copy()
+            app_values['notebook_directory'] = notebook_directory
+            self.set_app_values(app_values)
+
+        if self.previous_notebook_dir and (notebook_directory ==
+                                           self.previous_notebook_dir):
+            # If the data directory hasn't changed, we do nothing
+            return False
+
+        notebook_directory = path(notebook_directory)
+        if self.previous_notebook_dir:
+            notebook_directory.makedirs_p()
+            if notebook_directory.listdir():
+                result = yesno('Merge?', '''\
+Target directory [%s] is not empty.  Merge contents with
+current notebooks [%s] (overwriting common paths in the target
+directory)?''' % (notebook_directory, self.previous_notebook_dir))
+                if not result == gtk.RESPONSE_YES:
+                    return False
+
+            original_directory = path(self.previous_notebook_dir)
+            for d in original_directory.dirs():
+                copytree(d, notebook_directory.joinpath(d.name))
+            for f in original_directory.files():
+                f.copyfile(notebook_directory.joinpath(f.name))
+            original_directory.rmtree()
+        elif not notebook_directory.isdir():
+            # if the notebook directory doesn't exist, copy the skeleton dir
+            notebook_directory.parent.makedirs_p()
+            skeleton_dir = path(pkg_resources.resource_filename('microdrop',
+                                                                'static'))
+            skeleton_dir.joinpath('notebooks').copytree(notebook_directory)
+        self.previous_notebook_dir = notebook_directory
+        # Set the default template directory of the IPython notebook manager
+        # widget to the notebooks directory.
+        self.notebook_manager_view.template_dir = notebook_directory
 
     def on_plugin_enable(self):
+        super(ExperimentLogController, self).on_plugin_enable()
         app = get_app()
         app.experiment_log_controller = self
         self.window.set_title("Experiment logs")
         self.builder.connect_signals(self)
 
+        app_values = self.get_app_values()
+
+        # Create buttons to manage background IPython notebook sessions.
+        # Sessions are killed when microdrop exits.
+        self.notebook_manager_view = NotebookManagerView()
+        self.apply_notebook_dir(app_values['notebook_directory'])
+
+        vbox = self.builder.get_object('vbox1')
+        hbox = gtk.HBox()
+        label = gtk.Label('IPython notebook:')
+        hbox.pack_start(label, False, False)
+        hbox.pack_end(self.notebook_manager_view.widget, False, False)
+        vbox.pack_start(hbox, False, False)
+        vbox.reorder_child(hbox, 1)
+        hbox.show_all()
+
     def on_treeview_protocol_button_press_event(self, widget, event):
         if event.button == 3:
             self.popup.popup(event)
             return True
+
+    def get_selected_log_root(self):
+        app = get_app()
+        id = combobox_get_active_text(self.combobox_log_files)
+        return path(app.experiment_log.directory) / path(id)
 
     def update(self):
         app = get_app()
@@ -106,10 +206,10 @@ class ExperimentLogController(SingletonPlugin):
             self._disable_gui_elements()
             return
         try:
-            id = combobox_get_active_text(self.combobox_log_files)
-            log = path(app.experiment_log.directory) / path(id) / path("data")
-            protocol = path(app.experiment_log.directory) / path(id) / path("protocol")
-            dmf_device = path(app.experiment_log.directory) / path(id) / path("device")
+            log_root = self.get_selected_log_root()
+            log = log_root.joinpath("data")
+            protocol = log_root.joinpath("protocol")
+            dmf_device = log_root.joinpath("device")
             self.results = self.Results(ExperimentLog.load(log),
                                         Protocol.load(protocol),
                                         DmfDevice.load(dmf_device))
@@ -152,7 +252,7 @@ class ExperimentLogController(SingletonPlugin):
             for val in data:
                 if val:
                     label += " v%s" % val
-            serial_number = "" 
+            serial_number = ""
             data = self.results.log.get("control board serial number")
             for val in data:
                 if val:
@@ -176,7 +276,7 @@ class ExperimentLogController(SingletonPlugin):
                 if val:
                     for k, v in val.iteritems():
                         label += "\n\t%s %s" % (k, v)
-            
+
             self.builder.get_object("label_plugins"). \
                 set_text(label)
 
@@ -245,11 +345,12 @@ class ExperimentLogController(SingletonPlugin):
 
     def save(self):
         app = get_app()
-                
-        # only save the current log if it is not empty (i.e., it contains at
-        # least one step)
-        if app.experiment_log and \
-        len([x for x in app.experiment_log.get('step') if x is not None]):
+
+        # Only save the current log if it is not empty (i.e., it contains at
+        # least one step).
+        if app.experiment_log and len([x for x in
+                                       app.experiment_log.get('step')
+                                       if x is not None]):
             data = {"software version": app.version}
             data["device name"] = app.dmf_device.name
             data["protocol name"] = app.protocol.name
@@ -263,11 +364,11 @@ class ExperimentLogController(SingletonPlugin):
             data['plugins'] = plugin_versions
             app.experiment_log.add_data(data)
             log_path = app.experiment_log.save()
-    
+
             # save the protocol and device
             app.protocol.save(os.path.join(log_path,"protocol"))
             app.dmf_device.save(os.path.join(log_path,"device"))
-    
+
             # create a new log
             experiment_log = ExperimentLog(app.experiment_log.directory)
             emit_signal("on_experiment_log_changed", experiment_log)
@@ -275,7 +376,6 @@ class ExperimentLogController(SingletonPlugin):
     def get_selected_data(self):
         selection = self.protocol_view.get_selection().get_selected_rows()
         selected_data = []
-        list_store = selection[0]
         for row in selection[1]:
             for d in self.results.log.data:
                 if 'time' in d['core'].keys():
@@ -291,6 +391,10 @@ class ExperimentLogController(SingletonPlugin):
         return True
 
     def on_combobox_log_files_changed(self, widget, data=None):
+        if self.notebook_manager_view is not None:
+            # Update active notebook directory for notebook_manager_view.
+            log_root = self.get_selected_log_root()
+            self.notebook_manager_view.notebook_dir = log_root
         self.update()
 
     def on_button_load_device_clicked(self, widget, data=None):
@@ -322,9 +426,12 @@ class ExperimentLogController(SingletonPlugin):
 
     def on_protocol_run(self):
         self.save()
-        
+
     def on_app_exit(self):
         self.save()
+        logger.info('[ExperimentLogController] Killing IPython notebooks')
+        if self.notebook_manager_view is not None:
+            self.notebook_manager_view.stop()
 
     def on_protocol_pause(self):
         self.save()
@@ -351,6 +458,10 @@ class ExperimentLogController(SingletonPlugin):
         # changing the combobox log files will force an update
         if len(log_files):
             self.combobox_log_files.set_active(len(log_files)-1)
+        if self.notebook_manager_view is not None:
+            # Update active notebook directory for notebook_manager_view.
+            log_root = self.get_selected_log_root()
+            self.notebook_manager_view.notebook_dir = log_root
 
     def get_schedule_requests(self, function_name):
         """
@@ -360,6 +471,14 @@ class ExperimentLogController(SingletonPlugin):
         if function_name == 'on_experiment_log_changed':
             # ensure that the app's reference to the new experiment log gets set
             return [ScheduleRequest('microdrop.app', self.name)]
+        elif function_name == 'on_plugin_enable':
+            # We use the notebook directory path stored in the configuration in
+            # the `on_plugin_enable` method.  Therefore, we need to schedule
+            # the `config_controller` plugin to handle the `on_plugin_enable`
+            # first, so the configuration will be loaded before reading the
+            # notebook directory.
+            return [ScheduleRequest('microdrop.gui.config_controller',
+                                    self.name)]
         return []
 
     def on_treeview_selection_changed(self, widget, data=None):

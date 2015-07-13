@@ -112,10 +112,8 @@ class AppDataController(object):
                        if v.value is not None])
         app = get_app()
         app_data = app.get_data(self.name)
-        if app_data:
-            app_data.update(values)
-        else:
-            app.set_data(self.name, values)
+        app_data.update(values)
+        app.set_data(self.name, app_data)
         emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
 
     @staticmethod

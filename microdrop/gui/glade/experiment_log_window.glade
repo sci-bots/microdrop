@@ -4,8 +4,9 @@
   <!-- interface-naming-policy project-wide -->
   <object class="GtkWindow" id="window">
     <property name="width_request">275</property>
-    <property name="height_request">500</property>
+    <property name="height_request">600</property>
     <property name="can_focus">False</property>
+    <property name="default_width">480</property>
     <signal name="delete-event" handler="on_window_delete_event" swapped="no"/>
     <child>
       <object class="GtkVBox" id="vbox1">
