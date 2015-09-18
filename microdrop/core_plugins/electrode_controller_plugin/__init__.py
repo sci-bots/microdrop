@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with analyst_remote_plugin.  If not, see <http://www.gnu.org/licenses/>.
 """
+import sys, traceback
 
 from path_helpers import path
 from flatland import Integer, Boolean, Form, String
@@ -27,6 +28,7 @@ from microdrop.plugin_manager import (PluginGlobals, Plugin, IPlugin,
                                       implements, emit_signal)
 from microdrop.app_context import get_app
 from analyst_remote_control import AnalystRemoteControl
+import gobject
 
 
 PluginGlobals.push_env('microdrop.managed')
@@ -111,23 +113,38 @@ class AnalystRemotePlugin(Plugin, AppDataController, StepOptionsController):
                 self.remote = AnalystRemoteControl(app_values['subscribe_uri'],
                                                    app_values['request_uri'])
                 self.remote.start_acquisition()
-                self.timeout_id = gobject.timeout_add(options.duration,
+                self.timeout_id = gobject.timeout_add(100,
                                                       self.remote_check_tick)
             except:
+                print "Exception in user code:"
+                print '-'*60
+                traceback.print_exc(file=sys.stdout)
+                print '-'*60
                 # An error occurred while initializing Analyst remote control.
                 emit_signal('on_step_complete', [self.name, 'Fail'])
+        else:
+            emit_signal('on_step_complete', [self.name, None])
 
     def remote_check_tick(self):
         if self.remote is not None:
             try:
                 if self.remote.acquisition_complete():
                     # Acquisition is complete so notify step complete.
+                    self.remote.reset()
                     emit_signal('on_step_complete', [self.name, None])
                     self.timeout_id = None
+                    self.remote = None
                     return False
+                else:
+                    print "Waiting for acquisition to complete..."
             except:
+                print "Exception in user code:"
+                print '-'*60
+                traceback.print_exc(file=sys.stdout)
+                print '-'*60
                 emit_signal('on_step_complete', [self.name, 'Fail'])
                 self.timeout_id = None
+                self.remote = None
                 return False
         return True
 
