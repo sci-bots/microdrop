@@ -307,7 +307,8 @@ class ProtocolGridController(SingletonPlugin):
     def on_step_swapped(self, original_step_number, step_number):
         logging.debug('[ProtocolGridController] on_step_swapped[%d->%d]',
                       original_step_number, step_number)
-        self.widget.select_row(get_app().protocol.current_step_number)
+        if self.widget:
+            self.widget.select_row(get_app().protocol.current_step_number)
 
     def on_step_removed(self, step_number, step):
         logging.debug('[ProtocolGridController] on_step_removed[%d]',
