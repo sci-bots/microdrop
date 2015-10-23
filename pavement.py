@@ -15,31 +15,36 @@ import version
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'flatland-fork', 'geo-util', 'ipython',
                     'ipython-helpers>=0.4', 'matplotlib>=1.5.0',
-                    'microdrop_utility>=0.4.post2', 'networkx', 'pandas',
-                    'path-helpers>=0.2', 'paver>=1.2.4', 'pip-helpers>=0.5',
+                    'microdrop_utility>=0.4.post2', 'networkx',
+                    'opencv-helpers', 'pandas', 'pandas', 'path-helpers>=0.2',
+                    'paver>=1.2.4', 'pip-helpers>=0.5',
                     'pygst-utils>=0.2.post26,<0.3',
                     'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib.component.core>=4.4.1',
                     'pyutilib.component.loader>=3.3.1', 'pyyaml', 'pyzmq',
-                    'run-exe>=0.5', 'si-prefix', 'scipy', 'svgwrite',
-                    'task_scheduler', 'tornado',
+                    'run-exe>=0.5', 'scipy', 'si-prefix', 'svg_model>=0.3',
+                    'svgwrite', 'task_scheduler', 'tornado',
                     'wheeler.pygtkhelpers>=0.12.post7']
 
 if platform.system() == 'Windows':
     install_requires += ['pycairo-gtk2-win', 'pywin32']
 else:
     install_requires += ['cairo']
-    try:
-        import gtk
-    except ImportError:
-        print >> sys.err, ("Please install Python bindings for Gtk 2 using "
-                           "your system's package manager.")
-
+try:
+    import gtk
+except ImportError:
+    print >> sys.stderr, ("Please install Python bindings for Gtk 2 using "
+                          "your system's package manager.")
+try:
+    import cairo
+except ImportError:
+    print >> sys.stderr, ("Please install Python bindings for cairo using "
+                          "your system's package manager.")
 
 setup(name='microdrop',
       version=version.getVersion(),
       description='Microdrop is a graphical user interface for the DropBot '
-                  'Digital Microfluidics control system',
+      'Digital Microfluidics control system',
       keywords='digital microfluidics dmf automation dropbot microdrop',
       author='Ryan Fobel and Christian Fobel',
       author_email='ryan@fobel.net and christian@fobel.net',

@@ -1,5 +1,5 @@
 """
-Copyright 2011 Ryan Fobel
+Copyright 2016 Ryan Fobel and Christian Fobel
 
 This file is part of Microdrop.
 
@@ -29,17 +29,20 @@ from math import sqrt
 import logging
 
 logger = logging.getLogger(__name__)
-import numpy as np
-import yaml
 from microdrop_utility import Version, FutureVersionError
+from path_helpers import path
+from svg_model.body_group import BodyGroup
+from svg_model.data_frame import close_paths, get_path_infos
 from svg_model.geo_path import Path, ColoredPath, Loop
+from svg_model.path_group import PathGroup
 from svg_model.svgload.path_parser import LoopTracer, ParseError
 from svg_model.svgload.svg_parser import parse_warning
-from svg_model.path_group import PathGroup
-from svg_model.body_group import BodyGroup
-import svgwrite
 from svgwrite.shapes import Polygon
-from path_helpers import path
+import numpy as np
+import pandas as pd
+import pint
+import svgwrite
+import yaml
 
 # Add support for serialized device files where parent module is `dmf_device`
 # rather than the fully-qualified `microdrop.dmf_device`.  This is done by
@@ -47,6 +50,28 @@ from path_helpers import path
 microdrop_root = path(__file__).parent.abspath()
 if microdrop_root not in sys.path:
     sys.path.insert(0, microdrop_root)
+
+
+ureg = pint.UnitRegistry()
+
+INKSCAPE_PPI = 90
+INKSCAPE_PPmm = INKSCAPE_PPI / ureg.inch.to('mm')
+
+
+def get_paths_frame_with_centers(df_paths):
+    df_paths = df_paths.copy()
+    # Get coordinates of center of each path.
+    df_paths_info = get_path_infos(df_paths)
+    path_centers = (df_paths_info[['x', 'y']] +
+                    .5 * df_paths_info[['width', 'height']].values)
+    df_paths['x_center'] = path_centers.x[df_paths.path_id].values
+    df_paths['y_center'] = path_centers.y[df_paths.path_id].values
+
+    # Calculate coordinate of each path vertex relative to center point of
+    # path.
+    center_offset = df_paths[['x', 'y']] - df_paths[['x_center',
+                                                     'y_center']].values
+    return df_paths.join(center_offset, rsuffix='_center_offset')
 
 
 class DeviceScaleNotSet(Exception):
@@ -311,6 +336,42 @@ class DmfDevice():
                         id='electrode%d' % i, debug=False, **kwargs)
             dwg.add(p)
         return dwg.tostring()
+
+    def to_dataframe(self):
+        '''
+        Return a Pandas dataframe with one row per electrode path vertex.
+
+        The frame contains the following columns:
+
+         - `path_id`: Path/electrode identifier.
+         - `loop_i`: Closed path loop index within path `path_id`.
+         - `vert_i`: Vertex index within loop `loop_i`.
+         - `x` and `y`: Coordinates of vertex `vert_i`.
+         - `x_center` and `y_center`: Coordinates of center of loop `loop_i`.
+         - `x_center_offset` and `y_center_offset`:
+             Distance from vertex `vert_i` to center of loop `loop_i`.
+        '''
+        frames = []
+
+        for k, v in self.electrodes.iteritems():
+            frame = pd.DataFrame(v.path.loops[0].verts, columns=['x', 'y'])
+            frame.insert(0, 'path_id', k)
+            frame.insert(1, 'loop_i', 0)
+            frame.insert(2, 'vert_i', range(frame.shape[0]))
+
+            frames.append(frame)
+
+        df_device = close_paths(pd.concat(frames)).reset_index(drop=True)
+
+        # Offset device, such that all coordinates are >= 0.
+        min_coords = df_device[['x', 'y']].min()
+        df_device[['x', 'y']] -= min_coords
+
+        # Scale path coordinates based on Inkscape default of 90 pixels-per-inch.
+        df_device[['x', 'y']] /= INKSCAPE_PPmm.magnitude
+
+        df_paths = get_paths_frame_with_centers(df_device)
+        return df_paths
 
 
 class Electrode:
