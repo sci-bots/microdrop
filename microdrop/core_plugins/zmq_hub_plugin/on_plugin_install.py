@@ -10,4 +10,4 @@ if __name__ == '__main__':
     logging.info(str(datetime.now()))
     requirements_file = path(__file__).parent.joinpath('requirements.txt')
     if requirements_file.exists():
-        logging.info(install(['-U', '-r', requirements_file], verbose=True))
+        logging.info(install(['-U', '-r', requirements_file]))
