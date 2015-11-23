@@ -273,8 +273,8 @@ class DmfDevice():
             if electrode.channels and max(electrode.channels) > max_channel:
                 max_channel = max(electrode.channels)
         return max_channel
-    
-    def actuated_area(self, state_of_all_channels):    
+
+    def actuated_area(self, state_of_all_channels):
         if self.scale is None:
             raise DeviceScaleNotSet()
         area = 0
@@ -294,11 +294,13 @@ class DmfDevice():
         for i, e in self.electrodes.iteritems():
             c = e.path.color
             color = 'rgb(%d,%d,%d)' % (c[0],c[1],c[2])
-            p = Polygon([(x-minx,y-miny) \
-                         for x,y in e.path.loops[0].verts], fill=color)
+            kwargs = {'data-channels': ','.join(map(str, e.channels))}
+            p = Polygon([(x-minx,y-miny)
+                         for x,y in e.path.loops[0].verts], fill=color,
+                        id='electrode%d' % i, debug=False, **kwargs)
             dwg.add(p)
         return dwg.tostring()
-    
+
 
 class Electrode:
     next_id = 0
