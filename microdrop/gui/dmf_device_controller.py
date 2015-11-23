@@ -354,17 +354,20 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def get_default_options(self):
         return DmfDeviceOptions()
 
-    def get_step_options(self, step=None):
+    def get_step_options(self, step_number=None):
         """
         Return a FeedbackOptions object for the current step in the protocol.
         If none exists yet, create a new one.
         """
         app = get_app()
-        options = app.protocol.current_step().get_data(self.name)
+        if step_number is None:
+            step_number = app.protocol.current_step_number
+        step = app.protocol.steps[step_number]
+        options = step.get_data(self.name)
         if options is None:
             # No data is registered for this plugin (for this step).
             options = self.get_default_options()
-            app.protocol.current_step().set_data(self.name, options)
+            step.set_data(self.name, options)
         return options
 
     def load_device(self, filename):
