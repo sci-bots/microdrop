@@ -287,10 +287,8 @@ class Protocol():
         self.current_step_number = step_number
         for plugin_name in self.current_step().plugins:
             emit_signal('on_step_options_swapped',
-                    [plugin_name,
-                    original_step_number,
-                    step_number],
-                    interface=IPlugin)
+                        [plugin_name, original_step_number, step_number],
+                        interface=IPlugin)
         with closing(StringIO()) as sio:
             for plugin_name, fields in self.plugin_fields.iteritems():
                 observers = ExtensionPoint(IPlugin)

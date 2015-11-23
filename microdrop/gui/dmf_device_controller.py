@@ -16,19 +16,16 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+import io
 import os
 import traceback
 import shutil
 from copy import deepcopy
 import logging
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 import gtk
 import numpy as np
+import pandas as pd
 from flatland import Form, Integer, String, Boolean
 from path_helpers import path
 import yaml
@@ -37,16 +34,15 @@ from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from microdrop_utility.gui import yesno
 from microdrop_utility import copytree
 
+from .dmf_device_view import DmfDeviceView
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
-import logging
-
-logger = logging.getLogger(__name__)
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
-from .dmf_device_view import DmfDeviceView
 from .. import base_path
+
+logger = logging.getLogger(__name__)
 
 PluginGlobals.push_env('microdrop')
 
@@ -58,6 +54,25 @@ class DmfDeviceOptions(object):
             self.state_of_channels = np.zeros(app.dmf_device.max_channel() + 1)
         else:
             self.state_of_channels = deepcopy(state_of_channels)
+        self._drop_routes = None
+
+    def reset_drop_routes(self):
+        # Empty table of drop routes.
+        self._drop_routes = pd.DataFrame(None, columns=['route_i',
+                                                        'transition_i',
+                                                        'electrode_i'],
+                                         dtype=int)
+
+    @property
+    def drop_routes(self):
+        if not hasattr(self, '_drop_routes') or self._drop_routes is None:
+            # Empty table of drop routes.
+            self.reset_drop_routes()
+        return self._drop_routes
+
+    @drop_routes.setter
+    def drop_routes(self, value):
+        self._drop_routes = value
 
 
 class DmfDeviceController(SingletonPlugin, AppDataController):
@@ -143,6 +158,29 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.previous_device_dir = device_directory
         return True
 
+    def clear_drop_routes(self, electrode_id=None, step_number=None):
+        '''
+        Clear all drop routes for current protocol step that include the
+        specified electrode (identified by string identifier).
+        '''
+        step_options = self.get_step_options(step_number)
+
+        if electrode_id is None:
+            step_options.reset_drop_routes()
+        else:
+            drop_routes = step_options.drop_routes
+            # Look up numeric index based on text electrode id.
+            electrode_index = self.device_frames.path_indexes[electrode_id]
+
+            # Find indexes of all routes that include electrode.
+            routes_to_clear = drop_routes.loc[drop_routes.electrode_i ==
+                                              electrode_index, 'route_i']
+            # Remove all routes that include electrode.
+            step_options.drop_routes = (drop_routes
+                                        .loc[~drop_routes.route_i
+                                             .isin(routes_to_clear
+                                                   .tolist())].copy())
+
     def on_plugin_enable(self):
         app = get_app()
 
@@ -150,8 +188,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 'event_box_dmf_device')
         self.event_box_dmf_device.add(self.view.device_area)
         self.event_box_dmf_device.show_all()
-        self.view.connect('channel-state-changed',
-                lambda x, y: self._notify_observers_step_options_changed())
+        self.view.connect('channel-state-changed', lambda x, y:
+                          self._notify_observers_step_options_changed())
 
         self.menu_load_dmf_device = app.builder.get_object('menu_load_dmf_device')
         self.menu_import_dmf_device = app.builder.get_object('menu_import_dmf_device')
@@ -306,6 +344,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                            step_number):
             self._update()
 
+    def on_step_created(self, step_number, *args):
+        self.clear_drop_routes(step_number=step_number)
+        gtk.idle_add(self._update)
+
     def on_step_swapped(self, old_step_number, step_number):
         self._update()
 
@@ -424,8 +466,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.save_dmf_device(save_as=True)
 
     def on_dmf_device_swapped(self, old_device, new_device):
+        from droplet_planning.device import DeviceFrames
+
         self.menu_rename_dmf_device.set_sensitive(True)
         self.menu_save_dmf_device_as.set_sensitive(True)
+        self.device_frames = DeviceFrames(io.BytesIO(str(new_device.to_svg())),
+                                          extend=1.5)
         self._update()
 
     def on_dmf_device_changed(self):

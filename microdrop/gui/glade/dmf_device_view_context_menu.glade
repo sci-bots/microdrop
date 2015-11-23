@@ -22,11 +22,19 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="register_device">
+      <object class="GtkMenuItem" id="clear_drop_routes">
         <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Register device</property>
+        <property name="label" translatable="yes">Clear drop routes</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="clear_all_drop_routes">
+        <property name="use_action_appearance">False</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Clear all drop routes</property>
       </object>
     </child>
     <child>
