@@ -64,11 +64,13 @@ class ElectrodeContextMenu(SlaveView):
 
     def on_edit_electrode_channels__activate(self, widget, data=None):
         # TODO: set default value
-        channel_list = ','.join([str(i) for i in self.last_electrode_clicked.channels])
+        channel_list = ','.join([str(i) for i in
+                                 self.last_electrode_clicked.channels])
         app = get_app()
         options = self.model.controller.get_step_options()
         state = options.state_of_channels
-        channel_list = text_entry_dialog('Channels', channel_list, 'Edit electrode channels')
+        channel_list = text_entry_dialog('Channels', channel_list,
+                                         'Edit electrode channels')
         if channel_list:
             channels = channel_list.split(',')
             try: # convert to integers
@@ -215,9 +217,10 @@ class DmfDeviceView(GtkVideoView):
                 drawing_x = (width - drawing_width) / 2
                 drawing_y = padding
             self.drawing_space = CartesianSpace(drawing_width, drawing_height,
-                offset=(drawing_x, drawing_y))
-            scale = np.array(self.drawing_space.dims) / np.array(
-                    self.svg_space.dims)
+                                                offset=(drawing_x, drawing_y))
+            scale = (np.array(self.drawing_space.dims) /
+                     np.array(self.svg_space.dims))
+
             d.translate(*self.drawing_space._offset)
             d.scale(*scale)
             d.translate(*(-np.array(self.svg_space._offset)))
