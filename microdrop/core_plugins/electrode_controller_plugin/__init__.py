@@ -111,7 +111,6 @@ class DropletPlanningPlugin(Plugin, AppDataController, StepOptionsController):
                 # Timer was already set, so cancel previous timer.
                 gobject.source_remove(self.timeout_id)
 
-            #if self.transition_counter < self.step_drop_route_lengths.max():
             drop_route_groups = (device_step_options.drop_routes
                                  .groupby('route_i'))
             # Look up the drop routes for the current step.
@@ -120,8 +119,9 @@ class DropletPlanningPlugin(Plugin, AppDataController, StepOptionsController):
                                                  drop_route_groups])
             # Get the number of transitions in each drop route.
             self.step_drop_route_lengths = drop_route_groups['route_i'].count()
-            self.start_time = datetime.now()
             self.transition_counter = 0
+            self.start_time = datetime.now()
+            gobject.idle_add(self.on_timer_tick, False)
             self.timeout_id = gobject.timeout_add(app_values
                                                   ['transition_duration_ms'],
                                                   self.on_timer_tick)
@@ -133,7 +133,7 @@ class DropletPlanningPlugin(Plugin, AppDataController, StepOptionsController):
             # An error occurred while initializing Analyst remote control.
             emit_signal('on_step_complete', [self.name, 'Fail'])
 
-    def on_timer_tick(self):
+    def on_timer_tick(self, continue_=True):
         app = get_app()
         try:
             if self.transition_counter < self.step_drop_route_lengths.max():
@@ -171,7 +171,7 @@ class DropletPlanningPlugin(Plugin, AppDataController, StepOptionsController):
             self.timeout_id = None
             self.remote = None
             return False
-        return True
+        return continue_
 
     def on_step_options_swapped(self, plugin, old_step_number, step_number):
         """
