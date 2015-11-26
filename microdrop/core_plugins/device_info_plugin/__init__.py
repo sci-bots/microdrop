@@ -77,7 +77,7 @@ class DropletPlanningPlugin(Plugin, AppDataController, StepOptionsController):
         -the values of these fields will be stored persistently for each step
     '''
     StepFields = Form.of(
-        Boolean.named('min_duration').using(default=0, optional=True),
+        Integer.named('min_duration').using(default=0, optional=True),
     )
 
     def __init__(self):
