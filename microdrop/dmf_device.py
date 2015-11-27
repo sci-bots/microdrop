@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import sys
 import time
 try:
     import cPickle as pickle
@@ -36,6 +37,14 @@ from svg_model.path_group import PathGroup
 from svg_model.body_group import BodyGroup
 import svgwrite
 from svgwrite.shapes import Polygon
+from path_helpers import path
+
+# Add support for serialized device files where parent module is `dmf_device`
+# rather than the fully-qualified `microdrop.dmf_device`.  This is done by
+# adding the root of the `microdrop` module to the Python path.
+microdrop_root = path(__file__).parent.abspath()
+if microdrop_root not in sys.path:
+    sys.path.insert(0, microdrop_root)
 
 
 class DeviceScaleNotSet(Exception):

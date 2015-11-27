@@ -27,10 +27,10 @@ from pygtkhelpers.proxy import proxy_for
 from pygtkhelpers.forms import FormView
 from flatland.schema import Form
 
-from app_context import get_app
+from ..app_context import get_app
 from ..logger import logger
-from plugin_manager import (IPlugin, SingletonPlugin, implements, IVideoPlugin,
-                            ExtensionPoint, emit_signal)
+from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
+                              ExtensionPoint, emit_signal)
 from .. import glade_path
 
 
@@ -85,7 +85,7 @@ class AppOptionsController:
         for name, form in self.forms.iteritems():
             # For each form, generate a pygtkhelpers formview and append the view
             # onto the end of the plugin vbox
-            
+
             if form is None:
                 schema_entries = []
             else:

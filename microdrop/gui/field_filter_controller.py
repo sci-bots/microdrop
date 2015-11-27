@@ -17,20 +17,16 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
-from copy import deepcopy
 import re
 
 import gtk
-from path_helpers import path
 from pygtkhelpers.proxy import proxy_for
 from pygtkhelpers.forms import FormView
-from flatland import Form, Dict, String, Integer, Boolean, Float
+from flatland import Form, Boolean
 
-from app_context import get_app
-from logger import logger
-from plugin_manager import IPlugin, SingletonPlugin, implements, IVideoPlugin,\
-        ExtensionPoint, emit_signal
+from ..app_context import get_app
+from ..logger import logger
+from ..plugin_manager import IPlugin, ExtensionPoint
 from .. import glade_path
 
 
