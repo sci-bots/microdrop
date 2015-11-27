@@ -7,26 +7,34 @@
     <property name="can_focus">False</property>
     <child>
       <object class="GtkMenuItem" id="edit_electrode_channels">
+        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
         <property name="label" translatable="yes">Edit electrode channels</property>
       </object>
     </child>
     <child>
       <object class="GtkMenuItem" id="edit_electrode_area">
+        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
         <property name="label" translatable="yes">Edit electrode area</property>
       </object>
     </child>
     <child>
       <object class="GtkMenuItem" id="register_device">
+        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
         <property name="label" translatable="yes">Register device</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="ipython_shell">
+        <property name="use_action_appearance">False</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">IPython...</property>
       </object>
     </child>
   </object>
