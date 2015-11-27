@@ -23,8 +23,8 @@ import gtk
 from pygtkhelpers.ui.list_select import ListSelectView
 from application_repository.plugins.proxy import PluginRepository
 
-from app_context import get_app
-from plugin_manager import get_service_instance_by_name
+from ..app_context import get_app
+from ..plugin_manager import get_service_instance_by_name
 from .. import glade_path
 
 
