@@ -16,17 +16,45 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with monitor_plugin.  If not, see <http://www.gnu.org/licenses/>.
 """
+import warnings
+
 import zmq
 from path_helpers import path
 from flatland import Form, String
-from microdrop.logger import logger
-from microdrop.plugin_helpers import (AppDataController, StepOptionsController,
-                                      get_plugin_info)
+from microdrop.plugin_helpers import AppDataController, get_plugin_info
 from microdrop.plugin_manager import (PluginGlobals, Plugin, IPlugin,
-                                      implements, emit_signal)
-from microdrop.app_context import get_app
+                                      implements)
+
 
 PluginGlobals.push_env('microdrop.managed')
+
+
+class Notifier(object):
+    def __init__(self, uri):
+        self.context = zmq.Context.instance()
+        self.pub_socket = zmq.Socket(self.context, zmq.PUB)
+        self.pub_socket.bind(uri)
+
+    def notify(self, *args, **kwargs):
+        '''
+        Send notification, issuing warnings on encountered exceptions by
+        default.
+
+        Args:
+
+            on_error (function) : Custom exception handler function, accepting
+                exception as single argument.
+        '''
+        #
+        on_error = kwargs.pop('on_error', None)
+
+        try:
+            self.pub_socket.send_pyobj(*args)
+        except (Exception, ), exception:
+            if on_error is None:
+                warnings.warn(str(exception))
+            else:
+                on_error(exception)
 
 
 class MonitorPlugin(Plugin, AppDataController):
@@ -58,16 +86,13 @@ class MonitorPlugin(Plugin, AppDataController):
 
     def __init__(self):
         self.name = self.plugin_name
-        self.context = None
-        self.pub_socket = None
+        self.notifier = None
 
     def verify_connected(self):
-        if self.context is None:
+        if self.notifier is None:
             app_values = self.get_app_values()
             if 'publish_uri' in app_values and app_values['publish_uri']:
-                self.context = zmq.Context.instance()
-                self.pub_socket = zmq.Socket(self.context, zmq.PUB)
-                self.pub_socket.bind(app_values['publish_uri'])
+                self.notifier = Notifier(app_values['publish_uri'])
             else:
                 return False
         return True
@@ -83,9 +108,8 @@ class MonitorPlugin(Plugin, AppDataController):
         """
         Handler called once the plugin instance is disabled.
         """
-        if self.context is not None:
-            self.pub_socket.close()
-            del self.context
+        if self.notifier is not None:
+            del self.notifier
 
     def on_plugin_enable(self):
         """
@@ -107,8 +131,8 @@ class MonitorPlugin(Plugin, AppDataController):
         """
         Handler called just before the Microdrop application exits.
         """
-        if self.context is not None:
-            self.pub_socket.send_pyobj('on_app_exit')
+        if self.notifier is not None:
+            self.notifier.notify({'signal': 'on_app_exit'})
 
     def on_protocol_swapped(self, old_protocol, protocol):
         """
@@ -116,33 +140,30 @@ class MonitorPlugin(Plugin, AppDataController):
         a protocol is loaded or a new protocol is created).
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_protocol_swapped',
-                                        'data': {'old_protocol': old_protocol,
-                                                 'protocol': protocol}})
+            self.notifier.notify({'signal': 'on_protocol_swapped',
+                                  'data': {'old_protocol': old_protocol,
+                                           'protocol': protocol}})
 
     def on_protocol_changed(self):
         """
         Handler called when a protocol is modified.
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_protocol_changed',
-                                        'data': {}})
+            self.notifier.notify({'signal': 'on_protocol_changed', 'data': {}})
 
     def on_protocol_run(self):
         """
         Handler called when a protocol starts running.
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_protocol_run',
-                                        'data': {}})
+            self.notifier.notify({'signal': 'on_protocol_run', 'data': {}})
 
     def on_protocol_pause(self):
         """
         Handler called when a protocol is paused.
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_protocol_pause',
-                                        'data': {}})
+            self.notifier.notify({'signal': 'on_protocol_pause', 'data': {}})
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         """
@@ -150,10 +171,9 @@ class MonitorPlugin(Plugin, AppDataController):
         a new device is loaded).
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_protocol_swapped',
-                                        'data': {'old_dmf_device':
-                                                 old_dmf_device,
-                                                 'dmf_device': dmf_device}})
+            self.notifier.notify({'signal': 'on_protocol_swapped',
+                                  'data': {'old_dmf_device': old_dmf_device,
+                                           'dmf_device': dmf_device}})
 
     def on_dmf_device_changed(self):
         """
@@ -163,8 +183,8 @@ class MonitorPlugin(Plugin, AppDataController):
         directory.
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_dmf_device_changed',
-                                        'data': {}})
+            self.notifier.notify({'signal': 'on_dmf_device_changed',
+                                  'data': {}})
 
     def on_experiment_log_changed(self, experiment_log):
         """
@@ -172,9 +192,8 @@ class MonitorPlugin(Plugin, AppDataController):
         protocol finishes running.
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_experiment_log_changed',
-                                        'data': {'experiment_log':
-                                                 experiment_log}})
+            self.notifier.notify({'signal': 'on_experiment_log_changed',
+                                  'data': {'experiment_log': experiment_log}})
 
     def on_experiment_log_selection_changed(self, data):
         """
@@ -185,9 +204,9 @@ class MonitorPlugin(Plugin, AppDataController):
                 for the selected steps
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal':
-                                        'on_experiment_log_selection_changed',
-                                        'data': {'data': data}})
+            self.notifier.notify({'signal':
+                                  'on_experiment_log_selection_changed',
+                                  'data': {'data': data}})
 
     def on_app_options_changed(self, plugin_name):
         """
@@ -199,8 +218,8 @@ class MonitorPlugin(Plugin, AppDataController):
             plugin : plugin name for which the app options changed
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_app_options_changed',
-                                        'data': {'plugin_name': plugin_name}})
+            self.notifier.notify({'signal': 'on_app_options_changed',
+                                  'data': {'plugin_name': plugin_name}})
 
     def on_step_options_changed(self, plugin, step_number):
         """
@@ -213,9 +232,9 @@ class MonitorPlugin(Plugin, AppDataController):
             step_number : step number that the options changed for
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_step_options_changed',
-                                        'data': {'plugin': plugin,
-                                                 'step_number': step_number}})
+            self.notifier.notify({'signal': 'on_step_options_changed',
+                                  'data': {'plugin': plugin,
+                                           'step_number': step_number}})
 
     def on_step_options_swapped(self, plugin, old_step_number, step_number):
         """
@@ -228,21 +247,19 @@ class MonitorPlugin(Plugin, AppDataController):
             step_number : step number that the options changed for
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_step_options_swapped',
-                                        'data': {'plugin': plugin,
-                                                 'old_step_number':
-                                                 old_step_number,
-                                                 'step_number': step_number}})
+            self.notifier.notify({'signal': 'on_step_options_swapped',
+                                  'data': {'plugin': plugin,
+                                           'old_step_number': old_step_number,
+                                           'step_number': step_number}})
 
     def on_step_swapped(self, old_step_number, step_number):
         """
         Handler called when the current step is swapped.
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_step_swapped',
-                                        'data': {'old_step_number':
-                                                 old_step_number,
-                                                 'step_number': step_number}})
+            self.notifier.notify({'signal': 'on_step_swapped',
+                                  'data': {'old_step_number': old_step_number,
+                                           'step_number': step_number}})
 
     def on_step_run(self):
         """
@@ -260,7 +277,7 @@ class MonitorPlugin(Plugin, AppDataController):
             or 'Fail' - unrecoverable error (stop the protocol)
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_step_run', 'data': {}})
+            self.notifier.notify({'signal': 'on_step_run', 'data': {}})
 
     def on_step_complete(self, plugin_name, return_value=None):
         """
@@ -272,13 +289,13 @@ class MonitorPlugin(Plugin, AppDataController):
             or 'Fail' - unrecoverable error (stop the protocol)
         """
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_experiment_log_changed',
-                                        'data': {}})
+            self.notifier.notify({'signal': 'on_experiment_log_changed',
+                                  'data': {}})
 
     def on_step_created(self, step_number):
         if self.verify_connected():
-            self.pub_socket.send_pyobj({'signal': 'on_step_created',
-                                        'data': {'step_number': step_number}})
+            self.notifier.notify({'signal': 'on_step_created',
+                                  'data': {'step_number': step_number}})
 
 
 PluginGlobals.pop_env()
