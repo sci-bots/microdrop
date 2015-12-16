@@ -41,7 +41,9 @@ from microdrop_utility import copytree
 
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
-from ..logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)

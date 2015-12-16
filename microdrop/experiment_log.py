@@ -24,13 +24,13 @@ except ImportError:
     import pickle
 import time
 from copy import deepcopy
+import logging
 
-import numpy as np
+from microdrop_utility import is_int, Version, FutureVersionError
 from path_helpers import path
 import yaml
 
-from microdrop_utility import is_int, Version, VersionError, FutureVersionError
-from logger import logger
+logger = logging.getLogger(__name__)
 
 
 class ExperimentLog():
@@ -199,7 +199,7 @@ class ExperimentLog():
         if not plugin_name in self.data[-1]:
             self.data[-1][plugin_name] = {}
         for k, v in data.items():
-            self.data[-1][plugin_name][k]=v
+            self.data[-1][plugin_name][k] = v
 
     def get(self, name, plugin_name='core'):
         var = []

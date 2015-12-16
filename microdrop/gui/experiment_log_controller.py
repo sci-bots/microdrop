@@ -40,7 +40,9 @@ from ..plugin_helpers import AppDataController
 from ..protocol import Protocol
 from ..dmf_device import DmfDevice
 from ..app_context import get_app
-from ..logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 from .. import glade_path
 
 

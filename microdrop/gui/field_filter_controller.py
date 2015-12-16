@@ -25,7 +25,9 @@ from pygtkhelpers.forms import FormView
 from flatland import Form, Boolean
 
 from ..app_context import get_app
-from ..logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 from ..plugin_manager import IPlugin, ExtensionPoint
 from .. import glade_path
 

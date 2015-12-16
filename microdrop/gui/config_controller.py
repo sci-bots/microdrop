@@ -22,7 +22,9 @@ import os
 from path_helpers import path
 from microdrop_utility.user_paths import home_dir
 
-from ..logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ExtensionPoint, ScheduleRequest)
 from ..app_context import get_app

@@ -4,7 +4,9 @@ from path_helpers import path
 import yaml
 
 from app_context import get_app
-from logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 from plugin_manager import IPlugin, ExtensionPoint, emit_signal
 from microdrop_utility import Version
 

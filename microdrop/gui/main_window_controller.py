@@ -36,7 +36,9 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, ILoggingPlugin,
                               emit_signal, get_service_instance_by_name)
 from ..app_context import get_app
-from ..logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 from .. import glade_path
 
 
