@@ -25,6 +25,8 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import logging
+from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 import gtk
 from path_helpers import path
@@ -45,9 +47,11 @@ from .config import Config
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                              implements, PluginGlobals)
 from .plugin_helpers import AppDataController, get_plugin_info
-from .logger import (logger, CustomHandler, logging, DEBUG, INFO, WARNING,
-                     ERROR, CRITICAL)
+from .logger import CustomHandler
 from . import base_path
+
+logger = logging.getLogger(__name__)
+
 
 PluginGlobals.push_env('microdrop')
 
@@ -175,7 +179,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.main_window_controller = None
 
         # Enable custom logging handler
-        logger.addHandler(CustomHandler())
+        logging.getLogger().addHandler(CustomHandler())
         self.log_file_handler = None
 
         # config model
@@ -515,7 +519,8 @@ Would you like to download the latest version in your browser?''' %
     def _set_log_file_handler(self, log_file):
         if self.log_file_handler:
             self._destroy_log_file_handler()
-        self.log_file_handler = logging.FileHandler(log_file)
+        self.log_file_handler = logging.FileHandler(log_file,
+                                                    disable_existing_loggers=False)
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         self.log_file_handler.setFormatter(formatter)
         logger.addHandler(self.log_file_handler)

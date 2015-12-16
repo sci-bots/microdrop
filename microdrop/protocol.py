@@ -31,9 +31,11 @@ from contextlib import closing
 import yaml
 
 from plugin_manager import (emit_signal, IPlugin, ExtensionPoint,
-    get_service_names)
-from logger import logger
-from microdrop_utility import Version, VersionError, FutureVersionError
+                            get_service_names)
+import logging
+
+logger = logging.getLogger(__name__)
+from microdrop_utility import Version, FutureVersionError
 
 
 class Protocol():
@@ -44,7 +46,7 @@ class Protocol():
         self.name = None
         self.plugin_data = {}
         self.plugin_fields = {}
-        self.n_repeats=1
+        self.n_repeats = 1
         self.current_step_attempt = 0
         self.current_step_number = 0
         self.current_repetition = 0

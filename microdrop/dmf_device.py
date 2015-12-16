@@ -26,7 +26,9 @@ except ImportError:
 import warnings
 from math import sqrt
 
-from logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 import numpy as np
 import yaml
 from microdrop_utility import Version, FutureVersionError
@@ -70,8 +72,8 @@ class DmfDevice():
     def init_body_group(self):
         if self.path_group is None:
             return
-        # Initialize a BodyGroup() containing a 2D pymunk space to detect events
-        # and perform point queries based on device.
+        # Initialize a BodyGroup() containing a 2D pymunk space to detect
+        # events and perform point queries based on device.
         # Note that we cannot (can't be pickled) and do not want to save a
         # pymunk space, since it represents state information from the device.
         self.body_group = BodyGroup(self.path_group.paths)

@@ -47,6 +47,11 @@ def except_handler(*args, **kwargs):
 
 
 if __name__ == "__main__":
+    import logging
+
+    logging.basicConfig(format='[%(levelname)s:%(name)s]: %(message)s',
+                        level=logging.INFO)
+
     from app import App
     from app_context import get_app
 

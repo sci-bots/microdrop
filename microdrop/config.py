@@ -18,18 +18,15 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-from shutil import ignore_patterns
 import warnings
+import logging
 
 from path_helpers import path
 from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
-from microdrop_utility.user_paths import (home_dir, app_data_dir,
-                                          common_app_data_dir)
+from microdrop_utility.user_paths import home_dir, app_data_dir
 
-from .logger import logger
-from . import base_path
-
+logger = logging.getLogger(__name__)
 
 class ValidationError(Exception):
     pass

@@ -36,7 +36,9 @@ from microdrop_utility.gui import text_entry_dialog
 from microdrop_utility import is_float
 
 from ..app_context import get_app
-from ..logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 from ..plugin_manager import emit_signal, IPlugin
 from .. import base_path
 
