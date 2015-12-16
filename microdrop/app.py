@@ -35,18 +35,18 @@ from jsonrpc.json import JSONDecodeException
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
-
+from application_repository.application.proxy import AppRepository
 from microdrop_utility import Version
 from microdrop_utility.gui import yesno
-from protocol import Step
-from config import Config
-from plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
-                            implements, PluginGlobals)
 import plugin_manager
-from plugin_helpers import AppDataController, get_plugin_info
-from logger import (logger, CustomHandler, logging, DEBUG, INFO, WARNING,
-                    ERROR, CRITICAL)
-from application_repository.application.proxy import AppRepository
+
+from .protocol import Step
+from .config import Config
+from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
+                             implements, PluginGlobals)
+from .plugin_helpers import AppDataController, get_plugin_info
+from .logger import (logger, CustomHandler, logging, DEBUG, INFO, WARNING,
+                     ERROR, CRITICAL)
 from . import base_path
 
 PluginGlobals.push_env('microdrop')
