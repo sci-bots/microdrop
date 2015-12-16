@@ -158,16 +158,76 @@ class DmfDeviceView(GtkCairoView):
         self.popup = ElectrodeContextMenu(self)
         super(DmfDeviceView, self).__init__()
 
+    def on_device_area__configure_event(self, widget, event):
+        gtk.idle_add(self.update_draw_queue, (event.width, event.height))
+
+    def reset_cairo_surface(self, width, height):
+        self.cairo_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width,
+                                                height)
+
     def create_ui(self, *args, **kwargs):
         self.widget = self.device_area
 
-    def update_draw_queue(self):
-        x, y, width, height = self.device_area.get_allocation()
+    def render(self, shape=None):
+        '''
+        Render device electrodes onto in-memory Cairo surface.
+
+        Args:
+
+            shape (tuple) : Width and height to use for surface.  If `None`,
+                use size allocated for `device_area` widget.
+        '''
+        if shape is None:
+            x, y, width, height = self.device_area.get_allocation()
+            shape = width, height
         draw_queue = self.get_draw_queue(width, height)
-        cairo_context = self.device_area.window.cairo_create()
+        self.reset_cairo_surface(width, height)
+        cairo_context = cairo.Context(self.cairo_surface)
+
+        # Clear background.
+        cairo_context.rectangle(0, 0, *shape)
+        cairo_context.set_source_rgb(0, 0, 0)
+        cairo_context.fill()
+
+        # Paint electrodes from pre-rendered Cairo surface.
         draw_queue.render(cairo_context)
 
+    def draw(self):
+        '''
+        Paint pre-rendered device electrodes to UI drawing area.
+        '''
+        cairo_context = self.device_area.window.cairo_create()
+
+        # Paint device from pre-rendered Cairo surface.
+        cairo_context.set_source_surface(self.cairo_surface, 0, 0)
+        cairo_context.paint()
+
+    def update_draw_queue(self, shape=None):
+        '''
+        Render device electrodes *and* draw rendered electrodes to UI window.
+        '''
+        self.render(shape=shape)
+        self.draw()
+
     def get_draw_queue(self, width, height, alpha=1.0):
+        '''
+        Get a recorded sequence of Cairo commands for drawing the device
+        electrodes, which can later be rendered to a Cairo context.
+
+        Args:
+
+            width (int) : Width to scale device to while maintaining aspect
+                ratio.
+            height (int) : Height to scale device to while maintaining aspect
+                ratio.
+            alpha (float) : Alpha multiplier, in range $[0, 1]$ (inclusive).
+
+        Returns:
+
+            (pygst_utils.elements.draw_queue.DrawQueue) : Device Cairo draw
+                queue; the `render(context)` method can be used to render to a
+                Cairo context.
+        '''
         app = get_app()
         if app.dmf_device:
             d = DrawQueue()
@@ -206,24 +266,21 @@ class DmfDeviceView(GtkCairoView):
             d.restore()
             return d
 
-    def draw_electrode(self, electrode, cr, color=None):
+    def draw_electrode(self, electrode, cairo_context, color=None):
         p = electrode.path
-        cr.save()
+        cairo_context.save()
         if color is None:
             color = [v / 255. for v in p.color]
         if len(color) < 4:
             color += [1.] * (len(color) - 4)
-        cr.set_source_rgba(*color)
+        cairo_context.set_source_rgba(*color)
         for loop in p.loops:
-            cr.move_to(*loop.verts[0])
+            cairo_context.move_to(*loop.verts[0])
             for v in loop.verts[1:]:
-                cr.line_to(*v)
-            cr.close_path()
-            cr.clip_preserve()
-            cr.fill_preserve()
-            cr.set_source_rgb(0, 0, 0)
-            cr.stroke()
-        cr.restore()
+                cairo_context.line_to(*v)
+            cairo_context.close_path()
+            cairo_context.fill()
+        cairo_context.restore()
 
     def on_device_area__expose_event(self, widget, *args):
         # Clear background to black.
