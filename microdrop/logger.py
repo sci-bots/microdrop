@@ -1,6 +1,5 @@
 import logging
 import logging.handlers
-from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 from plugin_manager import ILoggingPlugin
 import plugin_manager
