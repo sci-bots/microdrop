@@ -28,6 +28,8 @@ class GtkCairoView(SlaveView):
 
     def show_and_run(self):
         self._set_window_title = True
+        import IPython
+        gtk.timeout_add(1000, IPython.embed)
         super(GtkCairoView, self).show_and_run()
 
     def on_widget__realize(self, widget):
