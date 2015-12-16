@@ -136,9 +136,6 @@ class StepOptionsController(object):
             return service.get_step_values(step_number)
         return None
 
-    def on_step_created(self, step_number):
-        pass
-
     def get_default_step_options(self):
         return dict([(k, v.value)
                      for k, v in self.StepFields.from_defaults().iteritems()])

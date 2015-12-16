@@ -17,25 +17,25 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time
-from copy import deepcopy
-import re
-import logging
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import logging
+import re
+import time
 from StringIO import StringIO
 from contextlib import closing
+from copy import deepcopy
 
 import yaml
+from microdrop_utility import Version, FutureVersionError
 
-from plugin_manager import (emit_signal, IPlugin, ExtensionPoint,
-                            get_service_names)
-import logging
+from .plugin_manager import (emit_signal, IPlugin, ExtensionPoint,
+                             get_service_names)
+
 
 logger = logging.getLogger(__name__)
-from microdrop_utility import Version, FutureVersionError
 
 
 class Protocol():
@@ -84,12 +84,12 @@ class Protocol():
         if out==None:
             raise TypeError
         out.filename = filename
-        
+
         # enable loading of old protocols that were loaded as relative packages
         # (i.e., not subpackages of microdrop).
         if str(out.__class__) == 'protocol.Protocol':
             out.__class__ = cls
-        
+
         # check type
         if out.__class__ != cls:
             raise TypeError, "File is wrong type: %s" % out.__class__
@@ -99,7 +99,7 @@ class Protocol():
 
         enabled_plugins = get_service_names(env='microdrop.managed') + \
             get_service_names('microdrop')
-        
+
         for k, v in out.plugin_data.items():
             if k in enabled_plugins:
                 try:
@@ -224,13 +224,14 @@ class Protocol():
         for value in values[::-1]:
             self.insert_step(step_number, value)
 
-    def insert_step(self, step_number=None, value=None):
+    def insert_step(self, step_number=None, value=None, notify=True):
         if step_number is None:
             step_number = self.current_step_number
         if value is None:
             value = Step()
         self.steps.insert(step_number, value)
-        emit_signal('on_step_created', args=[self.current_step_number])
+        if notify:
+            emit_signal('on_step_created', args=[self.current_step_number])
 
     def delete_step(self, step_number):
         step_to_remove = self.steps[step_number]
@@ -258,8 +259,9 @@ class Protocol():
     def next_step(self):
         if self.current_step_number == len(self.steps) - 1:
             self.insert_step(self.current_step_number,
-                    self.current_step().copy())
+                             self.current_step().copy(), notify=False)
             self.next_step()
+            emit_signal('on_step_created', args=[self.current_step_number])
         else:
             self.goto_step(self.current_step_number + 1)
 
