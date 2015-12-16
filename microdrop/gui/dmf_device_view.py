@@ -150,6 +150,7 @@ class DmfDeviceView(GtkCairoView):
         self.background = None
         self.pixmap = None
         self._set_window_title = False
+        self.cairo_surface = None
 
         self.svg_space = None
         self.view_space = None
@@ -180,8 +181,8 @@ class DmfDeviceView(GtkCairoView):
         if shape is None:
             x, y, width, height = self.device_area.get_allocation()
             shape = width, height
-        draw_queue = self.get_draw_queue(width, height)
-        self.reset_cairo_surface(width, height)
+        draw_queue = self.get_draw_queue(*shape)
+        self.reset_cairo_surface(*shape)
         cairo_context = cairo.Context(self.cairo_surface)
 
         # Clear background.
@@ -229,8 +230,8 @@ class DmfDeviceView(GtkCairoView):
                 Cairo context.
         '''
         app = get_app()
+        d = DrawQueue()
         if app.dmf_device:
-            d = DrawQueue()
             x, y, device_width, device_height = app.dmf_device.get_bounding_box()
             self.svg_space = CartesianSpace(device_width, device_height,
                     offset=(x, y))
@@ -264,9 +265,22 @@ class DmfDeviceView(GtkCairoView):
                     r, g, b = self.electrode_color[id]
                     self.draw_electrode(electrode, d, (r, g, b, alpha))
             d.restore()
-            return d
+        return d
 
     def draw_electrode(self, electrode, cairo_context, color=None):
+        '''
+        Draw the shape of an electrode.
+
+        Arguments
+        ---------
+
+         - `electrode`:
+             * An `Electrode` instance.
+         - `cr`: Cairo context.
+         - `color`: Either a RGB or RGBA tuple, with each color channel in the
+           range [0, 255].  If `color` is `None`, the electrode color is set to
+           white.
+        '''
         p = electrode.path
         cairo_context.save()
         if color is None:
@@ -283,15 +297,8 @@ class DmfDeviceView(GtkCairoView):
         cairo_context.restore()
 
     def on_device_area__expose_event(self, widget, *args):
-        # Clear background to black.
-        x, y, width, height = self.device_area.get_allocation()
-        print '[expose]', x, y, width, height
-        cairo_context = self.device_area.window.cairo_create()
-        cairo_context.save()
-        cairo_context.rectangle(x, y, width, height)
-        cairo_context.set_source_rgb(0, 0, 0)
-        cairo_context.fill()
-        cairo_context.restore()
+        if self.cairo_surface is not None:
+            self.draw()
 
     def on_device_area__realize(self, widget, *args):
         pass
