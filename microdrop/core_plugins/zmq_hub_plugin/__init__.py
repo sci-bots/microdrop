@@ -1,9 +1,9 @@
 """
 Copyright 2015 Christian Fobel
 
-This file is part of monitor_plugin.
+This file is part of zmq_hub_plugin.
 
-monitor_plugin is free software: you can redistribute it and/or modify
+zmq_hub_plugin is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -14,7 +14,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with monitor_plugin.  If not, see <http://www.gnu.org/licenses/>.
+along with zmq_hub_plugin.  If not, see <http://www.gnu.org/licenses/>.
 """
 import warnings
 
@@ -57,7 +57,7 @@ class Notifier(object):
                 on_error(exception)
 
 
-class MonitorPlugin(Plugin, AppDataController):
+class ZmqHubPlugin(Plugin, AppDataController):
     """
     This class is automatically registered with the PluginManager.
     """
@@ -125,7 +125,7 @@ class MonitorPlugin(Plugin, AppDataController):
         to retain this functionality.
         """
         self.verify_connected()
-        super(MonitorPlugin, self).on_plugin_enable()
+        super(ZmqHubPlugin, self).on_plugin_enable()
 
     def on_app_exit(self):
         """
