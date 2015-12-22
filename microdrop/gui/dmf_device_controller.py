@@ -264,9 +264,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
                             'device.')
             emit_signal("on_dmf_device_swapped", [app.dmf_device,
                                                   device])
-        except Exception, e:
-            logger.error('Error loading device: %s.' % e)
-            logger.info(''.join(traceback.format_exc()))
+        except:
+            logger.error('Error loading device.', exc_info=True)
 
     def save_check(self):
         app = get_app()
