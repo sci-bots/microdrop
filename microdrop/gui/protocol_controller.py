@@ -402,11 +402,19 @@ Protocol is version %s, but only up to version %s is supported with this version
         return None
 
     def on_step_options_changed(self, plugin, step_number):
-        logging.debug('[ProtocolController.on_step_options_changed] plugin=%s, '
-                      'step_number=%s' % (plugin, step_number))
+        '''
+        Mark protocol as modified when step options have changed for a plugin.
+        '''
         self.modified = True
         emit_signal('on_protocol_changed')
         self.run_step()
+
+    def on_step_created(self, step_number):
+        '''
+        Mark protocol as modified when a new step is created.
+        '''
+        self.modified = True
+        emit_signal('on_protocol_changed')
 
     def set_app_values(self, values_dict):
         logging.debug('[ProtocolController] set_app_values(): '\
