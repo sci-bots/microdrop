@@ -260,9 +260,3 @@ else:
             pass
 
 
-if 'IVideoPlugin' in PluginGlobals.interface_registry:
-    IVideoPlugin = PluginGlobals.interface_registry['IVideoPlugin']
-else:
-    class IVideoPlugin(Interface):
-        def on_new_frame(self, frame):
-            pass

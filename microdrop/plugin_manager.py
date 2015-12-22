@@ -34,7 +34,7 @@ import yaml
 from run_exe import run_exe
 
 from interfaces import (Plugin, IPlugin, PluginGlobals, ExtensionPoint,
-                        IWaveformGenerator, ILoggingPlugin, IVideoPlugin,
+                        IWaveformGenerator, ILoggingPlugin,
                         SingletonPlugin, implements)
 
 
@@ -109,10 +109,6 @@ def log_summary():
         logging.info('\t %s' % observer)
     observers = ExtensionPoint(ILoggingPlugin)
     logging.info('Registered logging plugins:')
-    for observer in observers:
-        logging.info('\t %s' % observer)
-    observers = ExtensionPoint(IVideoPlugin)
-    logging.info('Registered video plugins:')
     for observer in observers:
         logging.info('\t %s' % observer)
 
