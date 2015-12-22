@@ -33,6 +33,7 @@ from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
 from microdrop_utility.gui import text_entry_dialog
 from microdrop_utility import is_float
+from svg_model.shapes_canvas import ShapesCanvas
 
 from ..app_context import get_app
 from ..plugin_manager import emit_signal, IPlugin
@@ -576,6 +577,32 @@ class DmfDeviceView(GtkCairoView):
 
     def on_device_area__key_press_event(self, widget, data=None):
         pass
+
+    def reset_canvas(self, shape=None):
+        '''
+        Create a new `ShapesCanvas` (from the `svg_model.shapes_canvas` module)
+        based on the polygons/shapes of the current DMF device.
+
+        The `find_shape` method of the `ShapesCanvas` class looks up the
+        polygon/shape that surrounds a specified $(x, y)$ coordinate (or `None`
+        if coordinate does not fall within any shape).
+
+        Args:
+
+            shape (tuple) : The width and height of the canvas to aspect fill
+                the DMF device to.  Note that `find_shape` assumes coordinates
+                are specified in the *scaled* space.
+        '''
+        if shape is None:
+            x, y, width, height = self.device_area.get_allocation()
+            shape = width, height
+        app = get_app()
+        if app.dmf_device:
+            # Create shapes canvas with same scale as original shapes frame.
+            # This canvas is used for to conduct point queries to detect
+            # electrode clicks, etc.
+            self.device_canvas = ShapesCanvas(app.dmf_device.df_shapes,
+                                              'path_id')
 
 
 def get_endpoint_marker(df_route_centers):

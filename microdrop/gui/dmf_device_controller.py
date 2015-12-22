@@ -471,6 +471,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_save_dmf_device_as.set_sensitive(True)
         self.device_frames = DeviceFrames(io.BytesIO(str(new_device.to_svg())),
                                           extend=1.5)
+        self.view.reset_canvas()
         self._update()
 
     def on_dmf_device_changed(self):
