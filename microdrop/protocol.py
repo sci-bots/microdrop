@@ -222,7 +222,9 @@ class Protocol():
         elif values is None:
             values = [Step()] * count
         for value in values[::-1]:
-            self.insert_step(step_number, value)
+            self.insert_step(step_number, value, notify=False)
+        emit_signal('on_steps_inserted', args=range(step_number, step_number +
+                                                    len(values)))
 
     def insert_step(self, step_number=None, value=None, notify=True):
         if step_number is None:
@@ -230,8 +232,9 @@ class Protocol():
         if value is None:
             value = Step()
         self.steps.insert(step_number, value)
+        emit_signal('on_step_created', args=[self.current_step_number])
         if notify:
-            emit_signal('on_step_created', args=[self.current_step_number])
+            emit_signal('on_step_inserted', args=[self.current_step_number])
 
     def delete_step(self, step_number):
         step_to_remove = self.steps[step_number]
@@ -258,10 +261,10 @@ class Protocol():
 
     def next_step(self):
         if self.current_step_number == len(self.steps) - 1:
-            self.insert_step(self.current_step_number,
-                             self.current_step().copy(), notify=False)
+            self.insert_step(step_number=self.current_step_number,
+                             value=self.current_step().copy(), notify=False)
             self.next_step()
-            emit_signal('on_step_created', args=[self.current_step_number])
+            emit_signal('on_step_inserted', args=[self.current_step_number])
         else:
             self.goto_step(self.current_step_number + 1)
 

@@ -299,9 +299,10 @@ class ProtocolGridController(SingletonPlugin):
             return [ScheduleRequest('microdrop.app', self.name)]
         return []
 
+    def on_step_default_created(self, step_number):
+        self.update_grid()
+
     def on_step_created(self, step_number):
-        logging.debug('[ProtocolGridController] on_step_created[%d]',
-                      step_number)
         self.update_grid()
 
     def on_step_swapped(self, original_step_number, step_number):
