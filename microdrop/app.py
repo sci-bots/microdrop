@@ -446,7 +446,7 @@ Would you like to download the latest version in your browser?''' %
                 observers[service.name] = service
             except Exception, e:
                 self.config['plugins']['enabled'].remove(package_name)
-                logger.error(e)
+                logger.error(e, exc_info=True)
         schedule = plugin_manager.get_schedule(observers, "on_plugin_enable")
 
         # Load optional plugins marked as enabled in config
@@ -520,7 +520,8 @@ Would you like to download the latest version in your browser?''' %
         if self.log_file_handler:
             self._destroy_log_file_handler()
         self.log_file_handler = logging.FileHandler(log_file,
-                                                    disable_existing_loggers=False)
+                                                    disable_existing_loggers
+                                                    =False)
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         self.log_file_handler.setFormatter(formatter)
         logger.addHandler(self.log_file_handler)

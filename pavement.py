@@ -12,13 +12,14 @@ import version
 
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
-                    'flatland-fork', 'geo-util', 'ipython',
-                    'microdrop_utility>=0.3', 'opencv-helpers', 'path-helpers',
-                    'pygst-utils', 'pygtk_textbuffer_with_undo', 'pyparsing',
-                    'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'svg_model',
-                    'svgwrite', 'task_scheduler', 'wheeler.pygtkhelpers>=0.10',
-                    'pip-helpers>=0.5', 'pandas', 'scipy', 'run-exe>=0.5',
-                    'ipython-helpers>=0.4']
+                    'droplet-planning>=0.1.post3', 'flatland-fork', 'geo-util',
+                    'ipython', 'ipython-helpers>=0.4',
+                    'microdrop_utility>=0.3', 'opencv-helpers', 'pandas',
+                    'path-helpers', 'pip-helpers>=0.5', 'pygst-utils',
+                    'pygtk_textbuffer_with_undo', 'pyparsing',
+                    'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'run-exe>=0.5',
+                    'scipy', 'svg_model', 'svgwrite', 'task_scheduler',
+                    'wheeler.pygtkhelpers>=0.10']
 
 
 setup(name='microdrop',
