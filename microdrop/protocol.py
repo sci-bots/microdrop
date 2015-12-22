@@ -288,24 +288,6 @@ class Protocol():
         logging.debug('[Protocol].goto_step(%s)' % step_number)
         original_step_number = self.current_step_number
         self.current_step_number = step_number
-        for plugin_name in self.current_step().plugins:
-            emit_signal('on_step_options_swapped',
-                        [plugin_name, original_step_number, step_number],
-                        interface=IPlugin)
-        with closing(StringIO()) as sio:
-            for plugin_name, fields in self.plugin_fields.iteritems():
-                observers = ExtensionPoint(IPlugin)
-                service = observers.service(plugin_name)
-                if service is None:
-                    # We can end up here if a service has been disabled.
-                    # TODO: protocol.plugin_fields should likely be updated
-                    #    whenever a plugin is enabled/disabled...
-                    continue
-                if hasattr(service, 'get_step_value'):
-                    print >> sio, '[ProtocolController] plugin.name=%s field_values='\
-                            % (plugin_name),
-                    print >> sio, [service.get_step_value(f) for f in fields]
-            logging.debug(sio.getvalue())
         emit_signal('on_step_swapped', [original_step_number, step_number])
 
 
