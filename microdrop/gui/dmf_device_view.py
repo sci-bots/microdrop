@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 from __future__ import division
+import itertools
 from collections import namedtuple
 from datetime import datetime
 import logging
@@ -404,11 +405,16 @@ class DmfDeviceView(GtkCairoView):
         if len(color) < 4:
             color += [1.] * (len(color) - 4)
         cairo_context.set_source_rgba(*color)
-        vertices = electrode[['x', 'y']]
-        cairo_context.move_to(*vertices.iloc[0])
-        for i, (x, y) in vertices.iloc[1:].iterrows():
+
+        # Use attribute lookup for `x` and `y`, since it is considerably faster
+        # than `get`-based lookup using columns name strings.
+        vertices_x = electrode.x.values
+        vertices_y = electrode.y.values
+        cairo_context.move_to(vertices_x[0], vertices_y[0])
+        for x, y in itertools.izip(vertices_x[1:], vertices_y[1:]):
             cairo_context.line_to(x, y)
         cairo_context.close_path()
+        cairo_context.clip_preserve()
         cairo_context.fill()
         cairo_context.restore()
 
