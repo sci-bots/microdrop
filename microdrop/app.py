@@ -480,8 +480,10 @@ Would you like to download the latest version in your browser?''' %
             if device_directory:
                 device_path = os.path.join(device_directory,
                                            self.config['dmf_device']['name'],
-                                           'device')
-                self.dmf_device_controller.load_device(device_path)
+                                           'device.svg')
+                self.dmf_device_controller.load_device(device_path,
+                                                       name=self.config
+                                                       ['dmf_device']['name'])
 
 
         # if we successfully loaded a device

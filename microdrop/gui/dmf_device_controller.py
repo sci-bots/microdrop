@@ -248,13 +248,13 @@ directory)?''' % (device_directory, self.previous_device_dir))
             step.set_data(self.name, options)
         return options
 
-    def load_device(self, filename):
+    def load_device(self, filename, **kwargs):
         app = get_app()
         self.modified = False
         device = app.dmf_device
         try:
             logger.info('[DmfDeviceController].load_device: %s' % filename)
-            device = DmfDevice.load(str(filename))
+            device = DmfDevice.load(str(filename), **kwargs)
             if path(filename).parent.parent != app.get_device_directory():
                 logger.info('[DmfDeviceController].load_device: Import new '
                             'device.')
@@ -343,7 +343,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                            step_number):
             self._update()
 
-    def on_step_created(self, step_number, *args):
+    def on_step_inserted(self, step_number, *args):
+        app = get_app()
+        logging.info('[on_step_inserted] current step=%s, created step=%s',
+                     app.protocol.current_step_number, step_number)
         self.clear_drop_routes(step_number=step_number)
         gtk.idle_add(self._update)
 
@@ -366,29 +369,18 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if not app.dmf_device:
             return
         options = self.get_step_options()
-        state_of_channels = options.state_of_channels
-        for id, electrode in app.dmf_device.electrodes.iteritems():
-            channels = app.dmf_device.electrodes[id].channels
-            if channels:
-                # Get the state(s) of the channel(s) connected to this
-                # electrode.
-                states = state_of_channels[channels]
+        if options.state_of_channels.max() == 0:
+            # No channels are actuated.
+            actuated_channels_index = []
+        else:
+            actuated_channels_index = np.where(options
+                                               .state_of_channels > 0)[0]
+        actuated_electrodes = (app.dmf_device
+                               .actuated_electrodes(actuated_channels_index))
 
-                # If all of the states are the same.
-                if len(np.nonzero(states == states[0])[0]) == len(states):
-                    if states[0] > 0:
-                        self.view.electrode_color[id] = [1, 1, 1]
-                    else:
-                        color = app.dmf_device.electrodes[id].path.color
-                        self.view.electrode_color[id] = [c / 255.
-                                                         for c in color]
-                else:
-                    # TODO: This could be used for resistive heating.
-                    logger.error("not supported yet")
-            else:
-                # Assign the color _red_ to any electrode that has no assigned
-                # channels.
-                self.view.electrode_color[id] = [1, 0, 0]
+        self.view.electrode_color = {}
+        for electrode_id in actuated_electrodes:
+            self.view.electrode_color[electrode_id] = [1, 1, 1]
         self.view.update_draw_queue()
 
     def get_schedule_requests(self, function_name):
@@ -469,8 +461,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
         self.menu_rename_dmf_device.set_sensitive(True)
         self.menu_save_dmf_device_as.set_sensitive(True)
-        self.device_frames = DeviceFrames(io.BytesIO(str(new_device.to_svg())),
-                                          extend=1.5)
         self.view.reset_canvas()
         self._update()
 
