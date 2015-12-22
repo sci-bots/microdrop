@@ -16,7 +16,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-import io
 import os
 import traceback
 import shutil
@@ -26,10 +25,9 @@ import logging
 import gtk
 import numpy as np
 import pandas as pd
-from flatland import Form, Integer, String, Boolean
+from flatland import Form
 from path_helpers import path
-import yaml
-from pygtkhelpers.ui.extra_widgets import Directory, Enum
+from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from microdrop_utility.gui import yesno
 from microdrop_utility import copytree
@@ -217,10 +215,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_rename_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device_as.set_sensitive(False)
-
-    def on_protocol_run(self):
-        app = get_app()
-        log_dir = path(app.experiment_log.get_log_path())
 
     def on_protocol_pause(self):
         if self._recording:
@@ -457,8 +451,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.save_dmf_device(save_as=True)
 
     def on_dmf_device_swapped(self, old_device, new_device):
-        from droplet_planning.device import DeviceFrames
-
         self.menu_rename_dmf_device.set_sensitive(True)
         self.menu_save_dmf_device_as.set_sensitive(True)
         self.view.reset_canvas()
