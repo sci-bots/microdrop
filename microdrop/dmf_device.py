@@ -17,13 +17,11 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 from path_helpers import path
-from svg_model import svg_polygons_to_df
+from svg_model import svg_shapes_to_df, INKSCAPE_PPmm
 from svg_model.connections import extract_connections
 from svg_model.shapes_canvas import ShapesCanvas
-from svgwrite.shapes import Polygon
 import numpy as np
 import pandas as pd
-import svgwrite
 
 class DeviceScaleNotSet(Exception):
     pass
@@ -53,23 +51,27 @@ class DmfDevice(object):
         self.scale = None
 
         # Read SVG polygons into dataframe, one row per polygon vertex.
-        df_shapes = svg_polygons_to_df(svg_filepath)
+        df_shapes = svg_shapes_to_df(svg_filepath)
 
         # Add SVG file path as attribute.
         self.svg_filepath = svg_filepath
         self.df_shapes = df_shapes
-        self.shape_i_columns = 'path_id'
+        self.shape_i_columns = 'id'
 
         # Create temporary shapes canvas with same scale as original shapes
         # frame.  This canvas is used for to conduct point queries to detect
         # which shape (if any) overlaps with the endpoint of a connection line.
-        svg_canvas = ShapesCanvas(self.df_shapes, 'path_id')
+        svg_canvas = ShapesCanvas(self.df_shapes, self.shape_i_columns)
         # Detect connected shapes based on lines in "Connection" layer of the
         # SVG.
         self.df_shape_connections = extract_connections(self.svg_filepath,
                                                         svg_canvas)
         self.df_electrode_channels = self.get_electrode_channels()
         self.electrode_areas = self.get_electrode_areas()
+
+        # Scale coordinates to millimeter units.
+        self.df_shapes[['x', 'y']] -= self.df_shapes[['x', 'y']].min().values
+        self.df_shapes[['x', 'y']] /= INKSCAPE_PPmm.magnitude
 
     def update_electrode_channels(self, electrode_id, new_channel_list):
         # Update channels for electrode `electrode_id` to `new_channel_list`.
@@ -101,7 +103,7 @@ class DmfDevice(object):
     def get_electrode_areas(self):
         from svg_model.data_frame import get_shape_areas
 
-        return get_shape_areas(self.df_shapes, 'path_id')
+        return get_shape_areas(self.df_shapes, self.shape_i_columns)
 
     def get_svg_frame(self):
         '''
@@ -145,7 +147,7 @@ class DmfDevice(object):
          - Each channel index corresponds to a DMF device channel that may be
            actuated independently.
         '''
-        return extract_channels(self.svg_filepath)
+        return extract_channels(self.df_shapes)
 
     def get_bounding_box(self):
         xmin, ymin = self.df_shapes[['x', 'y']].min().values
@@ -193,8 +195,7 @@ class DmfDevice(object):
             return input_.read()
 
 
-def extract_channels(svg_source, electrode_layer='Device',
-                     electrode_xpath=None, namespaces=None):
+def extract_channels(df_shapes):
     '''
     Load the channels associated with each electrode from the device layer of
     an SVG source.
@@ -217,24 +218,13 @@ def extract_channels(svg_source, electrode_layer='Device',
             electrode, where the `"electrode_id"` column corresponds to the
             `"id"` attribute of the corresponding SVG polygon.
     '''
-    from lxml import etree
-    from svg_model import INKSCAPE_NSMAP
-
-    if namespaces is None:
-        namespaces = INKSCAPE_NSMAP
-
-    e_root = etree.parse(svg_source)
     frames = []
 
-    if electrode_xpath is None:
-        electrode_xpath = ("//svg:g[@inkscape:label='%s']/svg:polygon"
-                           % electrode_layer)
-
-    for electrode_i in e_root.xpath(electrode_xpath, namespaces=namespaces):
-        channels_i = map(int, electrode_i.attrib.get('data-channels',
-                                                     '').split(','))
-        frames.extend([[electrode_i.attrib['id'], channel]
-                       for channel in channels_i])
+    shape_channel_lists = (df_shapes.drop_duplicates(subset=['data-channels'])
+                           .set_index('id')['data-channels']
+                           .str.split(',').map(lambda v: map(int, v)))
+    for shape_i, channels_i in shape_channel_lists.iteritems():
+        frames.extend([[shape_i, channel] for channel in channels_i])
 
     if frames:
         df_channels = pd.DataFrame(frames, columns=['electrode_id', 'channel'])

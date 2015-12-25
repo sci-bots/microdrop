@@ -299,7 +299,8 @@ class DmfDeviceView(GtkCairoView):
 
             # Draw electrodes.
             for electrode_id, df_shape_i in (app.dmf_device.df_shapes
-                                             .groupby('path_id')):
+                                             .groupby(app.dmf_device
+                                                      .shape_i_columns)):
                 r, g, b = self.electrode_color.get(electrode_id, [0, 0, 1])
                 self.draw_electrode(df_shape_i, d, (r, g, b, alpha))
 
@@ -626,7 +627,7 @@ class DmfDeviceView(GtkCairoView):
             # This canvas is used for to conduct point queries to detect
             # electrode clicks, etc.
             self.device_canvas = ShapesCanvas(app.dmf_device.df_shapes,
-                                              'path_id')
+                                              app.dmf_device.shape_i_columns)
 
 
 def get_endpoint_marker(df_route_centers):
