@@ -136,8 +136,7 @@ class ElectrodeContextMenu(SlaveView):
         emit_signal('on_dmf_device_changed')
 
     def on_clear_drop_routes__activate(self, widget, data=None):
-        self.emit('clear-drop-routes-request', 'electrode%s' %
-                  self.last_electrode_clicked.id)
+        self.emit('clear-drop-routes-request', self.last_electrode_clicked)
 
     def on_clear_all_drop_routes__activate(self, widget, data=None):
         self.emit('clear-all-drop-routes-request')
@@ -272,7 +271,7 @@ class DmfDeviceView(GtkCairoView):
         if app.dmf_device:
             x, y, device_width, device_height = app.dmf_device.get_bounding_box()
             self.svg_space = CartesianSpace(device_width, device_height,
-                    offset=(x, y))
+                                            offset=(x, y))
             padding = 20
             if width/device_width < height/device_height:
                 drawing_width = width - 2 * padding
@@ -292,8 +291,6 @@ class DmfDeviceView(GtkCairoView):
             self.draw_transform_queue = DrawQueue()
             self.draw_transform_queue.translate(*self.drawing_space._offset)
             self.draw_transform_queue.scale(*scale)
-            self.draw_transform_queue.translate(*(-np.array(self.svg_space
-                                                            ._offset)))
             d.save()
             d.render_callables += self.draw_transform_queue.render_callables
 
@@ -304,13 +301,11 @@ class DmfDeviceView(GtkCairoView):
                 r, g, b = self.electrode_color.get(electrode_id, [0, 0, 1])
                 self.draw_electrode(df_shape_i, d, (r, g, b, alpha))
 
-            d.translate(*np.array(self.svg_space._offset))
-
             # Draw paths.
             step_options = self.controller.get_step_options()
             for route_i, df_route in (step_options.drop_routes
                                       .groupby('route_i')):
-                self.draw_drop_route(df_route, d)
+                self.draw_drop_route(df_route, d, line_width=.25)
             d.restore()
         return d
 
@@ -329,22 +324,25 @@ class DmfDeviceView(GtkCairoView):
         zero-based, contiguous range to, for example, store an attribute of
         each electrode in an array.
 
-        The `DmfDeviceController` maintains a `DeviceFrames` instance that
-        includes an attribute called `indexed_paths`, which maps each electrode
-        string identifier to an integer index.
+        The `DmfDevice` includes an attribute called `indexed_shapes`, which
+        maps each electrode string identifier to an integer index.
         '''
-        import re
-
         app = get_app()
-        id = int(re.sub(r'[^\d]+', '', self.controller.device_frames
-                        .indexed_paths[electrode_index]))
-        if rgb_color is None and id in self.electrode_color:
-            color = app.dmf_device.electrodes[id].path.color
-            self.electrode_color[id] = [c / 255. for c in color]
+        id = app.dmf_device.indexed_shapes[electrode_index]
+        if rgb_color is None:
+            # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+            # TODO
+            # TODO As of `svg_model==0.5.post9`, `svg_polygons_to_df` does not
+            # TODO include fill/stroke color information.  Need to add
+            # TODO fill/stroke support, but for now, just color non-actuated
+            # TODO electrodes blue.
+            # TODO
+            # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+            self.electrode_color[id] = np.array([0, 0, 1.])
         else:
             self.electrode_color[id] = rgb_color
 
-    def draw_drop_route(self, df_route, cr, color=None):
+    def draw_drop_route(self, df_route, cr, color=None, line_width=None):
         '''
         Draw a line between electrodes listed in a droplet route.
 
@@ -360,10 +358,13 @@ class DmfDeviceView(GtkCairoView):
            range [0, 1].  If `color` is `None`, the electrode color is set to
            white.
         '''
-        df_route_centers = (self.controller.device_frames
-                            .df_indexed_path_centers
-                            .iloc[df_route.electrode_i]
-                            [['x_center', 'y_center']])
+        app = get_app()
+        df_route_centers = (app.dmf_device.df_indexed_shape_centers
+                            .iloc[df_route.electrode_i][['x_center',
+                                                         'y_center']])
+        df_endpoint_marker = (.6 * get_endpoint_marker(df_route_centers) +
+                              df_route_centers.iloc[-1].values)
+
         # Save cairo context to restore after drawing route.
         cr.save()
         if color is None:
@@ -374,10 +375,12 @@ class DmfDeviceView(GtkCairoView):
         cr.move_to(*df_route_centers.iloc[0])
         for electrode_i, center_i in df_route_centers.iloc[1:].iterrows():
             cr.line_to(*center_i)
+        if line_width is None:
+            line_width = np.sqrt((df_endpoint_marker.max().values -
+                                  df_endpoint_marker.min().values).prod()) * .1
+        cr.set_line_width(line_width)
         cr.stroke()
 
-        df_endpoint_marker = (.6 * get_endpoint_marker(df_route_centers) +
-                              df_route_centers.iloc[-1].values)
         cr.move_to(*df_endpoint_marker.iloc[0])
         for electrode_i, center_i in df_endpoint_marker.iloc[1:].iterrows():
             cr.line_to(*center_i)
@@ -533,14 +536,13 @@ class DmfDeviceView(GtkCairoView):
         app = get_app()
         if app.dmf_device is not None:
             try:
-                shortest_path = (self.controller.device_frames
-                                 .find_path(source_id, target_id))
+                shortest_path = app.dmf_device.find_path(source_id, target_id)
                 step_options = self.controller.get_step_options()
                 drop_routes = step_options.drop_routes
                 route_i = (drop_routes.route_i.max() + 1
                            if drop_routes.shape[0] > 0 else 0)
-                route_indexes = (self.controller.device_frames
-                                 .path_indexes[shortest_path].tolist())
+                route_indexes = (app.dmf_device.shape_indexes[shortest_path]
+                                 .tolist())
                 drop_route = (pd.DataFrame(route_indexes,
                                            columns=['electrode_i'],
                                            dtype=int)
@@ -632,11 +634,10 @@ class DmfDeviceView(GtkCairoView):
 
 def get_endpoint_marker(df_route_centers):
     app = get_app()
-    df_paths = app.dmf_device_controller.device_frames.df_paths
-    df_endpoint_electrode = df_paths.loc[df_paths.path_id ==
-                                         app.dmf_device_controller
-                                         .device_frames.indexed_paths
-                                         [df_route_centers.index[-1]]]
+    df_shapes = app.dmf_device.df_shapes
+    df_endpoint_electrode = df_shapes.loc[df_shapes.id ==
+                                          app.dmf_device.indexed_shapes
+                                          [df_route_centers.index[-1]]]
     df_endpoint_bbox = (df_endpoint_electrode[['x_center_offset',
                                                'y_center_offset']]
                         .describe().loc[['min', 'max']])

@@ -16,21 +16,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-import os
-import time
 from collections import namedtuple
+import logging
+import os
 import pkg_resources
+import time
 
-import gtk
-from path_helpers import path
 from flatland import Form
-from pygtkhelpers.delegates import SlaveView
-from pygtkhelpers.ui.notebook import NotebookManagerView
-from pygtkhelpers.ui.extra_widgets import Directory
-from pygtkhelpers.ui.extra_dialogs import yesno
 from microdrop_utility import copytree
 from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text, textview_get_text)
+from path_helpers import path
+from pygtkhelpers.delegates import SlaveView
+from pygtkhelpers.ui.extra_dialogs import yesno
+from pygtkhelpers.ui.extra_widgets import Directory
+from pygtkhelpers.ui.notebook import NotebookManagerView
+import gtk
 
 from ..experiment_log import ExperimentLog
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
@@ -38,9 +39,9 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               get_service_names, get_service_instance_by_name)
 from ..plugin_helpers import AppDataController
 from ..protocol import Protocol
-from ..dmf_device import DmfDevice
 from ..app_context import get_app
-import logging
+from ..dmf_device import DmfDevice
+from .dmf_device_controller import DEVICE_FILENAME
 
 logger = logging.getLogger(__name__)
 from .. import glade_path
@@ -55,10 +56,8 @@ class ExperimentLogColumn():
 
 class ExperimentLogContextMenu(SlaveView):
     """
-    Slave view for context-menu for an electrode in the DMF device
-    view.
+    Slave view for context-menu for a row in the experiment log step grid view.
     """
-
     builder_path = glade_path().joinpath('experiment_log_context_menu.glade')
 
     def popup(self, event):
@@ -211,11 +210,13 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             log_root = self.get_selected_log_root()
             log = log_root.joinpath("data")
             protocol = log_root.joinpath("protocol")
-            dmf_device = log_root.joinpath("device")
+            dmf_device = log_root.joinpath(DEVICE_FILENAME)
             self.results = self.Results(ExperimentLog.load(log),
                                         Protocol.load(protocol),
-                                        DmfDevice.load(dmf_device))
-            self.builder.get_object("button_load_device").set_sensitive(True)
+                                        DmfDevice.load(dmf_device,
+                                                       name=dmf_device.parent
+                                                       .name))
+            #self.builder.get_object("button_load_device").set_sensitive(True)
             self.builder.get_object("button_load_protocol").set_sensitive(True)
             self.builder.get_object("textview_notes").set_sensitive(True)
 
@@ -353,11 +354,11 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
         if app.experiment_log and len([x for x in
                                        app.experiment_log.get('step')
                                        if x is not None]):
-            data = {"software version": app.version}
-            data["device name"] = app.dmf_device.name
-            data["protocol name"] = app.protocol.name
-            data["notes"] = textview_get_text(app.protocol_controller. \
-                builder.get_object("textview_notes"))
+            data = {'software version': app.version}
+            data['device name'] = app.dmf_device.name
+            data['protocol name'] = app.protocol.name
+            data['notes'] = textview_get_text(app.protocol_controller.builder
+                                              .get_object('textview_notes'))
             plugin_versions = {}
             for name in get_service_names(env='microdrop.managed'):
                 service = get_service_instance_by_name(name)
@@ -367,13 +368,18 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             app.experiment_log.add_data(data)
             log_path = app.experiment_log.save()
 
-            # save the protocol and device
-            app.protocol.save(os.path.join(log_path,"protocol"))
-            app.dmf_device.save(os.path.join(log_path,"device"))
+            # Save the protocol to experiment log directory.
+            app.protocol.save(os.path.join(log_path, 'protocol'))
+
+            # Convert device to SVG string.
+            svg_unicode = app.dmf_device.to_svg()
+            # Save the device to experiment log directory.
+            with open(os.path.join(log_path, DEVICE_FILENAME), 'wb') as output:
+                output.write(svg_unicode)
 
             # create a new log
             experiment_log = ExperimentLog(app.experiment_log.directory)
-            emit_signal("on_experiment_log_changed", experiment_log)
+            emit_signal('on_experiment_log_changed', experiment_log)
 
     def get_selected_data(self):
         selection = self.protocol_view.get_selection().get_selected_rows()
@@ -403,7 +409,7 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
         app = get_app()
         filename = path(os.path.join(app.experiment_log.directory,
                                      str(self.results.log.experiment_id),
-                                     'device'))
+                                     DEVICE_FILENAME))
         try:
             app.dmf_device_controller.load_device(filename)
         except:

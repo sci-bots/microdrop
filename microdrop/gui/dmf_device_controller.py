@@ -44,6 +44,10 @@ logger = logging.getLogger(__name__)
 
 PluginGlobals.push_env('microdrop')
 
+# Define name of device file.  Name of device is inferred from name of parent
+# directory when device is loaded.
+DEVICE_FILENAME = 'device.svg'
+
 
 class DmfDeviceOptions(object):
     def __init__(self, state_of_channels=None):
@@ -161,6 +165,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         Clear all drop routes for current protocol step that include the
         specified electrode (identified by string identifier).
         '''
+        app = get_app()
         step_options = self.get_step_options(step_number)
 
         if electrode_id is None:
@@ -168,7 +173,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         else:
             drop_routes = step_options.drop_routes
             # Look up numeric index based on text electrode id.
-            electrode_index = self.device_frames.path_indexes[electrode_id]
+            electrode_index = app.dmf_device.shape_indexes[electrode_id]
 
             # Find indexes of all routes that include electrode.
             routes_to_clear = drop_routes.loc[drop_routes.electrode_i ==
@@ -242,14 +247,16 @@ directory)?''' % (device_directory, self.previous_device_dir))
             step.set_data(self.name, options)
         return options
 
-    def load_device(self, filename, **kwargs):
+    def load_device(self, file_path, **kwargs):
         app = get_app()
         self.modified = False
         device = app.dmf_device
         try:
-            logger.info('[DmfDeviceController].load_device: %s' % filename)
-            device = DmfDevice.load(str(filename), **kwargs)
-            if path(filename).parent.parent != app.get_device_directory():
+            file_path = path(file_path)
+            logger.info('[DmfDeviceController].load_device: %s' % file_path)
+            device = DmfDevice.load(file_path, name=file_path.parent.name,
+                                    **kwargs)
+            if file_path.parent.parent != app.get_device_directory():
                 logger.info('[DmfDeviceController].load_device: Import new '
                             'device.')
                 self.modified = True
@@ -315,17 +322,21 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if not os.path.isdir(dest):
                 os.mkdir(dest)
 
+            # Convert device to SVG string.
+            svg_unicode = app.dmf_device.to_svg()
+
+            # Save the device to the new target directory.
+            with open(os.path.join(dest, DEVICE_FILENAME), 'wb') as output:
+                output.write(svg_unicode)
+
+            # Reset modified status, since save acts as a checkpoint.
+            self.modified = False
+
             # If the device name has changed, update the application device
             # state.
             if name != app.dmf_device.name:
-                app.dmf_device.name = name
-                # Update GUI to reflect updated name.
-                app.main_window_controller.update_device_name_label()
-
-            # Save the device to the new target directory.
-            app.dmf_device.save(os.path.join(dest, "device"))
-            # Reset modified status, since save acts as a checkpoint.
-            self.modified = False
+                new_device_filepath = os.path.join(dest, DEVICE_FILENAME)
+                self.load_device(new_device_filepath)
 
     def on_step_options_changed(self, plugin_name, step_number):
         '''

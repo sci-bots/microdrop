@@ -16,12 +16,23 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
+import logging
+
+from droplet_planning.connections import get_adjacency_matrix
+from lxml import etree
+from lxml.etree import XPathEvaluator
 from path_helpers import path
-from svg_model import svg_shapes_to_df, INKSCAPE_PPmm
+from svg_model import (INKSCAPE_NSMAP, svg_shapes_to_df, INKSCAPE_PPmm,
+                       compute_shape_centers)
 from svg_model.connections import extract_connections
 from svg_model.shapes_canvas import ShapesCanvas
+import networkx as nx
 import numpy as np
 import pandas as pd
+
+
+logger = logging.getLogger(__name__)
+
 
 class DeviceScaleNotSet(Exception):
     pass
@@ -48,35 +59,73 @@ class DmfDevice(object):
 
     def __init__(self, svg_filepath, name=None, **kwargs):
         self.name = name or path(svg_filepath).namebase
-        self.scale = None
 
         # Read SVG polygons into dataframe, one row per polygon vertex.
-        df_shapes = svg_shapes_to_df(svg_filepath)
+        self.df_shapes = svg_shapes_to_df(svg_filepath)
 
         # Add SVG file path as attribute.
         self.svg_filepath = svg_filepath
-        self.df_shapes = df_shapes
         self.shape_i_columns = 'id'
 
         # Create temporary shapes canvas with same scale as original shapes
         # frame.  This canvas is used for to conduct point queries to detect
         # which shape (if any) overlaps with the endpoint of a connection line.
         svg_canvas = ShapesCanvas(self.df_shapes, self.shape_i_columns)
+
         # Detect connected shapes based on lines in "Connection" layer of the
         # SVG.
         self.df_shape_connections = extract_connections(self.svg_filepath,
                                                         svg_canvas)
-        self.df_electrode_channels = self.get_electrode_channels()
-        self.electrode_areas = self.get_electrode_areas()
 
         # Scale coordinates to millimeter units.
         self.df_shapes[['x', 'y']] -= self.df_shapes[['x', 'y']].min().values
         self.df_shapes[['x', 'y']] /= INKSCAPE_PPmm.magnitude
 
-    def update_electrode_channels(self, electrode_id, new_channel_list):
-        # Update channels for electrode `electrode_id` to `new_channel_list`.
-        # This includes updating `self.df_electrode_channels`.
+        self.df_shapes = compute_shape_centers(self.df_shapes,
+                                               self.shape_i_columns)
 
+        self.df_electrode_channels = self.get_electrode_channels()
+        self.electrode_areas = self.get_electrode_areas()
+
+        self.graph = nx.Graph()
+        for index, row in self.df_shape_connections.iterrows():
+            self.graph.add_edge(row['source'], row['target'])
+
+        # Get data frame, one row per electrode, indexed by electrode path id,
+        # each row denotes electrode center coordinates.
+        self.df_shape_centers = (self.df_shapes.drop_duplicates(subset=['id'])
+                                 .set_index('id')[['x_center', 'y_center']])
+        (self.adjacency_matrix, self.indexed_shapes,
+         self.shape_indexes) = get_adjacency_matrix(self.df_shape_connections)
+        self.df_indexed_shape_centers = (self.df_shape_centers
+                                         .loc[self.shape_indexes.index]
+                                         .reset_index())
+        self.df_indexed_shape_centers.rename(columns={'index': 'shape_id'},
+                                             inplace=True)
+
+        self.df_shape_connections_indexed = self.df_shape_connections.copy()
+        self.df_shape_connections_indexed['source'] = \
+            map(str, self.shape_indexes[self.df_shape_connections['source']])
+        self.df_shape_connections_indexed['target'] \
+            = map(str, self.shape_indexes[self.df_shape_connections
+                                          ['target']])
+
+        self.df_shapes_indexed = self.df_shapes.copy()
+        self.df_shapes_indexed['id'] = map(str, self.shape_indexes
+                                           [self.df_shapes['id']])
+
+    def update_electrode_channels(self, electrode_id, new_channel_list):
+        '''
+        Update channels for electrode `electrode_id` to `new_channel_list`.
+
+        This includes updating `self.df_electrode_channels`.
+
+        Args:
+
+            electrode_id (str) : Electrode identifier.
+            new_channel_list (list) : List of channel identifiers assigned to
+                the electrode.
+        '''
         # Get electrode channels frame for all electrodes except
         # `electrode_id`.
         df_electrode_channels = (self.df_electrode_channels
@@ -101,6 +150,12 @@ class DmfDevice(object):
         return self.electrode_areas.index.copy()
 
     def get_electrode_areas(self):
+        '''
+        Returns:
+
+            (pandas.Series) : Area of each electrode in square millimeters,
+                indexed by electrode identifier.
+        '''
         from svg_model.data_frame import get_shape_areas
 
         return get_shape_areas(self.df_shapes, self.shape_i_columns)
@@ -114,7 +169,7 @@ class DmfDevice(object):
         `groupby` method may be used, for example, to apply operations to
         vertices on a per-path basis, such as calculating the bounding box.
         '''
-        return self.df_shapes
+        return self.df_shapes.copy()
 
     def get_electrode_channels(self):
         '''
@@ -123,16 +178,6 @@ class DmfDevice(object):
 
         For each electrode polygon, the channels are read as a comma-separated
         list from the `"data-channels"` attribute.
-
-        Args:
-
-            svg_source (filepath) : Input SVG file containing connection lines.
-            shapes_canvas (shapes_canvas.ShapesCanvas) : Shapes canvas
-                containing shapes to compare against connection endpoints.
-            electrode_layer (str) : Name of layer in SVG containing electrodes.
-            electrode_xpath (str) : XPath string to iterate throught
-                electrodes.
-            namespaces (dict) : SVG namespaces (compatible with `etree.parse`).
 
         Returns:
 
@@ -150,19 +195,40 @@ class DmfDevice(object):
         return extract_channels(self.df_shapes)
 
     def get_bounding_box(self):
+        '''
+        Returns:
+
+            (tuple) : Tuple containing origin-`x`, origin-`y`, width and
+                height, respectively.
+        '''
         xmin, ymin = self.df_shapes[['x', 'y']].min().values
         xmax, ymax = self.df_shapes[['x', 'y']].max().values
         return xmin, ymin, (xmax - xmin), (ymax - ymin)
 
     def max_channel(self):
+        '''
+        Returns:
+
+            (int) : Maximum channel index.
+        '''
         return self.df_electrode_channels.channel.max()
 
     def actuated_area(self, state_of_all_channels):
+        '''
+        Compute area of all actuated electrodes.
+
+        Args:
+
+            state_of_all_channels (np.array) : An array-like instance
+                containing an actuation level for each respective channel.
+
+        Returns:
+
+            (float) : Area of actuated electrodes in square millimeters.
+        '''
         if state_of_all_channels.max() == 0:
             # No channels are actuated.
             return 0
-        if self.scale is None:
-            raise DeviceScaleNotSet()
 
         # Get the index of all actuated channels.
         actuated_channels_index = np.where(state_of_all_channels > 0)[0]
@@ -173,26 +239,88 @@ class DmfDevice(object):
         actuated_electrode_areas = (self.electrode_areas
                                     .ix[actuated_electrodes.values])
         # Compute the total actuated electrode area and scale by device scale.
-        return self.scale * actuated_electrode_areas.sum()
+        return actuated_electrode_areas.sum()
 
     def actuated_electrodes(self, actuated_channels_index):
+        '''
+        Args:
+
+            actuated_channels_index (list, numpy.array) : Array-like instance
+                of actuated channel indexes.
+
+        Returns:
+
+            (pandas.Series) : Actuated electrode identifiers, indexed by
+                channel index.
+        '''
         return (self.df_electrode_channels.set_index('channel')
                 ['electrode_id'].ix[actuated_channels_index])
 
+    def find_path(self, source_id, target_id):
+        '''
+        Returns:
+
+            (list) : A list of nodes on the shortest path from source to
+                target.
+        '''
+        if source_id == target_id:
+            shortest_path = [source_id]
+        else:
+            shortest_path = nx.dijkstra_path(self.graph, source_id, target_id,
+                                             'cost')
+        return shortest_path
+
     def to_svg(self):
-        #minx, miny, w, h = self.get_bounding_box()
-        #dwg = svgwrite.Drawing(size=(w,h))
-        #for i, e in self.electrodes.iteritems():
-            #c = e.path.color
-            #color = 'rgb(%d,%d,%d)' % (c[0],c[1],c[2])
-            #kwargs = {'data-channels': ','.join(map(str, e.channels))}
-            #p = Polygon([(x-minx,y-miny)
-                         #for x,y in e.path.loops[0].verts], fill=color,
-                        #id='electrode%d' % i, debug=False, **kwargs)
-            #dwg.add(p)
-        #return dwg.tostring()
-        with open(self.svg_filepath, 'rb') as input_:
-            return input_.read()
+        '''
+        Returns:
+
+            (unicode) : SVG XML source with up-to-date electrode channel lists.
+        '''
+        xml_root = etree.parse(self.svg_filepath)
+
+        # Identify electrodes with modified channel lists.
+        df_diff_channels = self.diff_electrode_channels()
+
+        # Update `svg:path` XML elements for electrodes with modified channel
+        # lists.
+        xpath = XPathEvaluator(xml_root, namespaces=INKSCAPE_NSMAP)
+        for electrode_id, (orig_i, new_i) in df_diff_channels.iterrows():
+            elements_i = xpath.evaluate('//svg:path[@id="%s"]' % electrode_id)
+            for element_i in elements_i:
+                element_i.attrib['data-channels'] = ','.join(map(str, new_i))
+        return etree.tounicode(xml_root)
+
+    def diff_electrode_channels(self):
+        '''
+        Identify electrodes with modified channel lists.
+
+        Returns:
+
+            (pandas.DataFrame) : Frame containing modified electrode channel
+                lists.  The two columns contain a list for the original and new
+                assigned channels, respectively, indexed by `electrode_id`.
+        '''
+        original_channels = extract_channels(self.df_shapes)
+        original_groups = original_channels.groupby('electrode_id').groups
+
+        new_channels = self.df_electrode_channels.copy()
+        new_groups = new_channels.groupby('electrode_id').groups
+
+        rows = []
+
+        for electrode_id, new_channel_indexes in new_groups.iteritems():
+            if electrode_id not in original_groups:
+                orig_i = []
+            else:
+                orig_i = (original_channels.channel
+                        .values[original_groups[electrode_id]].tolist())
+            new_i = new_channels.channel.values[new_channel_indexes].tolist()
+            if not (orig_i == new_i):
+                rows.append((electrode_id, orig_i, new_i))
+        if not rows:
+            rows = None
+        return pd.DataFrame(rows, columns=['electrode_id', 'original',
+                                           'new']).set_index('electrode_id')
 
 
 def extract_channels(df_shapes):
