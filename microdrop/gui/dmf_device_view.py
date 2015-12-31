@@ -328,19 +328,33 @@ class DmfDeviceView(GtkCairoView):
         maps each electrode string identifier to an integer index.
         '''
         app = get_app()
-        id = app.dmf_device.indexed_shapes[electrode_index]
+        electrode_id = app.dmf_device.indexed_shapes[electrode_index]
+        self.set_electrode_color(electrode_id, rgb_color=rgb_color)
+
+    def set_electrode_color(self, electrode_id, rgb_color=None):
+        '''
+        Set electrode color by string electrode identifier.
+
+        Args:
+
+            electrode_id (str) : Electrode identifier.
+            rgb_color (tuple) : A 3-tuple, corresponding to a value in the
+                range [0, 1] for the red, green, and blue color channels,
+                respectively.  If not set, electrode color is set to the
+                corresponding default color.
+        '''
         if rgb_color is None:
             # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
             # TODO
-            # TODO As of `svg_model==0.5.post9`, `svg_polygons_to_df` does not
-            # TODO include fill/stroke color information.  Need to add
+            # TODO As of `svg_model==0.5.post10`, `svg_polygons_to_df` includes
+            # TODO style (i.e., fill/stroke color) information.  Need to add
             # TODO fill/stroke support, but for now, just color non-actuated
             # TODO electrodes blue.
             # TODO
             # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-            self.electrode_color[id] = np.array([0, 0, 1.])
+            self.electrode_color[electrode_id] = np.array([0, 0, 1.])
         else:
-            self.electrode_color[id] = rgb_color
+            self.electrode_color[electrode_id] = rgb_color
 
     def draw_drop_route(self, df_route, cr, color=None, line_width=None):
         '''
