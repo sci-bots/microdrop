@@ -42,6 +42,7 @@ from microdrop_utility import Version
 from microdrop_utility.gui import yesno
 import plugin_manager
 
+from .gui.dmf_device_controller import DEVICE_FILENAME
 from .protocol import Step
 from .config import Config
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
@@ -480,9 +481,8 @@ Would you like to download the latest version in your browser?''' %
             if device_directory:
                 device_path = os.path.join(device_directory,
                                            self.config['dmf_device']['name'],
-                                           'device')
+                                           DEVICE_FILENAME)
                 self.dmf_device_controller.load_device(device_path)
-
 
         # if we successfully loaded a device
         if self.dmf_device:

@@ -46,7 +46,7 @@ def except_handler(*args, **kwargs):
     traceback.print_tb(args[2])
 
 
-if __name__ == "__main__":
+def main():
     import logging
 
     logging.basicConfig(format='[%(levelname)s:%(name)s]: %(message)s',
@@ -62,3 +62,7 @@ if __name__ == "__main__":
     sys.excepthook = except_handler
     my_app.run()
     gtk.gdk.threads_leave()
+
+
+if __name__ == "__main__":
+    main()

@@ -16,14 +16,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
 from __future__ import division
+import itertools
 from collections import namedtuple
 from datetime import datetime
 import logging
+import re
 
 import gtk
-import gobject
 import cairo
 import numpy as np
 import pandas as pd
@@ -33,6 +33,7 @@ from pygtkhelpers.utils import gsignal
 from pygtkhelpers.delegates import SlaveView
 from microdrop_utility.gui import text_entry_dialog
 from microdrop_utility import is_float
+from svg_model.shapes_canvas import ShapesCanvas
 
 from ..app_context import get_app
 from ..plugin_manager import emit_signal, IPlugin
@@ -58,44 +59,64 @@ class ElectrodeContextMenu(SlaveView):
     gsignal('clear-all-drop-routes-request')
 
     def on_edit_electrode_channels__activate(self, widget, data=None):
-        # TODO: set default value
-        channel_list = ','.join([str(i) for i in
-                                 self.last_electrode_clicked.channels])
         app = get_app()
-        options = self.model.controller.get_step_options()
-        state = options.state_of_channels
-        channel_list = text_entry_dialog('Channels', channel_list,
+
+        # Get `pd.Series`, indexed by `electrode_id`, where each entry
+        # corresponds to a `channel`.
+        channel_list = (app.dmf_device.df_electrode_channels
+                        .loc[app.dmf_device.df_electrode_channels
+                             .electrode_id == self.last_electrode_clicked]
+                        .set_index('electrode_id').channel)
+
+        channels_str = text_entry_dialog('Channels',
+                                         ','.join(map(str, channel_list)),
                                          'Edit electrode channels')
-        if channel_list:
-            channels = channel_list.split(',')
-            try: # convert to integers
-                if len(channels[0]):
-                    for i in range(0,len(channels)):
-                        channels[i] = int(channels[i])
-                else:
-                    channels = []
-                if channels and max(channels) >= len(state):
-                    # zero-pad channel states for all steps
-                    for i in range(len(app.protocol)):
-                        options = self.model.controller.get_step_options(i)
-                        options.state_of_channels = \
-                            np.concatenate([options.state_of_channels, \
-                                np.zeros(max(channels) - \
-                                len(options.state_of_channels)+1, int)])
-                        # Don't emit signal for current step, we will do that
-                        # after.
-                        if i != app.protocol.current_step_number:
-                            emit_signal('on_step_options_changed',
-                                        [self.model.controller.name, i],
-                                        interface=IPlugin)
-                self.last_electrode_clicked.channels = channels
+        if channels_str is None:
+            return
+
+        if not channels_str:
+            new_channel_list = []
+        else:
+            try:
+                # Get proposed list of channels from text box.
+                new_channel_list = map(int, re.split(r'\s*,\s*', channels_str))
+            except:
+                logger.error("Invalid channel.", exc_info=True)
+
+        # Get current maximum channel index.
+        max_channel = app.dmf_device.max_channel()
+
+        if not np.array_equal(channel_list, new_channel_list):
+            # Update channels for electrode `self.last_clicked_electrode` to
+            # `new_channel_list`.
+            # This includes updating `df_electrode_channels` and increasing
+            # length of `state_of_channels` if number of total channels (i.e.,
+            # max channel index) has changed.
+            app.dmf_device\
+                .update_electrode_channels(self.last_electrode_clicked,
+                                           new_channel_list)
+            new_max_channel = app.dmf_device.max_channel()
+            if new_max_channel > max_channel:
+                # Maximum channel index has changed, increase channel states
+                # array length for all steps.
+                for i in xrange(len(app.protocol)):
+                    options = self.model.controller.get_step_options(i)
+                    options.state_of_channels = \
+                        np.concatenate([options.state_of_channels,
+                                        np.zeros(new_max_channel -
+                                                 len(options.state_of_channels)
+                                                 + 1, dtype=int)])
+                    # Don't emit signal for current step, we will do that
+                    # after.
+                    if i != app.protocol.current_step_number:
+                        emit_signal('on_step_options_changed',
+                                    [self.model.controller.name, i],
+                                    interface=IPlugin)
                 emit_signal('on_step_options_changed',
                             [self.model.controller.name,
                              app.protocol.current_step_number],
                             interface=IPlugin)
-                emit_signal('on_dmf_device_changed')
-            except:
-                logger.error("Invalid channel.")
+            emit_signal('on_dmf_device_changed')
 
     def on_edit_electrode_area__activate(self, widget, data=None):
         app = get_app()
@@ -115,8 +136,7 @@ class ElectrodeContextMenu(SlaveView):
         emit_signal('on_dmf_device_changed')
 
     def on_clear_drop_routes__activate(self, widget, data=None):
-        self.emit('clear-drop-routes-request', 'electrode%s' %
-                  self.last_electrode_clicked.id)
+        self.emit('clear-drop-routes-request', self.last_electrode_clicked)
 
     def on_clear_all_drop_routes__activate(self, widget, data=None):
         self.emit('clear-all-drop-routes-request')
@@ -251,7 +271,7 @@ class DmfDeviceView(GtkCairoView):
         if app.dmf_device:
             x, y, device_width, device_height = app.dmf_device.get_bounding_box()
             self.svg_space = CartesianSpace(device_width, device_height,
-                    offset=(x, y))
+                                            offset=(x, y))
             padding = 20
             if width/device_width < height/device_height:
                 drawing_width = width - 2 * padding
@@ -271,23 +291,21 @@ class DmfDeviceView(GtkCairoView):
             self.draw_transform_queue = DrawQueue()
             self.draw_transform_queue.translate(*self.drawing_space._offset)
             self.draw_transform_queue.scale(*scale)
-            self.draw_transform_queue.translate(*(-np.array(self.svg_space
-                                                            ._offset)))
             d.save()
             d.render_callables += self.draw_transform_queue.render_callables
 
             # Draw electrodes.
-            for id, electrode in app.dmf_device.electrodes.iteritems():
-                if id in self.electrode_color:
-                    r, g, b = self.electrode_color[id]
-                    self.draw_electrode(electrode, d, (r, g, b, alpha))
-            d.translate(*np.array(self.svg_space._offset))
+            for electrode_id, df_shape_i in (app.dmf_device.df_shapes
+                                             .groupby(app.dmf_device
+                                                      .shape_i_columns)):
+                r, g, b = self.electrode_color.get(electrode_id, [0, 0, 1])
+                self.draw_electrode(df_shape_i, d, (r, g, b, alpha))
 
             # Draw paths.
             step_options = self.controller.get_step_options()
             for route_i, df_route in (step_options.drop_routes
                                       .groupby('route_i')):
-                self.draw_drop_route(df_route, d)
+                self.draw_drop_route(df_route, d, line_width=.25)
             d.restore()
         return d
 
@@ -306,22 +324,25 @@ class DmfDeviceView(GtkCairoView):
         zero-based, contiguous range to, for example, store an attribute of
         each electrode in an array.
 
-        The `DmfDeviceController` maintains a `DeviceFrames` instance that
-        includes an attribute called `indexed_paths`, which maps each electrode
-        string identifier to an integer index.
+        The `DmfDevice` includes an attribute called `indexed_shapes`, which
+        maps each electrode string identifier to an integer index.
         '''
-        import re
-
         app = get_app()
-        id = int(re.sub(r'[^\d]+', '', self.controller.device_frames
-                        .indexed_paths[electrode_index]))
-        if rgb_color is None and id in self.electrode_color:
-            color = app.dmf_device.electrodes[id].path.color
-            self.electrode_color[id] = [c / 255. for c in color]
+        id = app.dmf_device.indexed_shapes[electrode_index]
+        if rgb_color is None:
+            # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+            # TODO
+            # TODO As of `svg_model==0.5.post9`, `svg_polygons_to_df` does not
+            # TODO include fill/stroke color information.  Need to add
+            # TODO fill/stroke support, but for now, just color non-actuated
+            # TODO electrodes blue.
+            # TODO
+            # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+            self.electrode_color[id] = np.array([0, 0, 1.])
         else:
             self.electrode_color[id] = rgb_color
 
-    def draw_drop_route(self, df_route, cr, color=None):
+    def draw_drop_route(self, df_route, cr, color=None, line_width=None):
         '''
         Draw a line between electrodes listed in a droplet route.
 
@@ -337,10 +358,13 @@ class DmfDeviceView(GtkCairoView):
            range [0, 1].  If `color` is `None`, the electrode color is set to
            white.
         '''
-        df_route_centers = (self.controller.device_frames
-                            .df_indexed_path_centers
-                            .iloc[df_route.electrode_i]
-                            [['x_center', 'y_center']])
+        app = get_app()
+        df_route_centers = (app.dmf_device.df_indexed_shape_centers
+                            .iloc[df_route.electrode_i][['x_center',
+                                                         'y_center']])
+        df_endpoint_marker = (.6 * get_endpoint_marker(df_route_centers) +
+                              df_route_centers.iloc[-1].values)
+
         # Save cairo context to restore after drawing route.
         cr.save()
         if color is None:
@@ -351,10 +375,12 @@ class DmfDeviceView(GtkCairoView):
         cr.move_to(*df_route_centers.iloc[0])
         for electrode_i, center_i in df_route_centers.iloc[1:].iterrows():
             cr.line_to(*center_i)
+        if line_width is None:
+            line_width = np.sqrt((df_endpoint_marker.max().values -
+                                  df_endpoint_marker.min().values).prod()) * .1
+        cr.set_line_width(line_width)
         cr.stroke()
 
-        df_endpoint_marker = (.6 * get_endpoint_marker(df_route_centers) +
-                              df_route_centers.iloc[-1].values)
         cr.move_to(*df_endpoint_marker.iloc[0])
         for electrode_i, center_i in df_endpoint_marker.iloc[1:].iterrows():
             cr.line_to(*center_i)
@@ -377,19 +403,23 @@ class DmfDeviceView(GtkCairoView):
            range [0, 255].  If `color` is `None`, the electrode color is set to
            white.
         '''
-        p = electrode.path
         cairo_context.save()
         if color is None:
-            color = [v / 255. for v in p.color]
+            color = np.array([0, 0, 1.])
         if len(color) < 4:
             color += [1.] * (len(color) - 4)
         cairo_context.set_source_rgba(*color)
-        for loop in p.loops:
-            cairo_context.move_to(*loop.verts[0])
-            for v in loop.verts[1:]:
-                cairo_context.line_to(*v)
-            cairo_context.close_path()
-            cairo_context.fill()
+
+        # Use attribute lookup for `x` and `y`, since it is considerably faster
+        # than `get`-based lookup using columns name strings.
+        vertices_x = electrode.x.values
+        vertices_y = electrode.y.values
+        cairo_context.move_to(vertices_x[0], vertices_y[0])
+        for x, y in itertools.izip(vertices_x[1:], vertices_y[1:]):
+            cairo_context.line_to(x, y)
+        cairo_context.close_path()
+        cairo_context.clip_preserve()
+        cairo_context.fill()
         cairo_context.restore()
 
     def on_device_area__expose_event(self, widget, *args):
@@ -418,7 +448,6 @@ class DmfDeviceView(GtkCairoView):
         self.device_area.queue_draw()
 
     def get_clicked_electrode(self, event):
-        app = get_app()
         if self.svg_space and self.drawing_space:
             # Get the click coordinates, normalized to the bounding box of the
             # DMF device drawing (NOT the entire device drawing area)
@@ -429,10 +458,7 @@ class DmfDeviceView(GtkCairoView):
             # translated to get the coordinates relative to the SVG space.
             svg_coords = (self.svg_space
                           .translate_normalized(*normalized_coords))
-            shape = (app.dmf_device.body_group.space
-                     .point_query_first(svg_coords))
-            if shape:
-                return app.dmf_device.get_electrode_from_body(shape.body)
+            return self.device_canvas.find_shape(*svg_coords)
         return None
 
     def on_device_area__motion_notify_event(self, widget, event):
@@ -483,13 +509,12 @@ class DmfDeviceView(GtkCairoView):
         self.widget.grab_focus()
         if event.button == 1:
             # Determine which electrode was clicked (if any)
-            electrode = self.get_clicked_electrode(event)
-            if electrode is None or not len(electrode.channels):
-                return
+            electrode_id = self.get_clicked_electrode(event)
+            if electrode_id is None: return
 
             source_id = self._source_electrode_id
             if source_id is not None:
-                target_id = 'electrode%s' % electrode.id
+                target_id = electrode_id
                 self._source_electrode_id = None
                 print 'pair selected:', source_id, target_id
                 self.on_electrode_pair_selected(source_id, target_id)
@@ -511,14 +536,13 @@ class DmfDeviceView(GtkCairoView):
         app = get_app()
         if app.dmf_device is not None:
             try:
-                shortest_path = (self.controller.device_frames
-                                 .find_path(source_id, target_id))
+                shortest_path = app.dmf_device.find_path(source_id, target_id)
                 step_options = self.controller.get_step_options()
                 drop_routes = step_options.drop_routes
                 route_i = (drop_routes.route_i.max() + 1
                            if drop_routes.shape[0] > 0 else 0)
-                route_indexes = (self.controller.device_frames
-                                 .path_indexes[shortest_path].tolist())
+                route_indexes = (app.dmf_device.shape_indexes[shortest_path]
+                                 .tolist())
                 drop_route = (pd.DataFrame(route_indexes,
                                            columns=['electrode_i'],
                                            dtype=int)
@@ -535,24 +559,28 @@ class DmfDeviceView(GtkCairoView):
     def on_electrode_click(self, electrode, event):
         options = self.controller.get_step_options()
         state = options.state_of_channels
+        app = get_app()
         if event.button == 1:
-            if len(electrode.channels):
+            try:
+                # Get `pd.Series` of channels corresponding to `electrode`.
+                electrode_channels = (app.dmf_device.df_electrode_channels
+                                      .set_index('electrode_id')
+                                      .channel).ix[[electrode]]
                 if event.state & gtk.gdk.CONTROL_MASK:
                     # Control was pressed when electrode was clicked.
                     # Mark starting electrode.
                     if self._source_electrode_id is None:
-                        self._source_electrode_id = ('electrode%s' %
-                                                     electrode.id)
+                        self._source_electrode_id = electrode
                         print 'source selected:', self._source_electrode_id
                 else:
                     self._source_electrode_id = None
-                    for channel in electrode.channels:
+                    for channel in electrode_channels:
                         if state[channel] > 0:
                             state[channel] = 0
                         else:
                             state[channel] = 1
-                    self.emit('channel-state-changed', electrode.channels[:])
-            else:
+                    self.emit('channel-state-changed', electrode_channels[:])
+            except IndexError:
                 logger.error("No channel assigned to electrode.")
         elif event.button == 3:
             self.popup.popup(state, electrode, event.button, event.time)
@@ -577,14 +605,39 @@ class DmfDeviceView(GtkCairoView):
     def on_device_area__key_press_event(self, widget, data=None):
         pass
 
+    def reset_canvas(self, shape=None):
+        '''
+        Create a new `ShapesCanvas` (from the `svg_model.shapes_canvas` module)
+        based on the polygons/shapes of the current DMF device.
+
+        The `find_shape` method of the `ShapesCanvas` class looks up the
+        polygon/shape that surrounds a specified $(x, y)$ coordinate (or `None`
+        if coordinate does not fall within any shape).
+
+        Args:
+
+            shape (tuple) : The width and height of the canvas to aspect fill
+                the DMF device to.  Note that `find_shape` assumes coordinates
+                are specified in the *scaled* space.
+        '''
+        if shape is None:
+            x, y, width, height = self.device_area.get_allocation()
+            shape = width, height
+        app = get_app()
+        if app.dmf_device:
+            # Create shapes canvas with same scale as original shapes frame.
+            # This canvas is used for to conduct point queries to detect
+            # electrode clicks, etc.
+            self.device_canvas = ShapesCanvas(app.dmf_device.df_shapes,
+                                              app.dmf_device.shape_i_columns)
+
 
 def get_endpoint_marker(df_route_centers):
     app = get_app()
-    df_paths = app.dmf_device_controller.device_frames.df_paths
-    df_endpoint_electrode = df_paths.loc[df_paths.path_id ==
-                                         app.dmf_device_controller
-                                         .device_frames.indexed_paths
-                                         [df_route_centers.index[-1]]]
+    df_shapes = app.dmf_device.df_shapes
+    df_endpoint_electrode = df_shapes.loc[df_shapes.id ==
+                                          app.dmf_device.indexed_shapes
+                                          [df_route_centers.index[-1]]]
     df_endpoint_bbox = (df_endpoint_electrode[['x_center_offset',
                                                'y_center_offset']]
                         .describe().loc[['min', 'max']])

@@ -16,7 +16,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-import io
 import os
 import traceback
 import shutil
@@ -26,11 +25,12 @@ import logging
 import gtk
 import numpy as np
 import pandas as pd
-from flatland import Form, Integer, String, Boolean
+from flatland import Form
 from path_helpers import path
-import yaml
-from pygtkhelpers.ui.extra_widgets import Directory, Enum
+from pygtkhelpers.ui.notebook import add_filters
+from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
+from microdrop_device_converter import convert_device_to_svg
 from microdrop_utility.gui import yesno
 from microdrop_utility import copytree
 
@@ -45,6 +45,10 @@ from .. import base_path
 logger = logging.getLogger(__name__)
 
 PluginGlobals.push_env('microdrop')
+
+# Define name of device file.  Name of device is inferred from name of parent
+# directory when device is loaded.
+DEVICE_FILENAME = 'device.svg'
 
 
 class DmfDeviceOptions(object):
@@ -163,6 +167,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         Clear all drop routes for current protocol step that include the
         specified electrode (identified by string identifier).
         '''
+        app = get_app()
         step_options = self.get_step_options(step_number)
 
         if electrode_id is None:
@@ -170,7 +175,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         else:
             drop_routes = step_options.drop_routes
             # Look up numeric index based on text electrode id.
-            electrode_index = self.device_frames.path_indexes[electrode_id]
+            electrode_index = app.dmf_device.shape_indexes[electrode_id]
 
             # Find indexes of all routes that include electrode.
             routes_to_clear = drop_routes.loc[drop_routes.electrode_i ==
@@ -218,10 +223,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_save_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device_as.set_sensitive(False)
 
-    def on_protocol_run(self):
-        app = get_app()
-        log_dir = path(app.experiment_log.get_log_path())
-
     def on_protocol_pause(self):
         if self._recording:
             self.stop_recording()
@@ -248,14 +249,16 @@ directory)?''' % (device_directory, self.previous_device_dir))
             step.set_data(self.name, options)
         return options
 
-    def load_device(self, filename):
+    def load_device(self, file_path, **kwargs):
         app = get_app()
         self.modified = False
         device = app.dmf_device
         try:
-            logger.info('[DmfDeviceController].load_device: %s' % filename)
-            device = DmfDevice.load(str(filename))
-            if path(filename).parent.parent != app.get_device_directory():
+            file_path = path(file_path)
+            logger.info('[DmfDeviceController].load_device: %s' % file_path)
+            device = DmfDevice.load(file_path, name=file_path.parent.name,
+                                    **kwargs)
+            if file_path.parent.parent != app.get_device_directory():
                 logger.info('[DmfDeviceController].load_device: Import new '
                             'device.')
                 self.modified = True
@@ -321,17 +324,21 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if not os.path.isdir(dest):
                 os.mkdir(dest)
 
+            # Convert device to SVG string.
+            svg_unicode = app.dmf_device.to_svg()
+
+            # Save the device to the new target directory.
+            with open(os.path.join(dest, DEVICE_FILENAME), 'wb') as output:
+                output.write(svg_unicode)
+
+            # Reset modified status, since save acts as a checkpoint.
+            self.modified = False
+
             # If the device name has changed, update the application device
             # state.
             if name != app.dmf_device.name:
-                app.dmf_device.name = name
-                # Update GUI to reflect updated name.
-                app.main_window_controller.update_device_name_label()
-
-            # Save the device to the new target directory.
-            app.dmf_device.save(os.path.join(dest, "device"))
-            # Reset modified status, since save acts as a checkpoint.
-            self.modified = False
+                new_device_filepath = os.path.join(dest, DEVICE_FILENAME)
+                self.load_device(new_device_filepath)
 
     def on_step_options_changed(self, plugin_name, step_number):
         '''
@@ -343,7 +350,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                            step_number):
             self._update()
 
-    def on_step_created(self, step_number, *args):
+    def on_step_inserted(self, step_number, *args):
+        app = get_app()
+        logging.info('[on_step_inserted] current step=%s, created step=%s',
+                     app.protocol.current_step_number, step_number)
         self.clear_drop_routes(step_number=step_number)
         gtk.idle_add(self._update)
 
@@ -366,29 +376,18 @@ directory)?''' % (device_directory, self.previous_device_dir))
         if not app.dmf_device:
             return
         options = self.get_step_options()
-        state_of_channels = options.state_of_channels
-        for id, electrode in app.dmf_device.electrodes.iteritems():
-            channels = app.dmf_device.electrodes[id].channels
-            if channels:
-                # Get the state(s) of the channel(s) connected to this
-                # electrode.
-                states = state_of_channels[channels]
+        if options.state_of_channels.max() == 0:
+            # No channels are actuated.
+            actuated_channels_index = []
+        else:
+            actuated_channels_index = np.where(options
+                                               .state_of_channels > 0)[0]
+        actuated_electrodes = (app.dmf_device
+                               .actuated_electrodes(actuated_channels_index))
 
-                # If all of the states are the same.
-                if len(np.nonzero(states == states[0])[0]) == len(states):
-                    if states[0] > 0:
-                        self.view.electrode_color[id] = [1, 1, 1]
-                    else:
-                        color = app.dmf_device.electrodes[id].path.color
-                        self.view.electrode_color[id] = [c / 255.
-                                                         for c in color]
-                else:
-                    # TODO: This could be used for resistive heating.
-                    logger.error("not supported yet")
-            else:
-                # Assign the color _red_ to any electrode that has no assigned
-                # channels.
-                self.view.electrode_color[id] = [1, 0, 0]
+        self.view.electrode_color = {}
+        for electrode_id in actuated_electrodes:
+            self.view.electrode_color[electrode_id] = [1, 1, 1]
         self.view.update_draw_queue()
 
     def get_schedule_requests(self, function_name):
@@ -422,6 +421,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
         dialog.set_default_response(gtk.RESPONSE_OK)
         if directory:
             dialog.set_current_folder(directory)
+        add_filters(dialog, [{'name': 'DMF device (*.svg)',
+                              'pattern': '*.svg'}])
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
@@ -437,23 +438,32 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                                 gtk.RESPONSE_CANCEL,
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
-        filter = gtk.FileFilter()
-        filter.set_name("*.svg")
-        filter.add_pattern("*.svg")
-        dialog.add_filter(filter)
         dialog.set_default_response(gtk.RESPONSE_OK)
+        add_filters(dialog, [{'name': 'DMF device version 0.3.0 (device)',
+                              'pattern': 'device'}])
         response = dialog.run()
         filename = dialog.get_filename()
         dialog.destroy()
+
         if response == gtk.RESPONSE_OK:
             try:
-                dmf_device = DmfDevice.load_svg(filename)
-                self.modified = True
-                emit_signal("on_dmf_device_swapped", [app.dmf_device,
-                                                          dmf_device])
+                input_device_path = path(filename).abspath()
+                output_device_path = (input_device_path.parent
+                                      .joinpath(input_device_path.namebase +
+                                                '.svg'))
+                overwrite = False
+                if output_device_path.isfile():
+                    result = yesno('Output file exists.  Overwrite?')
+                    if not result == gtk.RESPONSE_YES:
+                        return
+                    overwrite = True
+                convert_device_to_svg(input_device_path, output_device_path,
+                                      use_svg_path=True,
+                                      detect_connections=True, extend_mm=.5,
+                                      overwrite=overwrite)
+                self.load_device(output_device_path)
             except Exception, e:
-                logger.error('Error importing device. %s' % e)
-                logger.info(''.join(traceback.format_exc()))
+                logger.error('Error importing device. %s' % e, exc_info=True)
 
     def on_rename_dmf_device(self, widget, data=None):
         self.save_dmf_device(rename=True)
@@ -465,12 +475,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.save_dmf_device(save_as=True)
 
     def on_dmf_device_swapped(self, old_device, new_device):
-        from droplet_planning.device import DeviceFrames
-
         self.menu_rename_dmf_device.set_sensitive(True)
         self.menu_save_dmf_device_as.set_sensitive(True)
-        self.device_frames = DeviceFrames(io.BytesIO(str(new_device.to_svg())),
-                                          extend=1.5)
+        self.view.reset_canvas()
         self._update()
 
     def on_dmf_device_changed(self):
