@@ -12,7 +12,7 @@ import version
 
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
-                    'droplet-planning>=0.1.post3', 'flatland-fork', 'geo-util',
+                    'droplet-planning>=0.2', 'flatland-fork', 'geo-util',
                     'ipython', 'ipython-helpers>=0.4',
                     'microdrop-device-converter>=0.1.post2',
                     'microdrop_utility>=0.3', 'opencv-helpers', 'networkx',
