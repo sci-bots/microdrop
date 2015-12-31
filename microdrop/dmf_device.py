@@ -347,7 +347,8 @@ def extract_channels(df_shapes):
     '''
     frames = []
 
-    shape_channel_lists = (df_shapes.drop_duplicates(subset=['data-channels'])
+    shape_channel_lists = (df_shapes.drop_duplicates(subset=['id',
+                                                             'data-channels'])
                            .set_index('id')['data-channels']
                            .str.split(',').dropna())
 
