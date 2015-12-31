@@ -30,6 +30,7 @@ from path_helpers import path
 from pygtkhelpers.ui.notebook import add_filters
 from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
+from microdrop_device_converter import convert_device_to_svg
 from microdrop_utility.gui import yesno
 from microdrop_utility import copytree
 
@@ -437,23 +438,32 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                                 gtk.RESPONSE_CANCEL,
                                                 gtk.STOCK_OPEN,
                                                 gtk.RESPONSE_OK))
-        filter = gtk.FileFilter()
-        filter.set_name("*.svg")
-        filter.add_pattern("*.svg")
-        dialog.add_filter(filter)
         dialog.set_default_response(gtk.RESPONSE_OK)
+        add_filters(dialog, [{'name': 'DMF device version 0.3.0 (device)',
+                              'pattern': 'device'}])
         response = dialog.run()
         filename = dialog.get_filename()
         dialog.destroy()
+
         if response == gtk.RESPONSE_OK:
             try:
-                dmf_device = DmfDevice.load_svg(filename)
-                self.modified = True
-                emit_signal("on_dmf_device_swapped", [app.dmf_device,
-                                                          dmf_device])
+                input_device_path = path(filename).abspath()
+                output_device_path = (input_device_path.parent
+                                      .joinpath(input_device_path.namebase +
+                                                '.svg'))
+                overwrite = False
+                if output_device_path.isfile():
+                    result = yesno('Output file exists.  Overwrite?')
+                    if not result == gtk.RESPONSE_YES:
+                        return
+                    overwrite = True
+                convert_device_to_svg(input_device_path, output_device_path,
+                                      use_svg_path=True,
+                                      detect_connections=True, extend_mm=.5,
+                                      overwrite=overwrite)
+                self.load_device(output_device_path)
             except Exception, e:
-                logger.error('Error importing device. %s' % e)
-                logger.info(''.join(traceback.format_exc()))
+                logger.error('Error importing device. %s' % e, exc_info=True)
 
     def on_rename_dmf_device(self, widget, data=None):
         self.save_dmf_device(rename=True)
