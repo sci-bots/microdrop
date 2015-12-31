@@ -48,6 +48,7 @@ PluginGlobals.push_env('microdrop')
 
 # Define name of device file.  Name of device is inferred from name of parent
 # directory when device is loaded.
+OLD_DEVICE_FILENAME = 'device'
 DEVICE_FILENAME = 'device.svg'
 
 
@@ -253,20 +254,42 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app = get_app()
         self.modified = False
         device = app.dmf_device
+        file_path = path(file_path)
+
+        if not file_path.isfile():
+            old_version_file_path = (file_path.parent
+                                     .joinpath(OLD_DEVICE_FILENAME))
+            if old_version_file_path:
+                # SVG device file does not exist, but old-style (i.e., v0.3.0)
+                # device file found.
+                try:
+                    # Try to import old-style device to new SVG format.
+                    self.import_device(old_version_file_path)
+                    logger.warning('Auto-converted old-style device to new SVG'
+                                   ' device format.  Open in Inkscape to '
+                                   'verify scale and adjacent electrode '
+                                   'connections.')
+                except Exception, e:
+                    logger.error('Error importing device. %s' % e, exc_info=True)
+                return
+            else:
+                logger.error('Error opening device.  Please ensure file '
+                             'exists and is readable.', exc_info=True)
+                return
+
+        # SVG device file exists.  Load the device.
         try:
-            file_path = path(file_path)
             logger.info('[DmfDeviceController].load_device: %s' % file_path)
             device = DmfDevice.load(file_path, name=file_path.parent.name,
                                     **kwargs)
             if file_path.parent.parent != app.get_device_directory():
-                logger.info('[DmfDeviceController].load_device: Import new '
-                            'device.')
+                logger.info('[DmfDeviceController].load_device: Copy new '
+                            'device to microdrop devices directory.')
                 self.modified = True
             else:
                 logger.info('[DmfDeviceController].load_device: load existing '
                             'device.')
-            emit_signal("on_dmf_device_swapped", [app.dmf_device,
-                                                  device])
+            emit_signal("on_dmf_device_swapped", [app.dmf_device, device])
         except:
             logger.error('Error loading device.', exc_info=True)
 
@@ -447,23 +470,25 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
         if response == gtk.RESPONSE_OK:
             try:
-                input_device_path = path(filename).abspath()
-                output_device_path = (input_device_path.parent
-                                      .joinpath(input_device_path.namebase +
-                                                '.svg'))
-                overwrite = False
-                if output_device_path.isfile():
-                    result = yesno('Output file exists.  Overwrite?')
-                    if not result == gtk.RESPONSE_YES:
-                        return
-                    overwrite = True
-                convert_device_to_svg(input_device_path, output_device_path,
-                                      use_svg_path=True,
-                                      detect_connections=True, extend_mm=.5,
-                                      overwrite=overwrite)
-                self.load_device(output_device_path)
+                self.import_device(filename)
             except Exception, e:
                 logger.error('Error importing device. %s' % e, exc_info=True)
+
+    def import_device(self, input_device_path):
+        input_device_path = path(input_device_path).abspath()
+        output_device_path = (input_device_path.parent
+                              .joinpath(input_device_path.namebase + '.svg'))
+        overwrite = False
+        if output_device_path.isfile():
+            result = yesno('Output file exists.  Overwrite?')
+            if not result == gtk.RESPONSE_YES:
+                return
+            overwrite = True
+        convert_device_to_svg(input_device_path, output_device_path,
+                                use_svg_path=True,
+                                detect_connections=True, extend_mm=.5,
+                                overwrite=overwrite)
+        self.load_device(output_device_path)
 
     def on_rename_dmf_device(self, widget, data=None):
         self.save_dmf_device(rename=True)
