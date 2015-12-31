@@ -38,7 +38,6 @@ class DeviceScaleNotSet(Exception):
     pass
 
 
-
 class DmfDevice(object):
     @classmethod
     def load(cls, svg_filepath, **kwargs):
@@ -350,9 +349,10 @@ def extract_channels(df_shapes):
 
     shape_channel_lists = (df_shapes.drop_duplicates(subset=['data-channels'])
                            .set_index('id')['data-channels']
-                           .str.split(',').map(lambda v: map(int, v)))
+                           .str.split(',').dropna())
+
     for shape_i, channels_i in shape_channel_lists.iteritems():
-        frames.extend([[shape_i, channel] for channel in channels_i])
+        frames.extend([[shape_i, int(channel)] for channel in channels_i])
 
     if frames:
         df_channels = pd.DataFrame(frames, columns=['electrode_id', 'channel'])
