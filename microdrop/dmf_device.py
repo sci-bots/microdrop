@@ -255,6 +255,22 @@ class DmfDevice(object):
         return (self.df_electrode_channels.set_index('channel')
                 ['electrode_id'].ix[actuated_channels_index])
 
+    def actuated_channels(self, actuated_electrodes_index):
+        '''
+        Args:
+
+            actuated_electrodes_index (list, numpy.array) : Array-like instance
+                of actuated electrode identifiers.
+
+        Returns:
+
+            (pandas.Series) : Actuated channel index values, indexed by
+                electrode identifier.
+        '''
+        # Get `pd.Series` of channels corresponding to electrodes.
+        return (self.df_electrode_channels.set_index('electrode_id')
+                .channel).ix[actuated_electrodes_index]
+
     def find_path(self, source_id, target_id):
         '''
         Returns:
