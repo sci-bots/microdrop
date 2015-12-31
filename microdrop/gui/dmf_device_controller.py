@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 from flatland import Form
 from path_helpers import path
+from pygtkhelpers.ui.notebook import add_filters
 from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from microdrop_utility.gui import yesno
@@ -419,6 +420,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
         dialog.set_default_response(gtk.RESPONSE_OK)
         if directory:
             dialog.set_current_folder(directory)
+        add_filters(dialog, [{'name': 'DMF device (*.svg)',
+                              'pattern': '*.svg'}])
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
