@@ -16,22 +16,35 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with device_info_plugin.  If not, see <http://www.gnu.org/licenses/>.
 """
-from path_helpers import path
+import cPickle as pickle
+
 from flatland import Form, String
+from microdrop.app_context import get_app
 from microdrop.plugin_helpers import AppDataController, get_plugin_info
 from microdrop.plugin_manager import (PluginGlobals, Plugin, IPlugin,
-                                      implements)
-from microdrop.app import get_app
-
+                                      implements, ScheduleRequest)
+from path_helpers import path
 from zmq_plugin.plugin import Plugin as ZmqPlugin
+import gobject
+import zmq
 
 
 class DeviceInfoZmqPlugin(ZmqPlugin):
-    def on_execute__get_device(self):
+    def on_execute__get_device(self, request):
         app = get_app()
-        controller = app.dmf_device_controller
-        device = controller.dmf_device
-        return device
+        return app.dmf_device
+
+    def on_execute__get_svg_frame(self, request):
+        app = get_app()
+        return app.dmf_device.get_svg_frame()
+
+    def on_execute__get_electrode_channels(self, request):
+        app = get_app()
+        return app.dmf_device.get_electrode_channels()
+
+    def on_execute__dumps(self, request):
+        app = get_app()
+        return pickle.dumps(app.dmf_device)
 
 
 PluginGlobals.push_env('microdrop.managed')
@@ -68,13 +81,17 @@ class DeviceInfoPlugin(Plugin, AppDataController):
     def __init__(self):
         self.name = self.plugin_name
         self.plugin = None
+        self.command_timeout_id = None
 
     def get_schedule_requests(self, function_name):
         """
         Returns a list of scheduling requests (i.e., ScheduleRequest
         instances) for the function specified by function_name.
         """
-        return []
+        if function_name == 'on_plugin_enable':
+            return [ScheduleRequest('wheelerlab.zmq_hub_plugin', self.name)]
+        else:
+            return []
 
     def on_plugin_enable(self):
         """
@@ -91,11 +108,27 @@ class DeviceInfoPlugin(Plugin, AppDataController):
         """
         super(DeviceInfoPlugin, self).on_plugin_enable()
         app_values = self.get_app_values()
+
+        self.cleanup()
         self.plugin = DeviceInfoZmqPlugin(self.name, app_values['hub_uri'])
         # Initialize sockets.
         self.plugin.reset()
 
+        def check_command_socket():
+            try:
+                msg_frames = (self.plugin.command_socket
+                              .recv_multipart(zmq.NOBLOCK))
+            except zmq.Again:
+                pass
+            else:
+                self.plugin.on_command_recv(msg_frames)
+            return True
+
+        self.command_timeout_id = gobject.timeout_add(10, check_command_socket)
+
     def cleanup(self):
+        if self.command_timeout_id is not None:
+            gobject.source_remove(self.command_timeout_id)
         if self.plugin is not None:
             self.plugin = None
 
