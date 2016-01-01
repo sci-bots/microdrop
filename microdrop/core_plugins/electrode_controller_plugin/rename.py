@@ -65,4 +65,4 @@ def parse_args(args=None):
 
 if __name__ == '__main__':
     args = parse_args()
-    main('.', 'device-info-plugin', args.new_name)
+    main('.', 'electrode-controller-plugin', args.new_name)

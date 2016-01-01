@@ -4,8 +4,8 @@ import yaml
 from microdrop_utility import Version
 from path_helpers import path
 
-package_name = 'device_info_plugin'
-plugin_name = 'wheelerlab.device_info_plugin'
+package_name = 'electrode_controller_plugin'
+plugin_name = 'wheelerlab.electrode_controller_plugin'
 
 # create a version sting based on the git revision/branch
 version = str(Version.from_git_repository())

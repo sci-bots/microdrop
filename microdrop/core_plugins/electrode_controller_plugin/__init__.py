@@ -1,9 +1,9 @@
 """
 Copyright 2015 Christian Fobel
 
-This file is part of device_info_plugin.
+This file is part of electrode_controller_plugin.
 
-device_info_plugin is free software: you can redistribute it and/or modify
+electrode_controller_plugin is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -14,7 +14,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with device_info_plugin.  If not, see <http://www.gnu.org/licenses/>.
+along with electrode_controller_plugin.  If not, see <http://www.gnu.org/licenses/>.
 """
 import cPickle as pickle
 
@@ -50,7 +50,7 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
 PluginGlobals.push_env('microdrop.managed')
 
 
-class DeviceInfoPlugin(Plugin, AppDataController):
+class ElectrodeControllerPlugin(Plugin, AppDataController):
     """
     This class is automatically registered with the PluginManager.
     """
@@ -106,7 +106,7 @@ class DeviceInfoPlugin(Plugin, AppDataController):
 
         to retain this functionality.
         """
-        super(DeviceInfoPlugin, self).on_plugin_enable()
+        super(ElectrodeControllerPlugin, self).on_plugin_enable()
         app_values = self.get_app_values()
 
         self.cleanup()
