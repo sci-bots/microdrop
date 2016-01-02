@@ -109,7 +109,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             'microdrop.gui.protocol_grid_controller',]
 
     AppFields = Form.of(
-        Integer.named('width').using(default=1000, optional=True),
+        Integer.named('width').using(default=400, optional=True),
         Integer.named('height').using(default=600, optional=True),
         Enum.named('update_automatically' #pylint: disable-msg=E1101,E1120
             ).using(default=1, optional=True

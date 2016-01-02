@@ -26,6 +26,7 @@ import gtk
 import numpy as np
 import pandas as pd
 from flatland import Form
+from flatland.schema import String
 from path_helpers import path
 from pygtkhelpers.ui.notebook import add_filters
 from pygtkhelpers.ui.extra_widgets import Directory
@@ -34,10 +35,9 @@ from microdrop_device_converter import convert_device_to_svg
 from microdrop_utility.gui import yesno
 from microdrop_utility import copytree
 
-from .dmf_device_view import DmfDeviceView
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
-from ..plugin_helpers import AppDataController
+from ..plugin_helpers import AppDataController, StepOptionsController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
 from .. import base_path
@@ -52,58 +52,20 @@ OLD_DEVICE_FILENAME = 'device'
 DEVICE_FILENAME = 'device.svg'
 
 
-class DmfDeviceOptions(object):
-    def __init__(self, state_of_channels=None):
-        app = get_app()
-        if state_of_channels is None:
-            self.state_of_channels = np.zeros(app.dmf_device.max_channel() + 1)
-        else:
-            self.state_of_channels = deepcopy(state_of_channels)
-        self._drop_routes = None
-
-    def reset_drop_routes(self):
-        # Empty table of drop routes.
-        self._drop_routes = pd.DataFrame(None, columns=['route_i',
-                                                        'transition_i',
-                                                        'electrode_i'],
-                                         dtype=int)
-
-    @property
-    def drop_routes(self):
-        if not hasattr(self, '_drop_routes') or self._drop_routes is None:
-            # Empty table of drop routes.
-            self.reset_drop_routes()
-        return self._drop_routes
-
-    @drop_routes.setter
-    def drop_routes(self, value):
-        self._drop_routes = value
-
-
-class DmfDeviceController(SingletonPlugin, AppDataController):
+class DmfDeviceController(SingletonPlugin, AppDataController,
+                          StepOptionsController):
     implements(IPlugin)
+
+    AppFields = Form.of(Directory.named('device_directory')
+                        .using(default='', optional=True))
+    StepFields = Form.of(String.named('name').using(default='', optional=True))
+                                                    #properties={'show_in_gui':
+                                                                #False}))
 
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"
-        self.view = DmfDeviceView(self, 'device_view')
         self.previous_device_dir = None
-        self.recording_enabled = False
         self._modified = False
-        self._bitrate = None
-        self._record_path = None
-        self._recording = False
-        self._AppFields = None
-
-    @property
-    def AppFields(self):
-        if self._AppFields is None:
-            self._AppFields = self._populate_app_fields()
-        return self._AppFields
-
-    def _populate_app_fields(self):
-        field_list = [Directory.named('device_directory').using(default='',
-                                                                optional=True)]
-        return Form.of(*field_list)
 
     @property
     def modified(self):
@@ -112,8 +74,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     @modified.setter
     def modified(self, value):
         self._modified = value
-        self.menu_save_dmf_device.set_sensitive(value)
-
 
     def on_app_options_changed(self, plugin_name):
         try:
@@ -172,9 +132,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         step_options = self.get_step_options(step_number)
 
         if electrode_id is None:
-            step_options.reset_drop_routes()
+            step_options['drop_routes'] = self.default_drop_routes()
         else:
-            drop_routes = step_options.drop_routes
+            drop_routes = step_options['drop_routes']
             # Look up numeric index based on text electrode id.
             electrode_index = app.dmf_device.shape_indexes[electrode_id]
 
@@ -182,20 +142,13 @@ directory)?''' % (device_directory, self.previous_device_dir))
             routes_to_clear = drop_routes.loc[drop_routes.electrode_i ==
                                               electrode_index, 'route_i']
             # Remove all routes that include electrode.
-            step_options.drop_routes = (drop_routes
-                                        .loc[~drop_routes.route_i
-                                             .isin(routes_to_clear
-                                                   .tolist())].copy())
+            step_options['drop_routes'] = (drop_routes
+                                           .loc[~drop_routes.route_i
+                                                .isin(routes_to_clear
+                                                      .tolist())].copy())
 
     def on_plugin_enable(self):
         app = get_app()
-
-        self.event_box_dmf_device = app.builder.get_object(
-                'event_box_dmf_device')
-        self.event_box_dmf_device.add(self.view.device_area)
-        self.event_box_dmf_device.show_all()
-        self.view.connect('channel-state-changed', lambda x, y:
-                          self._notify_observers_step_options_changed())
 
         self.menu_load_dmf_device = app.builder.get_object('menu_load_dmf_device')
         self.menu_import_dmf_device = app.builder.get_object('menu_import_dmf_device')
@@ -230,25 +183,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_app_exit(self):
         self.save_check()
-
-    def get_default_options(self):
-        return DmfDeviceOptions()
-
-    def get_step_options(self, step_number=None):
-        """
-        Return a FeedbackOptions object for the current step in the protocol.
-        If none exists yet, create a new one.
-        """
-        app = get_app()
-        if step_number is None:
-            step_number = app.protocol.current_step_number
-        step = app.protocol.steps[step_number]
-        options = step.get_data(self.name)
-        if options is None:
-            # No data is registered for this plugin (for this step).
-            options = self.get_default_options()
-            step.set_data(self.name, options)
-        return options
 
     def load_device(self, file_path, **kwargs):
         app = get_app()
@@ -363,25 +297,11 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 new_device_filepath = os.path.join(dest, DEVICE_FILENAME)
                 self.load_device(new_device_filepath)
 
-    def on_step_options_changed(self, plugin_name, step_number):
-        '''
-        The step options for the current step have changed.
-        If the change was to options affecting this plugin, update state.
-        '''
-        app = get_app()
-        if (plugin_name == self.name) and (app.protocol.current_step_number ==
-                                           step_number):
-            self._update()
-
     def on_step_inserted(self, step_number, *args):
         app = get_app()
         logging.info('[on_step_inserted] current step=%s, created step=%s',
                      app.protocol.current_step_number, step_number)
         self.clear_drop_routes(step_number=step_number)
-        gtk.idle_add(self._update)
-
-    def on_step_swapped(self, old_step_number, step_number):
-        self._update()
 
     def _notify_observers_step_options_changed(self):
         app = get_app()
@@ -394,24 +314,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_size_allocate(self, widget, data=None):
         pass  # TODO: resize device drawing
 
-    def _update(self):
-        app = get_app()
-        if not app.dmf_device:
-            return
-        options = self.get_step_options()
-        if options.state_of_channels.max() == 0:
-            # No channels are actuated.
-            actuated_channels_index = []
-        else:
-            actuated_channels_index = np.where(options
-                                               .state_of_channels > 0)[0]
-        actuated_electrodes = (app.dmf_device
-                               .actuated_electrodes(actuated_channels_index))
-
-        self.view.electrode_color = {}
-        for electrode_id in actuated_electrodes:
-            self.view.electrode_color[electrode_id] = [1, 1, 1]
-        self.view.update_draw_queue()
 
     def get_schedule_requests(self, function_name):
         """
@@ -502,10 +404,13 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_dmf_device_swapped(self, old_device, new_device):
         self.menu_rename_dmf_device.set_sensitive(True)
         self.menu_save_dmf_device_as.set_sensitive(True)
-        self.view.reset_canvas()
-        self._update()
 
     def on_dmf_device_changed(self):
         self.modified = True
+
+    def default_drop_routes(self):
+        # Empty table of drop routes.
+        return pd.DataFrame(None, columns=['route_i', 'transition_i',
+                                           'electrode_i'], dtype=int)
 
 PluginGlobals.pop_env()
