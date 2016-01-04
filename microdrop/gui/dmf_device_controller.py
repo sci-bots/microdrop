@@ -19,14 +19,10 @@ along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import traceback
 import shutil
-from copy import deepcopy
 import logging
 
 import gtk
-import numpy as np
-import pandas as pd
 from flatland import Form
-from flatland.schema import String
 from path_helpers import path
 from pygtkhelpers.ui.notebook import add_filters
 from pygtkhelpers.ui.extra_widgets import Directory
@@ -37,7 +33,7 @@ from microdrop_utility import copytree
 
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
-from ..plugin_helpers import AppDataController, StepOptionsController
+from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
 from .. import base_path
@@ -52,15 +48,11 @@ OLD_DEVICE_FILENAME = 'device'
 DEVICE_FILENAME = 'device.svg'
 
 
-class DmfDeviceController(SingletonPlugin, AppDataController,
-                          StepOptionsController):
+class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
     AppFields = Form.of(Directory.named('device_directory')
                         .using(default='', optional=True))
-    StepFields = Form.of(String.named('name').using(default='', optional=True))
-                                                    #properties={'show_in_gui':
-                                                                #False}))
 
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"
@@ -123,30 +115,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.previous_device_dir = device_directory
         return True
 
-    def clear_drop_routes(self, electrode_id=None, step_number=None):
-        '''
-        Clear all drop routes for current protocol step that include the
-        specified electrode (identified by string identifier).
-        '''
-        app = get_app()
-        step_options = self.get_step_options(step_number)
-
-        if electrode_id is None:
-            step_options['drop_routes'] = self.default_drop_routes()
-        else:
-            drop_routes = step_options['drop_routes']
-            # Look up numeric index based on text electrode id.
-            electrode_index = app.dmf_device.shape_indexes[electrode_id]
-
-            # Find indexes of all routes that include electrode.
-            routes_to_clear = drop_routes.loc[drop_routes.electrode_i ==
-                                              electrode_index, 'route_i']
-            # Remove all routes that include electrode.
-            step_options['drop_routes'] = (drop_routes
-                                           .loc[~drop_routes.route_i
-                                                .isin(routes_to_clear
-                                                      .tolist())].copy())
-
     def on_plugin_enable(self):
         app = get_app()
 
@@ -162,7 +130,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app.signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device
         app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device
         app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as
-        app.signals["on_event_box_dmf_device_size_allocate"] = self.on_size_allocate
         app.dmf_device_controller = self
         defaults = self.get_default_app_options()
         data = app.get_data(self.name)
@@ -178,8 +145,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.menu_save_dmf_device_as.set_sensitive(False)
 
     def on_protocol_pause(self):
-        if self._recording:
-            self.stop_recording()
+        pass
 
     def on_app_exit(self):
         self.save_check()
@@ -297,24 +263,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 new_device_filepath = os.path.join(dest, DEVICE_FILENAME)
                 self.load_device(new_device_filepath)
 
-    def on_step_inserted(self, step_number, *args):
-        app = get_app()
-        logging.info('[on_step_inserted] current step=%s, created step=%s',
-                     app.protocol.current_step_number, step_number)
-        self.clear_drop_routes(step_number=step_number)
-
-    def _notify_observers_step_options_changed(self):
-        app = get_app()
-        if not app.dmf_device:
-            return
-        emit_signal('on_step_options_changed',
-                    [self.name, app.protocol.current_step_number],
-                    interface=IPlugin)
-
-    def on_size_allocate(self, widget, data=None):
-        pass  # TODO: resize device drawing
-
-
     def get_schedule_requests(self, function_name):
         """
         Returns a list of scheduling requests (i.e., ScheduleRequest
@@ -356,7 +304,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_import_dmf_device(self, widget, data=None):
         self.save_check()
-        app = get_app()
         dialog = gtk.FileChooserDialog(title="Import device",
                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                        buttons=(gtk.STOCK_CANCEL,
@@ -407,10 +354,5 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     def on_dmf_device_changed(self):
         self.modified = True
-
-    def default_drop_routes(self):
-        # Empty table of drop routes.
-        return pd.DataFrame(None, columns=['route_i', 'transition_i',
-                                           'electrode_i'], dtype=int)
 
 PluginGlobals.pop_env()

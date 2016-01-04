@@ -348,8 +348,8 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def run_step(self):
         app = get_app()
-        if app.protocol and app.dmf_device and \
-        (app.realtime_mode or app.running):
+        if app.protocol and app.dmf_device and (app.realtime_mode or
+                                                app.running):
             if app.experiment_log:
                 app.experiment_log.add_step(app.protocol.current_step_number,
                                             app.protocol.current_step_attempt)
@@ -378,7 +378,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         if len(self.waiting_for):
             logging.debug("[ProcolController].on_step_complete: still waiting "
                           "for %s" % ", ".join(self.waiting_for))
-        # if all plugins have completed the current step, go to the next step
+        # If all plugins have completed the current step, go to the next step.
         elif app.running:
             if self.repeat_step:
                 app.protocol.current_step_attempt += 1

@@ -463,8 +463,10 @@ Would you like to download the latest version in your browser?''' %
                 plugin_manager.enable(p)
             except KeyError:
                 logger.warning('Requested plugin (%s) is not available.\n\n'
-                    'Please check that it exists in the plugins '
-                    'directory:\n\n    %s' % (p, self.config['plugins']['directory']))
+                               'Please check that it exists in the plugins '
+                               'directory:\n\n    %s' %
+                               (p, self.config['plugins']['directory']),
+                               exc_info=True)
         plugin_manager.log_summary()
 
         self.experiment_log = None
