@@ -140,13 +140,17 @@ class StepOptionsController(object):
         pass
 
     def get_default_step_options(self):
+        if self.get_step_form_class() is None:
+            return dict()
         return dict([(k, v.value)
                      for k, v in self.StepFields.from_defaults().iteritems()])
 
     def get_step_form_class(self):
-        return self.StepFields
+        return getattr(self, 'StepFields', None)
 
     def get_step_fields(self):
+        if self.get_step_form_class() is None:
+            return []
         return self.StepFields.field_schema_mapping.keys()
 
     def get_step_values(self, step_number=None):

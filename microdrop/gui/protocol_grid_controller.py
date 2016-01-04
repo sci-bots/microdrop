@@ -215,7 +215,9 @@ class ProtocolGridController(SingletonPlugin):
         logging.debug('[ProtocolGridController].update_grid:')
         logging.debug('[ProtocolGridController]   plugin_fields=%s',
                       protocol.plugin_fields)
-        forms = emit_signal('get_step_form_class')
+        forms = dict([(k, f) for k, f in
+                      emit_signal('get_step_form_class').iteritems()
+                      if f is not None])
 
         steps = protocol.steps
         logging.debug('[ProtocolGridController]   forms=%s steps=%s', forms,
