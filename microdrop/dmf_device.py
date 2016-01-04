@@ -212,6 +212,27 @@ class DmfDevice(object):
         '''
         return self.df_electrode_channels.channel.max()
 
+    def get_actuated_electrodes_area(self, electrode_states):
+        '''
+        Compute area of actuated electrodes.
+
+        Args:
+
+            electrode_states (pandas.Series) : Electrode states, indexed by
+                electrode identifier.  Any state greater than zero is
+                considered actuated.
+
+        Returns:
+
+            (float) : Area of actuated electrodes in square millimeters.
+        '''
+        actuated_electrodes = electrode_states[electrode_states > 0]
+        # Look up the area of each actuated electrode.
+        actuated_electrode_areas = (self.electrode_areas
+                                    .ix[actuated_electrodes.index])
+        # Compute the total actuated electrode area and scale by device scale.
+        return actuated_electrode_areas.sum()
+
     def actuated_area(self, state_of_all_channels):
         '''
         Compute area of all actuated electrodes.
