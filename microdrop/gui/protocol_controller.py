@@ -21,27 +21,109 @@ import os
 import logging
 import shutil
 
-import gtk
-from textbuffer_with_undo import UndoableBuffer
+from flatland import Form, String
 from microdrop_utility import is_float, is_int, FutureVersionError
 from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
                                    textentry_validate, text_entry_dialog)
+from textbuffer_with_undo import UndoableBuffer
+from zmq_plugin.plugin import Plugin as ZmqPlugin
+from zmq_plugin.schema import decode_content_data
+import gobject
+import gtk
+import zmq
 
-from ..protocol import Protocol
+from ..app_context import get_app
+from ..plugin_helpers import AppDataController
 from ..plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                               implements, PluginGlobals, ScheduleRequest,
                               emit_signal, get_service_class,
                               get_service_instance,
                               get_service_instance_by_name, get_observers,
                               get_service_names)
-from ..app_context import get_app
+from ..protocol import Protocol
+
+logger = logging.getLogger(__name__)
+
+
+class ProtocolControllerZmqPlugin(ZmqPlugin):
+    '''
+    API for controlling protocol state.
+
+     - Start/stop protocol.
+     - Load protocol.
+     - Go to previous/next/first/last step, or step $i$.
+    '''
+    def __init__(self, parent, *args, **kwargs):
+        self.parent = parent
+        super(ProtocolControllerZmqPlugin, self).__init__(*args, **kwargs)
+
+    def check_sockets(self):
+        try:
+            msg_frames = self.command_socket.recv_multipart(zmq.NOBLOCK)
+        except zmq.Again:
+            pass
+        else:
+            self.on_command_recv(msg_frames)
+        return True
+
+    def on_execute__first_step(self, request):
+        data = decode_content_data(request)
+        try:
+            return self.parent.on_first_step()
+        except:
+            logger.error(str(data), exc_info=True)
+
+    def on_execute__last_step(self, request):
+        data = decode_content_data(request)
+        try:
+            return self.parent.on_last_step()
+        except:
+            logger.error(str(data), exc_info=True)
+
+    def on_execute__prev_step(self, request):
+        data = decode_content_data(request)
+        try:
+            return self.parent.on_prev_step()
+        except:
+            logger.error(str(data), exc_info=True)
+
+    def on_execute__next_step(self, request):
+        data = decode_content_data(request)
+        try:
+            return self.parent.on_next_step()
+        except:
+            logger.error(str(data), exc_info=True)
+
+    def on_execute__run_protocol(self, request):
+        data = decode_content_data(request)
+        try:
+            return self.parent.on_run_protocol()
+        except:
+            logger.error(str(data), exc_info=True)
+
+    def on_execute__delete_step(self, request):
+        data = decode_content_data(request)
+        try:
+            return self.parent.on_delete_step()
+        except:
+            logger.error(str(data), exc_info=True)
+
+    def on_execute__goto_step(self, request):
+        data = decode_content_data(request)
+        try:
+            return self.parent.goto_step(request['step_number'])
+        except:
+            logger.error(str(data), exc_info=True)
 
 
 PluginGlobals.push_env('microdrop')
 
 
-class ProtocolController(SingletonPlugin):
+class ProtocolController(SingletonPlugin, AppDataController):
     implements(IPlugin)
+
+    AppFields = Form.of(String.named('hub_uri')
+                        .using(optional=True, default='tcp://localhost:31000'))
 
     def __init__(self):
         self.name = "microdrop.gui.protocol_controller"
@@ -57,6 +139,8 @@ class ProtocolController(SingletonPlugin):
         self.button_last_step = None
         self.textentry_protocol_repeats = None
         self._modified = False
+        self.plugin = None
+        self.plugin_timeout_id = None
 
     @property
     def modified(self):
@@ -70,23 +154,20 @@ class ProtocolController(SingletonPlugin):
     def _register_shortcuts(self):
         app = get_app()
         view = app.main_window_controller.view
-        shortcuts = {
-            'space': self.on_run_protocol,
-            'A': self.on_first_step,
-            'S': self.on_prev_step,
-            'D': self.on_next_step,
-            'F': self.on_last_step,
-            #'Delete': self.on_delete_step,
-        }
+        shortcuts = {'space': self.on_run_protocol,
+                     'A': self.on_first_step,
+                     'S': self.on_prev_step,
+                     'D': self.on_next_step,
+                     'F': self.on_last_step}
         register_shortcuts(view, shortcuts,
-                    disabled_widgets=[self.textentry_notes])
+                           disabled_widgets=[self.textentry_notes])
 
-        notes_shortcuts = {
-            '<Control>z': self.textentry_notes.get_buffer().undo,
-            '<Control>y': self.textentry_notes.get_buffer().redo,
-        }
+        notes_shortcuts = {'<Control>z':
+                           self.textentry_notes.get_buffer().undo,
+                           '<Control>y':
+                           self.textentry_notes.get_buffer().redo }
         register_shortcuts(view, notes_shortcuts,
-                    enabled_widgets=[self.textentry_notes])
+                           enabled_widgets=[self.textentry_notes])
 
     def load_protocol(self, filename):
         app = get_app()
@@ -94,14 +175,14 @@ class ProtocolController(SingletonPlugin):
         try:
             p = Protocol.load(filename)
         except FutureVersionError, why:
-            logging.error('''\
+            logger.error('''\
 Could not open protocol:
     %s
 It was created with a newer version of the software.
 Protocol is version %s, but only up to version %s is supported with this version of the software.'''\
             % (filename, why.future_version, why.current_version))
         except Exception, why:
-            logging.error("Could not open %s. %s" % (filename, why))
+            logger.error("Could not open %s. %s", filename, why)
         if p:
             # check if the protocol contains data from plugins that are not
             # enabled
@@ -116,8 +197,8 @@ Protocol is version %s, but only up to version %s is supported with this version
                     if k not in enabled_plugins and k not in missing_plugins:
                         missing_plugins.append(k)
             if missing_plugins:
-                logging.info('load protocol(%s): missing plugins: %s' %
-                             (filename, ", ".join(missing_plugins)))
+                logger.info('load protocol(%s): missing plugins: %s', filename,
+                            ', '.join(missing_plugins))
                 result = yesno('Some data in the protocol "%s" requires '
                                'plugins that are not currently installed:'
                                '\n\t%s\nThis data will be ignored unless you '
@@ -126,7 +207,7 @@ Protocol is version %s, but only up to version %s is supported with this version
                                'protocol?' % (p.name,
                                             ",\n\t".join(missing_plugins)))
                 if result == gtk.RESPONSE_YES:
-                    logging.info('Deleting protocol data for missing items')
+                    logger.info('Deleting protocol data for missing items')
                     for k, v in p.plugin_data.items():
                         if k in missing_plugins:
                             del p.plugin_data[k]
@@ -146,11 +227,13 @@ Protocol is version %s, but only up to version %s is supported with this version
 
     def on_protocol_swapped(self, old_protocol, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
-        logging.debug('[ProtocolController] on_protocol_swapped(): plugin_fields=%s' % protocol.plugin_fields)
+        logger.debug('[ProtocolController] on_protocol_swapped(): '
+                     'plugin_fields=%s', protocol.plugin_fields)
         protocol.first_step()
         self.run_step()
 
     def on_plugin_enable(self):
+        super(ProtocolController, self).on_plugin_enable()
         app = get_app()
         self.builder = app.builder
 
@@ -198,6 +281,39 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.button_run_protocol.set_sensitive(False)
         self.button_next_step.set_sensitive(False)
         self.button_last_step.set_sensitive(False)
+
+    def on_plugin_enabled(self, env, service):
+        print '[PROTOCOL CONTROLLER].on_plugin_enabled:', service.name
+        if service.name == 'wheelerlab.zmq_hub_plugin':
+            # Hub was enabled, so reset plugin.
+            app_values = self.get_app_values()
+
+            # Initialize sockets.
+            self.cleanup_plugin()
+            self.plugin = ProtocolControllerZmqPlugin(self, self.name,
+                                                      app_values['hub_uri'])
+            # Initialize sockets.
+            self.plugin.reset()
+
+            # Periodically process outstanding message received on plugin sockets.
+            self.plugin_timeout_id = gobject.timeout_add(10, self.plugin
+                                                         .check_sockets)
+
+    def cleanup_plugin(self):
+        if self.plugin_timeout_id is not None:
+            gobject.source_remove(self.plugin_timeout_id)
+        if self.plugin is not None:
+            self.plugin = None
+
+    def on_plugin_disable(self):
+        """
+        Handler called once the plugin instance is disabled.
+        """
+        self.cleanup_plugin()
+
+    def goto_step(self, step_number):
+        app = get_app()
+        app.protocol.goto_step(step_number)
 
     def on_first_step(self, widget=None, data=None):
         if widget is None or contains_pointer(widget, data.get_coords()):
@@ -355,29 +471,29 @@ Protocol is version %s, but only up to version %s is supported with this version
                                             app.protocol.current_step_attempt)
 
             self.waiting_for = get_observers("on_step_run", IPlugin).keys()
-            logging.info("[ProcolController.run_step]: waiting for %s" %
-                          ", ".join(self.waiting_for))
+            logger.info('[ProcolController.run_step]: waiting for %s',
+                        ', '.join(self.waiting_for))
             emit_signal("on_step_run")
 
     def on_step_complete(self, plugin_name, return_value=None):
         app = get_app()
-        logging.info("[ProcolController].on_step_complete: %s finished" %
-                      plugin_name)
+        logger.info("[ProcolController].on_step_complete: %s finished",
+                    plugin_name)
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
 
         # check retern value
         if return_value=='Fail':
             self.pause_protocol()
-            logging.error("Protocol failed.")
+            logger.error("Protocol failed.")
         elif return_value=='Repeat':
             self.repeat_step = True
         else:
             self.repeat_step = False
 
         if len(self.waiting_for):
-            logging.debug("[ProcolController].on_step_complete: still waiting "
-                          "for %s" % ", ".join(self.waiting_for))
+            logger.debug("[ProcolController].on_step_complete: still waiting "
+                         "for %s", ", ".join(self.waiting_for))
         # If all plugins have completed the current step, go to the next step.
         elif app.running:
             if self.repeat_step:
@@ -416,8 +532,8 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_protocol_changed')
 
     def set_app_values(self, values_dict):
-        logging.debug('[ProtocolController] set_app_values(): '\
-                    'values_dict=%s' % (values_dict,))
+        logger.debug('[ProtocolController] set_app_values(): values_dict=%s',
+                     values_dict)
         elements = self.AppFields(value=values_dict)
         if not elements.validate():
             raise ValueError('Invalid values: %s' % el.errors)
@@ -429,9 +545,9 @@ Protocol is version %s, but only up to version %s is supported with this version
         emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
 
     def on_step_swapped(self, original_step_number, step_number):
-        logging.debug('[ProtocolController.on_step_swapped] '
-                      'original_step_number=%s, step_number=%s' %
-                      (original_step_number, step_number))
+        logger.debug('[ProtocolController.on_step_swapped] '
+                     'original_step_number=%s, step_number=%s',
+                     original_step_number, step_number)
         self._update_labels()
         self.run_step()
 
@@ -457,6 +573,7 @@ Protocol is version %s, but only up to version %s is supported with this version
             self.create_protocol()
 
     def on_app_exit(self):
+        self.cleanup_plugin()
         app = get_app()
         if self.modified:
             result = yesno('Protocol %s has unsaved changes.  Save now?'\
