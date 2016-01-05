@@ -20,10 +20,9 @@ import cPickle as pickle
 
 from flatland import Form, String
 from microdrop.app_context import get_app
-from microdrop.plugin_helpers import AppDataController, get_plugin_info
-from microdrop.plugin_manager import (PluginGlobals, Plugin, IPlugin,
-                                      implements, ScheduleRequest)
-from path_helpers import path
+from microdrop.plugin_helpers import AppDataController
+from microdrop.plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
+                                      implements)
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 import gobject
 import zmq
@@ -47,16 +46,15 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
         return pickle.dumps(app.dmf_device)
 
 
-PluginGlobals.push_env('microdrop.managed')
+PluginGlobals.push_env('microdrop')
 
 
-class DeviceInfoPlugin(Plugin, AppDataController):
+class DeviceInfoPlugin(SingletonPlugin, AppDataController):
     """
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    version = get_plugin_info(path(__file__).parent).version
-    plugin_name = get_plugin_info(path(__file__).parent).plugin_name
+    plugin_name = 'wheelerlab.device_info_plugin'
 
     '''
     AppFields
@@ -82,16 +80,6 @@ class DeviceInfoPlugin(Plugin, AppDataController):
         self.name = self.plugin_name
         self.plugin = None
         self.command_timeout_id = None
-
-    def get_schedule_requests(self, function_name):
-        """
-        Returns a list of scheduling requests (i.e., ScheduleRequest
-        instances) for the function specified by function_name.
-        """
-        if function_name == 'on_plugin_enable':
-            return [ScheduleRequest('wheelerlab.zmq_hub_plugin', self.name)]
-        else:
-            return []
 
     def on_plugin_enable(self):
         """

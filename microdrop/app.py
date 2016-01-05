@@ -1,5 +1,5 @@
 """
-Copyright 2011 Ryan Fobel
+Copyright 2011-2016 Ryan Fobel and Christian Fobel
 
 This file is part of Microdrop.
 
@@ -54,10 +54,10 @@ from . import base_path
 logger = logging.getLogger(__name__)
 
 
-PluginGlobals.push_env('microdrop')
-
-
-# these imports automatically load (and initialize) core singleton plugins
+# These imports automatically load (and initialize) core singleton plugins.
+from .core_plugins import zmq_hub_plugin
+from .core_plugins import device_info_plugin
+from .core_plugins import electrode_controller_plugin
 from .gui import experiment_log_controller
 from .gui import config_controller
 from .gui import main_window_controller
@@ -66,6 +66,10 @@ from .gui import protocol_controller
 from .gui import protocol_grid_controller
 from .gui import plugin_manager_controller
 from .gui import app_options_controller
+
+
+PluginGlobals.push_env('microdrop')
+
 
 
 def parse_args(args=None):
@@ -100,13 +104,15 @@ INFO:  <Plugin MainWindowController 'microdrop.gui.main_window_controller'>
 INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
 INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     '''
-    core_plugins = ['microdrop.app',
-            'microdrop.gui.config_controller',
-            'microdrop.gui.dmf_device_controller',
-            'microdrop.gui.experiment_log_controller',
-            'microdrop.gui.main_window_controller',
-            'microdrop.gui.protocol_controller',
-            'microdrop.gui.protocol_grid_controller',]
+    core_plugins = ['microdrop.app', 'microdrop.gui.config_controller',
+                    'microdrop.gui.dmf_device_controller',
+                    'microdrop.gui.experiment_log_controller',
+                    'microdrop.gui.main_window_controller',
+                    'microdrop.gui.protocol_controller',
+                    'microdrop.gui.protocol_grid_controller',
+                    'wheelerlab.zmq_hub_plugin',
+                    'wheelerlab.electrode_controller_plugin',
+                    'wheelerlab.device_info_plugin']
 
     AppFields = Form.of(
         Integer.named('x').using(default=None, optional=True),

@@ -20,12 +20,9 @@ import logging
 
 from flatland import Form, String
 from microdrop.app_context import get_app
-from microdrop.plugin_helpers import (AppDataController, StepOptionsController,
-                                      get_plugin_info)
-from microdrop.plugin_manager import (PluginGlobals, Plugin, IPlugin,
-                                      ScheduleRequest, implements, emit_signal,
-                                      get_service_instance_by_name)
-from path_helpers import path
+from microdrop.plugin_helpers import AppDataController, StepOptionsController
+from microdrop.plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
+                                      implements, emit_signal)
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
 import gobject
@@ -145,17 +142,16 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
     def on_execute__get_channel_states(self, request):
         return self.get_channel_states()
 
-PluginGlobals.push_env('microdrop.managed')
+PluginGlobals.push_env('microdrop')
 
 
-class ElectrodeControllerPlugin(Plugin, AppDataController,
+class ElectrodeControllerPlugin(SingletonPlugin, AppDataController,
                                 StepOptionsController):
     """
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    version = get_plugin_info(path(__file__).parent).version
-    plugin_name = get_plugin_info(path(__file__).parent).plugin_name
+    plugin_name = 'wheelerlab.electrode_controller_plugin'
 
     '''
     AppFields
@@ -181,16 +177,6 @@ class ElectrodeControllerPlugin(Plugin, AppDataController,
         self.name = self.plugin_name
         self.plugin = None
         self.command_timeout_id = None
-
-    def get_schedule_requests(self, function_name):
-        """
-        Returns a list of scheduling requests (i.e., ScheduleRequest
-        instances) for the function specified by function_name.
-        """
-        if function_name == 'on_plugin_enable':
-            return [ScheduleRequest('wheelerlab.zmq_hub_plugin', self.name)]
-        else:
-            return []
 
     def on_plugin_enable(self):
         """

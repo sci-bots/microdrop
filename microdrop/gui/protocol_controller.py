@@ -282,22 +282,19 @@ Protocol is version %s, but only up to version %s is supported with this version
         self.button_next_step.set_sensitive(False)
         self.button_last_step.set_sensitive(False)
 
-    def on_plugin_enabled(self, env, service):
-        print '[PROTOCOL CONTROLLER].on_plugin_enabled:', service.name
-        if service.name == 'wheelerlab.zmq_hub_plugin':
-            # Hub was enabled, so reset plugin.
-            app_values = self.get_app_values()
+        # Connect to ZeroMQ plugin hub.
+        app_values = self.get_app_values()
 
-            # Initialize sockets.
-            self.cleanup_plugin()
-            self.plugin = ProtocolControllerZmqPlugin(self, self.name,
-                                                      app_values['hub_uri'])
-            # Initialize sockets.
-            self.plugin.reset()
+        # Initialize sockets.
+        self.cleanup_plugin()
+        self.plugin = ProtocolControllerZmqPlugin(self, self.name,
+                                                  app_values['hub_uri'])
+        # Initialize sockets.
+        self.plugin.reset()
 
-            # Periodically process outstanding message received on plugin sockets.
-            self.plugin_timeout_id = gobject.timeout_add(10, self.plugin
-                                                         .check_sockets)
+        # Periodically process outstanding message received on plugin sockets.
+        self.plugin_timeout_id = gobject.timeout_add(10, self.plugin
+                                                     .check_sockets)
 
     def cleanup_plugin(self):
         if self.plugin_timeout_id is not None:

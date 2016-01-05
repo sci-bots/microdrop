@@ -20,26 +20,24 @@ from multiprocessing import Process
 import logging
 
 from flatland import Form, String, Enum
-from microdrop.plugin_helpers import AppDataController, get_plugin_info
-from microdrop.plugin_manager import (PluginGlobals, Plugin, IPlugin,
+from microdrop.plugin_helpers import AppDataController
+from microdrop.plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                       implements)
-from path_helpers import path
 from zmq_plugin.bin.hub import run_hub
 from zmq_plugin.hub import Hub
 
 logger = logging.getLogger(__name__)
 
 
-PluginGlobals.push_env('microdrop.managed')
+PluginGlobals.push_env('microdrop')
 
 
-class ZmqHubPlugin(Plugin, AppDataController):
+class ZmqHubPlugin(SingletonPlugin, AppDataController):
     """
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    version = get_plugin_info(path(__file__).parent).version
-    plugin_name = get_plugin_info(path(__file__).parent).plugin_name
+    plugin_name = 'wheelerlab.zmq_hub_plugin'
 
     '''
     AppFields
