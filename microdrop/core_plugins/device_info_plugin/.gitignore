@@ -1,0 +1,6 @@
+.project
+.pydevproject
+*.tar.gz
+.sconsign.dblite
+*.pyc
+properties.yml
