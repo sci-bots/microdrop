@@ -108,5 +108,10 @@ class DeviceInfoPlugin(SingletonPlugin):
         """
         self.cleanup()
 
+    def on_dmf_device_swapped(self, old_device, new_device):
+        if self.plugin is not None:
+            # Notify other plugins that device has been swapped.
+            self.plugin.execute_async(self.name, 'get_device')
+
 
 PluginGlobals.pop_env()
