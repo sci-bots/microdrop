@@ -18,14 +18,13 @@ along with device_info_plugin.  If not, see <http://www.gnu.org/licenses/>.
 """
 import cPickle as pickle
 
-from flatland import Form, String
-from microdrop.app_context import get_app
-from microdrop.plugin_helpers import AppDataController
-from microdrop.plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
-                                      implements)
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 import gobject
 import zmq
+
+from ...app_context import get_app, get_hub_uri
+from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
+                               implements)
 
 
 class DeviceInfoZmqPlugin(ZmqPlugin):
@@ -49,32 +48,12 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
 PluginGlobals.push_env('microdrop')
 
 
-class DeviceInfoPlugin(SingletonPlugin, AppDataController):
+class DeviceInfoPlugin(SingletonPlugin):
     """
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
     plugin_name = 'wheelerlab.device_info_plugin'
-
-    '''
-    AppFields
-    ---------
-
-    A flatland Form specifying application options for the current plugin.
-    Note that nested Form objects are not supported.
-
-    Since we subclassed AppDataController, an API is available to access and
-    modify these attributes.  This API also provides some nice features
-    automatically:
-        -all fields listed here will be included in the app options dialog
-            (unless properties=dict(show_in_gui=False) is used)
-        -the values of these fields will be stored persistently in the microdrop
-            config file, in a section named after this plugin's name attribute
-    '''
-    AppFields = Form.of(
-        String.named('hub_uri').using(optional=True,
-                                      default='tcp://localhost:31000'),
-    )
 
     def __init__(self):
         self.name = self.plugin_name
@@ -94,11 +73,8 @@ class DeviceInfoPlugin(SingletonPlugin, AppDataController):
 
         to retain this functionality.
         """
-        super(DeviceInfoPlugin, self).on_plugin_enable()
-        app_values = self.get_app_values()
-
         self.cleanup()
-        self.plugin = DeviceInfoZmqPlugin(self.name, app_values['hub_uri'])
+        self.plugin = DeviceInfoZmqPlugin(self.name, get_hub_uri())
         # Initialize sockets.
         self.plugin.reset()
 

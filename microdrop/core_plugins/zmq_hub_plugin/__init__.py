@@ -20,11 +20,12 @@ from multiprocessing import Process
 import logging
 
 from flatland import Form, String, Enum
-from microdrop.plugin_helpers import AppDataController
-from microdrop.plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
-                                      implements)
 from zmq_plugin.bin.hub import run_hub
 from zmq_plugin.hub import Hub
+
+from ...plugin_helpers import AppDataController
+from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
+                               implements)
 
 logger = logging.getLogger(__name__)
 
