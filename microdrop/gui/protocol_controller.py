@@ -147,7 +147,7 @@ class ProtocolController(SingletonPlugin):
     def _register_shortcuts(self):
         app = get_app()
         view = app.main_window_controller.view
-        shortcuts = {'space': self.on_run_protocol,
+        shortcuts = {'<Control>r': self.on_run_protocol,
                      'A': self.on_first_step,
                      'S': self.on_prev_step,
                      'D': self.on_next_step,
