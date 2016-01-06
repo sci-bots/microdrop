@@ -21,3 +21,13 @@ def get_app():
 
     class_ = plugin_manager.get_service_class('App', env='microdrop')
     return plugin_manager.get_service_instance(class_, env='microdrop')
+
+
+def get_hub_uri():
+    from plugin_manager import get_service_instance_by_name
+
+    hub_plugin = get_service_instance_by_name('wheelerlab.zmq_hub_plugin',
+                                              env='microdrop')
+    hub_uri = hub_plugin.get_app_values().get('hub_uri')
+    if hub_uri is not None:
+        return hub_uri.replace('*', 'localhost')

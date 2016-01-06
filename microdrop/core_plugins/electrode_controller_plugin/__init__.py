@@ -18,20 +18,17 @@ along with electrode_controller_plugin.  If not, see <http://www.gnu.org/license
 """
 import logging
 
-from flatland import Form, String
-from microdrop.app_context import get_app
-from microdrop.plugin_helpers import (AppDataController, StepOptionsController,
-                                      get_plugin_info)
-from microdrop.plugin_manager import (PluginGlobals, Plugin, IPlugin,
-                                      ScheduleRequest, implements, emit_signal,
-                                      get_service_instance_by_name)
-from path_helpers import path
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
 import gobject
 import gtk
 import pandas as pd
 import zmq
+
+from ...app_context import get_app, get_hub_uri
+from ...plugin_helpers import StepOptionsController
+from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
+                               implements, emit_signal)
 
 logger = logging.getLogger(__name__)
 
@@ -145,52 +142,20 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
     def on_execute__get_channel_states(self, request):
         return self.get_channel_states()
 
-PluginGlobals.push_env('microdrop.managed')
+PluginGlobals.push_env('microdrop')
 
 
-class ElectrodeControllerPlugin(Plugin, AppDataController,
-                                StepOptionsController):
+class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
     """
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    version = get_plugin_info(path(__file__).parent).version
-    plugin_name = get_plugin_info(path(__file__).parent).plugin_name
-
-    '''
-    AppFields
-    ---------
-
-    A flatland Form specifying application options for the current plugin.
-    Note that nested Form objects are not supported.
-
-    Since we subclassed AppDataController, an API is available to access and
-    modify these attributes.  This API also provides some nice features
-    automatically:
-        -all fields listed here will be included in the app options dialog
-            (unless properties=dict(show_in_gui=False) is used)
-        -the values of these fields will be stored persistently in the microdrop
-            config file, in a section named after this plugin's name attribute
-    '''
-    AppFields = Form.of(
-        String.named('hub_uri').using(optional=True,
-                                      default='tcp://localhost:31000'),
-    )
+    plugin_name = 'wheelerlab.electrode_controller_plugin'
 
     def __init__(self):
         self.name = self.plugin_name
         self.plugin = None
         self.command_timeout_id = None
-
-    def get_schedule_requests(self, function_name):
-        """
-        Returns a list of scheduling requests (i.e., ScheduleRequest
-        instances) for the function specified by function_name.
-        """
-        if function_name == 'on_plugin_enable':
-            return [ScheduleRequest('wheelerlab.zmq_hub_plugin', self.name)]
-        else:
-            return []
 
     def on_plugin_enable(self):
         """
@@ -205,12 +170,9 @@ class ElectrodeControllerPlugin(Plugin, AppDataController,
 
         to retain this functionality.
         """
-        super(ElectrodeControllerPlugin, self).on_plugin_enable()
-        app_values = self.get_app_values()
-
         self.cleanup()
         self.plugin = ElectrodeControllerZmqPlugin(self, self.name,
-                                                   app_values['hub_uri'])
+                                                   get_hub_uri())
         # Initialize sockets.
         self.plugin.reset()
 

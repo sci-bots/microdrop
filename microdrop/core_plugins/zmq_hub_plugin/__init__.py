@@ -20,26 +20,33 @@ from multiprocessing import Process
 import logging
 
 from flatland import Form, String, Enum
-from microdrop.plugin_helpers import AppDataController, get_plugin_info
-from microdrop.plugin_manager import (PluginGlobals, Plugin, IPlugin,
-                                      implements)
-from path_helpers import path
 from zmq_plugin.bin.hub import run_hub
 from zmq_plugin.hub import Hub
+
+from ...plugin_helpers import AppDataController
+from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
+                               implements)
 
 logger = logging.getLogger(__name__)
 
 
-PluginGlobals.push_env('microdrop.managed')
+PluginGlobals.push_env('microdrop')
 
 
-class ZmqHubPlugin(Plugin, AppDataController):
+class MicrodropHub(Hub):
+    def on_command_recv(self, msg_frames):
+        try:
+            super(MicrodropHub, self).on_command_recv(msg_frames)
+        except:
+            logger.error('Command socket message error.', exc_info=True)
+
+
+class ZmqHubPlugin(SingletonPlugin, AppDataController):
     """
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    version = get_plugin_info(path(__file__).parent).version
-    plugin_name = get_plugin_info(path(__file__).parent).plugin_name
+    plugin_name = 'wheelerlab.zmq_hub_plugin'
 
     '''
     AppFields
@@ -82,7 +89,8 @@ class ZmqHubPlugin(Plugin, AppDataController):
         super(ZmqHubPlugin, self).on_plugin_enable()
         app_values = self.get_app_values()
         self.hub_process = Process(target=run_hub,
-                                   args=(Hub(app_values['hub_uri'], self.name),
+                                   args=(MicrodropHub(app_values['hub_uri'],
+                                                      self.name),
                                          getattr(logging,
                                                  app_values['log_level']
                                                  .upper())))
