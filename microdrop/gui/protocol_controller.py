@@ -151,7 +151,11 @@ class ProtocolController(SingletonPlugin):
                      'A': self.on_first_step,
                      'S': self.on_prev_step,
                      'D': self.on_next_step,
-                     'F': self.on_last_step}
+                     'F': self.on_last_step,
+                     # `vi`-like bindings.
+                     'k': self.on_prev_step,
+                     'j': self.on_next_step}
+
         register_shortcuts(view, shortcuts,
                            disabled_widgets=[self.textentry_notes])
 
