@@ -115,10 +115,14 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     'wheelerlab.device_info_plugin']
 
     AppFields = Form.of(
-        Integer.named('x').using(default=None, optional=True),
-        Integer.named('y').using(default=None, optional=True),
-        Integer.named('width').using(default=400, optional=True),
-        Integer.named('height').using(default=500, optional=True),
+        Integer.named('x').using(default=None, optional=True,
+                                 properties={'show_in_gui': False}),
+        Integer.named('y').using(default=None, optional=True,
+                                 properties={'show_in_gui': False}),
+        Integer.named('width').using(default=400, optional=True,
+                                     properties={'show_in_gui': False}),
+        Integer.named('height').using(default=500, optional=True,
+                                      properties={'show_in_gui': False}),
         Enum.named('update_automatically' #pylint: disable-msg=E1101,E1120
             ).using(default=1, optional=True
             ).valued('auto-update',
