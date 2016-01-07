@@ -94,20 +94,11 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
                                          getattr(logging,
                                                  app_values['log_level']
                                                  .upper())))
-        self.hub_process.daemon = False
         self.hub_process.start()
 
     def on_plugin_disable(self):
         """
         Handler called once the plugin instance is disabled.
-        """
-        if self.hub_process is not None:
-            self.hub_process.terminate()
-            self.hub_process = None
-
-    def on_app_exit(self):
-        """
-        Handler called just before the Microdrop application exits.
         """
         if self.hub_process is not None:
             self.hub_process.terminate()

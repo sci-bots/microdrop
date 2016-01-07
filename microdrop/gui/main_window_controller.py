@@ -165,6 +165,9 @@ class MainWindowController(SingletonPlugin):
             app.set_app_values(data)
 
             emit_signal("on_app_exit")
+            hub = get_service_instance_by_name('wheelerlab.zmq_hub_plugin',
+                                               env='microdrop')
+            hub.on_plugin_disable()
 
     def on_destroy(self, widget, data=None):
         self.on_delete_event(None)
