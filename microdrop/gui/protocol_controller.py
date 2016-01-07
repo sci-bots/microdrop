@@ -70,23 +70,24 @@ class ProtocolController(SingletonPlugin):
     def _register_shortcuts(self):
         app = get_app()
         view = app.main_window_controller.view
-        shortcuts = {
-            'space': self.on_run_protocol,
-            'A': self.on_first_step,
-            'S': self.on_prev_step,
-            'D': self.on_next_step,
-            'F': self.on_last_step,
-            #'Delete': self.on_delete_step,
-        }
-        register_shortcuts(view, shortcuts,
-                    disabled_widgets=[self.textentry_notes])
+        shortcuts = {'<Control>r': self.on_run_protocol,
+                     'A': self.on_first_step,
+                     'S': self.on_prev_step,
+                     'D': self.on_next_step,
+                     'F': self.on_last_step,
+                     # `vi`-like bindings.
+                     'k': self.on_prev_step,
+                     'j': self.on_next_step}
 
-        notes_shortcuts = {
-            '<Control>z': self.textentry_notes.get_buffer().undo,
-            '<Control>y': self.textentry_notes.get_buffer().redo,
-        }
+        register_shortcuts(view, shortcuts,
+                           disabled_widgets=[self.textentry_notes])
+
+        notes_shortcuts = {'<Control>z':
+                           self.textentry_notes.get_buffer().undo,
+                           '<Control>y':
+                           self.textentry_notes.get_buffer().redo}
         register_shortcuts(view, notes_shortcuts,
-                    enabled_widgets=[self.textentry_notes])
+                           enabled_widgets=[self.textentry_notes])
 
     def load_protocol(self, filename):
         app = get_app()
