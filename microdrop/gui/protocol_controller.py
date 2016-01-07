@@ -79,6 +79,13 @@ class ProtocolController(SingletonPlugin):
                      'k': self.on_prev_step,
                      'j': self.on_next_step}
 
+        if app.config.data.get('advanced_ui', False):
+            # In `'advanced_ui'` mode, add keyboard shortcut to launch embedded
+            # IPython shell.
+            import IPython
+
+            shortcuts['<Control>d'] = IPython.embed
+
         register_shortcuts(view, shortcuts,
                            disabled_widgets=[self.textentry_notes])
 
