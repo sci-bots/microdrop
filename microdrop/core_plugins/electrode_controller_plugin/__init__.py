@@ -99,7 +99,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
         return self.set_electrode_states(pd.Series([state],
                                                    index=[electrode_id]))
 
-    def set_electrode_states(self, electrode_states):
+    def set_electrode_states(self, electrode_states, save=True):
         '''
         Set the state of multiple electrodes.
 
@@ -107,6 +107,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
 
             electrode_states (pandas.Series) : State of electrodes, indexed by
                 electrode identifier (e.g., `"electrode001"`).
+            save (bool) : Trigger save request for protocol step.
 
         Returns:
 
@@ -119,10 +120,12 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
         self.electrode_states = (electrode_states
                                  .combine_first(self.electrode_states))
 
-        def notify(step_number):
-            emit_signal('on_step_options_changed', [self.name, step_number],
-                        interface=IPlugin)
-        gtk.idle_add(notify, app.protocol.current_step_number)
+        if save:
+            def notify(step_number):
+                emit_signal('on_step_options_changed', [self.name,
+                                                        step_number],
+                            interface=IPlugin)
+            gtk.idle_add(notify, app.protocol.current_step_number)
 
         result = self.get_state(electrode_states)
         result['actuated_area'] = self.get_actuated_area(self.electrode_states)
@@ -135,7 +138,8 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
     def on_execute__set_electrode_states(self, request):
         data = decode_content_data(request)
         try:
-            return self.set_electrode_states(data['electrode_states'])
+            return self.set_electrode_states(data['electrode_states'],
+                                             save=data.get('save', True))
         except:
             logger.error(str(data), exc_info=True)
 
