@@ -71,6 +71,7 @@ class ProtocolController(SingletonPlugin):
         app = get_app()
         view = app.main_window_controller.view
         shortcuts = {'<Control>r': self.on_run_protocol,
+                     '<Control>s': lambda *args: self.save_protocol(),
                      'A': self.on_first_step,
                      'S': self.on_prev_step,
                      'D': self.on_next_step,
