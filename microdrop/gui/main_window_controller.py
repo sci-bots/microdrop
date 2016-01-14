@@ -110,8 +110,12 @@ class MainWindowController(SingletonPlugin):
         self.menu_experiment_logs.set_sensitive(False)
 
         if app.config.data.get('advanced_ui', False):
+            import IPython
+
             self.debug_menu_item = gtk.MenuItem('Debug...')
             self.debug_menu_item.show()
+            self.ipython_menu_item = gtk.MenuItem('IPython...')
+            self.ipython_menu_item.show()
 
             def activate_debugger():
                 try:
@@ -135,7 +139,10 @@ class MainWindowController(SingletonPlugin):
                     pdb.set_trace()
             self.debug_menu_item.connect('activate', lambda *args:
                                          activate_debugger())
+            self.ipython_menu_item.connect('activate', lambda *args:
+                                           IPython.embed())
             self.menu_tools.append(self.debug_menu_item)
+            self.menu_tools.append(self.ipython_menu_item)
 
     def main(self):
         gtk.main()
