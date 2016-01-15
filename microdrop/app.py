@@ -38,7 +38,7 @@ from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 from application_repository.application.proxy import AppRepository
-from microdrop_utility import Version
+from microdrop_utility import Version, DifferentVersionTagsError
 from microdrop_utility.gui import yesno
 import plugin_manager
 
@@ -357,6 +357,14 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             logger.warning('Could not connect to application update server: '
                            '%s', app_update_server_url)
             return
+        try:
+            current_version < latest_version
+        except DifferentVersionTagsError:
+            logger.info('Current version (%s) has different tags than latest '
+                        'version (%s).  Skipping update.', current_version,
+                        latest_version)
+            return
+
         if current_version < latest_version:
             logger.info('Current version: %s. There is a new version '
                         'available: %s %s' % (current_version, latest_version,
@@ -519,8 +527,17 @@ Would you like to download the latest version in your browser?''' %
     def _set_log_file_handler(self, log_file):
         if self.log_file_handler:
             self._destroy_log_file_handler()
-        self.log_file_handler = logging.FileHandler(log_file,
-                                                    disable_existing_loggers=False)
+
+        try:
+            self.log_file_handler = (logging
+                                     .FileHandler(log_file,
+                                                  disable_existing_loggers
+                                                  =False))
+        except TypeError:
+            # Assume old version of `logging` module without support for
+            # `disable_existing_loggers` keyword argument.
+            self.log_file_handler = logging.FileHandler(log_file)
+
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         self.log_file_handler.setFormatter(formatter)
         logger.addHandler(self.log_file_handler)
