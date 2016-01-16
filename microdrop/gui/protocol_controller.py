@@ -415,25 +415,25 @@ Protocol is version %s, but only up to version %s is supported with this version
                       'step_number=%s' % (plugin, step_number))
         self.modified = True
         emit_signal('on_protocol_changed')
-        self.run_step()
+        app = get_app()
+        if app.realtime_mode and not app.running:
+            self.run_step()
 
     def set_app_values(self, values_dict):
-        logging.debug('[ProtocolController] set_app_values(): '\
-                    'values_dict=%s' % (values_dict,))
+        logging.debug('[ProtocolController] set_app_values(): '
+                      'values_dict=%s', values_dict)
         elements = self.AppFields(value=values_dict)
         if not elements.validate():
-            raise ValueError('Invalid values: %s' % el.errors)
+            raise ValueError('Invalid values: %s', elements.errors)
         values = dict([(k, v.value) for k, v in elements.iteritems() if v.value])
-        if 'fps_limit' in values:
-            self.grabber.set_fps_limit(values['fps_limit'])
         app = get_app()
         app.set_data(self.name, values)
         emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
 
     def on_step_swapped(self, original_step_number, step_number):
         logging.debug('[ProtocolController.on_step_swapped] '
-                      'original_step_number=%s, step_number=%s' %
-                      (original_step_number, step_number))
+                      'original_step_number=%s, step_number=%s',
+                      original_step_number, step_number)
         self._update_labels()
         self.run_step()
 
