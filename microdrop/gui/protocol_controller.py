@@ -521,6 +521,9 @@ Protocol is version %s, but only up to version %s is supported with this version
         '''
         self.modified = True
         emit_signal('on_protocol_changed')
+        app = get_app()
+        if app.realtime_mode and not app.running:
+            self.run_step()
 
     def on_step_created(self, step_number):
         '''
