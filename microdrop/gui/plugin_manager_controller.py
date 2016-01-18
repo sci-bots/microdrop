@@ -36,7 +36,7 @@ from application_repository.plugins.proxy import PluginRepository
 from microdrop_utility import Version
 from microdrop_utility.gui import yesno
 
-from ..app_context import get_app
+from ..app_context import get_app, APP_VERSION
 from ..plugin_helpers import get_plugin_info
 from ..plugin_manager import (IPlugin, implements, SingletonPlugin,
                               PluginGlobals, get_service_instance,
@@ -169,11 +169,10 @@ class PluginManagerController(SingletonPlugin):
         package_name = plugin_metadata.package_name
         plugin_name = plugin_metadata.plugin_name
 
-        p = PluginRepository(server_url)
-        latest_version = Version(**p.latest_version(package_name,
-                                                    app_version={'major': 1,
-                                                                 'minor': 0,
-                                                                 'micro': 0}))
+        plugin_repo = PluginRepository(server_url)
+        latest_version = Version(**plugin_repo
+                                 .latest_version(package_name,
+                                                 app_version=APP_VERSION))
 
         # Check the plugin tag versus the tag of latest version from the
         # update respository. If they are different, it's a sign that they
@@ -202,10 +201,9 @@ class PluginManagerController(SingletonPlugin):
         try:
             app = get_app()
             server_url = app.get_app_value('server_url')
-            p = PluginRepository(server_url)
-            p.download_latest(package_name, temp_dir, app_version={'major': 1,
-                                                                   'minor': 0,
-                                                                   'micro': 0})
+            plugin_repo = PluginRepository(server_url)
+            plugin_repo.download_latest(package_name, temp_dir,
+                                        app_version=APP_VERSION)
             archive_path = temp_dir.files()[0]
             return self.install_from_archive(archive_path, force=force)
         finally:
@@ -220,13 +218,14 @@ class PluginManagerController(SingletonPlugin):
         del self.plugins
         self.plugins = []
         for name in plugin_names:
-            p = PluginController(self, name)
+            plugin_controller = PluginController(self, name)
             # Skip the plugin if it has been marked for uninstall, or no
             # longer exists
-            if p.get_plugin_path().abspath() in self.requested_deletions\
-                    or not p.get_plugin_path().isdir():
+            if (plugin_controller.get_plugin_path().abspath() in
+                self.requested_deletions) or (not plugin_controller
+                                              .get_plugin_path().isdir()):
                 continue
-            self.plugins.append(p)
+            self.plugins.append(plugin_controller)
 
         # Save the list of path deletions to be processed on next app launch
         app = get_app()
@@ -292,7 +291,6 @@ class PluginManagerController(SingletonPlugin):
         self.update()
 
     def install_plugin(self, plugin_root, install_path):
-        plugin_metadata = get_plugin_info(plugin_root)
         plugin_root.copytree(install_path, symlinks=True,
                              ignore=ignore_patterns('*.pyc'))
         self.post_install_queue.append(install_path)

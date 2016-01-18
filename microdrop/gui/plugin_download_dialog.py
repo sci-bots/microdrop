@@ -23,7 +23,7 @@ import gtk
 from pygtkhelpers.ui.list_select import ListSelectView
 from application_repository.plugins.proxy import PluginRepository
 
-from ..app_context import get_app
+from ..app_context import get_app, APP_VERSION
 from ..plugin_manager import get_service_instance_by_name
 from .. import glade_path
 
@@ -53,12 +53,12 @@ class PluginDownloadDialog(object):
         self.controller.update()
 
         server_url = app.get_app_value('server_url')
-        p = PluginRepository(server_url)
-        available = set(p.available_packages(app_version={'major': 1,
-                                                          'minor': 0,
-                                                          'micro': 0}))
+        plugin_repo = PluginRepository(server_url)
+        # Only plugins with the same *major* version will be returned.
+        available = set(plugin_repo
+                        .available_packages(app_version=APP_VERSION))
         installed = set([p.get_plugin_package_name()
-                for p in self.controller.plugins])
+                         for p in self.controller.plugins])
         to_install = available.difference(installed)
         if not to_install:
             return None
@@ -78,8 +78,8 @@ class PluginDownloadDialog(object):
                 logging.warning('All available plugins are already installed')
                 return gtk.RESPONSE_CANCEL
         except IOError:
-            logging.error('Could not connect to plugin repository at: %s' % (
-                    app.get_app_value('server_url')))
+            logging.error('Could not connect to plugin repository at: %s',
+                          app.get_app_value('server_url'))
             return gtk.RESPONSE_CANCEL
         response = self.window.run()
         self.window.hide()

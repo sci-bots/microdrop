@@ -31,3 +31,7 @@ def get_hub_uri():
     hub_uri = hub_plugin.get_app_values().get('hub_uri')
     if hub_uri is not None:
         return hub_uri.replace('*', 'localhost')
+
+
+# Application version used when querying update server for plugins, etc.
+APP_VERSION = {'major': 2, 'minor': 0, 'micro': 0}
