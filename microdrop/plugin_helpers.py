@@ -1,15 +1,15 @@
 from collections import namedtuple
+import logging
 
+from microdrop_utility import Version
 from path_helpers import path
 import yaml
 
-from app_context import get_app
-import logging
+from .app_context import get_app
+from .plugin_manager import (IPlugin, ExtensionPoint, emit_signal,
+                             get_service_instance_by_name)
 
 logger = logging.getLogger(__name__)
-from plugin_manager import IPlugin, ExtensionPoint, emit_signal
-from microdrop_utility import Version
-
 
 PluginMetaData = namedtuple('PluginMetaData',
                             'package_name plugin_name version')
@@ -218,3 +218,20 @@ class StepOptionsController(object):
             options = self.get_default_step_options()
             step.set_data(self.name, options)
         return options
+
+
+def hub_execute_async(*args, **kwargs):
+    service = get_service_instance_by_name('wheelerlab.device_info_plugin',
+                                           env='microdrop')
+    return service.plugin.execute_async(*args, **kwargs)
+
+
+def hub_execute(*args, **kwargs):
+    service = get_service_instance_by_name('wheelerlab.device_info_plugin',
+                                           env='microdrop')
+    try:
+        return service.plugin.execute(*args, **kwargs)
+    except:
+        logger.info('[hub_execute] plugin registry: %s',
+                    service.plugin.plugin_registry.keys())
+        raise
