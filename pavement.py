@@ -12,16 +12,15 @@ import version
 
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
-                    'dmf-device-ui>=0.2.post20', 'droplet-planning>=0.2',
-                    'flatland-fork', 'geo-util', 'ipython',
-                    'ipython-helpers>=0.4',
+                    'droplet-planning>=0.2', 'flatland-fork', 'geo-util',
+                    'ipython', 'ipython-helpers>=0.4',
                     'microdrop-device-converter>=0.1.post4',
                     'microdrop_utility>=0.4', 'pandas', 'path-helpers>=0.2',
                     'pip-helpers>=0.5', 'pygtk_textbuffer_with_undo',
                     'pyparsing', 'pyutilib==3.9.2706', 'pyyaml', 'pyzmq',
                     'run-exe>=0.5', 'scipy', 'svgwrite', 'task_scheduler',
                     'tornado', 'wheeler.pygtkhelpers>=0.11.post4',
-                    'zmq-plugin>=0.1.post9']
+                    'zmq-plugin>=0.1.post10']
 
 
 setup(name='microdrop',
