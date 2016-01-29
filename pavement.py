@@ -1,6 +1,7 @@
-import sys
 import os
 import pkg_resources
+import platform
+import sys
 
 from paver.easy import task, needs, path
 from paver.setuputils import setup
@@ -13,12 +14,23 @@ import version
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'flatland-fork', 'geo-util', 'ipython',
-                    'microdrop_utility>=0.3', 'opencv-helpers', 'path-helpers',
-                    'pygst-utils', 'pygtk_textbuffer_with_undo', 'pyparsing',
-                    'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'svg_model',
-                    'svgwrite', 'task_scheduler', 'wheeler.pygtkhelpers>=0.10',
-                    'pip-helpers>=0.5', 'pandas', 'scipy', 'run-exe>=0.5',
-                    'ipython-helpers>=0.4']
+                    'ipython-helpers>=0.4', 'microdrop_utility>=0.4',
+                    'networkx', 'pandas', 'path-helpers>=0.2', 'paver>=1.2.4',
+                    'pip-helpers>=0.5', 'pygst-utils>=0.3.post3',
+                    'pygtk_textbuffer_with_undo', 'pyparsing',
+                    'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'run-exe>=0.5',
+                    'si-prefix', 'scipy', 'svgwrite', 'task_scheduler',
+                    'tornado', 'wheeler.pygtkhelpers>=0.11.post4']
+
+if platform.system() == 'Windows':
+    install_requires += ['pygtk2-win', 'pycairo-gtk2-win']
+else:
+    install_requires += ['cairo']
+    try:
+        import gtk
+    except ImportError:
+        print >> sys.err, ('Please install Python bindings for Gtk 2 using '
+                           'your systems package manager.')
 
 
 setup(name='microdrop',
