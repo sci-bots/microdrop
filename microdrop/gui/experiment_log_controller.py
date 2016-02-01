@@ -160,7 +160,8 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             original_directory.rmtree()
         elif not notebook_directory.isdir():
             # if the notebook directory doesn't exist, copy the skeleton dir
-            notebook_directory.parent.makedirs_p()
+            if notebook_directory.parent:
+                notebook_directory.parent.makedirs_p()
             skeleton_dir = path(pkg_resources.resource_filename('microdrop',
                                                                 'static'))
             skeleton_dir.joinpath('notebooks').copytree(notebook_directory)
