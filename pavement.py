@@ -14,7 +14,7 @@ import version
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'droplet-planning>=0.2', 'flatland-fork', 'geo-util',
-                    'ipython', 'ipython-helpers>=0.4',
+                    'ipython', 'ipython-helpers>=0.4', 'jinja2',
                     'microdrop-device-converter>=0.1.post4',
                     'microdrop_utility>=0.4', 'networkx', 'pandas',
                     'path-helpers>=0.2', 'paver>=1.2.4', 'pip-helpers>=0.5',
