@@ -433,7 +433,10 @@ Would you like to download the latest version in your browser?''' %
             if service.update_all_plugins(force=force):
                 logger.warning('Plugins have been updated.  The application '
                                'must be restarted.')
-                raise SystemExit, 'Closing app after plugins auto-upgrade'
+                if self.main_window_controller is not None:
+                    self.main_window_controller.on_destroy(None)
+                else:
+                    raise SystemExit, 'Closing app after plugins auto-upgrade'
             else:
                 logger.info('No plugins have been updated')
 
