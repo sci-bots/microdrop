@@ -351,9 +351,8 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
 
         # Only save the current log if it is not empty (i.e., it contains at
         # least one step).
-        if app.experiment_log and len([x for x in
-                                       app.experiment_log.get('step')
-                                       if x is not None]):
+        if (hasattr(app, 'experiment_log') and app.experiment_log and
+                [x for x in app.experiment_log.get('step') if x is not None]):
             data = {'software version': app.version}
             data['device name'] = app.dmf_device.name
             data['protocol name'] = app.protocol.name
