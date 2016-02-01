@@ -110,7 +110,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
             original_directory.rmtree()
         elif not device_directory.isdir():
             # if the device directory doesn't exist, copy the skeleton dir
-            device_directory.parent.makedirs_p()
+            if device_directory.parent:
+                device_directory.parent.makedirs_p()
             base_path().joinpath('devices').copytree(device_directory)
         self.previous_device_dir = device_directory
         return True
