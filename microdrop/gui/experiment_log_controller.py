@@ -350,14 +350,14 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
 
         # Only save the current log if it is not empty (i.e., it contains at
         # least one step).
-        if app.experiment_log and len([x for x in
-                                       app.experiment_log.get('step')
-                                       if x is not None]):
-            data = {"software version": app.version}
-            data["device name"] = app.dmf_device.name
-            data["protocol name"] = app.protocol.name
-            data["notes"] = textview_get_text(app.protocol_controller. \
-                builder.get_object("textview_notes"))
+        if all([hasattr(app, 'experiment_log'),
+                app.experiment_log is not None,
+                [x for x in app.experiment_log.get('step') if x is not None]]):
+            data = {'software version': app.version}
+            data['device name'] = app.dmf_device.name
+            data['protocol name'] = app.protocol.name
+            data['notes'] = textview_get_text(app.protocol_controller.builder
+                                              .get_object('textview_notes'))
             plugin_versions = {}
             for name in get_service_names(env='microdrop.managed'):
                 service = get_service_instance_by_name(name)
