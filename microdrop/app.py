@@ -221,7 +221,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             post_install_queue = map(path, post_install_queue)
 
             logger.info('[App] processing post install hooks.')
-            for p in post_install_queue:
+            for p in post_install_queue[:]:
                 try:
                     info = get_plugin_info(p)
                     logger.info("  running post install hook for %s" %
@@ -241,7 +241,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             requested_deletions = map(path, requested_deletions)
 
             logger.info('[App] processing requested deletions.')
-            for p in requested_deletions:
+            for p in requested_deletions[:]:
                 try:
                     if p != p.abspath():
                         logger.info('    (warning) ignoring path %s since it '\
