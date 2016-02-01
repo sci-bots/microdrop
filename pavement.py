@@ -25,7 +25,8 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'zmq-plugin>=0.1.post10']
 
 if platform.system() == 'Windows':
-    install_requires += ['pycairo-gtk2-win', 'pygtk2-win', 'pywin32']
+    install_requires += ['matplotlib>=1.5.0', 'pycairo-gtk2-win', 'pygtk2-win',
+                         'pywin32']
 else:
     install_requires += ['cairo']
     try:
