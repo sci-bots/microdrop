@@ -3,35 +3,45 @@ MicroDrop
 
 Microdrop is a graphical user interface for the [DropBot][1] digital
 microfluidics control system (described in detail in [Fobel et al., Appl. Phys.
-Lett. 102, 193513 (2013)][2]). If you use this information in work that you
-publish, please cite as appropriate.
+Lett. 102, 193513 (2013)][2]).
 
+If you use this information in work that you publish, please cite as
+appropriate.
 
-Binary package dependencies
-===========================
+Installation
+============
 
-In addition to the package dependencies listed in `setup.py`, the MicroDrop
-application requires the following Python packages to be installed:
+ 1. Update `pip`:
 
- - `matplotlib`: Used to plot feedback results, etc.
- - `pygst`: Used for video-processing in the device view.
- - `pygtk`: [GTK][3] bindings for user-interface.
- - `pyopencv`: Used to transform incoming video feed to register the device in
-   the device view to the overlay perspective.
- - `pymunk==2.1.0` _(*not* the latest)_: Used for detecting the electrode
-   corresponding to each click on the device view
-   _(i.e., [collision detection][4])_.
+        pip install -U pip
 
-Note that these packages contain binary components that typically prevent them
-from being installed using `easy_install` or `pip` without taking special care
-to configure the appropriate build environment.  However, there are pre-built
-binary packages available for both Windows and Linux, if you search for them.
+ 2. Install microdrop (find latest version number on [PyPi][3], e.g.,
+    `"microdrop>=2.0.post14.dev250849665"`):
+
+        pip install --find-links http://192.99.4.95/wheels --trusted-host 192.99.4.95 <latest version number from PyPi>
+
+ 3. Create new settings directory with batch file launcher:
+
+        python -m microdrop.bin.create_portable_config <microdrop settings directory>
+
+ 4. Launch MicroDrop:
+
+        <microdrop settings directory>\microdrop.bat
+
+ 5. Install plugins:
+
+     ![Install MicroDrop plugins][install-plugins]
+
+ 6. Relaunch MicroDrop:
+
+        <microdrop settings directory>\microdrop.bat
 
 
 [1]: http://microfluidics.utoronto.ca/microdrop
 [2]: http://dx.doi.org/10.1063/1.4807118
-[3]: http://www.pygtk.org/
-[4]: http://chipmunk-physics.net/release/ChipmunkLatest-Docs/#CollisionDetection
+[3]: https://pypi.python.org/pypi/microdrop
+
+[install-plugins]: microdrop/static/images/plugins-install.gif
 
 
 Credits
