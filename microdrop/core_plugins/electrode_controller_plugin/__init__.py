@@ -32,6 +32,22 @@ from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
 
 logger = logging.getLogger(__name__)
 
+def drop_duplicates_by_index(series):
+    '''
+    Drop all but first entry for each set of entries with the same index value.
+
+    Args:
+
+        series (pandas.Series) : Input series.
+
+    Returns:
+
+        (pandas.Series) : Input series with *first* value in `series` for each
+            *distinct* index value (i.e., duplicate entries dropped for same
+            index value).
+    '''
+    return series[~series.index.duplicated()]
+
 
 class ElectrodeControllerZmqPlugin(ZmqPlugin):
     '''
@@ -71,9 +87,23 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
 
         electrode_channels = (app.dmf_device.actuated_channels(electrode_states
                                                                .index))
-        channel_states = pd.Series(electrode_states.values,
-                                   index=electrode_channels)
-        return {'electrode_states': electrode_states,
+
+        # Each channel should be represented *at most* once in
+        # `channel_states`.
+        # Duplicate entries may result from multiple electrodes mapped to the
+        # same channel or vice versa.
+        channel_states = \
+            drop_duplicates_by_index(pd.Series(electrode_states.values,
+                                               index=electrode_channels))
+        channel_electrodes = (app.dmf_device.electrodes_by_channel
+                              .ix[channel_states.index])
+        electrode_states = pd.Series(channel_states
+                                     .ix[channel_electrodes.index].values,
+                                     index=channel_electrodes.values)
+
+        # Each electrode should be represented *at most* once in
+        # `electrode_states`.
+        return {'electrode_states': drop_duplicates_by_index(electrode_states),
                 'channel_states': channel_states}
 
     def get_channel_states(self):
@@ -116,8 +146,10 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
         '''
         app = get_app()
 
+        result = self.get_state(electrode_states)
+
         # Set the state of DMF device channels.
-        self.electrode_states = (electrode_states
+        self.electrode_states = (result['electrode_states']
                                  .combine_first(self.electrode_states))
 
         if save:
@@ -127,7 +159,6 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
                             interface=IPlugin)
             gtk.idle_add(notify, app.protocol.current_step_number)
 
-        result = self.get_state(electrode_states)
         result['actuated_area'] = self.get_actuated_area(self.electrode_states)
         return result
 
