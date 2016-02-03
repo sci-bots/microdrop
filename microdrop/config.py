@@ -84,7 +84,7 @@ class Config(object):
             raise IOError
         else:
             self.filename = filename
-            logger.info("Loading config file from %s" % self.filename)
+        logger.info("Loading config file from %s" % self.filename)
         self.data = ConfigObj(self.filename, configspec=self.spec.split("\n"))
         self._validate()
 
