@@ -28,6 +28,7 @@ setup.py
 paver-minilib.zip
 *.egg-info/
 microdrop/requirements.txt
+.idea/
 
 # Back-up files.
 *~
