@@ -84,6 +84,10 @@ class DmfDevice(object):
                                                self.shape_i_columns)
 
         self.df_electrode_channels = self.get_electrode_channels()
+        self.electrodes_by_channel = (self.df_electrode_channels
+                                      .set_index('channel')['electrode_id'])
+        self.channels_by_electrode = (self.df_electrode_channels
+                                      .set_index('electrode_id')['channel'])
         self.electrode_areas = self.get_electrode_areas()
 
         self.graph = nx.Graph()
@@ -273,8 +277,7 @@ class DmfDevice(object):
             (pandas.Series) : Actuated electrode identifiers, indexed by
                 channel index.
         '''
-        return (self.df_electrode_channels.set_index('channel')
-                ['electrode_id'].ix[actuated_channels_index])
+        return self.electrodes_by_channel.ix[actuated_channels_index]
 
     def actuated_channels(self, actuated_electrodes_index):
         '''
@@ -289,8 +292,7 @@ class DmfDevice(object):
                 electrode identifier.
         '''
         # Get `pd.Series` of channels corresponding to electrodes.
-        return (self.df_electrode_channels.set_index('electrode_id')
-                .channel).ix[actuated_electrodes_index]
+        return self.channels_by_electrode.ix[actuated_electrodes_index]
 
     def find_path(self, source_id, target_id):
         '''
