@@ -93,7 +93,7 @@ def readGitVersion():
         version = '%s.post%d' % (
             m.group('ver'), commits)
 
-    if branch.strip() != 'master':
+    if branch.strip() != 'master' and not branch.startswith('release'): 
         version += '.dev%d' % int(m.group('sha'), 16)
 
     return version
