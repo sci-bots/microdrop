@@ -87,7 +87,9 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     def _populate_app_fields(self):
         with WindowServiceProxy(59000) as w:
-            self.video_mode_map = w.get_video_mode_map()
+            self.video_mode_map = {k.encode('ascii', 'ignore'): v
+                                   for (k, v) in
+                                   w.get_video_mode_map().iteritems()}
             if self.video_mode_map:
                 self._video_available = True
             else:
