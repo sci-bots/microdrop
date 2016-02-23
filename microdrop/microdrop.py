@@ -23,6 +23,7 @@ import platform
 
 import gtk
 
+
 if platform.system() == 'Windows':
     # When loading Portable Microdrop on Windows 8.1, the following error
     # occurs when trying to import `win32com`, etc.:
@@ -65,4 +66,7 @@ def main():
 
 
 if __name__ == "__main__":
+    import matplotlib
+    matplotlib.use('Agg')
+
     main()
