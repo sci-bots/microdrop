@@ -89,6 +89,11 @@ class DmfDevice(object):
         self.channels_by_electrode = (self.df_electrode_channels
                                       .set_index('electrode_id')['channel'])
         self.electrode_areas = self.get_electrode_areas()
+        self.channel_areas = pd.Series([self.electrode_areas
+                                        [self.electrodes_by_channel.ix[c]]
+                                        .sum() for c in
+                                        self.electrodes_by_channel.index],
+                                       index=self.electrodes_by_channel.index)
 
         self.graph = nx.Graph()
         for index, row in self.df_shape_connections.iterrows():
