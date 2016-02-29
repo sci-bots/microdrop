@@ -20,8 +20,9 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'path-helpers>=0.2', 'paver>=1.2.4', 'pip-helpers>=0.5',
                     'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'run-exe>=0.5',
-                    'si-prefix', 'scipy', 'svgwrite', 'task_scheduler',
-                    'tornado', 'wheeler.pygtkhelpers>=0.11.post4',
+                    'si-prefix', 'scipy', 'svgwrite', 'svg-model>=0.5.post21',
+                    'task_scheduler', 'tornado',
+                    'wheeler.pygtkhelpers>=0.12.post6',
                     'zmq-plugin>=0.1.post10']
 
 if platform.system() == 'Windows':
