@@ -89,6 +89,9 @@ class ExperimentLog():
                                      "plugin: %s. %s." % (plugin_name, e))
         logger.debug("[ExperimentLog].load() loaded in %f s." % \
                      (time.time()-start_time))
+
+        # update the directory which allows log files to be moved
+        out.directory = out.filename.parent.parent
         return out
 
     def __init__(self, directory=None):
