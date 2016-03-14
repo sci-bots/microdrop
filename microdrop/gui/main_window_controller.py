@@ -1,5 +1,5 @@
 """
-Copyright 2011 Ryan Fobel
+Copyright 2011-2016 Ryan Fobel and Christian Fobel
 
 This file is part of Microdrop.
 
@@ -72,10 +72,34 @@ class MainWindowController(SingletonPlugin):
         self.text_input_dialog.textentry = builder.get_object("textentry")
         self.text_input_dialog.label = builder.get_object("label")
 
+    def enable_keyboard_shortcuts(self):
+        for group_i in self.accel_groups:
+            self.view.add_accel_group(group_i)
+
+    def disable_keyboard_shortcuts(self):
+        for group_i in self.accel_groups:
+            self.view.remove_accel_group(group_i, cached=True)
+
     def on_plugin_enable(self):
         app = get_app()
         app.builder.add_from_file(self.builder_path)
         self.view = app.builder.get_object("window")
+
+        self.view._add_accel_group = self.view.add_accel_group
+        def add_accel_group(accel_group):
+            self.view._add_accel_group(accel_group)
+            if not hasattr(self, 'accel_groups'):
+                self.accel_groups = set()
+            self.accel_groups.add(accel_group)
+        self.view.add_accel_group = add_accel_group
+
+        self.view._remove_accel_group = self.view.remove_accel_group
+        def remove_accel_group(accel_group, cached=True):
+            self.view._remove_accel_group(accel_group)
+            if not cached and hasattr(self, 'accel_groups'):
+                self.accel_groups.remove(accel_group)
+        self.view.remove_accel_group = remove_accel_group
+
         self.view.set_icon_from_file(
             pkg_resources.resource_filename('microdrop', 'microdrop.ico'))
         DEFAULTS.parent_widget = self.view
