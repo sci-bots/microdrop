@@ -1,5 +1,5 @@
 """
-Copyright 2011 Ryan Fobel
+Copyright 2011-2016 Ryan Fobel and Christian Fobel
 
 This file is part of Microdrop.
 
@@ -23,7 +23,7 @@ from copy import deepcopy
 import gtk
 from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
                                                         CombinedRow, RowFields)
-from microdrop_utility.gui import register_shortcuts
+from microdrop_utility.gui import register_shortcuts, get_accel_group
 
 from microdrop.plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                                       implements, PluginGlobals,
@@ -253,13 +253,32 @@ class ProtocolGridController(SingletonPlugin):
             self.window.remove(self.widget)
             del self.widget
         self.widget = combined_fields
+        app = get_app()
         if self.widget:
             self.widget.show_all()
             self.widget.select_row(app.protocol.current_step_number)
-            self._register_shortcuts()
             self.window.add(self.widget)
+            self.accel_group = self._create_accel_group(app
+                                                        .main_window_controller
+                                                        .view)
+            app.main_window_controller.view.add_accel_group(self.accel_group)
+        else:
+            self.accel_group = None
 
-    def _register_shortcuts(self):
+        # Disable keyboard shortcuts when a cell edit has started.  Without
+        # doing so, certain keys may not behave as expected in edit mode.  For
+        # example, see [`step_label_plugin`][1].
+        #
+        # [1]: https://github.com/wheeler-microfluidics/step_label_plugin/issues/1
+        self.widget.connect('editing-started', lambda *args:
+                            app.main_window_controller
+                            .disable_keyboard_shortcuts())
+        # Re-enable keyboard shortcuts when a cell edit has completed.
+        self.widget.connect('editing-done', lambda *args:
+                            app.main_window_controller
+                            .enable_keyboard_shortcuts())
+
+    def _create_accel_group(self, widget):
         class FocusWrapper(object):
             '''
             This class allows for a function to be executed, restoring the
@@ -275,8 +294,6 @@ class ProtocolGridController(SingletonPlugin):
                 if focused:
                     self.controller.widget.grab_focus()
 
-        app = get_app()
-        view = app.main_window_controller.view
         shortcuts = {
             '<Control>c': self.widget.copy_rows,
             '<Control>x': FocusWrapper(self, self.widget.cut_rows),
@@ -286,7 +303,8 @@ class ProtocolGridController(SingletonPlugin):
                                               self.widget.paste_rows_before),
             '<Control><Shift>i': FocusWrapper(self, lambda:
                                               app.protocol.insert_step())}
-        register_shortcuts(view, shortcuts, enabled_widgets=[self.widget])
+        return get_accel_group(widget, shortcuts,
+                               enabled_widgets=[self.widget])
 
     def get_schedule_requests(self, function_name):
         """
