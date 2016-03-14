@@ -14,13 +14,13 @@ import version
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'flatland-fork', 'geo-util', 'ipython',
-                    'ipython-helpers>=0.4', 'microdrop_utility>=0.4',
+                    'ipython-helpers>=0.4', 'microdrop_utility>=0.4.post2',
                     'networkx', 'pandas', 'path-helpers>=0.2', 'paver>=1.2.4',
                     'pip-helpers>=0.5', 'pygst-utils>=0.3.post3',
                     'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib==3.9.2706', 'pyyaml', 'pyzmq', 'run-exe>=0.5',
                     'si-prefix', 'scipy', 'svgwrite', 'task_scheduler',
-                    'tornado', 'wheeler.pygtkhelpers>=0.11.post4']
+                    'tornado', 'wheeler.pygtkhelpers>=0.12.post7']
 
 if platform.system() == 'Windows':
     install_requires += ['matplotlib>=1.5.0', 'pycairo-gtk2-win', 'pygtk2-win',
@@ -30,8 +30,8 @@ else:
     try:
         import gtk
     except ImportError:
-        print >> sys.err, ('Please install Python bindings for Gtk 2 using '
-                           'your systems package manager.')
+        print >> sys.err, ("Please install Python bindings for Gtk 2 using "
+                           "your system's package manager.")
 
 
 setup(name='microdrop',
@@ -40,7 +40,7 @@ setup(name='microdrop',
                   'Digital Microfluidics control system',
       keywords='digital microfluidics dmf automation dropbot microdrop',
       author='Ryan Fobel and Christian Fobel',
-      author_email='ryan@fobel.net, christian@fobel.net',
+      author_email='ryan@fobel.net and christian@fobel.net',
       url='http://microfluidics.utoronto.ca/microdrop',
       license='GPL',
       long_description='\n%s\n' % open('README.md', 'rt').read(),
