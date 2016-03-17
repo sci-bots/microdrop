@@ -15,6 +15,7 @@ import version
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'droplet-planning>=0.2', 'flatland-fork', 'geo-util',
                     'ipython', 'ipython-helpers>=0.4', 'jinja2',
+                    'matplotlib>=1.5.0',
                     'microdrop-device-converter>=0.1.post4',
                     'microdrop_utility>=0.4.post2', 'networkx',
                     'pandas>=0.17.1', 'path-helpers>=0.2', 'paver>=1.2.4',
@@ -27,8 +28,7 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'zmq-plugin>=0.1.post10']
 
 if platform.system() == 'Windows':
-    install_requires += ['matplotlib>=1.5.0', 'pycairo-gtk2-win', 'pygtk2-win',
-                         'pywin32']
+    install_requires += ['pycairo-gtk2-win', 'pywin32']
 else:
     install_requires += ['cairo']
     try:
