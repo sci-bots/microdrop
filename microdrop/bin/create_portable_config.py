@@ -18,8 +18,12 @@ data_dir = .
 '''
 
 launcher_template = '''
-cd {{ working_dir }}
-{{ py_exe }} -m microdrop.microdrop -c {{ config_path }}
+REM Change into [parent directory of batch file][1].
+REM
+REM [1]: http://stackoverflow.com/questions/16623780/how-to-get-windows-batchs-parent-folder
+cd %~dp0
+REM Launch Microdrop
+{{ py_exe }} -m microdrop.microdrop -c %~dp0microdrop.ini
 '''
 
 
