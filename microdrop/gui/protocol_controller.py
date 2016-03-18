@@ -480,7 +480,7 @@ Protocol is version %s, but only up to version %s is supported with this version
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
 
-        # check retern value
+        # check return value
         if return_value=='Fail':
             self.pause_protocol()
             logger.error("Protocol failed.")
