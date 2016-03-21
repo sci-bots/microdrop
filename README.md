@@ -15,10 +15,9 @@ Installation
 
         pip install -U pip
 
- 2. Install microdrop (find latest version number on [PyPi][3], e.g.,
-    `"microdrop>=2.0.post14.dev250849665"`):
+ 2. Install microdrop:
 
-        pip install --find-links http://192.99.4.95/wheels --trusted-host 192.99.4.95 <latest version number from PyPi>
+        pip install --find-links http://192.99.4.95/wheels --trusted-host 192.99.4.95 microdrop
 
  3. Create new settings directory with batch file launcher:
 
