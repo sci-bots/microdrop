@@ -16,16 +16,16 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+from datetime import datetime
 import pdb
-import os
-import webbrowser
 import pkg_resources
+import webbrowser
 
-import gtk
 from pygtkhelpers.proxy import proxy_for
 from microdrop_utility import wrap_string
 from microdrop_utility.gui import DEFAULTS
+import gobject
+import gtk
 try:
     import pudb
     PUDB_AVAILABLE = True
@@ -64,6 +64,8 @@ class MainWindowController(SingletonPlugin):
         self.checkbutton_realtime_mode = None
         self.menu_tools = None
         self.menu_view = None
+        self.step_start_time = None
+        self.step_timeout_id = None
         gtk.link_button_set_uri_hook(self.on_url_clicked)
 
         builder = gtk.Builder()
@@ -104,14 +106,13 @@ class MainWindowController(SingletonPlugin):
         self.view.set_icon_from_file(
             pkg_resources.resource_filename('microdrop', 'microdrop.ico'))
         DEFAULTS.parent_widget = self.view
-        self.label_control_board_status = app.builder.get_object("label_control_board_status")
-        self.label_experiment_id = app.builder.get_object("label_experiment_id")
-        self.label_device_name = app.builder.get_object("label_device_name")
-        self.label_protocol_name = app.builder.get_object("label_protocol_name")
-        self.checkbutton_realtime_mode = app.builder.get_object("checkbutton_realtime_mode")
-        self.menu_tools = app.builder.get_object("menu_tools")
-        self.menu_view = app.builder.get_object("menu_view")
-        self.menu_experiment_logs = app.builder.get_object("menu_experiment_logs")
+
+        for widget_name in ('checkbutton_realtime_mode',
+                            'label_control_board_status', 'label_device_name',
+                            'label_experiment_id', 'label_protocol_name',
+                            'label_protocol_name', 'label_step_time',
+                            'menu_experiment_logs', 'menu_tools', 'menu_view'):
+            setattr(self, widget_name, app.builder.get_object(widget_name))
 
         app.signals["on_menu_quit_activate"] = self.on_destroy
         app.signals["on_menu_about_activate"] = self.on_about
@@ -364,5 +365,41 @@ class MainWindowController(SingletonPlugin):
             return [ScheduleRequest('microdrop.app', self.name)]
         return []
 
+    def on_protocol_pause(self):
+        '''
+         - Store start time of step.
+         - Start periodic timer to update the step time label.
+        '''
+        self.reset_step_timeout()
+
+    def on_step_run(self):
+        '''
+         - Store start time of step.
+         - Start periodic timer to update the step time label.
+        '''
+        self.step_start_time = datetime.utcnow()
+
+        def update_time_label():
+            app = get_app()
+            if not app.running:
+                self.reset_step_timeout()
+                return False
+            elapsed_time = datetime.utcnow() - self.step_start_time
+            self.label_step_time.set_text(str(elapsed_time).split('.')[0])
+            return True
+
+        self.reset_step_timeout()
+        # Update step time label once per second.
+        self.step_timeout_id = gtk.timeout_add(1000, update_time_label)
+        emit_signal('on_step_complete', [self.name, None])
+
+    def on_step_complete(self, plugin_name, return_value=None):
+        if plugin_name == self.name:
+            self.timeout_id = None
+
+    def reset_step_timeout(self):
+        if self.step_timeout_id is not None:
+            gobject.source_remove(self.step_timeout_id)
+        self.label_step_time.set_text('-')
 
 PluginGlobals.pop_env()
