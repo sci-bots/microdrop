@@ -219,3 +219,13 @@ class ExperimentLog():
             if is_int(i):
                 if int(i) >= self.experiment_id:
                     self.experiment_id = int(i) + 1
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest
+        instances) for the function specified by function_name.
+        """
+        if function_name == 'on_plugin_enable':
+            return [ScheduleRequest('microdrop.gui.main_window_controller',
+                                    self.name)]
+        return []

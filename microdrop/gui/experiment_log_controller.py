@@ -173,6 +173,9 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
         super(ExperimentLogController, self).on_plugin_enable()
         app = get_app()
         app.experiment_log_controller = self
+        self.menu_new_experiment = app.builder.get_object('menu_new_experiment')
+        app.signals["on_menu_new_experiment_activate"] = self.on_new_experiment
+        self.menu_new_experiment.set_sensitive(False)
         self.window.set_title("Experiment logs")
         self.builder.connect_signals(self)
 
@@ -217,7 +220,7 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
                                         DmfDevice.load(dmf_device,
                                                        name=dmf_device.parent
                                                        .name))
-            #self.builder.get_object("button_load_device").set_sensitive(True)
+            self.builder.get_object("button_load_device").set_sensitive(True)
             self.builder.get_object("button_load_protocol").set_sensitive(True)
             self.builder.get_object("textview_notes").set_sensitive(True)
 
@@ -381,6 +384,10 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             experiment_log = ExperimentLog(app.experiment_log.directory)
             emit_signal('on_experiment_log_changed', experiment_log)
 
+            # disable new experiment menu until a step has been run (i.e., until
+            # we have some data in the log)
+            self.menu_new_experiment.set_sensitive(False)
+
     def get_selected_data(self):
         selection = self.protocol_view.get_selection().get_selected_rows()
         selected_data = []
@@ -397,6 +404,10 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
     def on_window_delete_event(self, widget, data=None):
         self.window.hide()
         return True
+
+    def on_new_experiment(self, widget, data=None):
+        logger.info('New experiment clicked')
+        self.save()
 
     def on_combobox_log_files_changed(self, widget, data=None):
         if self.notebook_manager_view is not None:
@@ -432,8 +443,11 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
                                 'data')
         self.results.log.save(filename)
 
-    def on_protocol_run(self):
-        self.save()
+    def on_step_run(self):
+        app = get_app()
+        if app.running or app.realtime_mode:
+            emit_signal('on_step_complete', [self.name, None])
+            self.menu_new_experiment.set_sensitive(True)
 
     def on_app_exit(self):
         self.save()
@@ -442,7 +456,13 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             self.notebook_manager_view.stop()
 
     def on_protocol_pause(self):
-        self.save()
+        app = get_app()
+
+        # if we're on the last step of the last repetition, start a new
+        # experiment log
+        if ((app.protocol.current_step_number == len(app.protocol) - 1) and
+            (app.protocol.current_repetition == app.protocol.n_repeats - 1)):
+            self.save()
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         app = get_app()
