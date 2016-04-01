@@ -328,8 +328,9 @@ class MainWindowController(SingletonPlugin):
 
     def on_experiment_log_changed(self, experiment_log):
         if experiment_log:
-            self.label_experiment_id.set_text("Experiment: %s" %
-                                              str(experiment_log.experiment_id))
+            self.label_experiment_id.set_text("Experiment: %s (%s)" %
+                                              (str(experiment_log.experiment_id),
+                                              experiment_log.uuid))
 
     def get_device_string(self, device=None):
         if device is None:

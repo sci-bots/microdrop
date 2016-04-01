@@ -25,6 +25,7 @@ except ImportError:
 import time
 from copy import deepcopy
 import logging
+import uuid
 
 from microdrop_utility import is_int, Version, FutureVersionError
 from path_helpers import path
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExperimentLog():
-    class_version = str(Version(0,1,0))
+    class_version = str(Version(0,2,0))
 
     @classmethod
     def load(cls, filename):
@@ -95,7 +96,9 @@ class ExperimentLog():
         self.directory = directory
         self.data = []
         self.version = self.class_version
+        self.uuid = str(uuid.uuid4())
         self._get_next_id()
+        logger.info('[ExperimentLog] new log with id=%s and uuid=%s' % (self.experiment_id, self.uuid))
 
     def _upgrade(self):
         """
@@ -141,6 +144,9 @@ class ExperimentLog():
                     new_data[i][plugin_name] = yaml.dump(plugin_data)
             self.data = new_data
             self.version = str(Version(0,1,0))
+        if version < Version(0,2,0):
+            self.uuid = str(uuid.uuid4())
+            self.version = str(Version(0,2,0))
         # else the versions are equal and don't need to be upgraded
 
     def save(self, filename=None, format='pickle'):

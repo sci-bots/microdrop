@@ -224,6 +224,10 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             self.builder.get_object("button_load_protocol").set_sensitive(True)
             self.builder.get_object("textview_notes").set_sensitive(True)
 
+            label = "UUID: %s" % self.results.log.uuid
+            self.builder.get_object("label_uuid"). \
+                set_text(label)
+
             label = "Software version: "
             data = self.results.log.get("software version")
             for val in data:
