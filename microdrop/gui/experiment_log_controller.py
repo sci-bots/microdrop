@@ -405,7 +405,7 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
         self.window.hide()
         return True
 
-    def on_new_experiment(self, widget, data=None):
+    def on_new_experiment(self, widget=None, data=None):
         logger.info('New experiment clicked')
         self.save()
 
@@ -462,7 +462,10 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
         # experiment log
         if ((app.protocol.current_step_number == len(app.protocol) - 1) and
             (app.protocol.current_repetition == app.protocol.n_repeats - 1)):
-            self.save()
+
+            result = yesno('Experiment complete. Would you like to start a new experiment?')
+            if result == gtk.RESPONSE_YES:
+                self.save()
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         app = get_app()
