@@ -50,7 +50,8 @@ def except_handler(*args, **kwargs):
 def main():
     import logging
 
-    logging.basicConfig(format='[%(levelname)s:%(name)s]: %(message)s',
+    logging.basicConfig(format='%(asctime)s [%(levelname)s:%(name)s]: '
+                        '%(message)s', datefmt=r'%Y-%m-%d %H:%M:%S',
                         level=logging.INFO)
 
     from app import App
