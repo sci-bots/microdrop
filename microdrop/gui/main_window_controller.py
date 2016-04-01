@@ -368,8 +368,7 @@ class MainWindowController(SingletonPlugin):
 
     def on_protocol_pause(self):
         '''
-         - Store start time of step.
-         - Start periodic timer to update the step time label.
+        Reset step timer when protocol is stopped.
         '''
         self.reset_step_timeout()
 
@@ -383,22 +382,24 @@ class MainWindowController(SingletonPlugin):
         def update_time_label():
             app = get_app()
             if not app.running:
+                # Protocol is no longer running.  Stop step timer.
                 self.reset_step_timeout()
                 return False
             elapsed_time = datetime.utcnow() - self.step_start_time
             self.label_step_time.set_text(str(elapsed_time).split('.')[0])
             return True
 
+        # A new step is starting to run.  Reset step timer.
         self.reset_step_timeout()
         # Update step time label once per second.
         self.step_timeout_id = gtk.timeout_add(1000, update_time_label)
         emit_signal('on_step_complete', [self.name, None])
 
-    def on_step_complete(self, plugin_name, return_value=None):
-        if plugin_name == self.name:
-            self.timeout_id = None
-
     def reset_step_timeout(self):
+        '''
+         - Stop periodic callback.
+         - Clear step time label.
+        '''
         if self.step_timeout_id is not None:
             gobject.source_remove(self.step_timeout_id)
         self.label_step_time.set_text('-')

@@ -135,6 +135,8 @@ class ProtocolController(SingletonPlugin):
         self.plugin = None
         self.plugin_timeout_id = None
 
+    ###########################################################################
+    # # Properties #
     @property
     def modified(self):
         return self._modified
@@ -182,12 +184,13 @@ class ProtocolController(SingletonPlugin):
         try:
             p = Protocol.load(filename)
         except FutureVersionError, why:
-            logger.error('''\
-Could not open protocol:
-    %s
+            logger.error('''
+Could not open protocol: %s
+
 It was created with a newer version of the software.
-Protocol is version %s, but only up to version %s is supported with this version of the software.'''\
-            % (filename, why.future_version, why.current_version))
+Protocol is version %s, but only up to version %s is supported with this
+version of the software.'''.strip(), filename, why.future_version,
+                         why.current_version)
         except Exception, why:
             logger.error("Could not open %s. %s", filename, why)
         if p:
