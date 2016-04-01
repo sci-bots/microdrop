@@ -107,7 +107,7 @@ class MainWindowController(SingletonPlugin):
             pkg_resources.resource_filename('microdrop', 'microdrop.ico'))
         DEFAULTS.parent_widget = self.view
 
-        for widget_name in ('checkbutton_realtime_mode',
+        for widget_name in ('box_step', 'checkbutton_realtime_mode',
                             'label_control_board_status', 'label_device_name',
                             'label_experiment_id', 'label_protocol_name',
                             'label_protocol_name', 'label_step_time',
