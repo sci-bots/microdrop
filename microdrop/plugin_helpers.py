@@ -231,6 +231,12 @@ def hub_execute(*args, **kwargs):
                                            env='microdrop')
     try:
         return service.plugin.execute(*args, **kwargs)
+    except RuntimeError, exception:
+        if '**MUST** be a plugin in the local registry' in str(exception):
+            # TODO Add `ZmqPlugin` command to refresh plugin registry.
+            # Try resetting the plugin sockets to refresh the plugin registry.
+            service.plugin.reset()
+            return service.plugin.execute(*args, **kwargs)
     except:
         logger.info('[hub_execute] plugin registry: %s',
                     service.plugin.plugin_registry.keys())
