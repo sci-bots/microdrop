@@ -294,6 +294,7 @@ class ProtocolGridController(SingletonPlugin):
                 if focused:
                     self.controller.widget.grab_focus()
 
+        app = get_app()
         shortcuts = {
             '<Control>c': self.widget.copy_rows,
             '<Control>x': FocusWrapper(self, self.widget.cut_rows),
