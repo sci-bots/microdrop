@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from copy import deepcopy
 try:
     import cPickle as pickle
 except ImportError:
@@ -24,15 +25,11 @@ except ImportError:
 import logging
 import re
 import time
-from StringIO import StringIO
-from contextlib import closing
-from copy import deepcopy
 
-import yaml
 from microdrop_utility import Version, FutureVersionError
+import yaml
 
-from .plugin_manager import (emit_signal, IPlugin, ExtensionPoint,
-                             get_service_names)
+from .plugin_manager import emit_signal, get_service_names
 
 
 logger = logging.getLogger(__name__)
@@ -190,11 +187,11 @@ class Protocol():
 
         # convert plugin data objects to strings
         for k, v in out.plugin_data.items():
-            out.plugin_data[k] = pickle.dumps(v)
+            out.plugin_data[k] = pickle.dumps(v, -1)
 
         for step in out.steps:
             for k, v in step.plugin_data.items():
-                step.plugin_data[k] = pickle.dumps(v)
+                step.plugin_data[k] = pickle.dumps(v, -1)
 
         with open(filename, 'wb') as f:
             if format=='pickle':
