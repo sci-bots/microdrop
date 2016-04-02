@@ -23,7 +23,7 @@ from copy import deepcopy
 import gtk
 from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
                                                         CombinedRow, RowFields)
-from microdrop_utility.gui import register_shortcuts, get_accel_group
+from microdrop_utility.gui import get_accel_group
 
 from microdrop.plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                                       implements, PluginGlobals,
@@ -239,20 +239,48 @@ class ProtocolGridController(SingletonPlugin):
 
         for i, step in enumerate(steps):
             values = emit_signal('get_step_values', [i])
-            logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s',
-                          i, step, values)
+            #logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s',
+                          #i, step, values)
 
             attributes = dict()
             for form_name, form in combined_fields.forms.iteritems():
                 attr_values = values[form_name]
-                logging.debug('[CombinedRow] attr_values=%s' % attr_values)
+                #logging.debug('[CombinedRow] attr_values=%s' % attr_values)
                 attributes[form_name] = RowFields(**attr_values)
-            c = CombinedRow(combined_fields, attributes=attributes)
-            combined_fields.append(c)
+            combined_row = CombinedRow(combined_fields, attributes=attributes)
+            combined_fields.append(combined_row)
         if self.widget:
+            # Replacing a previously rendered widget.  Maintain original column
+            # order.
+
+            # Create a shortcut wrapper to lookup column title from each
+            # `TreeViewColumn`.  Just makes following code more concise.
+            get_title = lambda c: c.get_data('pygtkhelpers::column').title
+
+            # Store the position of each column, keyed by column title.
+            column_positions = dict([(get_title(c), i)
+                                     for i, c in enumerate(self.widget
+                                                           .get_columns())])
+
+            # Remove columns so we can reinsert them in an explicit order.
+            columns = combined_fields.get_columns()
+            for c in columns:
+                combined_fields.remove_column(c)
+
+            # Sort columns according to original order.
+            ordered_column_info = sorted([(column_positions.get(get_title(c),
+                                                                len(columns)),
+                                           get_title(c), c) for c in columns])
+
+            # Re-add columns in order (sorted according to existing column order).
+            for i, title_i, column_i in ordered_column_info:
+                combined_fields.append_column(column_i)
+
+            # Remove existing widget to replace with new widget.
             self.window.remove(self.widget)
             del self.widget
         self.widget = combined_fields
+
         app = get_app()
         if self.widget:
             self.widget.show_all()
