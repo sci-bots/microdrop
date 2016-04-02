@@ -16,19 +16,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-import logging
 from copy import deepcopy
+import json
+import logging
 
-import gtk
+from flatland import Form, String
+from microdrop.app_context import get_app
+from microdrop.plugin_helpers import AppDataController
+from microdrop.plugin_manager import (ExtensionPoint,
+                                      IPlugin, SingletonPlugin, implements,
+                                      PluginGlobals, ScheduleRequest,
+                                      emit_signal)
+from microdrop_utility.gui import get_accel_group
 from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
                                                         CombinedRow, RowFields)
-from microdrop_utility.gui import get_accel_group
-
-from microdrop.plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
-                                      implements, PluginGlobals,
-                                      ScheduleRequest, emit_signal)
-from microdrop.app_context import get_app
+import gtk
 
 
 class ProtocolGridView(CombinedFields):
@@ -154,8 +156,12 @@ class ProtocolGridView(CombinedFields):
 PluginGlobals.push_env('microdrop')
 
 
-class ProtocolGridController(SingletonPlugin):
+class ProtocolGridController(SingletonPlugin, AppDataController):
     implements(IPlugin)
+
+    AppFields = Form.of(String.named('column_positions')
+                        .using(default='{}', optional=True,
+                               properties=dict(show_in_gui=False)))
 
     def __init__(self):
         self.name = "microdrop.gui.protocol_grid_controller"
@@ -180,6 +186,7 @@ class ProtocolGridController(SingletonPlugin):
         self.window = gtk.ScrolledWindow()
         self.window.show_all()
         self.parent.add(self.window)
+        super(ProtocolGridController, self).on_plugin_enable()
 
     def on_plugin_enabled(self, env, plugin):
         self.update_grid()
@@ -249,18 +256,32 @@ class ProtocolGridController(SingletonPlugin):
                 attributes[form_name] = RowFields(**attr_values)
             combined_row = CombinedRow(combined_fields, attributes=attributes)
             combined_fields.append(combined_row)
+
+        # Create a shortcut wrapper to lookup column title from each
+        # `TreeViewColumn`.  Just makes following code more concise.
+        get_title = lambda c: c.get_data('pygtkhelpers::column').title
+
         if self.widget:
             # Replacing a previously rendered widget.  Maintain original column
             # order.
-
-            # Create a shortcut wrapper to lookup column title from each
-            # `TreeViewColumn`.  Just makes following code more concise.
-            get_title = lambda c: c.get_data('pygtkhelpers::column').title
 
             # Store the position of each column, keyed by column title.
             column_positions = dict([(get_title(c), i)
                                      for i, c in enumerate(self.widget
                                                            .get_columns())])
+            # Remove existing widget to replace with new widget.
+            self.window.remove(self.widget)
+            del self.widget
+        else:
+            # No previously rendered widget.  Used saved column positions (if
+            # available).
+            app_values = self.get_app_values()
+            column_positions_json = app_values.get('column_positions', '{}')
+            column_positions = json.loads(column_positions_json)
+
+        if column_positions:
+            # Explicit column positions are available, so reorder columns
+            # accordingly.
 
             # Remove columns so we can reinsert them in an explicit order.
             columns = combined_fields.get_columns()
@@ -276,9 +297,6 @@ class ProtocolGridController(SingletonPlugin):
             for i, title_i, column_i in ordered_column_info:
                 combined_fields.append_column(column_i)
 
-            # Remove existing widget to replace with new widget.
-            self.window.remove(self.widget)
-            del self.widget
         self.widget = combined_fields
 
         app = get_app()
@@ -364,6 +382,17 @@ class ProtocolGridController(SingletonPlugin):
         logging.debug('[ProtocolGridController] on_step_removed[%d]',
                       step_number)
         self.update_grid()
+
+    def on_app_exit(self):
+        # Create a shortcut wrapper to lookup column title from each
+        # `TreeViewColumn`.  Just makes following code more concise.
+        get_title = lambda c: c.get_data('pygtkhelpers::column').title
+
+        # Save column positions on exit.
+        column_positions = dict([(get_title(c), i)
+                                 for i, c in enumerate(self.widget
+                                                       .get_columns())])
+        self.set_app_values({'column_positions': json.dumps(column_positions)})
 
 
 PluginGlobals.pop_env()
