@@ -220,9 +220,9 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
                                         DmfDevice.load(dmf_device,
                                                        name=dmf_device.parent
                                                        .name))
-            self.builder.get_object("button_load_device").set_sensitive(True)
-            self.builder.get_object("button_load_protocol").set_sensitive(True)
-            self.builder.get_object("textview_notes").set_sensitive(True)
+            for element_i in ['button_load_device', 'button_load_protocol',
+                              'button_open', 'textview_notes']:
+                self.builder.get_object(element_i).set_sensitive(True)
 
             label = "UUID: %s" % self.results.log.uuid
             self.builder.get_object("label_uuid"). \
@@ -350,9 +350,9 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             self._disable_gui_elements()
 
     def _disable_gui_elements(self):
-        self.builder.get_object("button_load_device").set_sensitive(False)
-        self.builder.get_object("button_load_protocol").set_sensitive(False)
-        self.builder.get_object("textview_notes").set_sensitive(False)
+        for element_i in ['button_load_device', 'button_load_protocol',
+                          'button_open', 'textview_notes']:
+            self.builder.get_object(element_i).set_sensitive(False)
 
     def save(self):
         app = get_app()
@@ -419,6 +419,15 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             log_root = self.get_selected_log_root()
             self.notebook_manager_view.notebook_dir = log_root
         self.update()
+
+    def on_button_open_clicked(self, widget, data=None):
+        '''
+        Open selected experiment log directory in system file browser.
+        '''
+        app = get_app()
+        log_directory = path(os.path.join(app.experiment_log.directory,
+                                          str(self.results.log.experiment_id)))
+        log_directory.launch()
 
     def on_button_load_device_clicked(self, widget, data=None):
         app = get_app()

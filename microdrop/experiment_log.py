@@ -186,9 +186,9 @@ class ExperimentLog():
         return start_time
 
     def get_log_path(self):
-        log_path = os.path.join(self.directory, str(self.experiment_id))
-        if(os.path.isdir(log_path)==False):
-            os.mkdir(log_path)
+        log_path = path(self.directory).joinpath(str(self.experiment_id))
+        if not log_path.isdir():
+            log_path.makedirs_p()
         return log_path
 
     def add_step(self, step_number, attempt=0):
@@ -226,12 +226,3 @@ class ExperimentLog():
                 if int(i) >= self.experiment_id:
                     self.experiment_id = int(i) + 1
 
-    def get_schedule_requests(self, function_name):
-        """
-        Returns a list of scheduling requests (i.e., ScheduleRequest
-        instances) for the function specified by function_name.
-        """
-        if function_name == 'on_plugin_enable':
-            return [ScheduleRequest('microdrop.gui.main_window_controller',
-                                    self.name)]
-        return []
