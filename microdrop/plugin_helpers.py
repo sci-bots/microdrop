@@ -46,6 +46,8 @@ def get_plugin_info(plugin_root):
 
 
 class AppDataController(object):
+    ###########################################################################
+    # Callback methods
     def on_plugin_enable(self):
         """
         Handler called once the plugin instance has been enabled.
@@ -66,6 +68,8 @@ class AppDataController(object):
         if not self.name in app.config.data:
             app.config.data[self.name] = self.get_app_values()
 
+    ###########################################################################
+    # Accessor methods
     def get_default_app_options(self):
         if self.AppFields:
             return dict([(k, v.value)
@@ -95,6 +99,16 @@ class AppDataController(object):
                                self.AppFields.field_schema_mapping[key]
                                .default)
 
+    @staticmethod
+    def get_plugin_app_values(plugin_name):
+        observers = ExtensionPoint(IPlugin)
+        service = observers.service(plugin_name)
+        if hasattr(service, 'get_app_values'):
+            return service.get_app_values()
+        return None
+
+    ###########################################################################
+    # Mutator methods
     def set_app_values(self, values_dict):
         if not values_dict:
             return
@@ -117,14 +131,6 @@ class AppDataController(object):
         app_data.update(values)
         app.set_data(self.name, app_data)
         emit_signal('on_app_options_changed', [self.name], interface=IPlugin)
-
-    @staticmethod
-    def get_plugin_app_values(plugin_name):
-        observers = ExtensionPoint(IPlugin)
-        service = observers.service(plugin_name)
-        if hasattr(service, 'get_app_values'):
-            return service.get_app_values()
-        return None
 
 
 class StepOptionsController(object):
