@@ -106,6 +106,150 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         self.notebook_manager_view = None
         self.previous_notebook_dir = None
 
+    ###########################################################################
+    # Callback methods
+    def on_app_exit(self):
+        self.save()
+        logger.info('[ExperimentLogController] Killing IPython notebooks')
+        if self.notebook_manager_view is not None:
+            self.notebook_manager_view.stop()
+
+    def on_button_load_device_clicked(self, widget, data=None):
+        app = get_app()
+        filename = path(os.path.join(app.experiment_log.directory,
+                                     str(self.results.log.experiment_id),
+                                     DEVICE_FILENAME))
+        try:
+            app.dmf_device_controller.load_device(filename)
+        except:
+            logger.error("Could not open %s" % filename)
+
+    def on_button_load_protocol_clicked(self, widget, data=None):
+        app = get_app()
+        filename = path(os.path.join(app.experiment_log.directory,
+                                     str(self.results.log.experiment_id),
+                                     'protocol'))
+        app.protocol_controller.load_protocol(filename)
+
+    def on_button_open_clicked(self, widget, data=None):
+        '''
+        Open selected experiment log directory in system file browser.
+        '''
+        app = get_app()
+        log_directory = path(os.path.join(app.experiment_log.directory,
+                                          str(self.results.log.experiment_id)))
+        log_directory.launch()
+
+    def on_combobox_log_files_changed(self, widget, data=None):
+        if self.notebook_manager_view is not None:
+            # Update active notebook directory for notebook_manager_view.
+            log_root = self.get_selected_log_root()
+            self.notebook_manager_view.notebook_dir = log_root
+        self.update()
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        app = get_app()
+        experiment_log = None
+        if dmf_device and dmf_device.name:
+            device_path = os.path.join(app.get_device_directory(),
+                                       dmf_device.name, "logs")
+            experiment_log = ExperimentLog(device_path)
+            emit_signal("on_experiment_log_changed", experiment_log)
+
+    def on_experiment_log_changed(self, experiment_log):
+        log_files = []
+        if experiment_log and path(experiment_log.directory).isdir():
+            for d in path(experiment_log.directory).dirs():
+                f = d / path("data")
+                if f.isfile():
+                    log_files.append(int(d.name))
+            log_files.sort()
+        self.combobox_log_files.clear()
+        combobox_set_model_from_list(self.combobox_log_files, log_files)
+        # changing the combobox log files will force an update
+        if len(log_files):
+            self.combobox_log_files.set_active(len(log_files)-1)
+        if self.notebook_manager_view is not None:
+            # Update active notebook directory for notebook_manager_view.
+            log_root = self.get_selected_log_root()
+            self.notebook_manager_view.notebook_dir = log_root
+
+    def on_new_experiment(self, widget=None, data=None):
+        logger.info('New experiment clicked')
+        self.save()
+
+    def on_plugin_enable(self):
+        super(ExperimentLogController, self).on_plugin_enable()
+        app = get_app()
+        app.experiment_log_controller = self
+        self.menu_new_experiment = app.builder.get_object('menu_new_experiment')
+        app.signals["on_menu_new_experiment_activate"] = self.on_new_experiment
+        self.menu_new_experiment.set_sensitive(False)
+        self.window.set_title("Experiment logs")
+        self.builder.connect_signals(self)
+
+        app_values = self.get_app_values()
+
+        # Create buttons to manage background IPython notebook sessions.
+        # Sessions are killed when microdrop exits.
+        self.notebook_manager_view = NotebookManagerView()
+        self.apply_notebook_dir(app_values['notebook_directory'])
+
+        vbox = self.builder.get_object('vbox1')
+        hbox = gtk.HBox()
+        label = gtk.Label('IPython notebook:')
+        hbox.pack_start(label, False, False)
+        hbox.pack_end(self.notebook_manager_view.widget, False, False)
+        vbox.pack_start(hbox, False, False)
+        vbox.reorder_child(hbox, 1)
+        hbox.show_all()
+
+    def on_protocol_pause(self):
+        app = get_app()
+
+        # if we're on the last step of the last repetition, start a new
+        # experiment log
+        if ((app.protocol.current_step_number == len(app.protocol) - 1) and
+            (app.protocol.current_repetition == app.protocol.n_repeats - 1)):
+
+            result = yesno('Experiment complete. Would you like to start a new experiment?')
+            if result == gtk.RESPONSE_YES:
+                self.save()
+
+    def on_step_run(self):
+        app = get_app()
+        if app.running or app.realtime_mode:
+            emit_signal('on_step_complete', [self.name, None])
+            self.menu_new_experiment.set_sensitive(True)
+
+    def on_textview_notes_focus_out_event(self, widget, data=None):
+        if len(self.results.log.data[0])==0:
+            self.results.log.data.append({})
+        self.results.log.data[-1]['core']['notes'] = \
+            textview_get_text(self.builder.get_object("textview_notes"))
+        filename = os.path.join(self.results.log.directory,
+                                str(self.results.log.experiment_id),
+                                'data')
+        self.results.log.save(filename)
+
+    def on_treeview_protocol_button_press_event(self, widget, event):
+        if event.button == 3:
+            self.popup.popup(event)
+            return True
+
+    def on_treeview_selection_changed(self, widget, data=None):
+        emit_signal("on_experiment_log_selection_changed",
+                    [self.get_selected_data()])
+
+    def on_window_delete_event(self, widget, data=None):
+        self.window.hide()
+        return True
+
+    def on_window_show(self, widget, data=None):
+        self.window.show()
+
+    ###########################################################################
+    # Mutator methods
     def apply_notebook_dir(self, notebook_directory):
         '''
         Set the notebook directory to the specified directory.
@@ -144,10 +288,12 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         if self.previous_notebook_dir:
             notebook_directory.makedirs_p()
             if notebook_directory.listdir():
-                result = yesno('Merge?', '''\
-Target directory [%s] is not empty.  Merge contents with
-current notebooks [%s] (overwriting common paths in the target
-directory)?''' % (notebook_directory, self.previous_notebook_dir))
+                result = yesno('Merge?',
+                               'Target directory [%s] is not empty.  Merge '
+                               'contents with current notebooks [%s] '
+                               '(overwriting common paths in the target '
+                               'directory)?' % (notebook_directory,
+                                                self.previous_notebook_dir))
                 if not result == gtk.RESPONSE_YES:
                     return False
 
@@ -169,41 +315,43 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
         # widget to the notebooks directory.
         self.notebook_manager_view.template_dir = notebook_directory
 
-    def on_plugin_enable(self):
-        super(ExperimentLogController, self).on_plugin_enable()
+    def save(self):
         app = get_app()
-        app.experiment_log_controller = self
-        self.menu_new_experiment = app.builder.get_object('menu_new_experiment')
-        app.signals["on_menu_new_experiment_activate"] = self.on_new_experiment
-        self.menu_new_experiment.set_sensitive(False)
-        self.window.set_title("Experiment logs")
-        self.builder.connect_signals(self)
 
-        app_values = self.get_app_values()
+        # Only save the current log if it is not empty (i.e., it contains at
+        # least one step).
+        if (hasattr(app, 'experiment_log') and app.experiment_log and
+                [x for x in app.experiment_log.get('step') if x is not None]):
+            data = {'software version': app.version}
+            data['device name'] = app.dmf_device.name
+            data['protocol name'] = app.protocol.name
+            data['notes'] = textview_get_text(app.protocol_controller.builder
+                                              .get_object('textview_notes'))
+            plugin_versions = {}
+            for name in get_service_names(env='microdrop.managed'):
+                service = get_service_instance_by_name(name)
+                if service._enable:
+                    plugin_versions[name] = str(service.version)
+            data['plugins'] = plugin_versions
+            app.experiment_log.add_data(data)
+            log_path = app.experiment_log.save()
 
-        # Create buttons to manage background IPython notebook sessions.
-        # Sessions are killed when microdrop exits.
-        self.notebook_manager_view = NotebookManagerView()
-        self.apply_notebook_dir(app_values['notebook_directory'])
+            # Save the protocol to experiment log directory.
+            app.protocol.save(os.path.join(log_path, 'protocol'))
 
-        vbox = self.builder.get_object('vbox1')
-        hbox = gtk.HBox()
-        label = gtk.Label('IPython notebook:')
-        hbox.pack_start(label, False, False)
-        hbox.pack_end(self.notebook_manager_view.widget, False, False)
-        vbox.pack_start(hbox, False, False)
-        vbox.reorder_child(hbox, 1)
-        hbox.show_all()
+            # Convert device to SVG string.
+            svg_unicode = app.dmf_device.to_svg()
+            # Save the device to experiment log directory.
+            with open(os.path.join(log_path, DEVICE_FILENAME), 'wb') as output:
+                output.write(svg_unicode)
 
-    def on_treeview_protocol_button_press_event(self, widget, event):
-        if event.button == 3:
-            self.popup.popup(event)
-            return True
+            # create a new log
+            experiment_log = ExperimentLog(app.experiment_log.directory)
+            emit_signal('on_experiment_log_changed', experiment_log)
 
-    def get_selected_log_root(self):
-        app = get_app()
-        id = combobox_get_active_text(self.combobox_log_files)
-        return path(app.experiment_log.directory) / path(id)
+            # disable new experiment menu until a step has been run (i.e., until
+            # we have some data in the log)
+            self.menu_new_experiment.set_sensitive(False)
 
     def update(self):
         app = get_app()
@@ -220,10 +368,7 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
                                         DmfDevice.load(dmf_device,
                                                        name=dmf_device.parent
                                                        .name))
-            for element_i in ['button_load_device', 'button_load_protocol',
-                              'button_open', 'textview_notes']:
-                self.builder.get_object(element_i).set_sensitive(True)
-
+            self._enable_gui_elements()
             label = "UUID: %s" % self.results.log.uuid
             self.builder.get_object("label_uuid"). \
                 set_text(label)
@@ -349,164 +494,8 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
             logger.info("[ExperimentLogController].update(): %s" % why)
             self._disable_gui_elements()
 
-    def _disable_gui_elements(self):
-        for element_i in ['button_load_device', 'button_load_protocol',
-                          'button_open', 'textview_notes']:
-            self.builder.get_object(element_i).set_sensitive(False)
-
-    def save(self):
-        app = get_app()
-
-        # Only save the current log if it is not empty (i.e., it contains at
-        # least one step).
-        if (hasattr(app, 'experiment_log') and app.experiment_log and
-                [x for x in app.experiment_log.get('step') if x is not None]):
-            data = {'software version': app.version}
-            data['device name'] = app.dmf_device.name
-            data['protocol name'] = app.protocol.name
-            data['notes'] = textview_get_text(app.protocol_controller.builder
-                                              .get_object('textview_notes'))
-            plugin_versions = {}
-            for name in get_service_names(env='microdrop.managed'):
-                service = get_service_instance_by_name(name)
-                if service._enable:
-                    plugin_versions[name] = str(service.version)
-            data['plugins'] = plugin_versions
-            app.experiment_log.add_data(data)
-            log_path = app.experiment_log.save()
-
-            # Save the protocol to experiment log directory.
-            app.protocol.save(os.path.join(log_path, 'protocol'))
-
-            # Convert device to SVG string.
-            svg_unicode = app.dmf_device.to_svg()
-            # Save the device to experiment log directory.
-            with open(os.path.join(log_path, DEVICE_FILENAME), 'wb') as output:
-                output.write(svg_unicode)
-
-            # create a new log
-            experiment_log = ExperimentLog(app.experiment_log.directory)
-            emit_signal('on_experiment_log_changed', experiment_log)
-
-            # disable new experiment menu until a step has been run (i.e., until
-            # we have some data in the log)
-            self.menu_new_experiment.set_sensitive(False)
-
-    def get_selected_data(self):
-        selection = self.protocol_view.get_selection().get_selected_rows()
-        selected_data = []
-        for row in selection[1]:
-            for d in self.results.log.data:
-                if 'time' in d['core'].keys():
-                    if d['core']['time']==selection[0][row][0]:
-                        selected_data.append(d)
-        return selected_data
-
-    def on_window_show(self, widget, data=None):
-        self.window.show()
-
-    def on_window_delete_event(self, widget, data=None):
-        self.window.hide()
-        return True
-
-    def on_new_experiment(self, widget=None, data=None):
-        logger.info('New experiment clicked')
-        self.save()
-
-    def on_combobox_log_files_changed(self, widget, data=None):
-        if self.notebook_manager_view is not None:
-            # Update active notebook directory for notebook_manager_view.
-            log_root = self.get_selected_log_root()
-            self.notebook_manager_view.notebook_dir = log_root
-        self.update()
-
-    def on_button_open_clicked(self, widget, data=None):
-        '''
-        Open selected experiment log directory in system file browser.
-        '''
-        app = get_app()
-        log_directory = path(os.path.join(app.experiment_log.directory,
-                                          str(self.results.log.experiment_id)))
-        log_directory.launch()
-
-    def on_button_load_device_clicked(self, widget, data=None):
-        app = get_app()
-        filename = path(os.path.join(app.experiment_log.directory,
-                                     str(self.results.log.experiment_id),
-                                     DEVICE_FILENAME))
-        try:
-            app.dmf_device_controller.load_device(filename)
-        except:
-            logger.error("Could not open %s" % filename)
-
-    def on_button_load_protocol_clicked(self, widget, data=None):
-        app = get_app()
-        filename = path(os.path.join(app.experiment_log.directory,
-                                     str(self.results.log.experiment_id),
-                                     'protocol'))
-        app.protocol_controller.load_protocol(filename)
-
-    def on_textview_notes_focus_out_event(self, widget, data=None):
-        if len(self.results.log.data[0])==0:
-            self.results.log.data.append({})
-        self.results.log.data[-1]['core']['notes'] = \
-            textview_get_text(self.builder.get_object("textview_notes"))
-        filename = os.path.join(self.results.log.directory,
-                                str(self.results.log.experiment_id),
-                                'data')
-        self.results.log.save(filename)
-
-    def on_step_run(self):
-        app = get_app()
-        if app.running or app.realtime_mode:
-            emit_signal('on_step_complete', [self.name, None])
-            self.menu_new_experiment.set_sensitive(True)
-
-    def on_app_exit(self):
-        self.save()
-        logger.info('[ExperimentLogController] Killing IPython notebooks')
-        if self.notebook_manager_view is not None:
-            self.notebook_manager_view.stop()
-
-    def on_protocol_pause(self):
-        app = get_app()
-
-        # if we're on the last step of the last repetition, start a new
-        # experiment log
-        if ((app.protocol.current_step_number == len(app.protocol) - 1) and
-            (app.protocol.current_repetition == app.protocol.n_repeats - 1)):
-
-            result = yesno('Experiment complete. Would you like to start a new experiment?')
-            if result == gtk.RESPONSE_YES:
-                self.save()
-
-    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        app = get_app()
-        experiment_log = None
-        if dmf_device and dmf_device.name:
-            device_path = os.path.join(app.get_device_directory(),
-                                       dmf_device.name, "logs")
-            experiment_log = ExperimentLog(device_path)
-        emit_signal("on_experiment_log_changed", experiment_log)
-
-    def on_experiment_log_changed(self, experiment_log):
-        log_files = []
-        if experiment_log and path(experiment_log.directory).isdir():
-            for d in path(experiment_log.directory).dirs():
-                f = d / path("data")
-                if f.isfile():
-                    log_files.append(int(d.name))
-            log_files.sort()
-        self.combobox_log_files.clear()
-        combobox_set_model_from_list(self.combobox_log_files, log_files)
-        # changing the combobox log files will force an update
-        if len(log_files):
-            self.combobox_log_files.set_active(len(log_files)-1)
-        if self.notebook_manager_view is not None:
-            # Update active notebook directory for notebook_manager_view.
-            log_root = self.get_selected_log_root()
-            self.notebook_manager_view.notebook_dir = log_root
-
+    ###########################################################################
+    # Accessor methods
     def get_schedule_requests(self, function_name):
         """
         Returns a list of scheduling requests (i.e., ScheduleRequest
@@ -525,13 +514,23 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
                                     self.name)]
         return []
 
-    def on_treeview_selection_changed(self, widget, data=None):
-        emit_signal("on_experiment_log_selection_changed", [self.get_selected_data()])
+    def get_selected_log_root(self):
+        app = get_app()
+        id = combobox_get_active_text(self.combobox_log_files)
+        return path(app.experiment_log.directory) / path(id)
 
-    def _clear_list_columns(self):
-        while len(self.protocol_view.get_columns()):
-            self.protocol_view.remove_column(self.protocol_view.get_column(0))
+    def get_selected_data(self):
+        selection = self.protocol_view.get_selection().get_selected_rows()
+        selected_data = []
+        for row in selection[1]:
+            for d in self.results.log.data:
+                if 'time' in d['core'].keys():
+                    if d['core']['time']==selection[0][row][0]:
+                        selected_data.append(d)
+        return selected_data
 
+    ###########################################################################
+    # Private methods
     def _add_list_column(self, title, columnId, format_string=None):
         """
         This function adds a column to the list view.
@@ -551,6 +550,20 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
     def _cell_renderer_format(self, column, cell, model, iter, format_string):
         val = model.get_value(iter, column.get_sort_column_id())
         cell.set_property('text', format_string % val)
+
+    def _clear_list_columns(self):
+        while len(self.protocol_view.get_columns()):
+            self.protocol_view.remove_column(self.protocol_view.get_column(0))
+
+    def _disable_gui_elements(self):
+        for element_i in ['button_load_device', 'button_load_protocol',
+                          'button_open', 'textview_notes']:
+            self.builder.get_object(element_i).set_sensitive(False)
+
+    def _enable_gui_elements(self):
+        for element_i in ['button_load_device', 'button_load_protocol',
+                            'button_open', 'textview_notes']:
+            self.builder.get_object(element_i).set_sensitive(True)
 
 
 PluginGlobals.pop_env()

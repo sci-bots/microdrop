@@ -35,7 +35,81 @@ logger = logging.getLogger(__name__)
 
 
 class ExperimentLog():
-    class_version = str(Version(0,2,0))
+    class_version = str(Version(0,3,0))
+
+    def __init__(self, directory=None):
+        self.directory = directory
+        self.data = []
+        self.version = self.class_version
+        self.uuid = str(uuid.uuid4())
+        self._get_next_id()
+        self.metadata = {}  # Meta data, keyed by plugin name.
+        logger.info('[ExperimentLog] new log with id=%s and uuid=%s' % (self.experiment_id, self.uuid))
+
+    def _get_next_id(self):
+        if self.directory is None:
+            self.experiment_id = None
+            return
+        if(os.path.isdir(self.directory)==False):
+            os.makedirs(self.directory)
+        logs = os.listdir(self.directory)
+        self.experiment_id = 0
+        for i in logs:
+            if is_int(i):
+                if int(i) >= self.experiment_id:
+                    self.experiment_id = int(i) + 1
+
+    def _upgrade(self):
+        """
+        Upgrade the serialized object if necessary.
+
+        Raises:
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[ExperimentLog]._upgrade()")
+        version = Version.fromstring(self.version)
+        logger.debug('[ExperimentLog] version=%s, class_version=%s' % (str(version), self.class_version))
+        if version > Version.fromstring(self.class_version):
+            logger.debug('[ExperimentLog] version>class_version')
+            raise FutureVersionError
+        if version < Version(0,1,0):
+            new_data = []
+            plugin_name = None
+            for step_data in self.data:
+                if "control board hardware version" in step_data.keys():
+                    plugin_name = "wheelerlab.dmf_control_board_" + \
+                        step_data["control board hardware version"]
+            for i in range(len(self.data)):
+                new_data.append({})
+                for k, v in self.data[i].items():
+                    if plugin_name and (k=="FeedbackResults" or \
+                    k=="SweepFrequencyResults" or k=="SweepVoltageResults"):
+                        try:
+                            new_data[i][plugin_name] = \
+                                {k:pickle.loads(v)}
+                        except Exception, e:
+                            logger.error("Couldn't load experiment log data "
+                                         "for plugin: %s. %s." % \
+                                         (plugin_name, e))
+                    else:
+                        if not "core" in new_data[i]:
+                            new_data[i]["core"] = {}
+                        new_data[i]["core"][k] = v
+
+            # serialize objects to yaml strings
+            for i in range(len(self.data)):
+                for plugin_name, plugin_data in new_data[i].items():
+                    new_data[i][plugin_name] = yaml.dump(plugin_data)
+            self.data = new_data
+            self.version = str(Version(0,1,0))
+        if version < Version(0,2,0):
+            self.uuid = str(uuid.uuid4())
+            self.version = str(Version(0,2,0))
+        if version < Version(0,3,0):
+            self.metadata = {}
+            self.version = str(Version(0,3,0))
+        # else the versions are equal and don't need to be upgraded
 
     @classmethod
     def load(cls, filename):
@@ -92,63 +166,6 @@ class ExperimentLog():
                      (time.time()-start_time))
         return out
 
-    def __init__(self, directory=None):
-        self.directory = directory
-        self.data = []
-        self.version = self.class_version
-        self.uuid = str(uuid.uuid4())
-        self._get_next_id()
-        logger.info('[ExperimentLog] new log with id=%s and uuid=%s' % (self.experiment_id, self.uuid))
-
-    def _upgrade(self):
-        """
-        Upgrade the serialized object if necessary.
-
-        Raises:
-            FutureVersionError: file was written by a future version of the
-                software.
-        """
-        logger.debug("[ExperimentLog]._upgrade()")
-        version = Version.fromstring(self.version)
-        logger.debug('[ExperimentLog] version=%s, class_version=%s' % (str(version), self.class_version))
-        if version > Version.fromstring(self.class_version):
-            logger.debug('[ExperimentLog] version>class_version')
-            raise FutureVersionError
-        if version < Version(0,1,0):
-            new_data = []
-            plugin_name = None
-            for step_data in self.data:
-                if "control board hardware version" in step_data.keys():
-                    plugin_name = "wheelerlab.dmf_control_board_" + \
-                        step_data["control board hardware version"]
-            for i in range(len(self.data)):
-                new_data.append({})
-                for k, v in self.data[i].items():
-                    if plugin_name and (k=="FeedbackResults" or \
-                    k=="SweepFrequencyResults" or k=="SweepVoltageResults"):
-                        try:
-                            new_data[i][plugin_name] = \
-                                {k:pickle.loads(v)}
-                        except Exception, e:
-                            logger.error("Couldn't load experiment log data "
-                                         "for plugin: %s. %s." % \
-                                         (plugin_name, e))
-                    else:
-                        if not "core" in new_data[i]:
-                            new_data[i]["core"] = {}
-                        new_data[i]["core"][k] = v
-
-            # serialize objects to yaml strings
-            for i in range(len(self.data)):
-                for plugin_name, plugin_data in new_data[i].items():
-                    new_data[i][plugin_name] = yaml.dump(plugin_data)
-            self.data = new_data
-            self.version = str(Version(0,1,0))
-        if version < Version(0,2,0):
-            self.uuid = str(uuid.uuid4())
-            self.version = str(Version(0,2,0))
-        # else the versions are equal and don't need to be upgraded
-
     def save(self, filename=None, format='pickle'):
         if filename==None:
             log_path = self.get_log_path()
@@ -192,12 +209,12 @@ class ExperimentLog():
         return log_path
 
     def add_step(self, step_number, attempt=0):
-        self.data.append({'core':{'step': step_number,
-                         'time': time.time() - self.start_time(),
-                         'attempt': attempt}})
+        self.data.append({'core': {'step': step_number,
+                                   'time': (time.time() - self.start_time()),
+                                   'attempt': attempt}})
 
     def add_data(self, data, plugin_name='core'):
-        if len(self.data)==0:
+        if not self.data:
             self.data.append({})
         if not plugin_name in self.data[-1]:
             self.data[-1][plugin_name] = {}
@@ -212,17 +229,3 @@ class ExperimentLog():
             else:
                 var.append(None)
         return var
-
-    def _get_next_id(self):
-        if self.directory is None:
-            self.experiment_id = None
-            return
-        if(os.path.isdir(self.directory)==False):
-            os.makedirs(self.directory)
-        logs = os.listdir(self.directory)
-        self.experiment_id = 0
-        for i in logs:
-            if is_int(i):
-                if int(i) >= self.experiment_id:
-                    self.experiment_id = int(i) + 1
-
