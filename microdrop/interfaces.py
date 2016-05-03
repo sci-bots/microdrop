@@ -221,7 +221,6 @@ else:
             """
             pass
 
-
         def on_step_run(self):
             """
             Handler called whenever a step is executed. Note that this signal
@@ -259,4 +258,8 @@ else:
         def get_step_values(self, step_number=None):
             pass
 
-
+        def on_metadata_changed(self, original_metadata, metadata):
+            '''
+            Handler called each time the experiment metadata has changed.
+            '''
+            pass
