@@ -23,8 +23,8 @@ import gobject
 import zmq
 
 from ...app_context import get_app, get_hub_uri
-from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
-                               implements)
+from ...plugin_manager import (PluginGlobals, ScheduleRequest, SingletonPlugin,
+                               IPlugin, implements)
 
 
 class DeviceInfoZmqPlugin(ZmqPlugin):
@@ -112,6 +112,15 @@ class DeviceInfoPlugin(SingletonPlugin):
         if self.plugin is not None:
             # Notify other plugins that device has been swapped.
             self.plugin.execute_async(self.name, 'get_device')
+
+    def get_schedule_requests(self, function_name):
+        """
+        Returns a list of scheduling requests (i.e., ScheduleRequest instances)
+        for the function specified by function_name.
+        """
+        if function_name == 'on_dmf_device_swapped':
+            return [ScheduleRequest('microdrop.app', self.name)]
+        return []
 
 
 PluginGlobals.pop_env()
