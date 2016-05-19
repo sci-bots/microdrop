@@ -164,9 +164,9 @@
             <property name="can_focus">False</property>
             <child>
               <object class="GtkMenuItem" id="menu_fil">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_File</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -175,9 +175,9 @@
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkMenuItem" id="menu_new_experiment">
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">_New Experiment</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_menu_new_experiment_activate" swapped="no"/>
@@ -185,9 +185,9 @@
                     </child>
                     <child>
                       <object class="GtkMenuItem" id="menu_protocol">
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">_Protocol</property>
                         <property name="use_underline">True</property>
                         <child type="submenu">
@@ -197,9 +197,9 @@
                             <child>
                               <object class="GtkImageMenuItem" id="menu_new_protocol">
                                 <property name="label" translatable="yes">_New</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="image">image_new</property>
                                 <property name="use_stock">False</property>
@@ -209,10 +209,10 @@
                             <child>
                               <object class="GtkImageMenuItem" id="menu_load_protocol">
                                 <property name="label" translatable="yes">_Load</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="image">image_load_protocol</property>
                                 <property name="use_stock">False</property>
@@ -221,9 +221,9 @@
                             </child>
                             <child>
                               <object class="GtkMenuItem" id="menu_rename_protocol">
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="label" translatable="yes">_Rename</property>
                                 <property name="use_underline">True</property>
                                 <signal name="activate" handler="on_menu_rename_protocol_activate" swapped="no"/>
@@ -232,10 +232,10 @@
                             <child>
                               <object class="GtkImageMenuItem" id="menu_save_protocol">
                                 <property name="label">gtk-save</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="use_stock">True</property>
                                 <signal name="activate" handler="on_menu_save_protocol_activate" swapped="no"/>
@@ -244,9 +244,9 @@
                             <child>
                               <object class="GtkImageMenuItem" id="menu_save_protocol_as">
                                 <property name="label">gtk-save-as</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="use_stock">True</property>
                                 <signal name="activate" handler="on_menu_save_protocol_as_activate" swapped="no"/>
@@ -258,9 +258,9 @@
                     </child>
                     <child>
                       <object class="GtkMenuItem" id="menu_device">
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">_Device</property>
                         <property name="use_underline">True</property>
                         <child type="submenu">
@@ -270,9 +270,9 @@
                             <child>
                               <object class="GtkImageMenuItem" id="menu_import_dmf_device">
                                 <property name="label" translatable="yes">_Import</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="image">image1</property>
                                 <property name="use_stock">False</property>
@@ -282,9 +282,9 @@
                             <child>
                               <object class="GtkImageMenuItem" id="menu_load_dmf_device">
                                 <property name="label" translatable="yes">_Load</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="image">image_load_device</property>
                                 <property name="use_stock">False</property>
@@ -293,9 +293,9 @@
                             </child>
                             <child>
                               <object class="GtkMenuItem" id="menu_rename_dmf_device">
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="label" translatable="yes">_Rename</property>
                                 <property name="use_underline">True</property>
                                 <signal name="activate" handler="on_menu_rename_dmf_device_activate" swapped="no"/>
@@ -304,9 +304,9 @@
                             <child>
                               <object class="GtkImageMenuItem" id="menu_save_dmf_device">
                                 <property name="label">gtk-save</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="use_stock">True</property>
                                 <signal name="activate" handler="on_menu_save_dmf_device_activate" swapped="no"/>
@@ -315,9 +315,9 @@
                             <child>
                               <object class="GtkImageMenuItem" id="menu_save_dmf_device_as">
                                 <property name="label">gtk-save-as</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="use_stock">True</property>
                                 <signal name="activate" handler="on_menu_save_dmf_device_as_activate" swapped="no"/>
@@ -329,17 +329,17 @@
                     </child>
                     <child>
                       <object class="GtkSeparatorMenuItem" id="separatormenuitem3">
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_app_options">
                         <property name="label">_Options...</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="image">image8</property>
                         <property name="use_stock">False</property>
@@ -349,9 +349,9 @@
                     <child>
                       <object class="GtkImageMenuItem" id="menu_manage_plugins">
                         <property name="label">_Manage plugins...</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="image">image4</property>
                         <property name="use_stock">False</property>
@@ -360,17 +360,17 @@
                     </child>
                     <child>
                       <object class="GtkSeparatorMenuItem" id="separatormenuitem1">
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_quit">
                         <property name="label">gtk-quit</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_menu_quit_activate" swapped="no"/>
@@ -382,9 +382,9 @@
             </child>
             <child>
               <object class="GtkMenuItem" id="menu_tool">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Tools</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -397,9 +397,9 @@
             </child>
             <child>
               <object class="GtkMenuItem" id="menu_vie">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_View</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -408,9 +408,9 @@
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkMenuItem" id="menu_experiment_logs">
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">_Experiment logs</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_menu_experiment_logs_activate" swapped="no"/>
@@ -422,9 +422,9 @@
             </child>
             <child>
               <object class="GtkMenuItem" id="menu_hel">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Help</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -434,9 +434,9 @@
                     <child>
                       <object class="GtkImageMenuItem" id="menu_online_help">
                         <property name="label">Online _help</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="image">image5</property>
                         <property name="use_stock">False</property>
@@ -446,9 +446,9 @@
                     <child>
                       <object class="GtkImageMenuItem" id="menu_about">
                         <property name="label">gtk-about</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_menu_about_activate" swapped="no"/>
@@ -520,15 +520,41 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="label_experiment_id">
+              <object class="GtkHBox" id="hbox1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="xalign">0</property>
-                <property name="xpad">3</property>
-                <property name="ypad">3</property>
-                <property name="label" translatable="yes">Experiment:</property>
-                <property name="use_markup">True</property>
-                <property name="width_chars">20</property>
+                <child>
+                  <object class="GtkLabel" id="label_experiment_id">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">3</property>
+                    <property name="ypad">3</property>
+                    <property name="label" translatable="yes">Experiment:</property>
+                    <property name="use_markup">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_open_log_directory">
+                    <property name="label" translatable="yes">Open...</property>
+                    <property name="width_request">100</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
+                    <signal name="clicked" handler="on_button_open_log_directory_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -539,10 +565,10 @@
             <child>
               <object class="GtkCheckButton" id="checkbutton_realtime_mode">
                 <property name="label" translatable="yes">_Realtime mode</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
+                <property name="use_action_appearance">False</property>
                 <property name="use_underline">True</property>
                 <property name="draw_indicator">True</property>
                 <signal name="button-press-event" handler="on_checkbutton_realtime_mode_button_press_event" swapped="no"/>
@@ -607,10 +633,10 @@
                 <property name="can_focus">False</property>
                 <child>
                   <object class="GtkButton" id="button_first_step">
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
                     <property name="image">image_goto_first2</property>
                     <signal name="button-release-event" handler="on_button_first_step_button_release_event" swapped="no"/>
                   </object>
@@ -622,10 +648,10 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button_prev_step">
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
                     <property name="image">image_go_back2</property>
                     <signal name="button-release-event" handler="on_button_prev_step_button_release_event" swapped="no"/>
                   </object>
@@ -637,10 +663,10 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button_run_protocol">
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
                     <property name="image">image_play2</property>
                     <signal name="button-release-event" handler="on_button_run_protocol_button_release_event" swapped="no"/>
                   </object>
@@ -652,10 +678,10 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button_next_step">
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
                     <property name="image">image_go_forward2</property>
                     <signal name="button-release-event" handler="on_button_next_step_button_release_event" swapped="no"/>
                   </object>
@@ -667,10 +693,10 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button_last_step">
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
                     <property name="image">image_goto_last2</property>
                     <signal name="button-release-event" handler="on_button_last_step_button_release_event" swapped="no"/>
                   </object>

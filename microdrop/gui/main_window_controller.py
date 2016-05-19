@@ -20,10 +20,12 @@ from datetime import datetime
 import pdb
 import pkg_resources
 import webbrowser
+import os
 
 from pygtkhelpers.proxy import proxy_for
 from microdrop_utility import wrap_string
 from microdrop_utility.gui import DEFAULTS
+from path_helpers import path
 import gobject
 import gtk
 try:
@@ -123,6 +125,8 @@ class MainWindowController(SingletonPlugin):
         app.signals["on_window_delete_event"] = self.on_delete_event
         app.signals["on_checkbutton_realtime_mode_button_press_event"] = \
                 self.on_realtime_mode_toggled
+        app.signals["on_button_open_log_directory_clicked"] = \
+                self.on_button_open_log_directory
         app.signals["on_menu_app_options_activate"] = self.on_menu_app_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
 
@@ -225,6 +229,15 @@ class MainWindowController(SingletonPlugin):
     def on_menu_experiment_logs_activate(self, widget, data=None):
         app = get_app()
         app.experiment_log_controller.on_window_show(widget, data)
+
+    def on_button_open_log_directory(self, widget, data=None):
+        '''
+        Open selected experiment log directory in system file browser.
+        '''
+        app = get_app()
+        log_directory = path(os.path.join(app.experiment_log.directory,
+            str(app.experiment_log.experiment_id)))
+        log_directory.launch()
 
     def on_realtime_mode_toggled(self, widget, data=None):
         realtime_mode = not self.checkbutton_realtime_mode.get_active()
