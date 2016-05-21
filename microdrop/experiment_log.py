@@ -52,12 +52,19 @@ class ExperimentLog():
             return
         if(os.path.isdir(self.directory)==False):
             os.makedirs(self.directory)
-        logs = os.listdir(self.directory)
+        logs = path(self.directory).listdir()
         self.experiment_id = 0
-        for i in logs:
-            if is_int(i):
-                if int(i) >= self.experiment_id:
-                    self.experiment_id = int(i) + 1
+        for d in logs:
+            if is_int(d.name):
+                i = int(d.name)
+                if i >= self.experiment_id:
+                    self.experiment_id = i
+                    # increment the experiment_id if the current directory is not empty
+                    if len(d.listdir()):
+                        self.experiment_id += 1
+        log_path = self.get_log_path()
+        if not log_path.isdir():
+            log_path.makedirs_p()
 
     def _upgrade(self):
         """
@@ -203,10 +210,7 @@ class ExperimentLog():
         return start_time
 
     def get_log_path(self):
-        log_path = path(self.directory).joinpath(str(self.experiment_id))
-        if not log_path.isdir():
-            log_path.makedirs_p()
-        return log_path
+        return path(self.directory).joinpath(str(self.experiment_id))
 
     def add_step(self, step_number, attempt=0):
         self.data.append({'core': {'step': step_number,

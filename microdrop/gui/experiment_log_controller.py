@@ -136,9 +136,15 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         Open selected experiment log directory in system file browser.
         '''
         app = get_app()
-        log_directory = path(os.path.join(app.experiment_log.directory,
-                                          str(self.results.log.experiment_id)))
-        log_directory.launch()
+        self.results.log.get_log_path().launch()
+
+    def on_button_notes_clicked(self, widget, data=None):
+        '''
+        Open selected experiment log notes using the default text editor.
+        '''
+        app = get_app()
+        notes_path = self.results.log.get_log_path() / 'notes.txt'
+        notes_path.launch()
 
     def on_combobox_log_files_changed(self, widget, data=None):
         if self.notebook_manager_view is not None:
@@ -221,16 +227,6 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         if app.running or app.realtime_mode:
             emit_signal('on_step_complete', [self.name, None])
             self.menu_new_experiment.set_sensitive(True)
-
-    def on_textview_notes_focus_out_event(self, widget, data=None):
-        if len(self.results.log.data[0])==0:
-            self.results.log.data.append({})
-        self.results.log.data[-1]['core']['notes'] = \
-            textview_get_text(self.builder.get_object("textview_notes"))
-        filename = os.path.join(self.results.log.directory,
-                                str(self.results.log.experiment_id),
-                                'data')
-        self.results.log.save(filename)
 
     def on_treeview_protocol_button_press_event(self, widget, event):
         if event.button == 3:
@@ -325,8 +321,6 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             data = {'software version': app.version}
             data['device name'] = app.dmf_device.name
             data['protocol name'] = app.protocol.name
-            data['notes'] = textview_get_text(app.protocol_controller.builder
-                                              .get_object('textview_notes'))
             plugin_versions = {}
             for name in get_service_names(env='microdrop.managed'):
                 service = get_service_instance_by_name(name)
@@ -369,6 +363,19 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                                                        name=dmf_device.parent
                                                        .name))
             self._enable_gui_elements()
+
+            notes_path = self.results.log.get_log_path() / 'notes.txt'
+            if not notes_path.isfile():
+                data = self.results.log.get("notes")
+                for i, val in enumerate(data):
+                    if val is not None:
+                        logger.info('Write out experiment notes to notes.txt')
+                        notes_path.write_text(val)
+                        # delete the notes from the experiment log
+                        del self.results.log.data[i]['core']['notes']
+                        self.results.log.save()
+                        continue
+
             label = "UUID: %s" % self.results.log.uuid
             self.builder.get_object("label_uuid"). \
                 set_text(label)
@@ -408,15 +415,23 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             for val in data:
                 if val:
                     label += " v%s" % val
-            serial_number = ""
+            id = ""
             data = self.results.log.get("control board serial number")
             for val in data:
                 if val:
-                    serial_number = ", S/N %03d" % val
+                    id = ", S/N %03d" % val
+            data = self.results.log.get("control board id")
+            for val in data:
+                if val:
+                    id += ", id: %s" % val
+            data = self.results.log.get("control board uuid")
+            for val in data:
+                if val:
+                    id += ", uuid: %s..." % str(val)[:8]
             data = self.results.log.get("control board software version")
             for val in data:
                 if val:
-                    label += "\n\t(Firmware: %s%s)" % (val, serial_number)
+                    label += "\n\t(Firmware: %s%s)" % (val, id)
             data = self.results.log.get("i2c devices")
             for val in data:
                 if val:
@@ -443,14 +458,6 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                     label += time.ctime(val)
             self.builder.get_object("label_experiment_time"). \
                 set_text(label)
-
-            label = ""
-            data = self.results.log.get("notes")
-            for val in data:
-                if val:
-                    label = val
-            self.builder.get_object("textview_notes"). \
-                get_buffer().set_text(label)
 
             self._clear_list_columns()
             types = []
@@ -557,12 +564,12 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
 
     def _disable_gui_elements(self):
         for element_i in ['button_load_device', 'button_load_protocol',
-                          'button_open', 'textview_notes']:
+                          'button_open', 'button_notes']:
             self.builder.get_object(element_i).set_sensitive(False)
 
     def _enable_gui_elements(self):
         for element_i in ['button_load_device', 'button_load_protocol',
-                            'button_open', 'textview_notes']:
+                            'button_open']:
             self.builder.get_object(element_i).set_sensitive(True)
 
 

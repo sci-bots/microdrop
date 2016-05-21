@@ -168,15 +168,7 @@ class ProtocolController(SingletonPlugin):
 
             shortcuts['<Control>d'] = IPython.embed
 
-        register_shortcuts(view, shortcuts,
-                           disabled_widgets=[self.textentry_notes])
-
-        notes_shortcuts = {'<Control>z':
-                           self.textentry_notes.get_buffer().undo,
-                           '<Control>y':
-                           self.textentry_notes.get_buffer().redo }
-        register_shortcuts(view, notes_shortcuts,
-                           enabled_widgets=[self.textentry_notes])
+        register_shortcuts(view, shortcuts)
 
     def load_protocol(self, filename):
         app = get_app()
@@ -246,8 +238,6 @@ version of the software.'''.strip(), filename, why.future_version,
         app = get_app()
         self.builder = app.builder
 
-        self.textentry_notes = self.builder.get_object("textview_notes")
-        self.textentry_notes.set_buffer(UndoableBuffer())
         self.label_step_number = self.builder.get_object("label_step_number")
         self.textentry_protocol_repeats = self.builder.get_object(
             "textentry_protocol_repeats")

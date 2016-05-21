@@ -104,7 +104,7 @@ class MainWindowController(SingletonPlugin):
                 self.accel_groups.remove(accel_group)
         self.view.remove_accel_group = remove_accel_group
 
-        self.vbox2 = app.builder.get_object("vbox2")
+        self.vbox2 = app.builder.get_object('vbox2')
         self.view.set_icon_from_file(
             pkg_resources.resource_filename('microdrop', 'microdrop.ico'))
         DEFAULTS.parent_widget = self.view
@@ -113,7 +113,8 @@ class MainWindowController(SingletonPlugin):
                             'label_control_board_status', 'label_device_name',
                             'label_experiment_id', 'label_protocol_name',
                             'label_protocol_name', 'label_step_time',
-                            'menu_experiment_logs', 'menu_tools', 'menu_view'):
+                            'menu_experiment_logs', 'menu_tools', 'menu_view',
+                            'button_open_log_directory', 'button_open_log_notes'):
             setattr(self, widget_name, app.builder.get_object(widget_name))
 
         app.signals["on_menu_quit_activate"] = self.on_destroy
@@ -127,6 +128,8 @@ class MainWindowController(SingletonPlugin):
                 self.on_realtime_mode_toggled
         app.signals["on_button_open_log_directory_clicked"] = \
                 self.on_button_open_log_directory
+        app.signals["on_button_open_log_notes_clicked"] = \
+                self.on_button_open_log_notes
         app.signals["on_menu_app_options_activate"] = self.on_menu_app_options_activate
         app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
 
@@ -136,6 +139,8 @@ class MainWindowController(SingletonPlugin):
         self.protocol_list_view = None
 
         self.checkbutton_realtime_mode.set_sensitive(False)
+        self.button_open_log_directory.set_sensitive(False)
+        self.button_open_log_notes.set_sensitive(False)
         self.menu_experiment_logs.set_sensitive(False)
 
         if app.config.data.get('advanced_ui', False):
@@ -235,9 +240,18 @@ class MainWindowController(SingletonPlugin):
         Open selected experiment log directory in system file browser.
         '''
         app = get_app()
-        log_directory = path(os.path.join(app.experiment_log.directory,
-            str(app.experiment_log.experiment_id)))
-        log_directory.launch()
+        app.experiment_log.get_log_path().launch()
+
+    def on_button_open_log_notes(self, widget, data=None):
+        '''
+        Open selected experiment log notes.
+        '''
+        app = get_app()
+        notes_path = app.experiment_log.get_log_path() / 'notes.txt'
+        if not notes_path.isfile():
+            notes_path.touch()
+            import pdb; pdb_set_trace()
+        notes_path.launch()
 
     def on_realtime_mode_toggled(self, widget, data=None):
         realtime_mode = not self.checkbutton_realtime_mode.get_active()
@@ -340,6 +354,8 @@ class MainWindowController(SingletonPlugin):
                                         app.protocol_controller.modified)
 
     def on_experiment_log_changed(self, experiment_log):
+        self.button_open_log_directory.set_sensitive(True)
+        self.button_open_log_notes.set_sensitive(True)
         if experiment_log:
             self.label_experiment_id.set_text("Experiment: %s (%s)" %
                                               (str(experiment_log.experiment_id),
