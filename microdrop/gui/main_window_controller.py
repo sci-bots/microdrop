@@ -250,7 +250,6 @@ class MainWindowController(SingletonPlugin):
         notes_path = app.experiment_log.get_log_path() / 'notes.txt'
         if not notes_path.isfile():
             notes_path.touch()
-            import pdb; pdb_set_trace()
         notes_path.launch()
 
     def on_realtime_mode_toggled(self, widget, data=None):
