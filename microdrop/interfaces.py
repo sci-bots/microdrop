@@ -258,7 +258,7 @@ else:
         def get_step_values(self, step_number=None):
             pass
 
-        def on_metadata_changed(self, original_metadata, metadata):
+        def on_metadata_changed(self, schema, original_metadata, metadata):
             '''
             Handler called each time the experiment metadata has changed.
             '''
