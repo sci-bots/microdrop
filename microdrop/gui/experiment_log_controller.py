@@ -168,6 +168,12 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             for d in path(experiment_log.directory).dirs():
                 f = d / path("data")
                 if f.isfile():
+                    try:
+                        # cast log directory names as integers so that
+                        # they sort numerically, not as strings
+                        log_files.append(int(d.name))
+                    except ValueError:
+                        log_files.append(d.name)
                     log_files.append(int(d.name))
             log_files.sort()
         self.combobox_log_files.clear()
