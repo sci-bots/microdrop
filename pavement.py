@@ -31,12 +31,16 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
 if platform.system() == 'Windows':
     install_requires += ['pycairo-gtk2-win', 'pywin32']
 else:
-    install_requires += ['cairo']
     try:
         import gtk
     except ImportError:
-        print >> sys.err, ("Please install Python bindings for Gtk 2 using "
-                           "your system's package manager.")
+        print >> sys.stderr, ("Please install Python bindings for Gtk 2 using "
+                              "your system's package manager.")
+    try:
+        import cairo
+    except ImportError:
+        print >> sys.stderr, ("Please install Python bindings for cairo using "
+                              "your system's package manager.")
 
 
 setup(name='microdrop',
