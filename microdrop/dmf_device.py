@@ -31,8 +31,9 @@ import logging
 logger = logging.getLogger(__name__)
 from microdrop_utility import Version, FutureVersionError
 from path_helpers import path
+from svg_model import compute_shape_centers
 from svg_model.body_group import BodyGroup
-from svg_model.data_frame import close_paths, get_path_infos
+from svg_model.data_frame import close_paths
 from svg_model.geo_path import Path, ColoredPath, Loop
 from svg_model.path_group import PathGroup
 from svg_model.svgload.path_parser import LoopTracer, ParseError
@@ -55,23 +56,7 @@ if microdrop_root not in sys.path:
 ureg = pint.UnitRegistry()
 
 INKSCAPE_PPI = 90
-INKSCAPE_PPmm = INKSCAPE_PPI / ureg.inch.to('mm')
-
-
-def get_paths_frame_with_centers(df_paths):
-    df_paths = df_paths.copy()
-    # Get coordinates of center of each path.
-    df_paths_info = get_path_infos(df_paths)
-    path_centers = (df_paths_info[['x', 'y']] +
-                    .5 * df_paths_info[['width', 'height']].values)
-    df_paths['x_center'] = path_centers.x[df_paths.path_id].values
-    df_paths['y_center'] = path_centers.y[df_paths.path_id].values
-
-    # Calculate coordinate of each path vertex relative to center point of
-    # path.
-    center_offset = df_paths[['x', 'y']] - df_paths[['x_center',
-                                                     'y_center']].values
-    return df_paths.join(center_offset, rsuffix='_center_offset')
+INKSCAPE_PPmm = INKSCAPE_PPI / (1 * ureg.inch).to('mm')
 
 
 class DeviceScaleNotSet(Exception):
@@ -370,7 +355,7 @@ class DmfDevice():
         # Scale path coordinates based on Inkscape default of 90 pixels-per-inch.
         df_device[['x', 'y']] /= INKSCAPE_PPmm.magnitude
 
-        df_paths = get_paths_frame_with_centers(df_device)
+        df_paths = compute_shape_centers(df_device)
         return df_paths
 
 

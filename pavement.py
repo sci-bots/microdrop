@@ -22,9 +22,9 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib.component.core>=4.4.1',
                     'pyutilib.component.loader>=3.3.1', 'pyyaml', 'pyzmq',
-                    'run-exe>=0.5', 'scipy', 'si-prefix', 'svg_model>=0.3',
-                    'svgwrite', 'task_scheduler', 'tornado',
-                    'wheeler.pygtkhelpers>=0.12.post7']
+                    'run-exe>=0.5', 'scipy', 'si-prefix',
+                    'svg_model>=0.5.post24', 'svgwrite', 'task_scheduler',
+                    'tornado', 'wheeler.pygtkhelpers>=0.12.post7']
 
 if platform.system() == 'Windows':
     install_requires += ['pycairo-gtk2-win', 'pywin32']
