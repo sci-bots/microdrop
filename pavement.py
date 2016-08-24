@@ -23,9 +23,9 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib.component.core>=4.4.1',
                     'pyutilib.component.loader>=3.3.1', 'pyyaml', 'pyzmq',
-                    'run-exe>=0.5', 'si-prefix', 'scipy', 'svgwrite',
-                    'svg-model>=0.5.post21', 'task_scheduler', 'tornado',
-                    'wheeler.pygtkhelpers>=0.12.post7',
+                    'run-exe>=0.5', 'si-prefix>=0.4.post3', 'scipy',
+                    'svgwrite', 'svg-model>=0.5.post21', 'task_scheduler',
+                    'tornado', 'wheeler.pygtkhelpers>=0.12.post7',
                     'zmq-plugin>=0.2.post2']
 
 if platform.system() == 'Windows':
