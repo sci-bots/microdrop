@@ -27,9 +27,8 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'tornado', 'wheeler.pygtkhelpers>=0.12.post7']
 
 if platform.system() == 'Windows':
-    install_requires += ['pycairo-gtk2-win', 'pywin32']
-else:
-    install_requires += ['cairo']
+    install_requires += ['pycairo-gtk2-win', 'pygst-0.10-win', 'pywin32']
+
 try:
     import gtk
 except ImportError:
