@@ -89,7 +89,7 @@ class Config(object):
         if filename == None:
             filename = self.filename
         # make sure that the parent directory exists
-        path(filename).parent.makedirs_p()
+        path(filename).realpath().parent.makedirs_p()
         with open(filename, 'w') as f:
             self.data.write(outfile=f)
 
