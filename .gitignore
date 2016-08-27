@@ -29,6 +29,7 @@ paver-minilib.zip
 *.egg-info/
 microdrop/requirements.txt
 .idea/
+docs/_*
 
 # Back-up files.
 *~
