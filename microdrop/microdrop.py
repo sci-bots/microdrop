@@ -47,6 +47,21 @@ def except_handler(*args, **kwargs):
     traceback.print_tb(args[2])
 
 
+def initialize_core_plugins():
+    # These imports automatically load (and initialize) core singleton plugins.
+    from .core_plugins import zmq_hub_plugin
+    from .core_plugins import device_info_plugin
+    from .core_plugins import electrode_controller_plugin
+    from .gui import experiment_log_controller
+    from .gui import config_controller
+    from .gui import main_window_controller
+    from .gui import dmf_device_controller
+    from .gui import protocol_controller
+    from .gui import protocol_grid_controller
+    from .gui import plugin_manager_controller
+    from .gui import app_options_controller
+
+
 def main():
     import logging
 
@@ -54,6 +69,7 @@ def main():
                         '%(message)s', datefmt=r'%Y-%m-%d %H:%M:%S',
                         level=logging.INFO)
 
+    initialize_core_plugins()
     from app import App
     from app_context import get_app
 

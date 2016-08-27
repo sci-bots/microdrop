@@ -42,7 +42,6 @@ from microdrop_utility import Version, DifferentVersionTagsError
 from microdrop_utility.gui import yesno
 import plugin_manager
 
-from .gui.dmf_device_controller import DEVICE_FILENAME
 from .protocol import Step
 from .config import Config
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
@@ -54,22 +53,7 @@ from . import base_path
 logger = logging.getLogger(__name__)
 
 
-# These imports automatically load (and initialize) core singleton plugins.
-from .core_plugins import zmq_hub_plugin
-from .core_plugins import device_info_plugin
-from .core_plugins import electrode_controller_plugin
-from .gui import experiment_log_controller
-from .gui import config_controller
-from .gui import main_window_controller
-from .gui import dmf_device_controller
-from .gui import protocol_controller
-from .gui import protocol_grid_controller
-from .gui import plugin_manager_controller
-from .gui import app_options_controller
-
-
 PluginGlobals.push_env('microdrop')
-
 
 
 def parse_args(args=None):
@@ -441,6 +425,8 @@ Would you like to download the latest version in your browser?''' %
                 logger.info('No plugins have been updated')
 
     def run(self):
+        from .gui.dmf_device_controller import DEVICE_FILENAME
+
         # set realtime mode to false on startup
         if self.name in self.config.data and \
         'realtime_mode' in self.config.data[self.name]:
