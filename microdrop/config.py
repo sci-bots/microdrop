@@ -38,6 +38,7 @@ class Config(object):
     else:
         default_config_directory = app_data_dir().joinpath('.microdrop')
     default_config_path = default_config_directory / path('microdrop.ini')
+
     spec = """
         [dmf_device]
         # name of the most recently used DMF device

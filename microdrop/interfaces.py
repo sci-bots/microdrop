@@ -1,6 +1,4 @@
-from pyutilib.component.core import (Interface, ExtensionPoint, implements,
-                                     Plugin, PluginGlobals, SingletonPlugin)
-import pyutilib.component.loader
+from pyutilib.component.core import Interface, PluginGlobals
 import threading
 
 print '[interfaces] %s' % threading.current_thread()
@@ -68,8 +66,16 @@ else:
     class IPlugin(Interface):
         def get_schedule_requests(self, function_name):
             """
-            Returns a list of scheduling requests (i.e., ScheduleRequest
-            instances) for the function specified by function_name.
+
+            Args:
+
+                function_name (str) : Plugin callback function name.
+
+            Returns
+            -------
+            list
+                List of scheduling requests (i.e., :class:`ScheduleRequest`
+                instances) for the function specified by :data:`function_name`.
             """
             return []
 
@@ -98,10 +104,16 @@ else:
             """
             Handler called to notify that a plugin has been enabled.
 
-            Note that this signal is broadcast to all plugins
-            implementing the IPlugin interface, whereas the
-            on_plugin_enable method is called directly on the plugin
-            that is being enabled.
+            Note that this signal is broadcast to all plugins implementing the
+            :class:`IPlugin` interface, whereas the :meth:`on_plugin_enable`
+            method is called directly on the plugin that is being enabled.
+
+            Parameters
+            ----------
+            env : str
+                :mod:`pyutilib` plugin environment.
+            plugin : str
+                Plugin name.
             """
             pass
 
@@ -109,10 +121,16 @@ else:
             """
             Handler called to notify that a plugin has been disabled.
 
-            Note that this signal is broadcast to all plugins
-            implementing the IPlugin interface, whereas the
-            on_plugin_disable method is called directly on the plugin
-            that is being disabled.
+            Note that this signal is broadcast to all plugins implementing the
+            :class:`IPlugin` interface, whereas the :meth:`on_plugin_disable`
+            method is called directly on the plugin that is being disabled.
+
+            Parameters
+            ----------
+            env : str
+                :mod:`pyutilib` plugin environment.
+            plugin : str
+                Plugin name.
             """
             pass
 
@@ -126,6 +144,13 @@ else:
             """
             Handler called when a different protocol is swapped in (e.g., when
             a protocol is loaded or a new protocol is created).
+
+            Parameters
+            ----------
+            old_protocol : microdrop.protocol.Protocol
+                Original protocol.
+            protocol : microdrop.protocol.Protocol
+                New protocol.
             """
             pass
 
@@ -151,6 +176,13 @@ else:
             """
             Handler called when a different DMF device is swapped in (e.g., when
             a new device is loaded).
+
+            Parameters
+            ----------
+            old_dmf_device : microdrop.dmf_device.DmfDevice
+                Original device.
+            dmf_device : microdrop.dmf_device.DmfDevice
+                New device.
             """
             pass
 
@@ -167,6 +199,11 @@ else:
             """
             Handler called when the current experiment log changes (e.g., when a
             protocol finishes running.
+
+            Parameters
+            ----------
+            experiment_log : microdrop.experiment_log.ExperimentLog
+                Reference to new experiment log instance.
             """
             pass
 
@@ -186,8 +223,10 @@ else:
             plugin.  This will, for example, allow for GUI elements to be
             updated.
 
-            Parameters:
-                plugin : plugin name for which the app options changed
+            Parameters
+            ----------
+            plugin : str
+                Plugin name for which the app options changed
             """
             pass
 
@@ -197,9 +236,12 @@ else:
             plugin.  This will, for example, allow for GUI elements to be
             updated based on step specified.
 
-            Parameters:
-                plugin : plugin instance for which the step options changed
-                step_number : step number that the options changed for
+            Parameters
+            ----------
+            plugin : SingletonPlugin
+                Plugin instance for which the step options changed.
+            step_number : int
+                Step number that the options changed for.
             """
             pass
 
@@ -209,15 +251,27 @@ else:
             plugin.  This will, for example, allow for GUI elements to be
             updated based on step specified.
 
-            Parameters:
-                plugin : plugin instance for which the step options changed
-                step_number : step number that the options changed for
+            Parameters
+            ----------
+            plugin : SingletonPlugin
+                Plugin instance for which the step options changed.
+            old_step_number : int
+                Original step number.
+            step_number : int
+                New step number.
             """
             pass
 
         def on_step_swapped(self, old_step_number, step_number):
             """
             Handler called when the current step is swapped.
+
+            Parameters
+            ----------
+            old_step_number : int
+                Original step number.
+            step_number : int
+                New step number.
             """
             pass
 
@@ -226,15 +280,17 @@ else:
             Handler called whenever a step is executed. Note that this signal
             is only emitted in realtime mode or if a protocol is running.
 
-            Plugins that handle this signal must emit the on_step_complete
-            signal once they have completed the step. The protocol controller
-            will wait until all plugins have completed the current step before
-            proceeding.
+            Plugins that handle this signal must emit the
+            :meth:`on_step_complete` signal once they have completed the step.
+            The protocol controller will wait until all plugins have completed
+            the current step before proceeding.
 
-            return_value can be one of:
-                None
-                'Repeat' - repeat the step
-                or 'Fail' - unrecoverable error (stop the protocol)
+            Returns
+            -------
+            str or None
+
+             - ``'Repeat'``: repeat the step
+             - ``'Fail'``: unrecoverable error (stop the protocol)
             """
             pass
 
@@ -242,14 +298,24 @@ else:
             """
             Handler called whenever a plugin completes a step.
 
-            return_value can be one of:
-                None
-                'Repeat' - repeat the step
-                or 'Fail' - unrecoverable error (stop the protocol)
+            Returns
+            -------
+            str or None
+
+             - ``'Repeat'``: repeat the step
+             - ``'Fail'``: unrecoverable error (stop the protocol)
             """
             pass
 
         def on_step_created(self, step_number):
+            """
+            Handler called whenever a new step is created.
+
+            Parameters
+            ----------
+            step_number : int
+                New step number.
+            """
             pass
 
         def get_step_form_class(self):
@@ -261,5 +327,14 @@ else:
         def on_metadata_changed(self, schema, original_metadata, metadata):
             '''
             Handler called each time the experiment metadata has changed.
+
+            Parameters
+            ----------
+            schema : dict
+                jsonschema schema definition for metadata.
+            original_metadata
+                Original metadata.
+            metadata
+                New metadata matching :data:`schema`
             '''
             pass

@@ -159,10 +159,11 @@ class DmfDevice(object):
 
     def get_electrode_areas(self):
         '''
-        Returns:
-
-            (pandas.Series) : Area of each electrode in square millimeters,
-                indexed by electrode identifier.
+        Returns
+        -------
+        pandas.Series
+            Area of each electrode in square millimeters, indexed by electrode
+            identifier.
         '''
         from svg_model.data_frame import get_shape_areas
 
@@ -170,11 +171,11 @@ class DmfDevice(object):
 
     def get_svg_frame(self):
         '''
-        Return a `pandas.DataFrame` containing the vertices for electrode
-        paths.
+        Return a :class:`pandas.DataFrame` containing the vertices for
+        electrode paths.
 
         Each row of the frame corresponds to a single path vertex.  The
-        `groupby` method may be used, for example, to apply operations to
+        :meth:`groupby` method may be used, for example, to apply operations to
         vertices on a per-path basis, such as calculating the bounding box.
         '''
         return self.df_shapes.copy()
@@ -187,11 +188,12 @@ class DmfDevice(object):
         For each electrode polygon, the channels are read as a comma-separated
         list from the `"data-channels"` attribute.
 
-        Returns:
-
-            (pandas.DataFrame) : Each row corresponds to a channel connected to
-                an electrode, where the `"electrode_id"` column corresponds to
-                the `"id"` attribute of the corresponding SVG polygon.
+        Returns
+        -------
+        pandas.DataFrame
+            Each row corresponds to a channel connected to an electrode, where
+            the ``"electrode_id"`` column corresponds to the ``"id"`` attribute
+            of the corresponding SVG polygon.
 
         Notes
         -----
@@ -204,10 +206,11 @@ class DmfDevice(object):
 
     def get_bounding_box(self):
         '''
-        Returns:
-
-            (tuple) : Tuple containing origin-`x`, origin-`y`, width and
-                height, respectively.
+        Returns
+        -------
+        tuple
+            Tuple containing origin-`x`, origin-`y`, width and height,
+            respectively.
         '''
         xmin, ymin = self.df_shapes[['x', 'y']].min().values
         xmax, ymax = self.df_shapes[['x', 'y']].max().values
@@ -217,7 +220,7 @@ class DmfDevice(object):
         '''
         Returns:
 
-            (int) : Maximum channel index.
+            int : Maximum channel index.
         '''
         return self.df_electrode_channels.channel.max()
 
@@ -233,7 +236,7 @@ class DmfDevice(object):
 
         Returns:
 
-            (float) : Area of actuated electrodes in square millimeters.
+            float : Area of actuated electrodes in square millimeters.
         '''
         actuated_electrodes = electrode_states[electrode_states > 0]
         # Look up the area of each actuated electrode.
@@ -253,7 +256,7 @@ class DmfDevice(object):
 
         Returns:
 
-            (float) : Area of actuated electrodes in square millimeters.
+            float : Area of actuated electrodes in square millimeters.
         '''
         if state_of_all_channels.max() == 0:
             # No channels are actuated.
@@ -272,39 +275,39 @@ class DmfDevice(object):
 
     def actuated_electrodes(self, actuated_channels_index):
         '''
-        Args:
+        Parameters
+        ----------
+        actuated_channels_index : list or array-like
+            Actuated channel indexes.
 
-            actuated_channels_index (list, numpy.array) : Array-like instance
-                of actuated channel indexes.
-
-        Returns:
-
-            (pandas.Series) : Actuated electrode identifiers, indexed by
-                channel index.
+        Returns
+        -------
+        pandas.Series
+            Actuated electrode identifiers, indexed by channel index.
         '''
         return self.electrodes_by_channel.ix[actuated_channels_index]
 
     def actuated_channels(self, actuated_electrodes_index):
         '''
-        Args:
+        Parameters
+        ----------
+        actuated_electrodes_index : list or array-like
+            Actuated electrode identifiers.
 
-            actuated_electrodes_index (list, numpy.array) : Array-like instance
-                of actuated electrode identifiers.
-
-        Returns:
-
-            (pandas.Series) : Actuated channel index values, indexed by
-                electrode identifier.
+        Returns
+        -------
+        pandas.Series
+            Actuated channel index values, indexed by electrode identifier.
         '''
         # Get `pd.Series` of channels corresponding to electrodes.
         return self.channels_by_electrode.ix[actuated_electrodes_index]
 
     def find_path(self, source_id, target_id):
         '''
-        Returns:
-
-            (list) : A list of nodes on the shortest path from source to
-                target.
+        Returns
+        -------
+        list
+            A list of nodes on the shortest path from source to target.
         '''
         if source_id == target_id:
             shortest_path = [source_id]
@@ -317,7 +320,7 @@ class DmfDevice(object):
         '''
         Returns:
 
-            (unicode) : SVG XML source with up-to-date electrode channel lists.
+            unicode : SVG XML source with up-to-date electrode channel lists.
         '''
         xml_root = etree.parse(self.svg_filepath)
 
@@ -337,11 +340,12 @@ class DmfDevice(object):
         '''
         Identify electrodes with modified channel lists.
 
-        Returns:
-
-            (pandas.DataFrame) : Frame containing modified electrode channel
-                lists.  The two columns contain a list for the original and new
-                assigned channels, respectively, indexed by `electrode_id`.
+        Returns
+        -------
+        pandas.DataFrame
+            Frame containing modified electrode channel lists.  The two columns
+            contain a list for the original and new assigned channels,
+            respectively, indexed by ``electrode_id``.
         '''
         original_channels = extract_channels(self.df_shapes)
         original_groups = original_channels.groupby('electrode_id').groups
@@ -383,11 +387,12 @@ def extract_channels(df_shapes):
         electrode_xpath (str) : XPath string to iterate throught electrodes.
         namespaces (dict) : SVG namespaces (compatible with `etree.parse`).
 
-    Returns:
-
-        (pandas.DataFrame) : Each row corresponds to a channel connected to an
-            electrode, where the `"electrode_id"` column corresponds to the
-            `"id"` attribute of the corresponding SVG polygon.
+    Returns
+    -------
+    pandas.DataFrame
+        Each row corresponds to a channel connected to an electrode, where the
+        ``"electrode_id"`` column corresponds to the ``"id"`` attribute of the
+        corresponding SVG polygon.
     '''
     frames = []
 
