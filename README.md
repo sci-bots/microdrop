@@ -112,6 +112,14 @@ tool, or through the MicroDrop user interface.
      * Displays interactive DMF chip geometry.
      * Optional augmented reality interface, where device drawing is overlaid
        on live webcam video feed.
+ - [**`droplet_planning_plugin`**][13]
+     * Click and drag mouse over series of electrodes to create a route.
+     * Hold <kbd>Alt</kbd>, click on source electrode, and drag to target
+       electrode to automatically route between electrodes.
+     * Finish route at starting point to form a cycle that may be repeated
+       (i.e., mixing) either:
+         - A set number of repetitions
+         - A time duration
  - [`step_label_plugin`][10]
      * Optionally add text label to any step in protocol.
      * Most recent and next upcoming labelled steps are indicated while running
@@ -155,6 +163,7 @@ To install recommended plugins:
 [10]: https://github.com/wheeler-microfluidics/step_label_plugin
 [11]: https://github.com/wheeler-microfluidics/user_prompt_plugin
 [12]: http://microfluidics.utoronto.ca/dropbot/
+[13]: https://github.com/wheeler-microfluidics/droplet-planning-plugin
 
 [install-plugins]: microdrop/static/images/plugins-install.gif
 
