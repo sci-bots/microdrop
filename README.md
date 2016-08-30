@@ -96,8 +96,10 @@ To launch MicroDrop, run:
 
 # Install plugins #
 
-Plugins can either be installed using the MicroDrop plugin manager command-line
-tool, or through the MicroDrop user interface.
+Plugins can either be installed using the [MicroDrop plugin
+manager](#install-plugins-through-microdrop-plugin-manager-mpm) command-line
+tool, or through the [MicroDrop user
+interface](#install-plugins-through-microdrop-gui).
 
 ### Featured plugins ###
 
@@ -132,11 +134,16 @@ tool, or through the MicroDrop user interface.
 
 ### Install plugins through MicroDrop plugin manager (`mpm`) ###
 
-Run:
+The Microdrop plugin manager is a command-line tool (inspired by `pip`) for
+managing (e.g., install, uninstall) Microdrop plugins.
+
+For full usage details, see the [project home page][14].
+
+Basic usage to install a plugin:
 
     python -m mpm -c <microdrop settings directory>\microdrop.ini install plugin [plugin [plugin ...]]
 
-To install recommended plugins:
+To install featured plugins:
 
     python -m mpm -c <microdrop settings directory>\microdrop.ini install dmf_control_board_plugin dmf_device_ui_plugin droplet_planning_plugin user_prompt_plugin step_label_plugin
 
@@ -164,6 +171,7 @@ To install recommended plugins:
 [11]: https://github.com/wheeler-microfluidics/user_prompt_plugin
 [12]: http://microfluidics.utoronto.ca/dropbot/
 [13]: https://github.com/wheeler-microfluidics/droplet-planning-plugin
+[14]: https://github.com/wheeler-microfluidics/mpm
 
 [install-plugins]: microdrop/static/images/plugins-install.gif
 
