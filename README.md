@@ -101,12 +101,26 @@ tool, or through the MicroDrop user interface.
 
 ### Featured plugins ###
 
- - [`device_quality_control_plugin`][6]
+ - [`device_quality_control_plugin`][6]:
+     * Perform impedance scan across all channels on microfluidics chip.
+     * Can be used to identify suspected broken electrode traces.
+     * **Requires `dmf_control_board_plugin`**.
  - [`dmf_control_board_plugin`][7]
+     * Control actuation parameters for the [DropBot][12] open-source Digital
+       Microfluidic (DMF) automation system.
  - [`dmf_device_ui_plugin`][8]
- - [`metadata_plugin`][9]
+     * Displays interactive DMF chip geometry.
+     * Optional augmented reality interface, where device drawing is overlaid
+       on live webcam video feed.
  - [`step_label_plugin`][10]
+     * Optionally add text label to any step in protocol.
+     * Most recent and next upcoming labelled steps are indicated while running
+       protocol.
  - [`user_prompt_plugin`][11]
+     * Add (optional) user prompt for each step in protocol (e.g., "Confirm
+       sample is loaded.")
+     * Protocol execution is paused until user confirms **OK** to proceed.
+     * If user selects `Cancel`, protocol is stopped.
 
 ### Install plugins through MicroDrop plugin manager (`mpm`) ###
 
@@ -140,6 +154,7 @@ To install recommended plugins:
 [9]: https://github.com/wheeler-microfluidics/metadata_plugin
 [10]: https://github.com/wheeler-microfluidics/step_label_plugin
 [11]: https://github.com/wheeler-microfluidics/user_prompt_plugin
+[12]: http://microfluidics.utoronto.ca/dropbot/
 
 [install-plugins]: microdrop/static/images/plugins-install.gif
 
@@ -148,4 +163,5 @@ Credits
 =======
 
 Ryan Fobel <ryan@fobel.net>
+
 Christian Fobel <christian@fobel.net>
