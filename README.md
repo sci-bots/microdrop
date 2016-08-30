@@ -1,6 +1,3 @@
-MicroDrop
-=========
-
 MicroDrop is a graphical user interface for the [DropBot][1] digital
 microfluidics control system (described in detail in [Fobel et al., Appl. Phys.
 Lett. 102, 193513 (2013)][2]).
@@ -8,18 +5,34 @@ Lett. 102, 193513 (2013)][2]).
 If you use this information in work that you publish, please cite as
 appropriate.
 
-Installation
-============
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Installation](#installation)
+    - [No existing Python 2.7 32-bit Windows installation](#no-existing-python-27-32-bit-windows-installation)
+    - [Existing `anaconda` (Python 2.7 32-bit Windows) installation](#existing-anaconda-python-27-32-bit-windows-installation)
+    - [Create a separate `conda` environment for MicroDrop 2.0](#create-a-separate-conda-environment-for-microdrop-20)
+    - [Other Python 2.7 32-bit Windows installation (using `pip`)](#other-python-27-32-bit-windows-installation-using-pip)
+- [Configuration](#configuration)
+- [Install plugins](#install-plugins)
+    - [Install plugins through MicroDrop plugin manager (`mpm`)](#install-plugins-through-microdrop-plugin-manager-mpm)
+    - [Install plugins through MicroDrop GUI](#install-plugins-through-microdrop-gui)
+- [Credits](#credits)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+# Installation #
 
 MicroDrop can be installed using any of the methods below.
 
-After installing, the directions in the **Configuration** section below can be
-used to:
+After installing, the directions in the [Configuration section](#configuration)
+below can be used to:
 
  - Create a MicroDrop user configuration
  - Launch MicroDrop
 
-## No existing Python 2.7 32-bit Windows installation ##
+### No existing Python 2.7 32-bit Windows installation ###
 
 Download installer for latest [MicroDrop 2.0 release][4].
 
@@ -27,7 +40,7 @@ This installer is a customized distribution of the popular [`Miniconda`][5]
 Python.
 
 
-## Existing `anaconda` (Python 2.7 32-bit Windows) installation ##
+### Existing `anaconda` (Python 2.7 32-bit Windows) installation ###
 
 Run:
 
@@ -52,7 +65,7 @@ To deactivate the MicroDrop 2.0 `conda` environment, run:
     deactivate
 
 
-## Other Python 2.7 32-bit Windows installation (using `pip`) ##
+### Other Python 2.7 32-bit Windows installation (using `pip`) ###
 
  1. Update `pip`:
 
@@ -68,8 +81,7 @@ server where MicroDrop dependencies not available on PyPI are stored as
 wheels*.
 
 
-Configuration
-=============
+# Configuration #
 
 To create a new MicroDrop settings directory with a batch file launcher, run
 the following command using the Python installation used to install MicroDrop:
@@ -81,13 +93,12 @@ To launch MicroDrop, run:
     <microdrop settings directory>\microdrop.bat
 
 
-Install plugins
-===============
+# Install plugins #
 
 Plugins can either be installed using the MicroDrop plugin manager command-line
 tool, or through the MicroDrop user interface.
 
-## Install plugins through MicroDrop plugin manager (`mpm`) ##
+### Install plugins through MicroDrop plugin manager (`mpm`) ###
 
 Run:
 
@@ -97,7 +108,7 @@ To install recommended plugins:
 
     python -m mpm -c <microdrop settings directory>\microdrop.ini install dmf_control_board_plugin dmf_device_ui_plugin droplet_planning_plugin user_prompt_plugin step_label_plugin
 
-## Install plugins through MicroDrop GUI ##
+### Install plugins through MicroDrop GUI ###
 
  1. Install plugins:
 
