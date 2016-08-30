@@ -16,6 +16,7 @@ appropriate.
     - [Other Python 2.7 32-bit Windows installation (using `pip`)](#other-python-27-32-bit-windows-installation-using-pip)
 - [Configuration](#configuration)
 - [Install plugins](#install-plugins)
+    - [Featured plugins](#featured-plugins)
     - [Install plugins through MicroDrop plugin manager (`mpm`)](#install-plugins-through-microdrop-plugin-manager-mpm)
     - [Install plugins through MicroDrop GUI](#install-plugins-through-microdrop-gui)
 - [Credits](#credits)
@@ -98,6 +99,15 @@ To launch MicroDrop, run:
 Plugins can either be installed using the MicroDrop plugin manager command-line
 tool, or through the MicroDrop user interface.
 
+### Featured plugins ###
+
+ - [`device_quality_control_plugin`][6]
+ - [`dmf_control_board_plugin`][7]
+ - [`dmf_device_ui_plugin`][8]
+ - [`metadata_plugin`][9]
+ - [`step_label_plugin`][10]
+ - [`user_prompt_plugin`][11]
+
 ### Install plugins through MicroDrop plugin manager (`mpm`) ###
 
 Run:
@@ -124,6 +134,12 @@ To install recommended plugins:
 [3]: https://pypi.python.org/pypi/microdrop
 [4]: https://github.com/wheeler-microfluidics/microdrop/releases/latest
 [5]: http://conda.pydata.org/miniconda.html
+[6]: https://github.com/wheeler-microfluidics/device-quality-control-plugin
+[7]: https://github.com/wheeler-microfluidics/dmf_control_board_plugin
+[8]: https://github.com/wheeler-microfluidics/dmf_device_ui_plugin
+[9]: https://github.com/wheeler-microfluidics/metadata_plugin
+[10]: https://github.com/wheeler-microfluidics/step_label_plugin
+[11]: https://github.com/wheeler-microfluidics/user_prompt_plugin
 
 [install-plugins]: microdrop/static/images/plugins-install.gif
 
