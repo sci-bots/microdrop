@@ -84,16 +84,6 @@ class DmfDevice(object):
                                                self.shape_i_columns)
 
         self.df_electrode_channels = self.get_electrode_channels()
-        self.electrodes_by_channel = (self.df_electrode_channels
-                                      .set_index('channel')['electrode_id'])
-        self.channels_by_electrode = (self.df_electrode_channels
-                                      .set_index('electrode_id')['channel'])
-        self.electrode_areas = self.get_electrode_areas()
-        self.channel_areas = pd.Series([self.electrode_areas
-                                        [self.electrodes_by_channel.ix[c]]
-                                        .sum() for c in
-                                        self.electrodes_by_channel.index],
-                                       index=self.electrodes_by_channel.index)
 
         self.graph = nx.Graph()
         for index, row in self.df_shape_connections.iterrows():
@@ -121,29 +111,61 @@ class DmfDevice(object):
         self.df_shapes_indexed = self.df_shapes.copy()
         self.df_shapes_indexed['id'] = map(str, self.shape_indexes
                                            [self.df_shapes['id']])
+        # Modified state (`True` if electrode channels have been updated).
+        self._dirty = False
 
-    def update_electrode_channels(self, electrode_id, new_channel_list):
+    @property
+    def df_electrode_channels(self):
+        return self._df_electrode_channels
+
+    @df_electrode_channels.setter
+    def df_electrode_channels(self, value):
+        self._df_electrode_channels = value
+        self.electrodes_by_channel = (self.df_electrode_channels
+                                      .set_index('channel')['electrode_id'])
+        self.channels_by_electrode = (self.df_electrode_channels
+                                      .set_index('electrode_id')['channel'])
+        self.electrode_areas = self.get_electrode_areas()
+        self.channel_areas = pd.Series([self.electrode_areas
+                                        [self.electrodes_by_channel.ix[c]]
+                                        .sum() for c in
+                                        self.electrodes_by_channel.index],
+                                       index=self.electrodes_by_channel.index)
+
+    @property
+    def dirty(self):
+        return self._dirty
+
+    def set_electrode_channels(self, electrode_id, channels):
         '''
-        Update channels for electrode `electrode_id` to `new_channel_list`.
+        Set channels for electrode `electrode_id` to `channels`.
 
         This includes updating `self.df_electrode_channels`.
 
-        Args:
+        .. note:: Existing channels assigned to electrode are overwritten.
 
-            electrode_id (str) : Electrode identifier.
-            new_channel_list (list) : List of channel identifiers assigned to
-                the electrode.
+        Parameters
+        ----------
+        electrode_id : str
+            Electrode identifier.
+        channels : list
+            List of channel identifiers assigned to the electrode.
+
+        Returns
+        -------
+        bool
+            ``True`` if channel mappings have changed.
         '''
         # Get electrode channels frame for all electrodes except
         # `electrode_id`.
         df_electrode_channels = (self.df_electrode_channels
                                  .loc[self.df_electrode_channels.electrode_id
                                       != electrode_id])
-        if len(new_channel_list) > 0:
+        if len(channels) > 0:
             # Add new list of channels for electrode.
             df_electrode_channels_i = pd.DataFrame([[electrode_id, channel]
                                                     for channel in
-                                                    new_channel_list],
+                                                    channels],
                                                    columns=['electrode_id',
                                                             'channel'])
             self.df_electrode_channels = (pd.concat([df_electrode_channels,
@@ -152,6 +174,12 @@ class DmfDevice(object):
         else:
             # No channels assigned to electrode.
             self.df_electrode_channels = df_electrode_channels
+
+        # If the channels mappings have changed, update modified state.
+        df_diff_channels = self.diff_electrode_channels()
+        if df_diff_channels.shape[0] > 0:
+            self._dirty = True
+        return self.dirty
 
     @property
     def electrodes(self):
