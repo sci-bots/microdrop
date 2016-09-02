@@ -30,12 +30,13 @@ import subprocess
 
 from path_helpers import path
 import task_scheduler
-import yaml
 from run_exe import run_exe
 
-from interfaces import (Plugin, IPlugin, PluginGlobals, ExtensionPoint,
-                        IWaveformGenerator, ILoggingPlugin,
-                        SingletonPlugin, implements)
+from pyutilib.component.core import ExtensionPoint, PluginGlobals
+# TODO Update plugins to import from `pyutilib.component.core` directly
+# instead of importing from here.
+from pyutilib.component.core import Plugin, SingletonPlugin, implements
+from interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
 
 
 ScheduleRequest = namedtuple('ScheduleRequest', 'before after')
@@ -54,9 +55,10 @@ def load_plugins(plugins_dir='plugins'):
                 (plugins_dir.name, package.name)
             logging.debug(import_statement)
             exec(import_statement)
-        except Exception, why:
+        except Exception:
             logging.info(''.join(traceback.format_exc()))
-            logging.error('Error loading %s plugin.' % package.name)
+            logging.error('Error loading %s plugin.', package.name,
+                          exc_info=True)
 
     # Create an instance of each of the plugins, but set it to disabled
     e = PluginGlobals.env('microdrop.managed')
