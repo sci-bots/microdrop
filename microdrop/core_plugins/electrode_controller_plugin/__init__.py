@@ -85,16 +85,19 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
     def get_state(self, electrode_states):
         app = get_app()
 
-        electrode_channels = (app.dmf_device.actuated_channels(electrode_states
-                                                               .index))
+        electrode_channels = (app.dmf_device
+                              .actuated_channels(electrode_states.index)
+                              .dropna().astype(int))
 
         # Each channel should be represented *at most* once in
         # `channel_states`.
+        channel_states = pd.Series(electrode_states
+                                   .ix[electrode_channels.index].values,
+                                   index=electrode_channels)
         # Duplicate entries may result from multiple electrodes mapped to the
         # same channel or vice versa.
-        channel_states = \
-            drop_duplicates_by_index(pd.Series(electrode_states.values,
-                                               index=electrode_channels))
+        channel_states = drop_duplicates_by_index(channel_states)
+
         channel_electrodes = (app.dmf_device.electrodes_by_channel
                               .ix[channel_states.index])
         electrode_states = pd.Series(channel_states
