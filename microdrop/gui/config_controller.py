@@ -16,12 +16,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-import os
-
-from path_helpers import path
-from microdrop_utility.user_paths import home_dir
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -59,16 +53,16 @@ class ConfigController(SingletonPlugin):
     def on_app_exit(self):
         self.app.config.save()
 
-    def on_dmf_device_changed(self):
+    def on_dmf_device_changed(self, dmf_device):
         device_name = None
-        if self.app.dmf_device:
-            device_name = self.app.dmf_device.name
+        if dmf_device:
+            device_name = dmf_device.name
         if self.app.config['dmf_device']['name'] != device_name:
             self.app.config['dmf_device']['name'] = device_name
             self.app.config.save()
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        self.on_dmf_device_changed()
+        self.on_dmf_device_changed(dmf_device)
 
     def on_protocol_changed(self):
         if self.app.protocol.name != self.app.config['protocol']['name']:

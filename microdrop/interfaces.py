@@ -186,12 +186,24 @@ else:
             """
             pass
 
-        def on_dmf_device_changed(self):
+        def on_dmf_device_changed(self, dmf_device):
             """
             Handler called when a DMF device is modified (e.g., channel
-            assignment, scaling, etc.). This signal is also sent when a new
-            device is imported or loaded from outside of the main device
-            directory.
+            assignment, scaling, etc.).
+
+            Args:
+
+                dmf_device (microdrop.dmf_device.DmfDevice)
+            """
+            pass
+
+        def on_dmf_device_saved(self, dmf_device):
+            """
+            Handler called when a DMF device is saved.
+
+            Args:
+
+                dmf_device (microdrop.dmf_device.DmfDevice)
             """
             pass
 

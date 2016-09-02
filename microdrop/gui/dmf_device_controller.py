@@ -21,15 +21,15 @@ import traceback
 import shutil
 import logging
 
-import gtk
 from flatland import Form
-from path_helpers import path
-from pygtkhelpers.ui.notebook import add_filters
-from pygtkhelpers.ui.extra_widgets import Directory
-from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from microdrop_device_converter import convert_device_to_svg
-from microdrop_utility.gui import yesno
 from microdrop_utility import copytree
+from microdrop_utility.gui import yesno
+from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
+from pygtkhelpers.ui.extra_widgets import Directory
+from pygtkhelpers.ui.notebook import add_filters
+import gtk
+import path_helpers as ph
 
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
@@ -66,6 +66,9 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     @modified.setter
     def modified(self, value):
         self._modified = value
+        if getattr(self, 'menu_rename_dmf_device', None):
+            self.menu_rename_dmf_device.set_sensitive(not value)
+            self.menu_save_dmf_device.set_sensitive(value)
 
     def on_app_options_changed(self, plugin_name):
         try:
@@ -82,8 +85,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
         # if the device directory is empty or None, set a default
         if not device_directory:
-            device_directory = path(app.config.data['data_dir']).joinpath(
-                'devices')
+            device_directory = (ph.path(app.config.data['data_dir'])
+                                .joinpath('devices'))
             self.set_app_values({'device_directory': device_directory})
 
         if self.previous_device_dir and (device_directory ==
@@ -91,7 +94,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             # If the data directory hasn't changed, we do nothing
             return False
 
-        device_directory = path(device_directory)
+        device_directory = ph.path(device_directory)
         if self.previous_device_dir:
             device_directory.makedirs_p()
             if device_directory.listdir():
@@ -102,7 +105,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 if not result == gtk.RESPONSE_YES:
                     return False
 
-            original_directory = path(self.previous_device_dir)
+            original_directory = ph.path(self.previous_device_dir)
             for d in original_directory.dirs():
                 copytree(d, device_directory.joinpath(d.name))
             for f in original_directory.files():
@@ -155,7 +158,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app = get_app()
         self.modified = False
         device = app.dmf_device
-        file_path = path(file_path)
+        file_path = ph.path(file_path)
 
         if not file_path.isfile():
             old_version_file_path = (file_path.parent
@@ -183,10 +186,11 @@ directory)?''' % (device_directory, self.previous_device_dir))
             logger.info('[DmfDeviceController].load_device: %s' % file_path)
             device = DmfDevice.load(file_path, name=file_path.parent.name,
                                     **kwargs)
-            if file_path.parent.parent != app.get_device_directory():
+            if not (file_path.parent.parent.realpath() ==
+                    app.get_device_directory().realpath()):
                 logger.info('[DmfDeviceController].load_device: Copy new '
                             'device to microdrop devices directory.')
-                self.modified = True
+                emit_signal("on_dmf_device_changed", [device])
             else:
                 logger.info('[DmfDeviceController].load_device: load existing '
                             'device.')
@@ -222,47 +226,50 @@ directory)?''' % (device_directory, self.previous_device_dir))
             name = text_entry_dialog('Device name', name, 'Save device')
             if name is None:
                 name = ""
-
         if name:
+            device_directory = ph.path(app.get_device_directory()).realpath()
             # Construct the directory name for the current device.
             if app.dmf_device.name:
-                src = os.path.join(app.get_device_directory(),
-                                   app.dmf_device.name)
+                src = device_directory.joinpath(app.dmf_device.name)
             # Construct the directory name for the new device _(which is the
             # same as the current device, if we are not renaming or "saving
             # as")_.
-            dest = os.path.join(app.get_device_directory(), name)
+            dest = device_directory.joinpath(name)
 
             # If we're renaming, move the old directory.
-            if rename and os.path.isdir(src):
+            if rename and src.isdir():
                 if src == dest:
                     return
-                if os.path.isdir(dest):
-                    logger.error("A device with that "
-                                 "name already exists.")
+                if dest.isdir():
+                    logger.error("A device with that name already exists.")
                     return
                 shutil.move(src, dest)
 
             # Create the directory for the new device name, if it doesn't
             # exist.
-            if not os.path.isdir(dest):
-                os.mkdir(dest)
+            dest.makedirs_p()
 
             # Convert device to SVG string.
             svg_unicode = app.dmf_device.to_svg()
 
+            output_path = dest.joinpath(DEVICE_FILENAME)
+
             # Save the device to the new target directory.
-            with open(os.path.join(dest, DEVICE_FILENAME), 'wb') as output:
+            with output_path.open('wb') as output:
                 output.write(svg_unicode)
 
             # Reset modified status, since save acts as a checkpoint.
             self.modified = False
 
+            # Notify plugins that device has been saved.
+            emit_signal('on_dmf_device_saved', [app.dmf_device,
+                                                str(output_path)])
+
             # If the device name has changed, update the application device
             # state.
             if name != app.dmf_device.name:
-                new_device_filepath = os.path.join(dest, DEVICE_FILENAME)
-                self.load_device(new_device_filepath)
+                self.load_device(output_path)
+            return output_path
 
     def get_schedule_requests(self, function_name):
         """
@@ -325,7 +332,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 logger.error('Error importing device. %s' % e, exc_info=True)
 
     def import_device(self, input_device_path):
-        input_device_path = path(input_device_path).abspath()
+        input_device_path = ph.path(input_device_path).abspath()
         output_device_path = (input_device_path.parent
                               .joinpath(input_device_path.namebase + '.svg'))
         overwrite = False
@@ -349,11 +356,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_save_dmf_device_as(self, widget, data=None):
         self.save_dmf_device(save_as=True)
 
-    def on_dmf_device_swapped(self, old_device, new_device):
-        self.menu_rename_dmf_device.set_sensitive(True)
-        self.menu_save_dmf_device_as.set_sensitive(True)
-
-    def on_dmf_device_changed(self):
+    def on_dmf_device_changed(self, dmf_device):
         self.modified = True
+
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        self.menu_save_dmf_device_as.set_sensitive(True)
 
 PluginGlobals.pop_env()

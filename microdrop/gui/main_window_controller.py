@@ -368,12 +368,14 @@ class MainWindowController(SingletonPlugin):
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.checkbutton_realtime_mode.set_sensitive(True)
         self.menu_experiment_logs.set_sensitive(True)
-        self.update_device_name_label(dmf_device, modified= \
+        self.update_device_name_label(dmf_device, modified=
                                       get_app().dmf_device_controller.modified)
 
-    def on_dmf_device_changed(self):
-        self.update_device_name_label(modified= \
-                                      get_app().dmf_device_controller.modified)
+    def on_dmf_device_changed(self, dmf_device):
+        self.update_device_name_label(modified=True)
+
+    def on_dmf_device_saved(self, dmf_device, device_path):
+        self.update_device_name_label(modified=False)
 
     def get_schedule_requests(self, function_name):
         """
