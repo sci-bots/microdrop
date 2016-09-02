@@ -388,11 +388,12 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
         # `TreeViewColumn`.  Just makes following code more concise.
         get_title = lambda c: c.get_data('pygtkhelpers::column').title
 
-        # Save column positions on exit.
-        column_positions = dict([(get_title(c), i)
-                                 for i, c in enumerate(self.widget
-                                                       .get_columns())])
-        self.set_app_values({'column_positions': json.dumps(column_positions)})
+        if self.widget:
+            # Save column positions on exit.
+            column_positions = dict([(get_title(c), i)
+                                    for i, c in enumerate(self.widget
+                                                          .get_columns())])
+            self.set_app_values({'column_positions': json.dumps(column_positions)})
 
 
 PluginGlobals.pop_env()
