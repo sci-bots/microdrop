@@ -19,12 +19,13 @@ along with device_info_plugin.  If not, see <http://www.gnu.org/licenses/>.
 import cPickle as pickle
 
 from zmq_plugin.plugin import Plugin as ZmqPlugin
+from zmq_plugin.schema import decode_content_data
 import gobject
 import zmq
 
 from ...app_context import get_app, get_hub_uri
-from ...plugin_manager import (PluginGlobals, ScheduleRequest, SingletonPlugin,
-                               IPlugin, implements)
+from ...plugin_manager import (IPlugin, PluginGlobals, ScheduleRequest,
+                               SingletonPlugin, emit_signal, implements)
 
 
 class DeviceInfoZmqPlugin(ZmqPlugin):
@@ -39,6 +40,30 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
     def on_execute__get_electrode_channels(self, request):
         app = get_app()
         return app.dmf_device.get_electrode_channels()
+
+    def on_execute__set_electrode_channels(self, request):
+        '''
+        Set channels for electrode `electrode_id` to `channels`.
+
+        This includes updating `self.df_electrode_channels`.
+
+        .. note:: Existing channels assigned to electrode are overwritten.
+
+        Parameters
+        ----------
+        electrode_id : str
+            Electrode identifier.
+        channels : list
+            List of channel identifiers assigned to the electrode.
+        '''
+        data = decode_content_data(request)
+        app = get_app()
+        modified = (app.dmf_device
+                    .set_electrode_channels(data['electrode_id'],
+                                            data['channels']))
+        if modified:
+            emit_signal("on_dmf_device_changed", [app.dmf_device])
+        return modified
 
     def on_execute__dumps(self, request):
         app = get_app()
