@@ -151,18 +151,11 @@ class MainWindowController(SingletonPlugin):
             self.ipython_menu_item = gtk.MenuItem('IPython...')
             self.ipython_menu_item.show()
 
-            def activate_debugger():
+            def activate_debugger(parent):
                 try:
                     plugin = get_service_instance_by_name(
                         'wheelerlab.dmf_control_board')
                     control_board = plugin.control_board
-                    #hv_board_servers = (control_board
-                                        #.start_hv_switching_board_servers())
-                    #logger.info('Started the following HV switching board'
-                                #'servers: %s',
-                                #[(6000 + i, k)
-                                 #for i, k in
-                                 #enumerate(hv_board_servers.keys())])
                 except KeyError:
                     plugin = None
                     control_board = None
@@ -172,7 +165,7 @@ class MainWindowController(SingletonPlugin):
                 else:
                     pdb.set_trace()
             self.debug_menu_item.connect('activate', lambda *args:
-                                         activate_debugger())
+                                         activate_debugger(self))
             self.ipython_menu_item.connect('activate', lambda *args:
                                            IPython.embed())
             self.menu_tools.append(self.debug_menu_item)
