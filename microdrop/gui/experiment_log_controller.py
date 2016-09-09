@@ -175,7 +175,6 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                         log_files.append(int(d.name))
                     except ValueError:
                         log_files.append(d.name)
-                    log_files.append(int(d.name))
             log_files.sort()
         self.combobox_log_files.clear()
         combobox_set_model_from_list(self.combobox_log_files, log_files)
