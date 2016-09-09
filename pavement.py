@@ -26,7 +26,7 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'run-exe>=0.5', 'si-prefix>=0.4.post3', 'scipy',
                     'svgwrite', 'svg-model>=0.5.post21', 'task_scheduler',
                     'tornado', 'wheeler.pygtkhelpers>=0.12.post7',
-                    'zmq-plugin>=0.2.post2']
+                    'zmq-plugin>=0.2.post2', 'openpyxl']
 
 if platform.system() == 'Windows':
     install_requires += ['pycairo-gtk2-win', 'pywin32']

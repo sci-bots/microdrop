@@ -22,6 +22,7 @@ import os
 import pkg_resources
 import time
 
+import pandas as pd
 from flatland import Form
 from microdrop_utility import copytree
 from microdrop_utility.gui import (combobox_set_model_from_list,
@@ -215,6 +216,37 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         vbox.pack_start(hbox, False, False)
         vbox.reorder_child(hbox, 1)
         hbox.show_all()
+
+    def on_button_export_data_clicked(self, widget, data=None):
+        export_path = path(os.path.join(self.results.log.directory,
+                                        str(self.results.log.experiment_id),
+                                        'data.xlsx'))
+        if export_path.exists():
+            result = yesno('Export file already exists. Would like '
+                           'like to overwrite it? Selecting "No" will '
+                           'open the existing file.', default=gtk.RESPONSE_NO)
+
+        if not export_path.exists() or result == gtk.RESPONSE_YES:
+            export_data = emit_signal('on_export_experiment_log_data',
+                                      self.results.log)
+
+            if export_data:
+                writer = pd.ExcelWriter(export_path)
+                for i, (plugin_name, plugin_data) in enumerate(export_data.iteritems()):
+                    for name, df in plugin_data.iteritems():
+                         # Excel sheet names have a 31 character max
+                         sheet_name = ('%03d-%s' % (i, name))[:31]
+                         df.to_excel(writer, sheet_name)
+                try:
+                    writer.save()
+                except IOError:
+                    logger.warning("Error writing to file (maybe it is already open?).")
+            else:
+                logger.warning("No data to export.")
+
+        # launch the file in excel
+        if export_path.exists():
+            export_path.startfile()
 
     def on_protocol_pause(self):
         app = get_app()
@@ -570,12 +602,12 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
 
     def _disable_gui_elements(self):
         for element_i in ['button_load_device', 'button_load_protocol',
-                          'button_open', 'button_notes']:
+                          'button_open', 'button_notes', 'button_export_data']:
             self.builder.get_object(element_i).set_sensitive(False)
 
     def _enable_gui_elements(self):
         for element_i in ['button_load_device', 'button_load_protocol',
-                            'button_open']:
+                          'button_open', 'button_notes', 'button_export_data']:
             self.builder.get_object(element_i).set_sensitive(True)
 
 
