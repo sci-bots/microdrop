@@ -22,6 +22,7 @@ from collections import namedtuple
 import pkg_resources
 
 import gtk
+import pandas as pd
 from path_helpers import path
 from flatland import Form
 from pygtkhelpers.delegates import SlaveView
@@ -218,6 +219,7 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
                                         DmfDevice.load(dmf_device))
             self.builder.get_object("button_load_device").set_sensitive(True)
             self.builder.get_object("button_load_protocol").set_sensitive(True)
+            self.builder.get_object("button_export_data").set_sensitive(True)
             self.builder.get_object("textview_notes").set_sensitive(True)
 
             label = "Software version: "
@@ -344,6 +346,7 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
     def _disable_gui_elements(self):
         self.builder.get_object("button_load_device").set_sensitive(False)
         self.builder.get_object("button_load_protocol").set_sensitive(False)
+        self.builder.get_object("button_export_data").set_sensitive(False)
         self.builder.get_object("textview_notes").set_sensitive(False)
 
     def save(self):
@@ -416,6 +419,37 @@ directory)?''' % (notebook_directory, self.previous_notebook_dir))
                                      str(self.results.log.experiment_id),
                                      'protocol'))
         app.protocol_controller.load_protocol(filename)
+
+    def on_button_export_data_clicked(self, widget, data=None):
+        export_path = path(os.path.join(self.results.log.directory,
+                                   str(self.results.log.experiment_id),
+                                   'data.xlsx'))
+        if export_path.exists():
+            result = yesno('Export file already exists. Would like '
+                           'like to overwrite it? Selecting "No" will '
+                           'open the existing file.', default=gtk.RESPONSE_NO)
+
+        if not export_path.exists() or result == gtk.RESPONSE_YES:
+            export_data = emit_signal('on_export_experiment_log_data',
+                                      self.results.log)
+
+            if export_data:
+                writer = pd.ExcelWriter(export_path)
+                for i, (plugin_name, plugin_data) in enumerate(export_data.iteritems()):
+                    for name, df in plugin_data.iteritems():
+                        # excel sheet names have a 31 character max
+                        sheet_name = ('%03d-%s' % (i, name))[:31]
+                        df.to_excel(writer, sheet_name)
+                try:
+                    writer.save()
+                except IOError:
+                    logger.warning("Error writing to file (maybe it is already open?).")
+            else:
+                logger.warning("No data to export.")
+
+        # launch the file in excel
+        if export_path.exists():
+            export_path.startfile()
 
     def on_textview_notes_focus_out_event(self, widget, data=None):
         if len(self.results.log.data[0])==0:

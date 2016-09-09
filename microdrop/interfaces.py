@@ -180,6 +180,21 @@ else:
             """
             pass
 
+        def on_export_experiment_log_data(self, experiment_log):
+            """
+            Handler called when the experiment log is exported.
+
+            Parameters:
+                log : experiment log data (list of dictionaries, one per step)
+                    for the selected steps
+
+            Returns:
+                A dictionary of pandas.DataFrame objects containing any relevant
+                data that should be exported by the plugin, each keyed by a unique
+                name.
+            """
+            pass
+
         def on_app_options_changed(self, plugin_name):
             """
             Handler called when the app options are changed for a particular
