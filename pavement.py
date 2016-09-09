@@ -15,14 +15,15 @@ import version
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'flatland-fork', 'geo-util', 'ipython',
                     'ipython-helpers>=0.4', 'matplotlib>=1.5.0',
+                    'microdrop-plugin-template>=1.1.post30',
                     'microdrop_utility>=0.4.post2', 'networkx',
-                    'opencv-helpers', 'pandas', 'pandas', 'path-helpers>=0.2',
-                    'paver>=1.2.4', 'pip-helpers>=0.6',
+                    'opencv-helpers', 'openpyxl', 'pandas', 'pandas',
+                    'path-helpers>=0.2', 'paver>=1.2.4', 'pip-helpers>=0.6',
                     'pygst-utils>=0.2.post26,<0.3',
                     'pygtk_textbuffer_with_undo', 'pyparsing',
                     'pyutilib.component.core>=4.4.1',
                     'pyutilib.component.loader>=3.3.1', 'pyyaml', 'pyzmq',
-                    'run-exe>=0.5', 'scipy', 'si-prefix', 'openpyxl',
+                    'run-exe>=0.5', 'scipy', 'si-prefix',
                     'svg_model>=0.5.post24', 'svgwrite', 'task_scheduler',
                     'tornado', 'wheeler.pygtkhelpers>=0.12.post7']
 
