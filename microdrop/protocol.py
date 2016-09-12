@@ -381,6 +381,10 @@ class Protocol():
                 If an exception is encountered while processing a plugin value,
                 the plugin causing the exception is skipped and protocol values
                 related to the plugin are not included in the result.
+
+        See Also
+        --------
+        :meth:`to_json`, :meth:`to_ndjson`
         '''
         return protocol_to_frame(self)
 
@@ -402,7 +406,7 @@ class Protocol():
 
         See Also
         --------
-        :meth:`to_frame`
+        :meth:`to_frame`, :meth:`to_ndjson`
         '''
         return protocol_to_json(self)
 
@@ -425,6 +429,11 @@ class Protocol():
         -------
         None or str
             If :data:`ostream` parameter is ``None``, return output as string.
+
+        See Also
+        --------
+        :meth:`to_frame`, :meth:`to_json`
+
 
         .. _`ndjson`: http://ndjson.org/
         .. _`specification`: http://specs.frictionlessdata.io/ndjson/
