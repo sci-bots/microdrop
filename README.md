@@ -1,6 +1,8 @@
 MicroDrop
 =========
 
+[![Join the chat at https://gitter.im/wheeler-microfluidics/microdrop](https://badges.gitter.im/wheeler-microfluidics/microdrop.svg)](https://gitter.im/wheeler-microfluidics/microdrop?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Microdrop is a graphical user interface for the [DropBot][1] digital
 microfluidics control system (described in detail in [Fobel et al., Appl. Phys.
 Lett. 102, 193513 (2013)][2]). If you use this information in work that you
