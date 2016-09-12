@@ -16,27 +16,26 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-import traceback
-import sys
 from StringIO import StringIO
-from contextlib import closing
 from collections import namedtuple
+from contextlib import closing
 import logging
-import re
 import os
 import platform
+import re
 import subprocess
+import sys
+import traceback
 
 from path_helpers import path
-import task_scheduler
-from run_exe import run_exe
-
 from pyutilib.component.core import ExtensionPoint, PluginGlobals
 # TODO Update plugins to import from `pyutilib.component.core` directly
 # instead of importing from here.
 from pyutilib.component.core import Plugin, SingletonPlugin, implements
-from interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
+from run_exe import run_exe
+import task_scheduler
+
+from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
 
 
 ScheduleRequest = namedtuple('ScheduleRequest', 'before after')
