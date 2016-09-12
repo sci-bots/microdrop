@@ -16,22 +16,90 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-import os
+from collections import OrderedDict
+from copy import deepcopy
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import time
-from copy import deepcopy
+import datetime as dt
 import logging
+import os
+import time
 import uuid
 
 from microdrop_utility import is_int, Version, FutureVersionError
 from path_helpers import path
+import arrow
+import pandas as pd
 import yaml
 
 logger = logging.getLogger(__name__)
+
+
+def log_data_to_frame(log_data_i):
+    '''
+    Parameters
+    ----------
+    log_data_i : microdrop.experiment_log.ExperimentLog
+        Microdrop experiment log, as pickled in the ``data``
+        file in each experiment log directory.
+
+    Returns
+    -------
+    (pd.Series, pd.DataFrame)
+        Tuple containing:
+        - Experiment information, including UTC start time,
+        Microdrop software version, list of plugin versions,
+        etc.
+        - Data frame with multi-index columns, indexed first by
+        plugin name, then by plugin field name.
+
+        .. note::
+            Values may be Python objects.  In future versions
+            of Microdrop, values *may* be restricted to json
+            compatible types.
+    '''
+    def log_frame_experiment_info(df_log):
+        experiment_info = df_log['core'].iloc[0].copy()
+        experiment_info.update(df_log['core'].iloc[-1])
+
+        start_time = arrow.get(experiment_info['start time']).naive
+        experiment_info['utc_start_time'] = start_time.isoformat()
+        for k in ('step', 'start time', 'time', 'attempt',
+                'utc_timestamp'):
+            if k in experiment_info.index:
+                del experiment_info[k]
+        return experiment_info.dropna()
+
+    plugin_names_i = sorted(reduce(lambda a, b:
+                                a.union(b.keys()),
+                                log_data_i.data, set()))
+    frames_i = OrderedDict()
+
+    for plugin_name_ij in plugin_names_i:
+        try:
+            frame_ij = pd.DataFrame(map(lambda v: pickle.loads(v)
+                                        if v else {},
+                                        [s.get(plugin_name_ij)
+                                        for s in log_data_i.data]))
+        except Exception, exception:
+            print plugin_name_ij, exception
+        else:
+            frames_i[plugin_name_ij] = frame_ij
+    df_log_i = pd.concat(frames_i.values(), axis=1, keys=frames_i.keys())
+
+    start_time_i = arrow.get(df_log_i
+                            .iloc[0][('core', 'start time')]).naive
+    df_log_i[('core', 'utc_timestamp')] = \
+        (start_time_i + df_log_i[('core', 'time')]
+        .map(lambda s: dt.timedelta(seconds=s) if s == s else None))
+    df_log_i.sort_index(axis=1, inplace=True)
+    experiment_info = log_frame_experiment_info(df_log_i)
+    experiment_info['uuid'] = log_data_i.uuid
+    df_log_i.dropna(subset=[('core', 'step'), ('core', 'attempt')],
+                    inplace=True)
+    return experiment_info, df_log_i
 
 
 class ExperimentLog():
@@ -233,3 +301,21 @@ class ExperimentLog():
             else:
                 var.append(None)
         return var
+
+    def to_frame(self):
+        '''
+        Returns
+        -------
+        (pd.Series, pd.DataFrame)
+            Tuple containing:
+             - Experiment information, including UTC start time, Microdrop
+               software version, list of plugin versions, etc.
+            - Data frame with multi-index columns, indexed first by plugin
+              name, then by plugin field name.
+
+            .. note::
+                Values may be Python objects.  In future versions
+                of Microdrop, values *may* be restricted to json
+                compatible types.
+        '''
+        return log_data_to_frame(self)
