@@ -23,6 +23,8 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import cStringIO as StringIO
+import itertools as it
 import json
 import logging
 import re
@@ -30,6 +32,7 @@ import sys
 import time
 
 from microdrop_utility import Version, FutureVersionError
+import numpy as np
 import pandas as pd
 import yaml
 import zmq_plugin as zp
@@ -402,6 +405,59 @@ class Protocol():
         :meth:`to_frame`
         '''
         return protocol_to_json(self)
+
+    def to_ndjson(self, ostream=None):
+        '''
+        Write protocol as newline delimted JSON (i.e., `ndjson`_, see
+        `specification`_).
+
+        Each subsequent line in the output is a nested JSON record, list), one
+        line per protocol step.  The keys of the top-level object of each record
+        correspond to plugin names.  The second-level keys correspond to the
+        step field name.
+
+        Parameters
+        ----------
+        ostream : file-like, optional
+            Output stream to write to.
+
+        Returns
+        -------
+        None or str
+            If :data:`ostream` parameter is ``None``, return output as string.
+
+        .. _`ndjson`: http://ndjson.org/
+        .. _`specification`: http://specs.frictionlessdata.io/ndjson/
+        '''
+        df_protocol = self.to_frame()
+
+        if ostream is None:
+            ostream = StringIO.StringIO()
+            return_required = True
+        else:
+            return_required = False
+
+        field_groups = [(group_i, list(fields_i))
+                        for group_i, fields_i in
+                        it.groupby(df_protocol.columns.values, lambda v: v[0])]
+        field_counts = np.cumsum([len(f[1]) for f in field_groups])
+        field_bases = field_counts.copy()
+        field_bases[1:] = field_counts[:-1]
+        field_bases[0] = 0
+
+        try:
+            for row_i in df_protocol.values:
+                row_dict_i = dict([(plugin_name_j,
+                                    dict(zip(zip(*fields_j)[1],
+                                             row_i[start_j:end_j])))
+                                for (plugin_name_j, fields_j), start_j, end_j
+                                in zip(field_groups, field_bases[:-1],
+                                        field_counts[:-1])])
+                print >> ostream, json.dumps(row_dict_i,
+                                             cls=zp.schema.PandasJsonEncoder)
+        finally:
+            if return_required:
+                return ostream.getvalue()
 
 
 class Step(object):
