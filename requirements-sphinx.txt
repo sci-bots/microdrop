@@ -9,7 +9,6 @@ ipython-helpers>=0.4
 jinja2
 matplotlib>=1.5.0
 microdrop-device-converter>=0.1.post5
-microdrop-plugin-template>=1.1.post30
 microdrop_utility>=0.4.post2
 networkx
 numpydoc
