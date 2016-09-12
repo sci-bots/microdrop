@@ -136,12 +136,17 @@ class Protocol():
         """
         Load a Protocol from a file.
 
-        Args:
-            filename: path to file.
-        Raises:
-            TypeError: file is not a Protocol.
-            FutureVersionError: file was written by a future version of the
-                software.
+        Parameters
+        ----------
+        filename : str
+            Path to file.
+
+        Raises
+        ------
+        TypeError
+            If file is not a :class:`Protocol`.
+        FutureVersionError
+            If file was written by a future version of the software.
         """
         logger.debug("[Protocol].load(\"%s\")" % filename)
         logger.info("Loading Protocol from %s" % filename)
@@ -393,13 +398,14 @@ class Protocol():
         Returns
         -------
         str
-            json-encoded dictionary, with two top-level keys:
+            JSON-encoded dictionary, with two top-level keys:
              - ``keys``:
                    * Each key is a list containing a plugin name and a
                      corresponding step field name.
              - ``values``:
                    * Maps to list of records (i.e., lists), one per protocol
                      step.
+
             Each record in the ``values`` list may be *zipped together* with
             ``keys`` to yield a plugin field name to value mapping for a single
             protocol step.
