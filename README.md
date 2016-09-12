@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/microdrop/badge/?version=dev)](http://microdrop.readthedocs.io/en/dev/?badge=dev)
+
 MicroDrop is a graphical user interface for the [DropBot][1] digital
 microfluidics control system (described in detail in [Fobel et al., Appl. Phys.
 Lett. 102, 193513 (2013)][2]).
