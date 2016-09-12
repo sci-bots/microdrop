@@ -15,7 +15,21 @@
 import sys
 import os
 
+from mock import Mock as MagicMock
 import sphinx_rtd_theme
+
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+            return Mock()
+
+# Workaround for [libraries that depend on C modules][1] on Read the Docs.
+# Adds mock modules to list of system modules to fake import of the modules.
+#
+# [1]: http://read-the-docs.readthedocs.io/en/latest/faq.html#i-get-import-errors-on-libraries-that-depend-on-c-modules
+MOCK_MODULES = ['pygtk', 'gtk', 'gobject']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
 # If extensions (or modules to document with autodoc) are in another directory,
