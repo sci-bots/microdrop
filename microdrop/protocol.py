@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from collections import OrderedDict
 from copy import deepcopy
 try:
     import cPickle as pickle
@@ -24,15 +25,59 @@ except ImportError:
     import pickle
 import logging
 import re
+import sys
 import time
 
 from microdrop_utility import Version, FutureVersionError
+import pandas as pd
 import yaml
 
 from .plugin_manager import emit_signal, get_service_names
 
 
 logger = logging.getLogger(__name__)
+
+
+def protocol_to_frame(protocol_i):
+    '''
+    Parameters
+    ----------
+    protocol_i : microdrop.protocol.Protocol
+        Microdrop protocol.
+
+        .. note::
+            A Microdrop protocol object is stored as pickled in the
+            ``protocol`` file in each experiment log directory.
+
+    Returns
+    -------
+    pandas.DataFrame
+         Data frame with rows indexed by 0-based step number and columns
+         indexed (multi-index) first by plugin name, then by step field name.
+
+         .. note::
+             Values may be Python objects.  In future versions
+             of Microdrop, values *may* be restricted to json
+             compatible types.
+    '''
+    plugin_names_i = sorted(reduce(lambda a, b:
+                                   a.union(b.plugin_data.keys()),
+                                   protocol_i.steps, set()))
+    frames_i = OrderedDict()
+
+    for plugin_name_ij in plugin_names_i:
+        try:
+            frame_ij = pd.DataFrame(map(pickle.loads,
+                                        [s.plugin_data.get(plugin_name_ij)
+                                         for s in protocol_i.steps]))
+        except Exception, exception:
+            print >> sys.stderr, exception
+        else:
+            frames_i[plugin_name_ij] = frame_ij
+    df_protocol = pd.concat(frames_i.values(), axis=1, keys=frames_i.keys())
+    df_protocol.index.name = 'step_i'
+    df_protocol.columns.names = ['plugin_name', 'step_field']
+    return df_protocol
 
 
 class Protocol():
@@ -286,6 +331,21 @@ class Protocol():
         original_step_number = self.current_step_number
         self.current_step_number = step_number
         emit_signal('on_step_swapped', [original_step_number, step_number])
+
+    def to_frame(self):
+        '''
+        Returns
+        -------
+        pandas.DataFrame
+            Data frame with multi-index columns, indexed first by plugin name,
+            then by plugin step field name.
+
+            .. note::
+                If an exception is encountered while processing a plugin value,
+                the plugin causing the exception is skipped and protocol values
+                related to the plugin are not included in the result.
+        '''
+        return protocol_to_frame(self)
 
 
 class Step(object):
