@@ -1,4 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/microdrop/badge/?version=dev)](http://microdrop.readthedocs.io/en/dev/?badge=dev)
+[![Join the chat at https://gitter.im/wheeler-microfluidics/microdrop](https://badges.gitter.im/wheeler-microfluidics/microdrop.svg)](https://gitter.im/wheeler-microfluidics/microdrop?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 MicroDrop is a graphical user interface for the [DropBot][1] digital
 microfluidics control system (described in detail in [Fobel et al., Appl. Phys.
