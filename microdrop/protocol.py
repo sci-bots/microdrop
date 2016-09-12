@@ -23,6 +23,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import json
 import logging
 import re
 import sys
@@ -31,6 +32,8 @@ import time
 from microdrop_utility import Version, FutureVersionError
 import pandas as pd
 import yaml
+import zmq_plugin as zp
+import zmq_plugin.schema
 
 from .plugin_manager import emit_signal, get_service_names
 
@@ -78,6 +81,37 @@ def protocol_to_frame(protocol_i):
     df_protocol.index.name = 'step_i'
     df_protocol.columns.names = ['plugin_name', 'step_field']
     return df_protocol
+
+
+def protocol_to_json(protocol):
+    '''
+    Parameters
+    ----------
+    protocol : microdrop.protocol.Protocol
+        Microdrop protocol.
+
+        .. note::
+            A Microdrop protocol object is stored as pickled in the
+            ``protocol`` file in each experiment log directory.
+
+    Returns
+    -------
+    str
+        json-encoded dictionary, with two top-level keys:
+         - ``keys``:
+               * Each key is a list containing a plugin name and a
+                 corresponding step field name.
+         - ``values``:
+               * Maps to list of records (i.e., lists), one per protocol
+                 step.
+        Each record in the ``values`` list may be *zipped together* with
+        ``keys`` to yield a plugin field name to value mapping for a single
+        protocol step.
+    '''
+    df_protocol = protocol.to_frame()
+    return json.dumps({'values': df_protocol.values.tolist(),
+                       'keys': df_protocol.columns.values.tolist()},
+                      cls=zp.schema.PandasJsonEncoder)
 
 
 class Protocol():
@@ -346,6 +380,28 @@ class Protocol():
                 related to the plugin are not included in the result.
         '''
         return protocol_to_frame(self)
+
+    def to_json(self):
+        '''
+        Returns
+        -------
+        str
+            json-encoded dictionary, with two top-level keys:
+             - ``keys``:
+                   * Each key is a list containing a plugin name and a
+                     corresponding step field name.
+             - ``values``:
+                   * Maps to list of records (i.e., lists), one per protocol
+                     step.
+            Each record in the ``values`` list may be *zipped together* with
+            ``keys`` to yield a plugin field name to value mapping for a single
+            protocol step.
+
+        See Also
+        --------
+        :meth:`to_frame`
+        '''
+        return protocol_to_json(self)
 
 
 class Step(object):
