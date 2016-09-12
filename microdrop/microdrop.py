@@ -21,8 +21,6 @@ import sys
 import traceback
 import platform
 
-import gtk
-
 
 if platform.system() == 'Windows':
     # When loading Portable Microdrop on Windows 8.1, the following error
@@ -35,11 +33,6 @@ if platform.system() == 'Windows':
     # to work around the issue.
     # See ticket #174.
     import pythoncom
-
-settings = gtk.settings_get_default()
-# Use a button ordering more consistent with Windows
-print 'Use a button ordering more consistent with Windows'
-settings.set_property('gtk-alternative-button-order', True)
 
 
 def except_handler(*args, **kwargs):
@@ -64,6 +57,13 @@ def initialize_core_plugins():
 
 def main():
     import logging
+
+    import gtk
+
+    settings = gtk.settings_get_default()
+    # Use a button ordering more consistent with Windows
+    print 'Use a button ordering more consistent with Windows'
+    settings.set_property('gtk-alternative-button-order', True)
 
     logging.basicConfig(format='%(asctime)s [%(levelname)s:%(name)s]: '
                         '%(message)s', datefmt=r'%Y-%m-%d %H:%M:%S',
