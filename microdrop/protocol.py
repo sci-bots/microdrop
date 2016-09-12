@@ -17,22 +17,104 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from collections import OrderedDict
 from copy import deepcopy
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import cStringIO as StringIO
+import itertools as it
+import json
 import logging
 import re
+import sys
 import time
 
 from microdrop_utility import Version, FutureVersionError
+import numpy as np
+import pandas as pd
 import yaml
+import zmq_plugin as zp
+import zmq_plugin.schema
 
 from .plugin_manager import emit_signal, get_service_names
 
 
 logger = logging.getLogger(__name__)
+
+
+def protocol_to_frame(protocol_i):
+    '''
+    Parameters
+    ----------
+    protocol_i : microdrop.protocol.Protocol
+        Microdrop protocol.
+
+        .. note::
+            A Microdrop protocol object is stored as pickled in the
+            ``protocol`` file in each experiment log directory.
+
+    Returns
+    -------
+    pandas.DataFrame
+         Data frame with rows indexed by 0-based step number and columns
+         indexed (multi-index) first by plugin name, then by step field name.
+
+         .. note::
+             Values may be Python objects.  In future versions
+             of Microdrop, values *may* be restricted to json
+             compatible types.
+    '''
+    plugin_names_i = sorted(reduce(lambda a, b:
+                                   a.union(b.plugin_data.keys()),
+                                   protocol_i.steps, set()))
+    frames_i = OrderedDict()
+
+    for plugin_name_ij in plugin_names_i:
+        try:
+            frame_ij = pd.DataFrame(map(pickle.loads,
+                                        [s.plugin_data.get(plugin_name_ij)
+                                         for s in protocol_i.steps]))
+        except Exception, exception:
+            print >> sys.stderr, exception
+        else:
+            frames_i[plugin_name_ij] = frame_ij
+    df_protocol = pd.concat(frames_i.values(), axis=1, keys=frames_i.keys())
+    df_protocol.index.name = 'step_i'
+    df_protocol.columns.names = ['plugin_name', 'step_field']
+    return df_protocol
+
+
+def protocol_to_json(protocol):
+    '''
+    Parameters
+    ----------
+    protocol : microdrop.protocol.Protocol
+        Microdrop protocol.
+
+        .. note::
+            A Microdrop protocol object is stored as pickled in the
+            ``protocol`` file in each experiment log directory.
+
+    Returns
+    -------
+    str
+        json-encoded dictionary, with two top-level keys:
+         - ``keys``:
+               * Each key is a list containing a plugin name and a
+                 corresponding step field name.
+         - ``values``:
+               * Maps to list of records (i.e., lists), one per protocol
+                 step.
+        Each record in the ``values`` list may be *zipped together* with
+        ``keys`` to yield a plugin field name to value mapping for a single
+        protocol step.
+    '''
+    df_protocol = protocol.to_frame()
+    return json.dumps({'values': df_protocol.values.tolist(),
+                       'keys': df_protocol.columns.values.tolist()},
+                      cls=zp.schema.PandasJsonEncoder)
 
 
 class Protocol():
@@ -286,6 +368,105 @@ class Protocol():
         original_step_number = self.current_step_number
         self.current_step_number = step_number
         emit_signal('on_step_swapped', [original_step_number, step_number])
+
+    def to_frame(self):
+        '''
+        Returns
+        -------
+        pandas.DataFrame
+            Data frame with multi-index columns, indexed first by plugin name,
+            then by plugin step field name.
+
+            .. note::
+                If an exception is encountered while processing a plugin value,
+                the plugin causing the exception is skipped and protocol values
+                related to the plugin are not included in the result.
+
+        See Also
+        --------
+        :meth:`to_json`, :meth:`to_ndjson`
+        '''
+        return protocol_to_frame(self)
+
+    def to_json(self):
+        '''
+        Returns
+        -------
+        str
+            json-encoded dictionary, with two top-level keys:
+             - ``keys``:
+                   * Each key is a list containing a plugin name and a
+                     corresponding step field name.
+             - ``values``:
+                   * Maps to list of records (i.e., lists), one per protocol
+                     step.
+            Each record in the ``values`` list may be *zipped together* with
+            ``keys`` to yield a plugin field name to value mapping for a single
+            protocol step.
+
+        See Also
+        --------
+        :meth:`to_frame`, :meth:`to_ndjson`
+        '''
+        return protocol_to_json(self)
+
+    def to_ndjson(self, ostream=None):
+        '''
+        Write protocol as newline delimted JSON (i.e., `ndjson`_, see
+        `specification`_).
+
+        Each subsequent line in the output is a nested JSON record, list), one
+        line per protocol step.  The keys of the top-level object of each record
+        correspond to plugin names.  The second-level keys correspond to the
+        step field name.
+
+        Parameters
+        ----------
+        ostream : file-like, optional
+            Output stream to write to.
+
+        Returns
+        -------
+        None or str
+            If :data:`ostream` parameter is ``None``, return output as string.
+
+        See Also
+        --------
+        :meth:`to_frame`, :meth:`to_json`
+
+
+        .. _`ndjson`: http://ndjson.org/
+        .. _`specification`: http://specs.frictionlessdata.io/ndjson/
+        '''
+        df_protocol = self.to_frame()
+
+        if ostream is None:
+            ostream = StringIO.StringIO()
+            return_required = True
+        else:
+            return_required = False
+
+        field_groups = [(group_i, list(fields_i))
+                        for group_i, fields_i in
+                        it.groupby(df_protocol.columns.values, lambda v: v[0])]
+        field_counts = np.cumsum([len(f[1]) for f in field_groups])
+        field_bases = field_counts.copy()
+        field_bases[1:] = field_counts[:-1]
+        field_bases[0] = 0
+
+        try:
+            for row_i in df_protocol.values:
+                row_dict_i = dict([(plugin_name_j,
+                                    dict(zip(zip(*fields_j)[1],
+                                             row_i[start_j:end_j])))
+                                for (plugin_name_j, fields_j), start_j, end_j
+                                in zip(field_groups, field_bases[:-1],
+                                        field_counts[:-1])])
+                print >> ostream, json.dumps(row_dict_i,
+                                             cls=zp.schema.PandasJsonEncoder)
+        finally:
+            if return_required:
+                return ostream.getvalue()
 
 
 class Step(object):
