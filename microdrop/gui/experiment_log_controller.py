@@ -230,7 +230,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                                       self.results.log)
 
             if export_data:
-                writer = pd.ExcelWriter(export_path)
+                writer = pd.ExcelWriter(export_path, engine='openpyxl')
                 for i, (plugin_name, plugin_data) in enumerate(export_data.iteritems()):
                     for name, df in plugin_data.iteritems():
                          # Excel sheet names have a 31 character max
