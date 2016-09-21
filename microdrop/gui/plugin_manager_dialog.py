@@ -99,4 +99,4 @@ Please start program again for changes to take effect.''')
 
 
 if __name__ == '__main__':
-    pm = PluginManagerView()
+    pm = PluginManagerDialog()
