@@ -33,6 +33,10 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# Only read interpret SVG paths and polygons from `Device` layer as electrodes.
+ELECTRODES_XPATH = (r'//svg:g[@inkscape:label="Device"]//svg:path | '
+                    r'//svg:g[@inkscape:label="Device"]//svg:polygon')
+
 
 class DeviceScaleNotSet(Exception):
     pass
@@ -59,8 +63,9 @@ class DmfDevice(object):
     def __init__(self, svg_filepath, name=None, **kwargs):
         self.name = name or path(svg_filepath).namebase
 
-        # Read SVG polygons into dataframe, one row per polygon vertex.
-        self.df_shapes = svg_shapes_to_df(svg_filepath)
+        # Read SVG paths and polygons from `Device` layer into data frame, one
+        # row per polygon vertex.
+        self.df_shapes = svg_shapes_to_df(svg_filepath, xpath=ELECTRODES_XPATH)
 
         # Add SVG file path as attribute.
         self.svg_filepath = svg_filepath
