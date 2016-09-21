@@ -20,12 +20,10 @@ from datetime import datetime
 import pdb
 import pkg_resources
 import webbrowser
-import os
 
 from pygtkhelpers.proxy import proxy_for
 from microdrop_utility import wrap_string
 from microdrop_utility.gui import DEFAULTS
-from path_helpers import path
 import gobject
 import gtk
 try:

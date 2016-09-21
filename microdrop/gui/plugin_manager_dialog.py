@@ -17,29 +17,15 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import re
 import logging
-from shutil import ignore_patterns
-from zipfile import ZipFile
-import tarfile
-import tempfile
-from collections import namedtuple
 
 import gtk
-from pygtkhelpers.ui.dialogs import open_filechooser, info
-from path_helpers import path
-import yaml
-from flatland import Form, String
-from jsonrpc.proxy import JSONRPCException
-from application_repository.plugins.proxy import PluginRepository
-from microdrop_utility import Version
-from microdrop_utility.gui import yesno
+from pygtkhelpers.ui.dialogs import open_filechooser
 
-from ..gui.plugin_download_dialog import PluginDownloadDialog
-from ..app_context import get_app
-from ..plugin_manager import (get_service_instance_by_name,
-                              get_plugin_package_name)
 from .. import glade_path
+from ..app_context import get_app
+from ..gui.plugin_download_dialog import PluginDownloadDialog
+from ..plugin_manager import get_service_instance_by_name
 
 
 class PluginManagerDialog(object):
