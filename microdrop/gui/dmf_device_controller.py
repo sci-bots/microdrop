@@ -199,16 +199,36 @@ directory)?''' % (device_directory, self.previous_device_dir))
         # SVG device file exists.  Load the device.
         try:
             logger.info('[DmfDeviceController].load_device: %s' % file_path)
+            if app.get_device_directory().realpath() == (file_path.realpath()
+                                                         .parent.parent):
+                # Selected device file is in MicroDrop devices directory.
+                new_device = False
+            else:
+                # Selected device file is not in MicroDrop devices directory.
+
+                # Copy file to devices directory under subdirectory with same
+                # name as file.
+                new_device_directory = (app.get_device_directory().realpath()
+                                        .joinpath(file_path.namebase)
+                                        .noconflict())
+                new_device_directory.makedirs_p()
+                new_file_path = new_device_directory.joinpath('device.svg')
+                file_path.copy(new_file_path)
+                file_path = new_file_path
+                new_device = True
+
+            # Load device from SVG file.
             device = DmfDevice.load(file_path, name=file_path.parent.name,
                                     **kwargs)
-            if not (file_path.parent.parent.realpath() ==
-                    app.get_device_directory().realpath()):
-                logger.info('[DmfDeviceController].load_device: Copy new '
-                            'device to microdrop devices directory.')
-                emit_signal("on_dmf_device_changed", [device])
-            else:
-                logger.info('[DmfDeviceController].load_device: load existing '
-                            'device.')
+            if new_device:
+                # Inform user that device was copied from original location
+                # into MicroDrop devices directory.
+                pgh.ui.dialogs.info('Device imported successfully',
+                                    long='New device copied into MicroDrop '
+                                    'devices directory:\n{}'.format(file_path),
+                                    parent=app.main_window_controller.view)
+                logger.info('[DmfDeviceController].load_device: Copied new '
+                            'device to: %s', file_path)
             emit_signal("on_dmf_device_swapped", [app.dmf_device, device])
         except:
             logger.error('Error loading device.', exc_info=True)
@@ -347,7 +367,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 logger.error('Error importing device. %s' % e, exc_info=True)
 
     def import_device(self, input_device_path):
-        input_device_path = ph.path(input_device_path).abspath()
+        input_device_path = ph.path(input_device_path).realpath()
         output_device_path = (input_device_path.parent
                               .joinpath(input_device_path.namebase + '.svg'))
         overwrite = False
