@@ -429,16 +429,18 @@ def extract_channels(df_shapes):
     '''
     frames = []
 
-    shape_channel_lists = (df_shapes.drop_duplicates(subset=['id',
-                                                             'data-channels'])
-                           .set_index('id')['data-channels']
-                           .str.split(',').dropna())
+    if 'data-channels' in df_shapes:
+        shape_channel_lists = (df_shapes
+                               .drop_duplicates(subset=['id', 'data-channels'])
+                               .set_index('id')['data-channels']
+                               .str.split(',').dropna())
 
-    for shape_i, channels_i in shape_channel_lists.iteritems():
-        frames.extend([[shape_i, int(channel)] for channel in channels_i])
+        for shape_i, channels_i in shape_channel_lists.iteritems():
+            frames.extend([[shape_i, int(channel)] for channel in channels_i])
 
     if frames:
         df_channels = pd.DataFrame(frames, columns=['electrode_id', 'channel'])
     else:
         df_channels = pd.DataFrame(None, columns=['electrode_id', 'channel'])
+    df_channels['channel'] = df_channels['channel'].astype(int)
     return df_channels
