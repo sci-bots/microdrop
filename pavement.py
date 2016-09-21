@@ -56,7 +56,9 @@ setup(name='microdrop',
       long_description='\n%s\n' % open('README.md', 'rt').read(),
       packages=['microdrop'],
       include_package_data=True,
-      install_requires=install_requires)
+      install_requires=install_requires,
+      entry_points = {'console_scripts':
+                      ['microdrop = microdrop.microdrop:main']})
 
 
 @task
