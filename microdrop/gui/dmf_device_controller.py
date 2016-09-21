@@ -21,6 +21,7 @@ import shutil
 import logging
 
 from flatland import Form
+from lxml import etree
 from microdrop_device_converter import convert_device_to_svg
 from microdrop_utility import copytree
 from microdrop_utility.gui import yesno
@@ -29,9 +30,12 @@ from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import add_filters
 import gtk
 import path_helpers as ph
+import pygtkhelpers as pgh
+import pygtkhelpers.ui.dialogs
+import svg_model as sm
 
 from ..app_context import get_app
-from ..dmf_device import DmfDevice
+from ..dmf_device import DmfDevice, ELECTRODES_XPATH
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
@@ -121,18 +125,20 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_plugin_enable(self):
         app = get_app()
 
-        self.menu_load_dmf_device = app.builder.get_object('menu_load_dmf_device')
+        self.menu_detect_connections = app.builder.get_object('menu_detect_connections')
         self.menu_import_dmf_device = app.builder.get_object('menu_import_dmf_device')
+        self.menu_load_dmf_device = app.builder.get_object('menu_load_dmf_device')
         self.menu_rename_dmf_device = app.builder.get_object('menu_rename_dmf_device')
         self.menu_save_dmf_device = app.builder.get_object('menu_save_dmf_device')
         self.menu_save_dmf_device_as = app.builder.get_object('menu_save_dmf_device_as')
 
+        app.signals["on_menu_detect_connections_activate"] = self.on_detect_connections
+        app.signals["on_menu_import_dmf_device_activate"] = self.on_import_dmf_device
         app.signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
-        app.signals["on_menu_import_dmf_device_activate"] = \
-                self.on_import_dmf_device
         app.signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device
         app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device
         app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as
+
         app.dmf_device_controller = self
         defaults = self.get_default_app_options()
         data = app.get_data(self.name)
@@ -143,6 +149,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         emit_signal('on_app_options_changed', [self.name])
 
         # disable menu items until a device is loaded
+        self.menu_detect_connections.set_sensitive(False)
         self.menu_rename_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device.set_sensitive(False)
         self.menu_save_dmf_device_as.set_sensitive(False)
@@ -154,6 +161,15 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.save_check()
 
     def load_device(self, file_path, **kwargs):
+        '''
+        Load device file.
+
+        Parameters
+        ----------
+        file_path : str
+            A MicroDrop device `.svg` file or a (deprecated) MicroDrop 1.0
+            device.
+        '''
         app = get_app()
         self.modified = False
         device = app.dmf_device
@@ -341,10 +357,51 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 return
             overwrite = True
         convert_device_to_svg(input_device_path, output_device_path,
-                                use_svg_path=True,
-                                detect_connections=True, extend_mm=.5,
-                                overwrite=overwrite)
+                              use_svg_path=True, detect_connections=True,
+                              extend_mm=.5, overwrite=overwrite)
         self.load_device(output_device_path)
+
+    def on_detect_connections(self, widget, data=None):
+        '''
+        Auto-detect adjacent electrodes in device and save updated SVG to
+        device file path.
+        '''
+        app = get_app()
+        svg_source = ph.path(app.dmf_device.svg_filepath)
+
+        # Check for existing `Connections` layer.
+        xml_root = etree.parse(svg_source)
+        connections_xpath = '//svg:g[@inkscape:label="Connections"]'
+        connections_groups = xml_root.xpath(connections_xpath,
+                                            namespaces=sm.INKSCAPE_NSMAP)
+
+        if connections_groups:
+            # Existing "Connections" layer found in source SVG.
+            # Prompt user to overwrite.
+            response = pgh.ui.dialogs.yesno('"Connections" layer already '
+                                            'exists in device file.\n\n'
+                                            'Overwrite?',
+                                            parent=
+                                            app.main_window_controller.view)
+            if response == gtk.RESPONSE_NO:
+                return
+
+        # Auto-detect adjacent electrodes from SVG paths and polygons from
+        # `Device` layer.
+        connections_svg = (sm.detect_connections
+                           .auto_detect_adjacent_shapes(svg_source,
+                                                        shapes_xpath=
+                                                        ELECTRODES_XPATH))
+
+        # Remove existing "Connections" layer and merge new "Connections" layer
+        # with original SVG.
+        output_svg = (sm.merge
+                      .merge_svg_layers([sm.remove_layer(svg_source,
+                                                         'Connections'),
+                                         connections_svg]))
+
+        with svg_source.open('w') as output:
+            output.write(output_svg.getvalue())
 
     def on_rename_dmf_device(self, widget, data=None):
         self.save_dmf_device(rename=True)
@@ -359,6 +416,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.modified = True
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        self.menu_detect_connections.set_sensitive(True)
         self.menu_save_dmf_device_as.set_sensitive(True)
 
 PluginGlobals.pop_env()
