@@ -85,7 +85,8 @@ class PluginManagerDialog(object):
 Plugins were installed/uninstalled.
 Program needs to be closed.
 Please start program again for changes to take effect.''')
-            app.main_window_controller.on_destroy(None)
+            # Use return code of `5` to signal program should be restarted.
+            app.main_window_controller.on_destroy(None, return_code=5)
             return response
         return response
 

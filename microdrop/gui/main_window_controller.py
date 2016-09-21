@@ -203,9 +203,10 @@ class MainWindowController(SingletonPlugin):
                                                env='microdrop')
             hub.on_plugin_disable()
 
-    def on_destroy(self, widget, data=None):
+    def on_destroy(self, widget, data=None, return_code=0):
         self.on_delete_event(None)
         gtk.main_quit()
+        raise SystemExit(return_code)
 
     def on_about(self, widget, data=None):
         app = get_app()
