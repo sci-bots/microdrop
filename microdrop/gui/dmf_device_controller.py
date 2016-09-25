@@ -17,38 +17,34 @@ You should have received a copy of the GNU General Public License
 along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
-import traceback
-import shutil
 from copy import deepcopy
 import logging
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import os
+import shutil
+import traceback
 
-import gtk
-import numpy as np
 from flatland import Form, Integer, String, Boolean
+from microdrop_utility import copytree
+from microdrop_utility.gui import yesno
 from path_helpers import path
-import yaml
-from pygtkhelpers.ui.extra_widgets import Directory, Enum
-from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from pygst_utils.video_pipeline.window_service_proxy import WindowServiceProxy
 from pygst_utils.video_source import GstVideoSourceManager
-from microdrop_utility.gui import yesno
-from microdrop_utility import copytree
+from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
+from pygtkhelpers.ui.extra_widgets import Directory, Enum
+import gtk
+import numpy as np
+import yaml
 
+from .. import base_path
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
-import logging
-
-logger = logging.getLogger(__name__)
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
 from .dmf_device_view import DmfDeviceView
-from .. import base_path
+
+
+logger = logging.getLogger(__name__)
 
 PluginGlobals.push_env('microdrop')
 
