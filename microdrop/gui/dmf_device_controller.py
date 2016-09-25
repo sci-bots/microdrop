@@ -290,18 +290,30 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_plugin_enable(self):
         app = get_app()
 
-        self.event_box_dmf_device = app.builder.get_object(
-                'event_box_dmf_device')
-        self.event_box_dmf_device.add(self.view.device_area)
-        self.event_box_dmf_device.show_all()
-        self.view.connect('channel-state-changed',
-                lambda x, y: self._notify_observers_step_options_changed())
+        def _set_up_gui_elements():
+            self.event_box_dmf_device = (app.builder
+                                         .get_object('event_box_dmf_device'))
+            self.event_box_dmf_device.add(self.view.device_area)
+            self.event_box_dmf_device.show_all()
+            self.view.connect('channel-state-changed', lambda x, y:
+                              self._notify_observers_step_options_changed())
 
-        self.menu_load_dmf_device = app.builder.get_object('menu_load_dmf_device')
-        self.menu_import_dmf_device = app.builder.get_object('menu_import_dmf_device')
-        self.menu_rename_dmf_device = app.builder.get_object('menu_rename_dmf_device')
-        self.menu_save_dmf_device = app.builder.get_object('menu_save_dmf_device')
-        self.menu_save_dmf_device_as = app.builder.get_object('menu_save_dmf_device_as')
+            # Store references to GTK menu item objects as object attributes.
+            for menu_item_name_i in ('import_dmf_device', 'load_dmf_device',
+                                     'rename_dmf_device', 'save_dmf_device',
+                                     'save_dmf_device_as'):
+                menu_item_i = app.builder.get_object('menu_{}'
+                                                     .format(menu_item_name_i))
+                setattr(self, 'menu_{}'.format(menu_item_name_i), menu_item_i)
+
+            # Disable menu items until a device is loaded.
+            self.menu_rename_dmf_device.set_sensitive(False)
+            self.menu_save_dmf_device.set_sensitive(False)
+            self.menu_save_dmf_device_as.set_sensitive(False)
+
+        # Queue setting up of GUI elements (rather than executing directly
+        # here) to prevent potential lock up of main thread.
+        gtk.idle_add(_set_up_gui_elements)
 
         app.signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
         app.signals["on_menu_import_dmf_device_activate"] = \
@@ -318,11 +330,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 data[k] = v
         app.set_data(self.name, data)
         emit_signal('on_app_options_changed', [self.name])
-
-        # disable menu items until a device is loaded
-        self.menu_rename_dmf_device.set_sensitive(False)
-        self.menu_save_dmf_device.set_sensitive(False)
-        self.menu_save_dmf_device_as.set_sensitive(False)
 
     def stop_recording(self):
         self._bitrate = None
