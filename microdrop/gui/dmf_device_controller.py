@@ -318,6 +318,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device
         app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as
         app.signals["on_event_box_dmf_device_size_allocate"] = self.on_size_allocate
+
+        # Load plugin options.
         app.dmf_device_controller = self
         defaults = self.get_default_app_options()
         data = app.get_data(self.name)
@@ -325,6 +327,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if k not in data:
                 data[k] = v
         app.set_data(self.name, data)
+        # Notify plugins that new options have been applied.
         emit_signal('on_app_options_changed', [self.name])
 
     def stop_recording(self):
