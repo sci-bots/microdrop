@@ -1,5 +1,5 @@
 """
-Copyright 2011 Ryan Fobel
+Copyright 2016 Ryan Fobel and Christian Fobel
 
 This file is part of Microdrop.
 
@@ -123,7 +123,8 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
     @modified.setter
     def modified(self, value):
         self._modified = value
-        self.menu_save_dmf_device.set_sensitive(value)
+        gtk.idle_add(lambda value:
+                     self.menu_save_dmf_device.set_sensitive(value), value)
 
     @property
     def video_enabled(self):
@@ -301,6 +302,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 menu_item_i = app.builder.get_object('menu_{}'
                                                      .format(menu_item_name_i))
                 setattr(self, 'menu_{}'.format(menu_item_name_i), menu_item_i)
+                print 'menu_{}'.format(menu_item_name_i), menu_item_i
 
             # Disable menu items until a device is loaded.
             self.menu_rename_dmf_device.set_sensitive(False)
@@ -593,12 +595,15 @@ directory)?''' % (device_directory, self.previous_device_dir))
         self.save_dmf_device(save_as=True)
 
     def on_dmf_device_swapped(self, old_device, new_device):
-        self.menu_rename_dmf_device.set_sensitive(True)
-        self.menu_save_dmf_device_as.set_sensitive(True)
         if old_device is None:
             # need to reset the video to display the device
             self.reset_video()
         self._update()
+
+        def _enable_device_menu_items():
+            self.menu_rename_dmf_device.set_sensitive(True)
+            self.menu_save_dmf_device_as.set_sensitive(True)
+        gtk.idle_add(_enable_device_menu_items)
 
     def on_dmf_device_changed(self):
         self.modified = True
