@@ -163,7 +163,7 @@ manager](#install-plugins-through-microdrop-plugin-manager-mpm) command-line
 tool, or through the [MicroDrop user
 interface](#install-plugins-through-microdrop-gui).
 
-### Featured plugins ###
+### Featured plugin ###
 
  - [`dmf_control_board`][7]
      * Control actuation parameters for the [DropBot][12] open-source Digital
@@ -178,9 +178,15 @@ For full usage details, see the [project home page][14].
 
 Basic usage to install a plugin:
 
-    python -m mpm -c <microdrop settings directory>\microdrop.ini install plugin [plugin [plugin ...]]
+ - Start MicroDrop environment command prompt using the following shortcut:
 
-To install featured plugins:
+   ![][microdrop-environment-shortcut]
+
+ - In MicroDrop environment command prompt, run:
+
+        python -m mpm -c <microdrop settings directory>\microdrop.ini install plugin [plugin [plugin ...]]
+
+To install featured plugin:
 
     python -m mpm -c <microdrop settings directory>\microdrop.ini install dmf_control_board
 
@@ -212,6 +218,7 @@ To install featured plugins:
 [github]: https://github.com/wheeler-microfluidics/microdrop/tree/release-1.0
 [readthedocs]: http://microdrop.readthedocs.io/
 [install-plugins]: microdrop/static/images/plugins-install.gif
+[microdrop-environment-shortcut]: microdrop/static/images/microdrop-environment-shortcut.png
 [microdrop-profile-manager]: https://github.com/wheeler-microfluidics/microdrop/wiki/images/microdrop-plugin-manager-annotated.png
 [install-dependencies]: https://github.com/wheeler-microfluidics/microdrop/wiki/images/plugin-manager-install-dependencies.png
 [remove-profile]: https://github.com/wheeler-microfluidics/microdrop/wiki/images/plugin-manager-remove.png
