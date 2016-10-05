@@ -84,7 +84,7 @@ information.
 server where MicroDrop dependencies not available on PyPI are stored as
 wheels*.
 
-<img align="right" src="https://github.com/wheeler-microfluidics/microdrop/wiki/images/microdrop-shortcuts.png" />
+<img align="right" src="microdrop/static/images/microdrop-shortcuts.png" />
 
 ## **Shortcuts** ##
 
@@ -219,9 +219,9 @@ To install featured plugin:
 [readthedocs]: http://microdrop.readthedocs.io/
 [install-plugins]: microdrop/static/images/plugins-install.gif
 [microdrop-environment-shortcut]: microdrop/static/images/microdrop-environment-shortcut.png
-[microdrop-profile-manager]: https://github.com/wheeler-microfluidics/microdrop/wiki/images/microdrop-plugin-manager-annotated.png
-[install-dependencies]: https://github.com/wheeler-microfluidics/microdrop/wiki/images/plugin-manager-install-dependencies.png
-[remove-profile]: https://github.com/wheeler-microfluidics/microdrop/wiki/images/plugin-manager-remove.png
+[microdrop-profile-manager]: microdrop/static/images/microdrop-plugin-manager-annotated.png
+[install-dependencies]: microdrop/static/images/plugin-manager-install-dependencies.png
+[remove-profile]: microdrop/static/images/plugin-manager-remove.png
 
 Credits
 =======
