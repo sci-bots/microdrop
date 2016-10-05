@@ -13,11 +13,15 @@ appropriate.
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Installation](#installation)
-    - [No existing Python 2.7 32-bit Windows installation](#no-existing-python-27-32-bit-windows-installation)
-    - [Existing `anaconda` (Python 2.7 32-bit Windows) installation](#existing-anaconda-python-27-32-bit-windows-installation)
-    - [Create a separate `conda` environment for MicroDrop 2.0](#create-a-separate-conda-environment-for-microdrop-20)
-    - [Other Python 2.7 32-bit Windows installation (using `pip`)](#other-python-27-32-bit-windows-installation-using-pip)
-- [Configuration](#configuration)
+    - [No existing Python 2.7 32-bit Windows installation **(recommended)**](#no-existing-python-27-32-bit-windows-installation-recommended)
+    - [Existing `anaconda` (Python 2.7 32-bit Windows) installation **(recommended)**](#existing-anaconda-python-27-32-bit-windows-installation-recommended)
+    - [Create a separate `conda` environment for MicroDrop](#create-a-separate-conda-environment-for-microdrop)
+    - [Other Python 2.7 32-bit Windows installation (using `pip`, **not recommended**)](#other-python-27-32-bit-windows-installation-using-pip-not-recommended)
+  - [**Shortcuts**](#shortcuts)
+  - [**Import** profile](#import-profile)
+- [Profile Manager **(new)**](#profile-manager-new)
+  - [Import profile](#import-profile)
+  - [Remove profile](#remove-profile)
 - [Install plugins](#install-plugins)
     - [Featured plugins](#featured-plugins)
     - [Install plugins through MicroDrop plugin manager (`mpm`)](#install-plugins-through-microdrop-plugin-manager-mpm)
@@ -30,13 +34,7 @@ appropriate.
 
 MicroDrop can be installed using any of the methods below.
 
-After installing, the directions in the [Configuration section](#configuration)
-below can be used to:
-
- - Create a MicroDrop user configuration
- - Launch MicroDrop
-
-### No existing Python 2.7 32-bit Windows installation ###
+### No existing Python 2.7 32-bit Windows installation **(recommended)** ###
 
 Download installer for latest [MicroDrop 2.0 release][4].
 
@@ -44,57 +42,119 @@ This installer is a customized distribution of the popular [`Miniconda`][5]
 Python.
 
 
-### Existing `anaconda` (Python 2.7 32-bit Windows) installation ###
+### Existing `anaconda` (Python 2.7 32-bit Windows) installation **(recommended)** ###
 
 Run:
 
-    conda install -c wheeler-microfluidics microdrop-2.0 microdrop-plugin-manager dmf-device-ui
+    conda install -c wheeler-microfluidics "microdrop>=2.0,<3.0" microdrop-launcher dmf-device-ui
 
 **Note** *the `-c wheeler-microfluidics` flag allows installing conda packages
 from  the `wheeler-microfluidics` channel*.
 
 
-### Create a separate `conda` environment for MicroDrop 2.0 ###
+### Create a separate `conda` environment for MicroDrop ###
 
 Run:
 
-    conda create -n microdrop-2.0 -c wheeler-microfluidics microdrop-2.0 microdrop-plugin-manager dmf-device-ui
+    conda create -n microdrop -c wheeler-microfluidics "microdrop>=2.0,<3.0" microdrop-launcher dmf-device-ui
 
-To activate the MicroDrop 2.0 `conda` environment, run:
+To activate the MicroDrop `conda` environment, run:
 
-    activate microdrop-2.0
+    activate microdrop
 
-To deactivate the MicroDrop 2.0 `conda` environment, run:
+To deactivate the MicroDrop `conda` environment, run:
 
     deactivate
 
+See ["Managing environments"][15] section of Conda documentation for more
+information.
 
-### Other Python 2.7 32-bit Windows installation (using `pip`) ###
+
+### Other Python 2.7 32-bit Windows installation (using `pip`, **not recommended**) ###
 
  1. Update `pip`:
 
         pip install -U pip
 
  2. Install microdrop (find latest version number on [PyPi][3], e.g.,
-    `"microdrop>=2.0.post14.dev250849665"`):
+    `"2.0.post110.dev156674653"`):
 
-        pip install --find-links http://192.99.4.95/wheels --trusted-host 192.99.4.95 "microdrop>=2.0,<3.0"
+        pip install --find-links http://192.99.4.95/wheels --trusted-host 192.99.4.95 <microdrop version> microdrop-launcher dmf-device-ui
 
 **Note** *`192.99.4.95` is the IP address of the official MicroDrop update
 server where MicroDrop dependencies not available on PyPI are stored as
 wheels*.
 
+<img align="right" src="microdrop/static/images/microdrop-shortcuts.png" />
 
-# Configuration #
+## **Shortcuts** ##
 
-To create a new MicroDrop settings directory with a batch file launcher, run
-the following command using the Python installation used to install MicroDrop:
+If MicroDrop is installed using a Conda Python distribution (including the [official installer][1])
 
-    python -m microdrop.bin.create_portable_config <microdrop settings directory>
+ - **Documentation**: Open [online MicroDrop documentation][readthedocs].
+ - **GitHub project**: Open MicroDrop [GitHub project page][github].
+ - **MicroDrop Profile Manager**: Launch MicroDrop profile manager.
+ - **MicroDrop environment prompt**: Launch Windows command prompt with
+   MicroDrop Conda environment activated.
+ - **MicroDrop**: Launch MicroDrop if only one **profile** is available
+   *(default)*.  Otherwise, launch **MicroDrop Profile Manager** to select
+   **profile** to launch.
+     * **Tip**: Right-click on shortcut to **pin** to **taskbar** for easy
+       access.
 
-To launch MicroDrop, run:
+## **Import** profile ##
 
-    <microdrop settings directory>\microdrop.bat
+If existing **profile** directory is not automatically found, it can be
+manually **imported** by launching the **"MicroDrop Profile Manager"**
+shortcut.
+
+See [Profile Manager](#profile-manager-new) section below.
+
+# Profile Manager **(new)** #
+
+In environments where, for example, multiple users are using the same computer
+to perform MicroDrop experiments, it can be helpful to create separate
+MicroDrop **profiles**.  Each MicroDrop **profile** contains **devices** and
+**plugins**, as well as **experiment logs**.
+
+The **MicroDrop Profile Manager** provides an interface to manage one or more
+MicroDrop profiles.  Initially, the **default profile path** (i.e.,
+`<Documents>\Microdrop`) is listed.
+
+As shown below:
+
+ - Profiles are **listed** according when they were last launched, with the
+   **most recently used profile first**.
+ - Existing profiles may be **imported**.
+ - Listed profiles may be **removed** from the profile list (and optionally
+   **deleted** entirely).
+ - Listed profiles may be **opened** in the system file browser.
+ - MicroDrop may be **launched** using any of the listed profiles.
+
+![MicroDrop Profile Manager][microdrop-profile-manager]
+
+
+## Import profile ##
+
+When an existing **profile** is imported, **plugin** dependencies are installed
+while the following dialog is displayed:
+
+![MicroDrop Profile Manager - install dependencies][install-dependencies]
+
+## Remove profile ##
+
+The following **dialog** is displayed when the **Remove** button for a listed
+profile is **clicked**:
+
+![MicroDrop Profile Manager - remove profile][remove-profile]
+
+Clicking the **Remove** button in the dialog removes the corresponding
+**profile** from the list, but **does not** delete any files.  The **profile**
+can be imported to add it back to the profile list.
+
+**Warning:** Clicking the **Remove with data** button in the dialog removes the
+corresponding **profile** from the list, **and deletes the profile directory**.
+This **cannot be undone**.
 
 
 # Install plugins #
@@ -144,7 +204,13 @@ For full usage details, see the [project home page][14].
 
 Basic usage to install a plugin:
 
-    python -m mpm -c <microdrop settings directory>\microdrop.ini install plugin [plugin [plugin ...]]
+ - Start MicroDrop environment command prompt using the following shortcut:
+
+   ![][microdrop-environment-shortcut]
+
+ - In MicroDrop environment command prompt, run:
+
+        python -m mpm -c <microdrop settings directory>\microdrop.ini install plugin [plugin [plugin ...]]
 
 To install featured plugins:
 
@@ -156,9 +222,7 @@ To install featured plugins:
 
      ![Install MicroDrop plugins][install-plugins]
 
- 2. Relaunch MicroDrop:
-
-        <microdrop settings directory>\microdrop.bat
+ 2. Relaunch MicroDrop.
 
 
 [1]: http://microfluidics.utoronto.ca/microdrop
@@ -175,9 +239,15 @@ To install featured plugins:
 [12]: http://microfluidics.utoronto.ca/dropbot/
 [13]: https://github.com/wheeler-microfluidics/droplet-planning-plugin
 [14]: https://github.com/wheeler-microfluidics/mpm
+[15]: http://conda.pydata.org/docs/using/envs.html
 
+[github]: https://github.com/wheeler-microfluidics/microdrop/tree/release-1.0
+[readthedocs]: http://microdrop.readthedocs.io/
 [install-plugins]: microdrop/static/images/plugins-install.gif
-
+[microdrop-environment-shortcut]: microdrop/static/images/microdrop-environment-shortcut.png
+[microdrop-profile-manager]: microdrop/static/images/microdrop-plugin-manager-annotated.png
+[install-dependencies]: microdrop/static/images/plugin-manager-install-dependencies.png
+[remove-profile]: microdrop/static/images/plugin-manager-remove.png
 
 Credits
 =======
