@@ -1,0 +1,19 @@
+name: MicroDrop
+version: {{ GIT_DESCRIBE_TAG[1:] }}
+
+channels:
+  - http://repo.continuum.io/pkgs/free/
+  - https://conda.anaconda.org/wheeler-microfluidics/
+
+specs:
+  - python 2.7*
+  - conda
+  - microdrop-launcher >=0.1.post66
+  - pip
+  - pywin32
+  - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
+
+license_file: EULA.txt
+
+# Welcome image for Windows installer
+welcome_image: logo.png                  [win]

@@ -71,6 +71,21 @@ def create_requirements():
                                 for p in package_list]))
 
 @task
+def build_installer():
+    try:
+        import constructor_git as cg
+        import constructor_git.__main__
+    except ImportError:
+        print >> sys.stderr, ('`constructor-git` package not found.  Install '
+                              'with `conda install constructor-git`.')
+        raise SystemExit(-1)
+
+    repo_path = path(__file__).parent.realpath()
+    print repo_path
+    cg.__main__.main(repo_path)
+
+
+@task
 @needs('generate_setup', 'minilib', 'create_requirements',
        'setuptools.command.sdist')
 def sdist():
