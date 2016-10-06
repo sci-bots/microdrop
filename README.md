@@ -228,7 +228,7 @@ To install featured plugins:
 [1]: http://microfluidics.utoronto.ca/microdrop
 [2]: http://dx.doi.org/10.1063/1.4807118
 [3]: https://pypi.python.org/pypi/microdrop
-[4]: https://github.com/wheeler-microfluidics/microdrop/releases/latest
+[4]: https://github.com/wheeler-microfluidics/microdrop/releases
 [5]: http://conda.pydata.org/miniconda.html
 [6]: https://github.com/wheeler-microfluidics/device-quality-control-plugin
 [7]: https://github.com/wheeler-microfluidics/dmf_control_board_plugin
