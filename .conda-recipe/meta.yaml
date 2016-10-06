@@ -1,0 +1,116 @@
+# source will be downloaded prior to filling in jinja templates
+# Example assumes that this folder has setup.py in it
+source:
+  git_url: ../
+
+package:
+  name: microdrop
+  version: {{ GIT_DESCRIBE_TAG[1:] }}
+
+build:
+  entry_points:
+    - microdrop = microdrop.microdrop:main
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  number: {{ GIT_DESCRIBE_NUMBER }}
+
+requirements:
+  build:
+    - application-repository
+    - arrow
+    - blinker
+    - configobj
+    - droplet-planning
+    - flatland-fork
+    - functools32
+    - geo_util
+    - git_helpers
+    - gitpython
+    - ipython
+    - ipython-helpers
+    - jinja2
+    - lxml
+    - matplotlib
+    - microdrop-device-converter >=0.1.post5
+    - microdrop-plugin-template
+    - networkx
+    - openpyxl
+    - pandas
+    - path_helpers >=0.2.post4
+    - paver
+    - pint
+    - pip-helpers
+    - pycairo-gtk2
+    - pygtk-textbuffer-with-undo
+    - pymunk >=4.0,<5.0
+    - pyparsing
+    - pyserial
+    - pytables
+    - python
+    - pyutilib.component.loader
+    - pywin32
+    - pyyaml
+    - pyzmq
+    - run-exe
+    - scipy
+    - setuptools
+    - si-prefix
+    - svg-model
+    - svgwrite
+    - sympy
+    - task-scheduler
+    - tornado
+    - wheeler.pygtkhelpers >=0.14.post7
+    - zmq-plugin >=0.2.post2
+
+  run:
+    - application-repository
+    - arrow
+    - blinker
+    - configobj
+    - droplet-planning
+    - flatland-fork
+    - functools32
+    - geo_util
+    - git_helpers
+    - gitpython
+    - ipython
+    - ipython-helpers
+    - jinja2
+    - lxml
+    - matplotlib
+    - microdrop-device-converter >=0.1.post5
+    - microdrop-plugin-template
+    - networkx
+    - openpyxl
+    - pandas
+    - path_helpers >=0.2.post4
+    - paver
+    - pint
+    - pip-helpers
+    - pycairo-gtk2
+    - pygtk-textbuffer-with-undo
+    - pymunk >=4.0,<5.0
+    - pyparsing
+    - pyserial
+    - pytables
+    - pyutilib.component.loader
+    - pywin32
+    - pyyaml
+    - pyzmq
+    - run-exe
+    - scipy
+    - setuptools
+    - si-prefix
+    - svg-model
+    - svgwrite
+    - sympy
+    - task-scheduler
+    - tornado
+    - wheeler.pygtkhelpers >=0.14.post7
+    - zmq-plugin >=0.2.post2
+
+about:
+  home: http://github.com/wheeler-microfluidics/microdrop
+  license: GPL
