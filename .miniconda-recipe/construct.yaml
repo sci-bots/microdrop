@@ -12,6 +12,11 @@ specs:
   - pip
   - pywin32
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
+  # Install requirements for "featured" plugins
+  - dmf-device-ui-plugin-requirements
+  - dropbot-dx-plugin-requirements
+  - droplet-planning-plugin-requirements
+  - metadata-plugin-requirements
 
 license_file: EULA.txt
 
