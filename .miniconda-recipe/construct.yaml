@@ -14,7 +14,7 @@ specs:
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
   # Install requirements for "featured" plugins
   - dmf-device-ui-plugin-requirements
-  - dropbot-dx-plugin-requirements
+  - dropbot-dx-plugin-requirements >=2.2.post7
   - droplet-planning-plugin-requirements
   - metadata-plugin-requirements
 
