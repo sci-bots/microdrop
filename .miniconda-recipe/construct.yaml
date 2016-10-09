@@ -8,10 +8,12 @@ channels:
 specs:
   - python 2.7*
   - conda
-  - microdrop-launcher >=0.1.post66
+  - microdrop-launcher >=0.2.post3
   - pip
   - pywin32
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
+  # Install requirements for "featured" plugins
+  - dropbot-dx-plugin-requirements >=2.2.post7
 
 license_file: EULA.txt
 

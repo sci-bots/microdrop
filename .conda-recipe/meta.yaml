@@ -18,43 +18,42 @@ build:
 requirements:
   build:
     - application-repository
-    - arrow
     - blinker
     - configobj
-    - droplet-planning
     - flatland-fork
-    - functools32
     - geo_util
-    - git_helpers
     - gitpython
     - ipython
     - ipython-helpers
-    - jinja2
-    - lxml
     - matplotlib
-    - microdrop-device-converter >=0.1.post5
+    - microdrop-plugin-manager
     - microdrop-plugin-template
+    - microdrop-utility
     - networkx
+    - opencv-helpers
     - openpyxl
     - pandas
-    - path_helpers >=0.2.post4
+    - path_helpers
     - paver
-    - pint
     - pip-helpers
+    - progressbar2
     - pycairo-gtk2
+    - pygst-0.10
+    - pygst-utils >=0.2.post26,<0.3
     - pygtk-textbuffer-with-undo
-    - pymunk >=4.0,<5.0
     - pyparsing
     - pyserial
     - pytables
     - python
+    - pyutilib.component.config
+    - pyutilib.component.core
     - pyutilib.component.loader
     - pywin32
     - pyyaml
     - pyzmq
+    - rename-package-files
     - run-exe
     - scipy
-    - setuptools
     - si-prefix
     - svg-model
     - svgwrite
@@ -62,46 +61,44 @@ requirements:
     - task-scheduler
     - tornado
     - wheeler.pygtkhelpers >=0.14.post7
-    - zmq-plugin >=0.2.post2
 
   run:
     - application-repository
-    - arrow
     - blinker
     - configobj
-    - droplet-planning
     - flatland-fork
-    - functools32
     - geo_util
-    - git_helpers
     - gitpython
     - ipython
     - ipython-helpers
-    - jinja2
-    - lxml
     - matplotlib
-    - microdrop-device-converter >=0.1.post5
+    - microdrop-plugin-manager
     - microdrop-plugin-template
+    - microdrop-utility
     - networkx
+    - opencv-helpers
     - openpyxl
     - pandas
-    - path_helpers >=0.2.post4
+    - path_helpers
     - paver
-    - pint
     - pip-helpers
+    - progressbar2
     - pycairo-gtk2
+    - pygst-0.10
+    - pygst-utils >=0.2.post26,<0.3
     - pygtk-textbuffer-with-undo
-    - pymunk >=4.0,<5.0
     - pyparsing
     - pyserial
     - pytables
+    - pyutilib.component.config
+    - pyutilib.component.core
     - pyutilib.component.loader
     - pywin32
     - pyyaml
     - pyzmq
+    - rename-package-files
     - run-exe
     - scipy
-    - setuptools
     - si-prefix
     - svg-model
     - svgwrite
@@ -109,8 +106,7 @@ requirements:
     - task-scheduler
     - tornado
     - wheeler.pygtkhelpers >=0.14.post7
-    - zmq-plugin >=0.2.post2
 
 about:
-  home: http://github.com/wheeler-microfluidics/microdrop
+  home: https://github.com/wheeler-microfluidics/microdrop/tree/release-1.0
   license: GPL
