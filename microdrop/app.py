@@ -27,6 +27,7 @@ except ImportError:
     import pickle
 import logging
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+import traceback
 
 import gtk
 from path_helpers import path
@@ -40,8 +41,8 @@ from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 from application_repository.application.proxy import AppRepository
 from microdrop_utility import Version, DifferentVersionTagsError
 from microdrop_utility.gui import yesno
-import plugin_manager
 
+from . import plugin_manager
 from .protocol import Step
 from .config import Config
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
@@ -214,6 +215,10 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     logger.info("  running post install hook for %s" %
                                 info.plugin_name)
                     plugin_manager.post_install(p)
+                except Exception, e:
+                    logging.info(''.join(traceback.format_exc()))
+                    logging.error('Error running post-install hook for %s.',
+                                  p.name, exc_info=True)
                 finally:
                     post_install_queue.remove(p)
             post_install_queue_path.write_bytes(yaml.dump(post_install_queue))
