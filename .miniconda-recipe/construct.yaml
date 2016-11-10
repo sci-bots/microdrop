@@ -17,5 +17,9 @@ specs:
 
 license_file: EULA.txt
 
+conda_default_channels:
+  - https://conda.anaconda.org/wheeler-microfluidics/
+  - http://repo.continuum.io/pkgs/free/
+
 # Welcome image for Windows installer
 welcome_image: logo.png                  [win]
