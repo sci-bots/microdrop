@@ -1,0 +1,112 @@
+# source will be downloaded prior to filling in jinja templates
+# Example assumes that this folder has setup.py in it
+source:
+  git_url: ../
+
+package:
+  name: microdrop
+  version: {{ GIT_DESCRIBE_TAG[1:] }}
+
+build:
+  entry_points:
+    - microdrop = microdrop.microdrop:main
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  number: {{ GIT_DESCRIBE_NUMBER }}
+
+requirements:
+  build:
+    - application-repository
+    - blinker
+    - configobj
+    - flatland-fork
+    - geo_util
+    - gitpython
+    - ipython
+    - ipython-helpers
+    - matplotlib
+    - microdrop-plugin-manager
+    - microdrop-plugin-template
+    - microdrop-utility
+    - networkx
+    - opencv-helpers
+    - openpyxl
+    - pandas
+    - path_helpers
+    - paver
+    - pip-helpers
+    - progressbar2
+    - pycairo-gtk2
+    - pygst-0.10
+    - pygst-utils >=0.2.post26,<0.3
+    - pygtk-textbuffer-with-undo
+    - pyparsing
+    - pyserial
+    - pytables
+    - python
+    - pyutilib.component.config
+    - pyutilib.component.core
+    - pyutilib.component.loader
+    - pywin32
+    - pyyaml
+    - pyzmq
+    - rename-package-files
+    - run-exe
+    - scipy
+    - si-prefix
+    - svg-model
+    - svgwrite
+    - sympy
+    - task-scheduler
+    - tornado
+    - wheeler.pygtkhelpers >=0.14.post7
+
+  run:
+    - application-repository
+    - blinker
+    - configobj
+    - flatland-fork
+    - geo_util
+    - gitpython
+    - ipython
+    - ipython-helpers
+    - matplotlib
+    - microdrop-plugin-manager
+    - microdrop-plugin-template
+    - microdrop-utility
+    - networkx
+    - opencv-helpers
+    - openpyxl
+    - pandas
+    - path_helpers
+    - paver
+    - pip-helpers
+    - progressbar2
+    - pycairo-gtk2
+    - pygst-0.10
+    - pygst-utils >=0.2.post26,<0.3
+    - pygtk-textbuffer-with-undo
+    - pyparsing
+    - pyserial
+    - pytables
+    - pyutilib.component.config
+    - pyutilib.component.core
+    - pyutilib.component.loader
+    - pywin32
+    - pyyaml
+    - pyzmq
+    - rename-package-files
+    - run-exe
+    - scipy
+    - si-prefix
+    - svg-model
+    - svgwrite
+    - sympy
+    - task-scheduler
+    - tornado
+    - wheeler.pygtkhelpers >=0.14.post7
+
+about:
+  home: https://github.com/wheeler-microfluidics/microdrop/tree/release-1.0
+  license: GPL
