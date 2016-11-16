@@ -107,7 +107,11 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
     def on_execute__delete_step(self, request):
         data = decode_content_data(request)
         try:
-            return self.parent.on_delete_step()
+            protocol_grid_controller =\
+                get_service_instance_by_name('microdrop.gui'
+                                             '.protocol_grid_controller',
+                                             env='microdrop')
+            return protocol_grid_controller.widget.delete_rows()
         except:
             logger.error(str(data), exc_info=True)
 
