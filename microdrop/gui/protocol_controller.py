@@ -97,6 +97,13 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
         except:
             logger.error(str(data), exc_info=True)
 
+    def on_execute__save_protocol(self, request):
+        data = decode_content_data(request)
+        try:
+            return self.parent.save_protocol()
+        except:
+            logger.error(str(data), exc_info=True)
+
     def on_execute__delete_step(self, request):
         data = decode_content_data(request)
         try:
