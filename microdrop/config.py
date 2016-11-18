@@ -1,20 +1,20 @@
 """
 Copyright 2011 Ryan Fobel
 
-This file is part of Microdrop.
+This file is part of MicroDrop.
 
-Microdrop is free software: you can redistribute it and/or modify
+MicroDrop is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Microdrop is distributed in the hope that it will be useful,
+MicroDrop is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
@@ -34,7 +34,7 @@ class ValidationError(Exception):
 
 class Config(object):
     if os.name == 'nt':
-        default_config_directory = home_dir().joinpath('Microdrop')
+        default_config_directory = home_dir().joinpath('MicroDrop')
     else:
         default_config_directory = app_data_dir().joinpath('.microdrop')
     default_config_path = default_config_directory / path('microdrop.ini')
@@ -124,17 +124,17 @@ class Config(object):
         # If no user data directory is set in the configuration file, select
         # default directory based on the operating system.
         if os.name == 'nt':
-            default_data_dir = home_dir().joinpath('Microdrop')
+            default_data_dir = home_dir().joinpath('MicroDrop')
         else:
             default_data_dir = home_dir().joinpath('.microdrop')
         if 'data_dir' not in self.data:
             self.data['data_dir'] = default_data_dir
-            warnings.warn('Using default Microdrop user data path: %s' %
+            warnings.warn('Using default MicroDrop user data path: %s' %
                           default_data_dir)
         if not path(self['data_dir']).isdir():
-            warnings.warn('Microdrop user data directory does not exist.')
+            warnings.warn('MicroDrop user data directory does not exist.')
             path(self['data_dir']).makedirs_p()
-            warnings.warn('Created Microdrop user data directory: %s' %
+            warnings.warn('Created MicroDrop user data directory: %s' %
                           self['data_dir'])
 
     def _init_plugins_dir(self):

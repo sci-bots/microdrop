@@ -1,20 +1,20 @@
 """
 Copyright 2012 Ryan Fobel and Christian Fobel
 
-This file is part of Microdrop.
+This file is part of MicroDrop.
 
-Microdrop is free software: you can redistribute it and/or modify
+MicroDrop is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Microdrop is distributed in the hope that it will be useful,
+MicroDrop is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
@@ -180,7 +180,7 @@ class PluginManagerController(SingletonPlugin):
         if plugin_controller.version.tags != latest_version.tags:
             if yesno('The currently installed plugin (%s-%s) is from a '
                      'different branch and may not be compatible with '
-                     'this version of Microdrop. Would you like to download '
+                     'this version of MicroDrop. Would you like to download '
                      'a compatible version?' % (plugin_name,
                                                 plugin_controller.version)
                      ) == gtk.RESPONSE_YES:

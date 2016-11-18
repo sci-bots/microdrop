@@ -136,7 +136,7 @@ else:
 
         def on_app_exit(self):
             """
-            Handler called just before the Microdrop application exits.
+            Handler called just before the MicroDrop application exits.
             """
             pass
 

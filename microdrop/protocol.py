@@ -1,20 +1,20 @@
 """
 Copyright 2011 Ryan Fobel and Christian Fobel
 
-This file is part of Microdrop.
+This file is part of MicroDrop.
 
-Microdrop is free software: you can redistribute it and/or modify
+MicroDrop is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Microdrop is distributed in the hope that it will be useful,
+MicroDrop is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from collections import OrderedDict
@@ -49,10 +49,10 @@ def protocol_to_frame(protocol_i):
     Parameters
     ----------
     protocol_i : microdrop.protocol.Protocol
-        Microdrop protocol.
+        MicroDrop protocol.
 
         .. note::
-            A Microdrop protocol object is stored as pickled in the
+            A MicroDrop protocol object is stored as pickled in the
             ``protocol`` file in each experiment log directory.
 
     Returns
@@ -63,7 +63,7 @@ def protocol_to_frame(protocol_i):
 
          .. note::
              Values may be Python objects.  In future versions
-             of Microdrop, values *may* be restricted to json
+             of MicroDrop, values *may* be restricted to json
              compatible types.
     '''
     plugin_names_i = sorted(reduce(lambda a, b:
@@ -91,10 +91,10 @@ def protocol_to_json(protocol):
     Parameters
     ----------
     protocol : microdrop.protocol.Protocol
-        Microdrop protocol.
+        MicroDrop protocol.
 
         .. note::
-            A Microdrop protocol object is stored as pickled in the
+            A MicroDrop protocol object is stored as pickled in the
             ``protocol`` file in each experiment log directory.
 
     Returns

@@ -8,7 +8,7 @@ channels:
 specs:
   - python 2.7*
   - conda
-  - microdrop-launcher >=0.2.post3
+  - microdrop-launcher >=0.4
   - pip
   - pywin32
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}

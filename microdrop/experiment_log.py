@@ -1,20 +1,20 @@
 """
 Copyright 2011 Ryan Fobel
 
-This file is part of Microdrop.
+This file is part of MicroDrop.
 
-Microdrop is free software: you can redistribute it and/or modify
+MicroDrop is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Microdrop is distributed in the hope that it will be useful,
+MicroDrop is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 from collections import OrderedDict
 from copy import deepcopy
@@ -42,7 +42,7 @@ def log_data_to_frame(log_data_i):
     Parameters
     ----------
     log_data_i : microdrop.experiment_log.ExperimentLog
-        Microdrop experiment log, as pickled in the ``data``
+        MicroDrop experiment log, as pickled in the ``data``
         file in each experiment log directory.
 
     Returns
@@ -50,14 +50,14 @@ def log_data_to_frame(log_data_i):
     (pd.Series, pd.DataFrame)
         Tuple containing:
         - Experiment information, including UTC start time,
-        Microdrop software version, list of plugin versions,
+        MicroDrop software version, list of plugin versions,
         etc.
         - Data frame with multi-index columns, indexed first by
         plugin name, then by plugin field name.
 
         .. note::
             Values may be Python objects.  In future versions
-            of Microdrop, values *may* be restricted to json
+            of MicroDrop, values *may* be restricted to json
             compatible types.
     '''
     def log_frame_experiment_info(df_log):
@@ -308,14 +308,14 @@ class ExperimentLog():
         -------
         (pd.Series, pd.DataFrame)
             Tuple containing:
-             - Experiment information, including UTC start time, Microdrop
+             - Experiment information, including UTC start time, MicroDrop
                software version, list of plugin versions, etc.
             - Data frame with multi-index columns, indexed first by plugin
               name, then by plugin field name.
 
             .. note::
                 Values may be Python objects.  In future versions
-                of Microdrop, values *may* be restricted to json
+                of MicroDrop, values *may* be restricted to json
                 compatible types.
         '''
         return log_data_to_frame(self)

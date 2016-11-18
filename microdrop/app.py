@@ -1,20 +1,20 @@
 """
 Copyright 2011-2016 Ryan Fobel and Christian Fobel
 
-This file is part of Microdrop.
+This file is part of MicroDrop.
 
-Microdrop is free software: you can redistribute it and/or modify
+MicroDrop is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Microdrop is distributed in the hope that it will be useful,
+MicroDrop is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import sys
@@ -58,7 +58,7 @@ def parse_args(args=None):
     if args is None:
         args = sys.argv
 
-    parser = ArgumentParser(description='Microdrop: graphical user interface '
+    parser = ArgumentParser(description='MicroDrop: graphical user interface '
                             'for the DropBot Digital Microfluidics control '
                             'system.')
     parser.add_argument('-c', '--config', type=path, default=None)
@@ -186,7 +186,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if self.name in self.config.data and ('log_level' in
                                               self.config.data[self.name]):
             self._set_log_level(self.config.data[self.name]['log_level'])
-        logger.info('Microdrop version: %s', self.version)
+        logger.info('MicroDrop version: %s', self.version)
         logger.info('Running in working directory: %s', os.getcwd())
 
         # Run post install hooks for freshly installed plugins.

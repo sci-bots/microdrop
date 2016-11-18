@@ -1,20 +1,20 @@
 """
 Copyright 2011 Ryan Fobel
 
-This file is part of Microdrop.
+This file is part of MicroDrop.
 
-Microdrop is free software: you can redistribute it and/or modify
+MicroDrop is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Microdrop is distributed in the hope that it will be useful,
+MicroDrop is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Microdrop.  If not, see <http://www.gnu.org/licenses/>.
+along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 from collections import namedtuple
 import logging
@@ -288,7 +288,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         Set the notebook directory to the specified directory.
 
         If the specified directory is empty or `None`, use the default
-        directory (i.e., in the default Microdrop user directory) as the new
+        directory (i.e., in the default MicroDrop user directory) as the new
         directory path.
 
         If no directory was previously set and the specified directory does not

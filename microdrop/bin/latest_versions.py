@@ -22,8 +22,8 @@ def get_latest_version_content(server_url=DEFAULT_SERVER_URL):
 
     content = StringIO()
 
-    # # Microdrop application #
-    print >> content, '# Microdrop application installer #\n'
+    # # MicroDrop application #
+    print >> content, '# MicroDrop application installer #\n'
 
     app_info = (app_repo.latest_version('microdrop'),
                 app_repo.latest_package_url('microdrop'))
@@ -40,7 +40,7 @@ def get_latest_version_content(server_url=DEFAULT_SERVER_URL):
 
     print >> content, ''
 
-    # # Microdrop plugins #
+    # # MicroDrop plugins #
     print >> content, '# Plugins #\n'
     for name, info in plugin_info.iteritems():
         print >> content, ' * [`%s` *(%s.%s.%s)*][%s]' % (name,

@@ -33,10 +33,10 @@ logger = logging.getLogger(__name__)
 PluginGlobals.push_env('microdrop')
 
 
-class MicrodropHub(Hub):
+class MicroDropHub(Hub):
     def on_command_recv(self, msg_frames):
         try:
-            super(MicrodropHub, self).on_command_recv(msg_frames)
+            super(MicroDropHub, self).on_command_recv(msg_frames)
         except:
             logger.error('Command socket message error.', exc_info=True)
 
@@ -89,7 +89,7 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
         super(ZmqHubPlugin, self).on_plugin_enable()
         app_values = self.get_app_values()
         self.hub_process = Process(target=run_hub,
-                                   args=(MicrodropHub(app_values['hub_uri'],
+                                   args=(MicroDropHub(app_values['hub_uri'],
                                                       self.name),
                                          getattr(logging,
                                                  app_values['log_level']

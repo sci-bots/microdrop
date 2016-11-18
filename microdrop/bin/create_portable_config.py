@@ -22,7 +22,7 @@ REM Change into [parent directory of batch file][1].
 REM
 REM [1]: http://stackoverflow.com/questions/16623780/how-to-get-windows-batchs-parent-folder
 cd %~dp0
-REM Launch Microdrop
+REM Launch MicroDrop
 {{ py_exe }} -m microdrop.microdrop -c %~dp0microdrop.ini
 '''
 

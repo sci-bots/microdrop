@@ -46,7 +46,7 @@ else:
 
 setup(name='microdrop',
       version=version.getVersion(),
-      description='Microdrop is a graphical user interface for the DropBot '
+      description='MicroDrop is a graphical user interface for the DropBot '
                   'Digital Microfluidics control system',
       keywords='digital microfluidics dmf automation dropbot microdrop',
       author='Ryan Fobel and Christian Fobel',
