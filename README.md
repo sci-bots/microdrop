@@ -1,257 +1,31 @@
+# Welcome to MicroDrop #
+
 [![Documentation Status](https://readthedocs.org/projects/microdrop/badge/?version=dev)](http://microdrop.readthedocs.io/en/dev/?badge=dev)
 [![Join the chat at https://gitter.im/wheeler-microfluidics/microdrop](https://badges.gitter.im/wheeler-microfluidics/microdrop.svg)](https://gitter.im/wheeler-microfluidics/microdrop?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-MicroDrop is a graphical user interface for the [DropBot][1] digital
-microfluidics control system (described in detail in [Fobel et al., Appl. Phys.
-Lett. 102, 193513 (2013)][2]).
+<img src="https://github.com/wheeler-microfluidics/microdrop/wiki/images/main window.png" width="300">
 
-If you use this information in work that you publish, please cite as
-appropriate.
+MicroDrop is a graphical user interface for the [DropBot](http://microfluidics.utoronto.ca/dropbot) Digital Microfluidics control system (described in detail in ["Fobel et al., Appl. Phys. Lett. 102, 193513 (2013); doi: 10.1063/1.4807118"](http://dx.doi.org/10.1063/1.4807118)). If you use this information in work that you publish, please cite as appropriate.
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+Take a look at some [[screenshots|Screenshots]] or [videos](http://microfluidics.utoronto.ca/dropbot/#videos) of the software in action.
 
-- [Installation](#installation)
-    - [No existing Python 2.7 32-bit Windows installation **(recommended)**](#no-existing-python-27-32-bit-windows-installation-recommended)
-    - [Existing `anaconda` (Python 2.7 32-bit Windows) installation **(recommended)**](#existing-anaconda-python-27-32-bit-windows-installation-recommended)
-    - [Create a separate `conda` environment for MicroDrop](#create-a-separate-conda-environment-for-microdrop)
-    - [Other Python 2.7 32-bit Windows installation (using `pip`, **not recommended**)](#other-python-27-32-bit-windows-installation-using-pip-not-recommended)
-  - [**Shortcuts**](#shortcuts)
-  - [**Import** profile](#import-profile)
-- [Profile Manager **(new)**](#profile-manager-new)
-  - [Import profile](#import-profile)
-  - [Remove profile](#remove-profile)
-- [Install plugins](#install-plugins)
-    - [Featured plugins](#featured-plugins)
-    - [Install plugins through MicroDrop plugin manager (`mpm`)](#install-plugins-through-microdrop-plugin-manager-mpm)
-    - [Install plugins through MicroDrop GUI](#install-plugins-through-microdrop-gui)
-- [Credits](#credits)
+## Getting started
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+For instructions on how to download and use the software, see the **[[Quick Start Guide]]**.
 
-# Installation #
+## Contributing
 
-MicroDrop can be installed using any of the methods below.
+All source-code code is open-source and released under the [GPL](https://github.com/wheeler-microfluidics/microdrop/blob/master/COPYING). If you would like to contribute to this software, please check out the **[[Developer Guide]]**.
 
-### No existing Python 2.7 32-bit Windows installation **(recommended)** ###
+## Troubleshooting
 
-Download installer for latest [MicroDrop 2.0 release][4].
+If you're having problems, see the **[[Troubleshooting Guide]]** and check the [issue tracker](https://github.com/wheeler-microfluidics/microdrop/issues) for any known issues or to report new ones.
 
-This installer is a customized distribution of the popular [`Miniconda`][5]
-Python.
+## Mailing lists
 
+Sign up for the [DropBot ​development mailing list](https://groups.google.com/forum/#!forum/dropbot-dev) to report issues or ask questions related to DropBot and/or MicroDrop. For announcements concerning future releases/updates, join the [announcement list](https://groups.google.com/forum/#!forum/dropbot-announce).
 
-### Existing `anaconda` (Python 2.7 32-bit Windows) installation **(recommended)** ###
+## Credits ##
 
-Run:
-
-    conda install -c wheeler-microfluidics "microdrop>=2.0,<3.0" microdrop-launcher dmf-device-ui
-
-**Note** *the `-c wheeler-microfluidics` flag allows installing conda packages
-from  the `wheeler-microfluidics` channel*.
-
-
-### Create a separate `conda` environment for MicroDrop ###
-
-Run:
-
-    conda create -n microdrop -c wheeler-microfluidics "microdrop>=2.0,<3.0" microdrop-launcher dmf-device-ui
-
-To activate the MicroDrop `conda` environment, run:
-
-    activate microdrop
-
-To deactivate the MicroDrop `conda` environment, run:
-
-    deactivate
-
-See ["Managing environments"][15] section of Conda documentation for more
-information.
-
-
-### Other Python 2.7 32-bit Windows installation (using `pip`, **not recommended**) ###
-
- 1. Update `pip`:
-
-        pip install -U pip
-
- 2. Install microdrop (find latest version number on [PyPi][3], e.g.,
-    `"2.0.post110.dev156674653"`):
-
-        pip install --find-links http://192.99.4.95/wheels --trusted-host 192.99.4.95 <microdrop version> microdrop-launcher dmf-device-ui
-
-**Note** *`192.99.4.95` is the IP address of the official MicroDrop update
-server where MicroDrop dependencies not available on PyPI are stored as
-wheels*.
-
-<img align="right" src="microdrop/static/images/microdrop-shortcuts.png" />
-
-## **Shortcuts** ##
-
-If MicroDrop is installed using a Conda Python distribution (including the [official installer][1])
-
- - **Documentation**: Open [online MicroDrop documentation][readthedocs].
- - **GitHub project**: Open MicroDrop [GitHub project page][github].
- - **MicroDrop Profile Manager**: Launch MicroDrop profile manager.
- - **MicroDrop environment prompt**: Launch Windows command prompt with
-   MicroDrop Conda environment activated.
- - **MicroDrop**: Launch MicroDrop if only one **profile** is available
-   *(default)*.  Otherwise, launch **MicroDrop Profile Manager** to select
-   **profile** to launch.
-     * **Tip**: Right-click on shortcut to **pin** to **taskbar** for easy
-       access.
-
-## **Import** profile ##
-
-If existing **profile** directory is not automatically found, it can be
-manually **imported** by launching the **"MicroDrop Profile Manager"**
-shortcut.
-
-See [Profile Manager](#profile-manager-new) section below.
-
-# Profile Manager **(new)** #
-
-In environments where, for example, multiple users are using the same computer
-to perform MicroDrop experiments, it can be helpful to create separate
-MicroDrop **profiles**.  Each MicroDrop **profile** contains **devices** and
-**plugins**, as well as **experiment logs**.
-
-The **MicroDrop Profile Manager** provides an interface to manage one or more
-MicroDrop profiles.  Initially, the **default profile path** (i.e.,
-`<Documents>\Microdrop`) is listed.
-
-As shown below:
-
- - Profiles are **listed** according when they were last launched, with the
-   **most recently used profile first**.
- - Existing profiles may be **imported**.
- - Listed profiles may be **removed** from the profile list (and optionally
-   **deleted** entirely).
- - Listed profiles may be **opened** in the system file browser.
- - MicroDrop may be **launched** using any of the listed profiles.
-
-![MicroDrop Profile Manager][microdrop-profile-manager]
-
-
-## Import profile ##
-
-When an existing **profile** is imported, **plugin** dependencies are installed
-while the following dialog is displayed:
-
-![MicroDrop Profile Manager - install dependencies][install-dependencies]
-
-## Remove profile ##
-
-The following **dialog** is displayed when the **Remove** button for a listed
-profile is **clicked**:
-
-![MicroDrop Profile Manager - remove profile][remove-profile]
-
-Clicking the **Remove** button in the dialog removes the corresponding
-**profile** from the list, but **does not** delete any files.  The **profile**
-can be imported to add it back to the profile list.
-
-**Warning:** Clicking the **Remove with data** button in the dialog removes the
-corresponding **profile** from the list, **and deletes the profile directory**.
-This **cannot be undone**.
-
-
-# Install plugins #
-
-Plugins can either be installed using the [MicroDrop plugin
-manager](#install-plugins-through-microdrop-plugin-manager-mpm) command-line
-tool, or through the [MicroDrop user
-interface](#install-plugins-through-microdrop-gui).
-
-### Featured plugins ###
-
- - [`device_quality_control_plugin`][6]:
-     * Perform impedance scan across all channels on microfluidics chip.
-     * Can be used to identify suspected broken electrode traces.
-     * **Requires `dmf_control_board_plugin`**.
- - [`dmf_control_board_plugin`][7]
-     * Control actuation parameters for the [DropBot][12] open-source Digital
-       Microfluidic (DMF) automation system.
- - [`dmf_device_ui_plugin`][8]
-     * Displays interactive DMF chip geometry.
-     * Optional augmented reality interface, where device drawing is overlaid
-       on live webcam video feed.
- - [**`droplet_planning_plugin`**][13]
-     * Click and drag mouse over series of electrodes to create a route.
-     * Hold <kbd>Alt</kbd>, click on source electrode, and drag to target
-       electrode to automatically route between electrodes.
-     * Finish route at starting point to form a cycle that may be repeated
-       (i.e., mixing) either:
-         - A set number of repetitions
-         - A time duration
- - [`step_label_plugin`][10]
-     * Optionally add text label to any step in protocol.
-     * Most recent and next upcoming labelled steps are indicated while running
-       protocol.
- - [`user_prompt_plugin`][11]
-     * Add (optional) user prompt for each step in protocol (e.g., "Confirm
-       sample is loaded.")
-     * Protocol execution is paused until user confirms **OK** to proceed.
-     * If user selects `Cancel`, protocol is stopped.
-
-### Install plugins through MicroDrop plugin manager (`mpm`) ###
-
-The Microdrop plugin manager is a command-line tool (inspired by `pip`) for
-managing (e.g., install, uninstall) Microdrop plugins.
-
-For full usage details, see the [project home page][14].
-
-Basic usage to install a plugin:
-
- - Start MicroDrop environment command prompt using the following shortcut:
-
-   ![][microdrop-environment-shortcut]
-
- - In MicroDrop environment command prompt, run:
-
-        python -m mpm -c <microdrop settings directory>\microdrop.ini install plugin [plugin [plugin ...]]
-
-To install featured plugins:
-
-    python -m mpm -c <microdrop settings directory>\microdrop.ini install dmf_control_board_plugin dmf_device_ui_plugin droplet_planning_plugin user_prompt_plugin step_label_plugin
-
-### Install plugins through MicroDrop GUI ###
-
- 1. Install plugins:
-
-     ![Install MicroDrop plugins][install-plugins]
-
- 2. Relaunch MicroDrop.
-
-
-[1]: http://microfluidics.utoronto.ca/microdrop
-[2]: http://dx.doi.org/10.1063/1.4807118
-[3]: https://pypi.python.org/pypi/microdrop
-[4]: https://github.com/wheeler-microfluidics/microdrop/releases
-[5]: http://conda.pydata.org/miniconda.html
-[6]: https://github.com/wheeler-microfluidics/device-quality-control-plugin
-[7]: https://github.com/wheeler-microfluidics/dmf_control_board_plugin
-[8]: https://github.com/wheeler-microfluidics/dmf_device_ui_plugin
-[9]: https://github.com/wheeler-microfluidics/metadata_plugin
-[10]: https://github.com/wheeler-microfluidics/step_label_plugin
-[11]: https://github.com/wheeler-microfluidics/user_prompt_plugin
-[12]: http://microfluidics.utoronto.ca/dropbot/
-[13]: https://github.com/wheeler-microfluidics/droplet-planning-plugin
-[14]: https://github.com/wheeler-microfluidics/mpm
-[15]: http://conda.pydata.org/docs/using/envs.html
-
-[github]: https://github.com/wheeler-microfluidics/microdrop/tree/release-1.0
-[readthedocs]: http://microdrop.readthedocs.io/
-[install-plugins]: microdrop/static/images/plugins-install.gif
-[microdrop-environment-shortcut]: microdrop/static/images/microdrop-environment-shortcut.png
-[microdrop-profile-manager]: microdrop/static/images/microdrop-plugin-manager-annotated.png
-[install-dependencies]: microdrop/static/images/plugin-manager-install-dependencies.png
-[remove-profile]: microdrop/static/images/plugin-manager-remove.png
-
-Credits
-=======
-
-Ryan Fobel <ryan@fobel.net>
-
+Ryan Fobel <ryan@fobel.net><br>
 Christian Fobel <christian@fobel.net>
