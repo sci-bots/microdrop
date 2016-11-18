@@ -32,15 +32,9 @@ import traceback
 import gtk
 from path_helpers import path
 import yaml
-import webbrowser
-from jsonrpc.proxy import JSONRPCException
-from jsonrpc.json import JSONDecodeException
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
-from application_repository.application.proxy import AppRepository
-from microdrop_utility import Version, DifferentVersionTagsError
-from microdrop_utility.gui import yesno
 
 from . import plugin_manager
 from .protocol import Step
@@ -212,7 +206,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     logger.info("  running post install hook for %s" %
                                 info.plugin_name)
                     plugin_manager.post_install(p)
-                except Exception, e:
+                except Exception:
                     logging.info(''.join(traceback.format_exc()))
                     logging.error('Error running post-install hook for %s.',
                                   p.name, exc_info=True)
@@ -233,8 +227,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             for p in requested_deletions[:]:
                 try:
                     if p != p.abspath():
-                        logger.info('    (warning) ignoring path %s since it '\
-                            'is not absolute' % p)
+                        logger.info('    (warning) ignoring path %s since it '
+                                    'is not absolute', p)
                         continue
                     if p.isdir():
                         info = get_plugin_info(p)
@@ -245,8 +239,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                             try:
                                 path(p.name).rmtree() #ignore_errors=True)
                             except Exception, why:
-                                logger.warning('Error deleting path %s (%s)'\
-                                        % (p, why))
+                                logger.warning('Error deleting path %s (%s)',
+                                               p, why)
                                 raise
                             os.chdir(cwd)
                             requested_deletions.remove(p)
