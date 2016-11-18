@@ -345,58 +345,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 'check for updates, but ask before installing'
         return self.config['microdrop.app']['update_automatically']
 
-    def update_check(self):
-        if self._update_setting() not in ('auto-update',
-                                          'check for updates, but ask before '
-                                          'installing'):
-            return
-
-        app_update_server_url = self.config.data.get(self.name, {}).get(
-                'server_url', 'http://microfluidics.utoronto.ca/update')
-        logger.debug('[APP UPDATE SERVER] server url: %s' % app_update_server_url)
-        app_repository = AppRepository(app_update_server_url)
-        current_version = Version.fromstring(self.version)
-        try:
-            latest_version = Version(**app_repository.latest_version('microdrop'))
-        except (JSONRPCException, JSONDecodeException, IOError):
-            logger.warning('Could not connect to application update server: '
-                           '%s', app_update_server_url)
-            return
-        try:
-            current_version < latest_version
-        except DifferentVersionTagsError:
-            logger.info('Current version (%s) has different tags than latest '
-                        'version (%s).  Skipping update.', current_version,
-                        latest_version)
-            return
-
-        if current_version < latest_version:
-            logger.info('Current version: %s. There is a new version '
-                        'available: %s %s' % (current_version, latest_version,
-                                               app_repository.server_url +
-                                               app_repository
-                                               .latest_package_url(
-                                                   'microdrop')))
-            response = yesno('''
-There is a new version of Microdrop available (%s, current version: %s).
-
-Would you like to download the latest version in your browser?''' %
-                             (latest_version, current_version))
-            if response == gtk.RESPONSE_YES:
-                latest_full_url = (app_repository.server_url + app_repository
-                                   .latest_package_url('microdrop'))
-                if webbrowser.open_new_tab(latest_full_url):
-                    logger.info('Closing app after opening browser to latest '
-                                'version (%s).' % latest_version)
-                    try:
-                        self.main_window_controller.on_destroy(None)
-                    except AttributeError:
-                        raise SystemExit, 'Closing app to allow upgrade installation'
-        else:
-            logger.info('[SUCCESS] software is up-to-date.\n (installed '
-                        'version: %s, server version: %s)' % (current_version,
-                                                              latest_version))
-
     def update_plugins(self):
         update_setting = self._update_setting()
 
@@ -415,15 +363,21 @@ Would you like to download the latest version in your browser?''' %
             update = False
 
         if update:
-            service = plugin_manager.get_service_instance_by_name(
-                    'microdrop.gui.plugin_manager_controller', env='microdrop')
+            service = \
+                (plugin_manager
+                 .get_service_instance_by_name('microdrop.gui'
+                                               '.plugin_manager_controller',
+                                               env='microdrop'))
             if service.update_all_plugins(force=force):
                 logger.warning('Plugins have been updated.  The application '
                                'must be restarted.')
                 if self.main_window_controller is not None:
                     self.main_window_controller.on_destroy(None)
                 else:
-                    raise SystemExit, 'Closing app after plugins auto-upgrade'
+                    logger.info('Closing app after plugins auto-upgrade')
+                    # Use return code of `5` to signal program should be
+                    # restarted.
+                    self.main_window_controller.on_destroy(None, return_code=5)
             else:
                 logger.info('No plugins have been updated')
 
@@ -440,7 +394,6 @@ Would you like to download the latest version in your browser?''' %
                                  path(self.config['data_dir'])
                                  .joinpath('microdrop.log')})
 
-        self.update_check()
         plugin_manager.load_plugins(self.config['plugins']['directory'])
         self.update_log_file()
 
