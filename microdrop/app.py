@@ -26,7 +26,6 @@ try:
 except ImportError:
     import pickle
 import logging
-from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 import traceback
 
 import gtk
@@ -450,18 +449,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.main_window_controller.main()
 
     def _set_log_level(self, level):
-        if level=='debug':
-            logger.setLevel(DEBUG)
-        elif level=='info':
-            logger.setLevel(INFO)
-        elif level=='warning':
-            logger.setLevel(WARNING)
-        elif level=='error':
-            logger.setLevel(ERROR)
-        elif level=='critical':
-            logger.setLevel(CRITICAL)
-        else:
-            raise TypeError
+        logger.setLevel(getattr(logging, level.upper()))
 
     def _set_log_file_handler(self, log_file):
         if self.log_file_handler:
