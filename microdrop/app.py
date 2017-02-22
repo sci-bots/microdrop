@@ -102,26 +102,20 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                      properties={'show_in_gui': False}),
         Integer.named('height').using(default=500, optional=True,
                                       properties={'show_in_gui': False}),
-        Enum.named('update_automatically' #pylint: disable-msg=E1101,E1120
-            ).using(default=1, optional=True
-            ).valued('auto-update',
-                'check for updates, but ask before installing',
-                '''don't check for updates'''),
-        String.named('server_url').using( #pylint: disable-msg=E1120
-            default='http://microfluidics.utoronto.ca/update',
-            optional=True, properties=dict(show_in_gui=False)),
-        Boolean.named('realtime_mode').using( #pylint: disable-msg=E1120
-            default=False, optional=True,
-            properties=dict(show_in_gui=False)),
-        Filepath.named('log_file').using( #pylint: disable-msg=E1120
-            default='', optional=True,
-            properties={'action': gtk.FILE_CHOOSER_ACTION_SAVE}),
-        Boolean.named('log_enabled').using( #pylint: disable-msg=E1120
-            default=False, optional=True),
-        Enum.named('log_level').using( #pylint: disable-msg=E1101, E1120
-            default='info', optional=True
-            ).valued('debug', 'info', 'warning', 'error', 'critical'),
-    )
+        Enum.named('update_automatically').using(default=1, optional=True)
+        .valued('auto-update', 'check for updates, but ask before installing',
+                "don't check for updates"),
+        String.named('server_url')
+        .using(default='http://microfluidics.utoronto.ca/update',
+               optional=True, properties=dict(show_in_gui=False)),
+        Boolean.named('realtime_mode').using(default=False, optional=True,
+                                             properties=dict(show_in_gui=False)),
+        Filepath.named('log_file')
+        .using(default='', optional=True,
+               properties={'action': gtk.FILE_CHOOSER_ACTION_SAVE}),
+        Boolean.named('log_enabled').using(default=False, optional=True),
+        Enum.named('log_level').using(default='info', optional=True)
+        .valued('debug', 'info', 'warning', 'error', 'critical'))
 
     def __init__(self):
         args = parse_args()
