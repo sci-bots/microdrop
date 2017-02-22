@@ -27,12 +27,12 @@ import subprocess
 import sys
 import traceback
 
-from path_helpers import path
 from pyutilib.component.core import ExtensionPoint, PluginGlobals
 # TODO Update plugins to import from `pyutilib.component.core` directly
 # instead of importing from here.
 from pyutilib.component.core import Plugin, SingletonPlugin, implements
 from run_exe import run_exe
+import path_helpers as ph
 import task_scheduler
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
@@ -41,7 +41,7 @@ from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
 ScheduleRequest = namedtuple('ScheduleRequest', 'before after')
 
 
-def load_plugins(plugins_dir='plugins'):
+def load_plugins(plugins_dir='plugins', import_from_parent=True):
     '''
     Import each Python plugin module in the specified directory and create an
     instance of each contained plugin class for which an instance has not yet
@@ -65,27 +65,46 @@ def load_plugins(plugins_dir='plugins'):
         Newly created plugins (plugins are not recreated if they were
         previously loaded.)
     '''
+    plugins_dir = ph.path(plugins_dir).realpath()
     logging.info('Loading plugins:')
-    if plugins_dir.parent.abspath() not in sys.path:
-        sys.path.insert(0, plugins_dir.parent.abspath())
+    plugins_root = plugins_dir.parent if import_from_parent else plugins_dir
+    if plugins_root not in sys.path:
+        sys.path.insert(0, plugins_root)
+
+    # Create an instance of each of the plugins, but set it to disabled
+    e = PluginGlobals.env('microdrop.managed')
+    initial_plugins = set(e.plugin_registry.values())
+    imported_plugins = set()
 
     for package in plugins_dir.dirs():
         try:
-            logging.info('\t %s' % package.abspath())
-            import_statement = 'import %s.%s' % \
-                (plugins_dir.name, package.name)
+            plugin_module = package.name
+            if import_from_parent:
+                plugin_module = '.'.join([plugins_dir.name, plugin_module])
+            import_statement = 'import {}'.format(plugin_module)
             logging.debug(import_statement)
             exec(import_statement)
+            all_plugins = set(e.plugin_registry.values())
+            current_plugin = list(all_plugins - initial_plugins -
+                                  imported_plugins)[0]
+            logging.info('\t Imported: %s (%s)', current_plugin.__name__,
+                         package)
+            imported_plugins.add(current_plugin)
         except Exception:
             logging.info(''.join(traceback.format_exc()))
             logging.error('Error loading %s plugin.', package.name,
                           exc_info=True)
 
-    # Create an instance of each of the plugins, but set it to disabled
-    e = PluginGlobals.env('microdrop.managed')
-    for class_ in e.plugin_registry.values():
+    # For each newly imported plugin class, create a service instance
+    # initialized to the disabled state.
+    new_plugins = []
+    for class_ in imported_plugins:
         service = class_()
         service.disable()
+        new_plugins.append(service)
+    logging.debug('\t Created new plugin services: %s',
+                  ','.join([p.__class__.__name__ for p in new_plugins]))
+    return new_plugins
 
 
 def log_summary():
