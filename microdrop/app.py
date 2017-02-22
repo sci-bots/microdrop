@@ -30,11 +30,11 @@ from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 import traceback
 
 import gtk
-from path_helpers import path
 import yaml
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
+import path_helpers as ph
 
 from . import plugin_manager
 from .protocol import Step
@@ -61,7 +61,7 @@ def parse_args(args=None):
     parser = ArgumentParser(description='MicroDrop: graphical user interface '
                             'for the DropBot Digital Microfluidics control '
                             'system.')
-    parser.add_argument('-c', '--config', type=path, default=None)
+    parser.add_argument('-c', '--config', type=ph.path, default=None)
 
     args = parser.parse_args()
     return args
@@ -186,11 +186,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         # Delete paths that were marked during the uninstallation of a plugin.
         # It is necessary to delay the deletion until here due to Windows file
         # locking preventing the deletion of files that are in use.
-        deletions_path = path(self.config.data['plugins']['directory'])\
+        deletions_path = ph.path(self.config.data['plugins']['directory'])\
                 .joinpath('requested_deletions.yml')
         if deletions_path.isfile():
             requested_deletions = yaml.load(deletions_path.bytes())
-            requested_deletions = map(path, requested_deletions)
+            requested_deletions = map(ph.path, requested_deletions)
 
             logger.info('[App] processing requested deletions.')
             for p in requested_deletions[:]:
@@ -206,7 +206,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                             cwd = os.getcwd()
                             os.chdir(p.parent)
                             try:
-                                path(p.name).rmtree() #ignore_errors=True)
+                                ph.path(p.name).rmtree()
                             except Exception, why:
                                 logger.warning('Error deleting path %s (%s)',
                                                p, why)
@@ -224,11 +224,12 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     continue
             deletions_path.write_bytes(yaml.dump(requested_deletions))
 
-        rename_queue_path = path(self.config.data['plugins']['directory'])\
+        rename_queue_path = ph.path(self.config.data['plugins']['directory'])\
                 .joinpath('rename_queue.yml')
         if rename_queue_path.isfile():
             rename_queue = yaml.load(rename_queue_path.bytes())
-            requested_renames = [(path(src), path(dst)) for src, dst in rename_queue]
+            requested_renames = [(ph.path(src), ph.path(dst))
+                                 for src, dst in rename_queue]
             logger.info('[App] processing requested renames.')
             remaining_renames = []
             for src, dst in requested_renames:
@@ -358,9 +359,10 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         log_file = self.get_app_values()['log_file']
         if not log_file:
             self.set_app_values({'log_file':
-                                 path(self.config['data_dir'])
+                                 ph.path(self.config['data_dir'])
                                  .joinpath('microdrop.log')})
 
+        # Import plugins from MicroDrop v2.0 profile `plugins` directory.
         plugin_manager.load_plugins(self.config['plugins']['directory'])
         self.update_log_file()
 
@@ -405,7 +407,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         # if there is no device specified in the config file, try choosing one
         # from the device directory by default
-        device_directory = path(self.get_device_directory())
+        device_directory = ph.path(self.get_device_directory())
         if not self.config['dmf_device']['name']:
             try:
                 self.config['dmf_device']['name'] = \
@@ -526,7 +528,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         service = observers.service(plugin_name)
         values = service.get_app_values()
         if values and 'device_directory' in values:
-            directory = path(values['device_directory'])
+            directory = ph.path(values['device_directory'])
             if directory.isdir():
                 return directory
         return None
