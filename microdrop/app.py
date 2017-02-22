@@ -17,23 +17,23 @@ You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
+import logging
 import os
-import re
-import subprocess
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import logging
+import re
+import subprocess
+import sys
 import traceback
 
-import gtk
-import yaml
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
+import gtk
 import path_helpers as ph
+import yaml
 
 from . import plugin_manager
 from .protocol import Step
