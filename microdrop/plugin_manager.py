@@ -22,7 +22,6 @@ from contextlib import closing
 import logging
 import os
 import platform
-import re
 import subprocess
 import sys
 import traceback
@@ -220,11 +219,11 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
         raise KeyError, 'No plugin registered with package name: %s' % name
 
 
-def get_plugin_package_name(class_name):
+def get_plugin_package_name(module_name):
     '''
     Parameters
     ----------
-    class_name : str
+    module_name : str
         Fully-qualified class name (e.g.,
         ``'plugins.dmf_control_board_plugin'``).
 
@@ -233,13 +232,7 @@ def get_plugin_package_name(class_name):
     str
         Relative module name (e.g., ``'dmf_control_board_plugin'``)
     '''
-    match = re.search(r'plugins\.(?P<name>.*)',
-                      class_name)
-    if match is None:
-        logging.error('Could not determine package name from: %s'\
-                % class_name)
-        return None
-    return match.group('name')
+    return module_name.split('.')[-1]
 
 
 def get_service_instance(class_, env='microdrop.managed'):
