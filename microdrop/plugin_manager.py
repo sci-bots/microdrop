@@ -42,7 +42,29 @@ ScheduleRequest = namedtuple('ScheduleRequest', 'before after')
 
 
 def load_plugins(plugins_dir='plugins'):
-    plugins_dir = path(plugins_dir)
+    '''
+    Import each Python plugin module in the specified directory and create an
+    instance of each contained plugin class for which an instance has not yet
+    been created.
+
+    Parameters
+    ----------
+    plugins_dir : str
+        Directory containing zero or more Python plugin modules to import.
+    import_from_parent : bool
+        Add parent of specified directory to system path and import
+        ``<parent>.<module>``.
+
+        ..notes::
+            **Not recommended**, but kept as default to maintain legacy
+            protocol compatibility.
+
+    Returns
+    -------
+    list
+        Newly created plugins (plugins are not recreated if they were
+        previously loaded.)
+    '''
     logging.info('Loading plugins:')
     if plugins_dir.parent.abspath() not in sys.path:
         sys.path.insert(0, plugins_dir.parent.abspath())
@@ -67,6 +89,9 @@ def load_plugins(plugins_dir='plugins'):
 
 
 def log_summary():
+    '''
+    Dump summary of plugins to log.
+    '''
     observers = ExtensionPoint(IPlugin)
     logging.info('Registered plugins:')
     for observer in observers:
@@ -82,6 +107,18 @@ def log_summary():
 
 
 def get_plugin_names(env=None):
+    '''
+    Parameters
+    ----------
+    env : str, optional
+        Name of ``pyutilib.component.core`` plugin environment (e.g.,
+        ``'microdrop.managed``').
+
+    Returns
+    -------
+    list(str)
+        List of plugin names (e.g., ``['StepLabelPlugin', ...]``).
+    '''
     if env is None:
         env = 'pca'
     e = PluginGlobals.env(env)
@@ -89,6 +126,24 @@ def get_plugin_names(env=None):
 
 
 def get_service_class(name, env='microdrop.managed'):
+    '''
+    Parameters
+    ----------
+    name : str
+        Plugin class name (e.g., ``App``).
+    env : str, optional
+        Name of ``pyutilib.component.core`` plugin environment (e.g.,
+        ``'microdrop.managed``').
+
+    Returns
+    -------
+    class
+        Class type matching specified plugin class name.
+
+        ..notes::
+            Returns actual class type -- **not** an instance of the plugin
+            service.
+    '''
     e = PluginGlobals.env(env)
     if name not in e.plugin_registry:
         raise KeyError, 'No plugin registered with name: %s' % name
@@ -96,6 +151,22 @@ def get_service_class(name, env='microdrop.managed'):
 
 
 def get_service_instance_by_name(name, env='microdrop.managed'):
+    '''
+    Parameters
+    ----------
+    name : str
+        Plugin name (e.g., ``wheelerlab.zmq_hub_plugin``).
+
+        Corresponds to ``plugin_name`` key in plugin ``properties.yml`` file.
+    env : str, optional
+        Name of ``pyutilib.component.core`` plugin environment (e.g.,
+        ``'microdrop.managed``').
+
+    Returns
+    -------
+    object
+        Active service instance matching specified plugin name.
+    '''
     e = PluginGlobals.env(env)
     plugins = [p for i, p in enumerate(e.services) if name == p.name]
     if plugins:
@@ -105,6 +176,22 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
 
 
 def get_service_instance_by_package_name(name, env='microdrop.managed'):
+    '''
+    Parameters
+    ----------
+    name : str
+        Plugin Python module name (e.g., ``dmf_control_board_plugin``).
+
+        Corresponds to ``package_name`` key in plugin ``properties.yml`` file.
+    env : str, optional
+        Name of ``pyutilib.component.core`` plugin environment (e.g.,
+        ``'microdrop.managed``').
+
+    Returns
+    -------
+    object
+        Active service instance matching specified plugin module name.
+    '''
     e = PluginGlobals.env(env)
     plugins = [p for i, p in enumerate(e.services) \
                if name == get_plugin_package_name(p.__class__.__module__)]
@@ -115,6 +202,18 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
 
 
 def get_plugin_package_name(class_name):
+    '''
+    Parameters
+    ----------
+    class_name : str
+        Fully-qualified class name (e.g.,
+        ``'plugins.dmf_control_board_plugin'``).
+
+    Returns
+    -------
+    str
+        Relative module name (e.g., ``'dmf_control_board_plugin'``)
+    '''
     match = re.search(r'plugins\.(?P<name>.*)',
                       class_name)
     if match is None:
@@ -125,6 +224,23 @@ def get_plugin_package_name(class_name):
 
 
 def get_service_instance(class_, env='microdrop.managed'):
+    '''
+    Parameters
+    ----------
+    class_ : class
+        Plugin class type.
+    env : str, optional
+        Name of ``pyutilib.component.core`` plugin environment (e.g.,
+        ``'microdrop.managed``').
+
+    Returns
+    -------
+    object or None
+        Registered service instance for the specified plugin class type.
+
+        Returns ``None`` if no service is registered for the specified plugin
+        class type.
+    '''
     e = PluginGlobals.env(env)
     for service in e.services:
         if isinstance(service, class_):
@@ -134,6 +250,18 @@ def get_service_instance(class_, env='microdrop.managed'):
 
 
 def get_service_names(env='microdrop.managed'):
+    '''
+    Parameters
+    ----------
+    env : str, optional
+        Name of ``pyutilib.component.core`` plugin environment (e.g.,
+        ``'microdrop.managed``').
+
+    Returns
+    -------
+    list
+        List of plugin names (e.g., ``['wheelerlab.step_label_plugin', ...]``).
+    '''
     e = PluginGlobals.env(env)
     service_names = []
     for name in get_plugin_names(env):
@@ -144,6 +272,22 @@ def get_service_names(env='microdrop.managed'):
 
 
 def get_schedule(observers, function):
+    '''
+    Generate observer order based on scheduling requests for specified
+    function.
+
+    Parameters
+    ----------
+    observers : dict
+        Mapping from service names to service instances.
+    function : str
+        Name of function to generate schedule for.
+
+    Returns
+    -------
+    list
+        List of observer service names in scheduled order.
+    '''
     # Query plugins for schedule requests for 'function'
     schedule_requests = {}
     for observer in observers.values():
@@ -166,6 +310,21 @@ def get_schedule(observers, function):
 
 
 def get_observers(function, interface=IPlugin):
+    '''
+    Get dictionary of observers implementing the specified function.
+
+    Parameters
+    ----------
+    function : str
+        Name of function to generate schedule for.
+    interface : class, optional
+        Plugin interface class.
+
+    Returns
+    -------
+    dict
+        Mapping from service names to service instances.
+    '''
     observers = {}
     for obs in ExtensionPoint(interface):
         if hasattr(obs, function):
@@ -174,6 +333,22 @@ def get_observers(function, interface=IPlugin):
 
 
 def emit_signal(function, args=None, interface=IPlugin):
+    '''
+    Call specified function on each enabled plugin implementing the function
+    and collect results.
+
+    Parameters
+    ----------
+    function : str
+        Name of function to generate schedule for.
+    interface : class, optional
+        Plugin interface class.
+
+    Returns
+    -------
+    dict
+        Mapping from each service name to the respective function return value.
+    '''
     try:
         observers = get_observers(function, interface)
         schedule = get_schedule(observers, function)
@@ -209,6 +384,19 @@ def emit_signal(function, args=None, interface=IPlugin):
 
 
 def enable(name, env='microdrop.managed'):
+    '''
+    Enable specified plugin.
+
+    Parameters
+    ----------
+    name : str
+        Plugin name (e.g., ``wheelerlab.zmq_hub_plugin``).
+
+        Corresponds to ``plugin_name`` key in plugin ``properties.yml`` file.
+    env : str, optional
+        Name of ``pyutilib.component.core`` plugin environment (e.g.,
+        ``'microdrop.managed``').
+    '''
     service = get_service_instance_by_name(name, env)
     if not service.enabled():
         service.enable()
@@ -219,6 +407,19 @@ def enable(name, env='microdrop.managed'):
 
 
 def disable(name, env='microdrop.managed'):
+    '''
+    Disable specified plugin.
+
+    Parameters
+    ----------
+    name : str
+        Plugin name (e.g., ``wheelerlab.zmq_hub_plugin``).
+
+        Corresponds to ``plugin_name`` key in plugin ``properties.yml`` file.
+    env : str, optional
+        Name of ``pyutilib.component.core`` plugin environment (e.g.,
+        ``'microdrop.managed``').
+    '''
     service = get_service_instance_by_name(name, env)
     if service and service.enabled():
         service.disable()
