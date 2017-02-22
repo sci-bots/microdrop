@@ -211,7 +211,7 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
         Active service instance matching specified plugin module name.
     '''
     e = PluginGlobals.env(env)
-    plugins = [p for i, p in enumerate(e.services) \
+    plugins = [p for i, p in enumerate(e.services)
                if name == get_plugin_package_name(p.__class__.__module__)]
     if plugins:
         return plugins[0]
@@ -309,12 +309,13 @@ def get_schedule(observers, function):
 
     if schedule_requests:
         scheduler = task_scheduler.TaskScheduler(observers.keys())
-        for request in [r for name, requests in schedule_requests.items() for r in requests]:
+        for request in [r for name, requests in schedule_requests.items()
+                        for r in requests]:
             try:
                 scheduler.request_order(*request)
             except AssertionError:
-                logging.info('[PluginManager] emit_signal(%s) could not '\
-                        'add schedule request %s' % (function, request))
+                logging.info('[PluginManager] emit_signal(%s) could not add '
+                             'schedule request %s', function, request)
                 continue
         return scheduler.get_schedule()
     else:
