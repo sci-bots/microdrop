@@ -32,6 +32,7 @@ from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 import gtk
+import mpm.api
 import path_helpers as ph
 import yaml
 
@@ -363,6 +364,10 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         # Import plugins from MicroDrop v2.0 profile `plugins` directory.
         plugin_manager.load_plugins(self.config['plugins']['directory'])
+        # Import enabled plugins from Conda environment.
+        plugin_manager.load_plugins(mpm.api.MICRODROP_CONDA_ETC
+                                    .joinpath('plugins', 'enabled'),
+                                    import_from_parent=False)
         self.update_log_file()
 
         logger.info('User data directory: %s' % self.config['data_dir'])
