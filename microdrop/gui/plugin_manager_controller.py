@@ -136,7 +136,27 @@ class PluginController(object):
         Handler for ``"Uninstall"`` button.
 
         Prompt user to confirm before uninstalling plugin.
+
+        Notes
+        -----
+        An error is reported if the plugin is a Conda MicroDrop plugin
+        (uninstall for Conda plugins is not currently supported).
         '''
+        # TODO
+        # ----
+        #
+        #  - [ ] Implement Conda MicroDrop plugin uninstall behaviour using
+        #    `mpm.api` API.
+        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        #    Conda MicroDrop plugins)
+
+        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
+        # MicroDrop plugins).
+        if self.is_conda_plugin:
+            logging.error('Uninstall of Conda MicroDrop plugins is not '
+                          'currently supported.')
+            return
+
         package_name = self.get_plugin_package_name()
         response = yesno('Uninstall plugin %s?' % package_name)
         if response == gtk.RESPONSE_YES:
@@ -158,7 +178,27 @@ class PluginController(object):
     def on_button_update_clicked(self, widget, data=None):
         '''
         Handler for ``"Update"`` button.
+
+        Notes
+        -----
+        An error is reported if the plugin is a Conda MicroDrop plugin (update
+        for Conda plugins is not currently supported).
         '''
+        # TODO
+        # ----
+        #
+        #  - [ ] Implement Conda MicroDrop plugin update behaviour using
+        #    `mpm.api` API.
+        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        #    Conda MicroDrop plugins)
+
+        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
+        # MicroDrop plugins).
+        if self.is_conda_plugin:
+            logging.error('Update of Conda MicroDrop plugins is not currently '
+                          'supported.')
+            return
+
         app = get_app()
         try:
             self.controller.update_plugin(self, verbose=True)
