@@ -44,6 +44,8 @@ from ..plugin_manager import (IPlugin, implements, SingletonPlugin,
                               enable_service, disable as disable_service)
 from ..gui.plugin_manager_dialog import PluginManagerDialog
 
+logger = logging.getLogger(__name__)
+
 
 class PluginController(object):
     '''
@@ -155,11 +157,11 @@ class PluginController(object):
         try:
             self.controller.update_plugin(self, verbose=True)
         except IOError:
-            logging.warning('Could not connect to plugin server: %s',
-                            app.get_app_value('server_url'))
+            logger.warning('Could not connect to plugin server: %s',
+                           app.get_app_value('server_url'))
         except (JSONRPCException, JSONDecodeException):
-            logging.warning('Plugin %s not available on plugin server' %
-                            (app.get_app_value('server_url')))
+            logger.warning('Plugin %s not available on plugin server',
+                           app.get_app_value('server_url'))
             return True
         return True
 
@@ -279,8 +281,8 @@ class PluginManagerController(SingletonPlugin):
             message = 'Plugin %s is up to date (version %s)' % (
                 plugin_name, plugin_controller.version)
             if verbose:
-                logging.warning(message)
-            logging.info(message)
+                logger.warning(message)
+            logger.info(message)
             return False
 
     def download_and_install_plugin(self, package_name, force=False):
@@ -379,15 +381,15 @@ class PluginManagerController(SingletonPlugin):
             plugin_name = p.get_plugin_info().plugin_name
             try:
                 result = self.update_plugin(p, force=force)
-                logging.info('[update_all_plugins] plugin_name=%s %s' %
-                             (plugin_name, result))
+                logger.info('[update_all_plugins] plugin_name=%s %s',
+                            plugin_name, result)
                 plugin_updated = plugin_updated or result
             except (JSONRPCException, JSONDecodeException):
-                logging.info('Plugin %s not available on plugin server %s' % (
-                    plugin_name, app.get_app_value('server_url')))
+                logger.info('Plugin %s not available on plugin server %s',
+                            plugin_name, app.get_app_value('server_url'))
             except IOError:
-                logging.info('Could not connect to plugin repository at: %s' %
-                             app.get_app_value('server_url'))
+                logger.info('Could not connect to plugin repository at: %s',
+                            app.get_app_value('server_url'))
         return plugin_updated
 
     def install_from_archive(self, archive_path, force=False):
@@ -407,7 +409,7 @@ class PluginManagerController(SingletonPlugin):
             ``True`` if plugin was installed or upgraded, otherwise, ``False``.
         '''
         temp_dir = path(tempfile.mkdtemp(prefix='microdrop_'))
-        logging.debug('extracting to: %s' % temp_dir)
+        logger.debug('extracting to: %s', temp_dir)
         archive_path = path(archive_path)
 
         try:
@@ -513,9 +515,9 @@ class PluginManagerController(SingletonPlugin):
         '''
         plugin_metadata = get_plugin_info(plugin_root)
         if plugin_metadata is None:
-            logging.error('%s does not contain a valid plugin.' % plugin_root)
+            logger.error('%s does not contain a valid plugin.', plugin_root)
             return False
-        logging.info('Installing: %s' % (plugin_metadata, ))
+        logger.info('Installing: %s', plugin_metadata)
 
         app = get_app()
         installed_plugin_path = (path(app.config.data['plugins']['directory'])
@@ -523,15 +525,14 @@ class PluginManagerController(SingletonPlugin):
         installed_metadata = get_plugin_info(installed_plugin_path)
 
         if installed_metadata:
-            logging.info('Currently installed: %s' % (installed_metadata,))
-            if installed_metadata.version.tags == \
-                    plugin_metadata.version.tags and \
-                    installed_metadata.version >= plugin_metadata.version:
+            logger.info('Currently installed: %s', installed_metadata)
+            if all([installed_metadata.version.tags ==
+                    plugin_metadata.version.tags,
+                    installed_metadata.version >= plugin_metadata.version]):
                 # Installed version is up-to-date
-                message = ('Plugin %s is up-to-date (version %s).  Skipping '
-                           'installation.' % (installed_metadata.plugin_name,
-                           installed_metadata.version))
-                logging.info(message)
+                logger.info('Plugin %s is up-to-date (version %s).  Skipping '
+                            'installation.', installed_metadata.plugin_name,
+                            installed_metadata.version)
                 return
             else:
                 message = ('A newer version (%s) of the %s plugin is available'
@@ -540,7 +541,7 @@ class PluginManagerController(SingletonPlugin):
                                                        .plugin_name,
                                                        installed_metadata
                                                        .version))
-                logging.info(message)
+                logger.info(message)
                 if not force:
                     response = yesno('''%s Would you like to upgrade?''' %
                                      message)
@@ -564,18 +565,18 @@ class PluginManagerController(SingletonPlugin):
                         return False
         else:
             # There is no valid version of this plugin currently installed.
-            logging.info('%s is not currently installed' %
-                         plugin_metadata.plugin_name)
+            logger.info('%s is not currently installed',
+                        plugin_metadata.plugin_name)
 
             # enable new plugins by default
             app.config["plugins"]["enabled"].append(plugin_metadata
                                                     .package_name)
         try:
             self.install_plugin(plugin_root, installed_plugin_path)
-            logging.info('%s installed successfully' %
-                         plugin_metadata.plugin_name)
+            logger.info('%s installed successfully',
+                        plugin_metadata.plugin_name)
         except Exception, why:
-            logging.error('Error installing plugin. %s.', why)
+            logger.error('Error installing plugin. %s.', why)
         app.main_window_controller.info('%s plugin installed successfully.'
                                         % plugin_metadata.plugin_name,
                                         'Install plugin')
