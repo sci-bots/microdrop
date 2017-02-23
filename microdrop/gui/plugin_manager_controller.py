@@ -308,7 +308,27 @@ class PluginManagerController(SingletonPlugin):
         -------
         bool
             ``True`` if plugin was upgraded, otherwise, ``False``.
+
+        Raises
+        ------
+        RuntimeError
+            If plugin directory is a Conda MicroDrop plugin (update for
+            Conda plugins is not currently supported).
         '''
+        # TODO
+        # ----
+        #
+        #  - [ ] Implement Conda MicroDrop plugin update behaviour using
+        #    `mpm.api` API.
+        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        #    Conda MicroDrop plugins)
+
+        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
+        # MicroDrop plugins).
+        if plugin_controller.is_conda_plugin:
+            raise RuntimeError('Update of Conda MicroDrop plugins is not '
+                               'currently supported.')
+
         app = get_app()
         server_url = app.get_app_value('server_url')
         plugin_metadata = plugin_controller.get_plugin_info()
@@ -448,6 +468,14 @@ class PluginManagerController(SingletonPlugin):
             except IOError:
                 logger.info('Could not connect to plugin repository at: %s',
                             app.get_app_value('server_url'))
+            except RuntimeError, exception:
+                if 'Conda' in str(exception):
+                    logger.info('Update of Conda MicroDrop plugins is not '
+                                'currently supported.')
+                else:
+                    raise
+                # TODO Remove this special handling after implementing full
+                # support for Conda MicroDrop plugins.
         return plugin_updated
 
     def install_from_archive(self, archive_path, force=False):
