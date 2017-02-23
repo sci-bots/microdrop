@@ -79,6 +79,17 @@ class PluginController(object):
                           padding=5)
         self.box.pack_end(self.label_version, expand=True, fill=False)
         self.update()
+
+        # TODO Remove this special handling after implementing full support for
+        # Conda MicroDrop plugins.
+        if self.is_conda_plugin:
+            # Disable buttons for currently unsupported actions for Conda
+            # MicroDrop plugins.
+            for button_i in (self.button_uninstall, self.button_update):
+                button_i.props.sensitive = False
+                button_i.set_tooltip_text('Not currently supported for Conda '
+                                          'MicroDrop plugins')
+
         self.box.show_all()
 
     @property
