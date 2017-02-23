@@ -28,7 +28,7 @@ import tarfile
 import tempfile
 
 import gtk
-from path_helpers import path
+import path_helpers as ph
 import yaml
 from jsonrpc.proxy import JSONRPCException
 from jsonrpc.json import JSONDecodeException
@@ -200,7 +200,7 @@ class PluginController(object):
             package_name = self.get_plugin_package_name()
 
         # Find path to file where plugin/service class is defined.
-        class_def_file = path(inspect.getfile(self.service.__class__))
+        class_def_file = ph.path(inspect.getfile(self.service.__class__))
 
         return class_def_file.parent
 
@@ -301,7 +301,7 @@ class PluginManagerController(SingletonPlugin):
         bool
             ``True`` if plugin was installed or upgraded, otherwise, ``False``.
         '''
-        temp_dir = path(tempfile.mkdtemp(prefix='microdrop_plugin_update'))
+        temp_dir = ph.path(tempfile.mkdtemp(prefix='microdrop_plugin_update'))
         try:
             app = get_app()
             server_url = app.get_app_value('server_url')
@@ -347,17 +347,18 @@ class PluginManagerController(SingletonPlugin):
 
         # Save the list of path deletions to be processed on next app launch
         app = get_app()
-        requested_deletion_path = (path(app.config.data['plugins']
-                                        ['directory'])
+        requested_deletion_path = (ph.path(app.config.data['plugins']
+                                           ['directory'])
                                    .joinpath('requested_deletions.yml'))
         requested_deletion_path.write_bytes(yaml.dump([p.abspath()
                                                        for p in self
                                                        .requested_deletions]))
-        rename_queue_path = (path(app.config.data['plugins']['directory'])
+        rename_queue_path = (ph.path(app.config.data['plugins']['directory'])
                              .joinpath('rename_queue.yml'))
         rename_queue_path.write_bytes(yaml.dump([(p1.abspath(), p2.abspath())
                                                  for p1, p2 in
                                                  self.rename_queue]))
+
     def update_all_plugins(self, force=False):
         '''
         Upgrade each plugin to the latest version available (if not already
@@ -408,9 +409,9 @@ class PluginManagerController(SingletonPlugin):
         bool
             ``True`` if plugin was installed or upgraded, otherwise, ``False``.
         '''
-        temp_dir = path(tempfile.mkdtemp(prefix='microdrop_'))
+        temp_dir = ph.path(tempfile.mkdtemp(prefix='microdrop_'))
         logger.debug('extracting to: %s', temp_dir)
-        archive_path = path(archive_path)
+        archive_path = ph.path(archive_path)
 
         try:
             if archive_path.ext == '.zip':
@@ -447,11 +448,12 @@ class PluginManagerController(SingletonPlugin):
 
         Parameters
         ----------
-        plugin_root : path_helpers.path
+        plugin_root : str
             Path to (extracted) plugin directory.
         install_path : str
             Path to install plugin to.
         '''
+        plugin_root = ph.path(plugin_root)
         plugin_root.copytree(install_path, symlinks=True,
                              ignore=ignore_patterns('*.pyc'))
         self.restart_required = True
@@ -462,9 +464,10 @@ class PluginManagerController(SingletonPlugin):
 
         Parameters
         ----------
-        uninstall_path : path
+        uninstall_path : str
             Path to uninstalled plugin directory.
         '''
+        uninstall_path = ph.path(uninstall_path)
         # __NB__ The `cwd` directory ["is not considered when searching the
         # executable, so you can't specify the program's path relative to
         # `cwd`."][cwd].  Therefore, we manually change to the directory
@@ -520,7 +523,8 @@ class PluginManagerController(SingletonPlugin):
         logger.info('Installing: %s', plugin_metadata)
 
         app = get_app()
-        installed_plugin_path = (path(app.config.data['plugins']['directory'])
+        installed_plugin_path = (ph.path(app.config.data['plugins']
+                                         ['directory'])
                                  .joinpath(plugin_metadata.package_name))
         installed_metadata = get_plugin_info(installed_plugin_path)
 
@@ -555,8 +559,9 @@ class PluginManagerController(SingletonPlugin):
                         count = 1
                         target_path = installed_plugin_path
                         while installed_plugin_path.exists():
-                            installed_plugin_path = path(
-                                '%s%d' % (installed_plugin_path, count))
+                            installed_plugin_path = \
+                                ph.path('%s%d' % (installed_plugin_path,
+                                                  count))
                         if target_path != installed_plugin_path:
                             self.rename_queue.append((installed_plugin_path,
                                                       target_path))
