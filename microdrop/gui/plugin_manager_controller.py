@@ -46,6 +46,9 @@ from ..gui.plugin_manager_dialog import PluginManagerDialog
 
 
 class PluginController(object):
+    '''
+    Manage an installed plugin.
+    '''
     def __init__(self, controller, name):
         self.controller = controller
         self.name = name
@@ -80,9 +83,21 @@ class PluginController(object):
         return getattr(self.plugin_class, 'version', None)
 
     def enabled(self):
+        '''
+        Returns
+        -------
+        bool
+            ``True`` if plugin instance is enabled.
+
+            Otherwise, ``False``.
+        '''
         return not(self.service is None or not self.service.enabled())
 
     def update(self):
+        '''
+        Update reference to plugin/service instance and update enable button
+        state.
+        '''
         self.service = get_service_instance(self.plugin_class)
         if self.enabled():
             self.button.set_label('Disable')
@@ -90,6 +105,9 @@ class PluginController(object):
             self.button.set_label('Enable')
 
     def toggle_enabled(self):
+        '''
+        Toggle enable state of plugin/service instance.
+        '''
         if not self.enabled():
             enable_service(self.service.name)
         else:
@@ -97,9 +115,20 @@ class PluginController(object):
         self.update()
 
     def get_widget(self):
+        '''
+        Returns
+        -------
+        gtk.HBox
+            UI widget instance.
+        '''
         return self.box
 
     def on_button_uninstall_clicked(self, widget, data=None):
+        '''
+        Handler for ``"Uninstall"`` button.
+
+        Prompt user to confirm before uninstalling plugin.
+        '''
         package_name = self.get_plugin_package_name()
         response = yesno('Uninstall plugin %s?' % package_name)
         if response == gtk.RESPONSE_YES:
@@ -119,6 +148,9 @@ class PluginController(object):
                 self.controller.dialog.update()
 
     def on_button_update_clicked(self, widget, data=None):
+        '''
+        Handler for ``"Update"`` button.
+        '''
         app = get_app()
         try:
             self.controller.update_plugin(self, verbose=True)
@@ -132,12 +164,36 @@ class PluginController(object):
         return True
 
     def get_plugin_info(self):
+        '''
+        Returns
+        -------
+        namedtuple
+            Plugin metadata in the form
+            ``(package_name, plugin_name, version)``.
+        '''
         return get_plugin_info(self.get_plugin_path())
 
     def get_plugin_package_name(self):
+        '''
+        Returns
+        -------
+        str
+            Relative module name (e.g., ``'dmf_control_board_plugin'``)
+        '''
         return get_plugin_package_name(self.plugin_class.__module__)
 
     def get_plugin_path(self, packge_name=None):
+        '''
+        Parameters
+        ----------
+        package_name : str, optional
+            Relative module name (e.g., ``'dmf_control_board_plugin'``)
+
+        Returns
+        -------
+        path_helpers.path
+            Path to plugin directory.
+        '''
         if packge_name is None:
             packge_name = self.get_plugin_package_name()
         app = get_app()
@@ -145,10 +201,25 @@ class PluginController(object):
                 .joinpath(packge_name))
 
     def on_button_clicked(self, widget, data=None):
+        '''
+        Handler for ``"Enable"/"Disable"`` button.
+        '''
         self.toggle_enabled()
 
 
 class PluginManagerController(SingletonPlugin):
+    '''
+    Manage installed plugins.
+
+    Methods include:
+
+     - :meth:`uninstall_plugin`
+     - :meth:`install_plugin`
+     - :meth:`download_and_install_plugin`
+     - :meth:`install_from_archive`
+     - :meth:`update_plugin`
+     - :meth:`uninstall_plugin`
+    '''
     implements(IPlugin)
 
     def __init__(self):
@@ -162,6 +233,21 @@ class PluginManagerController(SingletonPlugin):
         self.dialog = PluginManagerDialog()
 
     def update_plugin(self, plugin_controller, verbose=False, force=False):
+        '''
+        Parameters
+        ----------
+        plugin_controller : PluginController
+            Controller for plugin to update.
+        verbose : bool, optional
+            If ``True``, log warning message if plugin is up-to-date.
+        force : bool, optional
+            If ``True``, update without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if plugin was upgraded, otherwise, ``False``.
+        '''
         app = get_app()
         server_url = app.get_app_value('server_url')
         plugin_metadata = plugin_controller.get_plugin_info()
@@ -196,6 +282,21 @@ class PluginManagerController(SingletonPlugin):
             return False
 
     def download_and_install_plugin(self, package_name, force=False):
+        '''
+        Parameters
+        ----------
+        package_name : str
+            Plugin Python module name (e.g., ``dmf_control_board_plugin``).
+
+            Corresponds to ``package_name`` key in plugin ``properties.yml`` file.
+        force : bool, optional
+            If ``True``, install/update without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if plugin was installed or upgraded, otherwise, ``False``.
+        '''
         temp_dir = path(tempfile.mkdtemp(prefix='microdrop_plugin_update'))
         try:
             app = get_app()
@@ -210,9 +311,23 @@ class PluginManagerController(SingletonPlugin):
         return False
 
     def get_plugin_names(self):
+        '''
+        Returns
+        -------
+        list(str)
+            List of plugin class names (e.g., ``['StepLabelPlugin', ...]``).
+        '''
         return list(self.e.plugin_registry.keys())
 
     def update(self):
+        '''
+        Update list of plugin controllers (one controller for each imported
+        plugin in the ``microdrop.managed`` environment).
+
+        ..notes::
+            Also update **deletion**, **rename**, and **post-install** queue
+            files.
+        '''
         plugin_names = self.get_plugin_names()
         del self.plugins
         self.plugins = []
@@ -240,6 +355,21 @@ class PluginManagerController(SingletonPlugin):
                                                  for p1, p2 in
                                                  self.rename_queue]))
     def update_all_plugins(self, force=False):
+        '''
+        Upgrade each plugin to the latest version available (if not already
+        installed).
+
+        Parameters
+        ----------
+        force : bool, optional
+            If ``True``, for each plugin, if a different version of the plugin
+            is already installed, upgrade without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if any plugin was upgraded, otherwise, ``False``.
+        '''
         self.update()
         plugin_updated = False
         app = get_app()
@@ -259,6 +389,21 @@ class PluginManagerController(SingletonPlugin):
         return plugin_updated
 
     def install_from_archive(self, archive_path, force=False):
+        '''
+        Install a plugin from an archive (i.e., `.tar.gz` or `.zip`).
+
+        Parameters
+        ----------
+        archive_path : str
+            Path to plugin archive file.
+        force : bool, optional
+            If ``True``, install/update without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if plugin was installed or upgraded, otherwise, ``False``.
+        '''
         temp_dir = path(tempfile.mkdtemp(prefix='microdrop_'))
         logging.debug('extracting to: %s' % temp_dir)
         archive_path = path(archive_path)
@@ -280,15 +425,42 @@ class PluginManagerController(SingletonPlugin):
             self.update()
 
     def uninstall_plugin(self, plugin_path):
+        '''
+        Uninstall a plugin.
+
+        Parameters
+        ----------
+        plugin_path : str
+            Path to installed plugin directory.
+        '''
+        # Add plugin to list of requested deletions.
         self.requested_deletions.append(plugin_path)
         self.update()
 
     def install_plugin(self, plugin_root, install_path):
+        '''
+        Install a plugin from a directory.
+
+        Parameters
+        ----------
+        plugin_root : path_helpers.path
+            Path to (extracted) plugin directory.
+        install_path : str
+            Path to install plugin to.
+        '''
         plugin_root.copytree(install_path, symlinks=True,
                              ignore=ignore_patterns('*.pyc'))
         self.restart_required = True
 
     def post_uninstall(self, uninstall_path):
+        '''
+        Execute post-uninstall hook.
+
+        Parameters
+        ----------
+        uninstall_path : path
+            Path to uninstalled plugin directory.
+        '''
         # __NB__ The `cwd` directory ["is not considered when searching the
         # executable, so you can't specify the program's path relative to
         # `cwd`."][cwd].  Therefore, we manually change to the directory
@@ -323,6 +495,20 @@ class PluginManagerController(SingletonPlugin):
                     os.chdir(cwd)
 
     def verify_and_install_new_plugin(self, plugin_root, force=False):
+        '''
+        Parameters
+        ----------
+        plugin_root : str
+            Path to plugin directory.
+        force : bool, optional
+            If ``True`` and a different version of the plugin is already
+            installed, upgrade without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if plugin was installed or upgraded, otherwise, ``False``.
+        '''
         plugin_metadata = get_plugin_info(plugin_root)
         if plugin_metadata is None:
             logging.error('%s does not contain a valid plugin.' % plugin_root)

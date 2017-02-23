@@ -29,6 +29,14 @@ from ..plugin_manager import get_service_instance_by_name
 
 
 class PluginManagerDialog(object):
+    '''
+    List installed plugins with the following action buttons for each plugin:
+
+     - Enable
+     - Disable
+     - Update
+     - **TODO** Uninstall
+    '''
     def __init__(self):
         builder = gtk.Builder()
         builder.add_from_file(glade_path()
@@ -47,6 +55,9 @@ class PluginManagerDialog(object):
         return service
 
     def update(self):
+        '''
+        Update plugin list widget.
+        '''
         self.clear_plugin_list()
         self.controller.update()
         for p in self.controller.plugins:
