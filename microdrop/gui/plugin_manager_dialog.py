@@ -29,6 +29,14 @@ from ..plugin_manager import get_service_instance_by_name
 
 
 class PluginManagerDialog(object):
+    '''
+    List installed plugins with the following action buttons for each plugin:
+
+     - Enable
+     - Disable
+     - Update
+     - **TODO** Uninstall
+    '''
     def __init__(self):
         builder = gtk.Builder()
         builder.add_from_file(glade_path()
@@ -42,11 +50,14 @@ class PluginManagerDialog(object):
 
     @property
     def controller(self):
-        service = get_service_instance_by_name(
-                'microdrop.gui.plugin_manager_controller', env='microdrop')
+        plugin_name = 'microdrop.gui.plugin_manager_controller'
+        service = get_service_instance_by_name(plugin_name, env='microdrop')
         return service
 
     def update(self):
+        '''
+        Update plugin list widget.
+        '''
         self.clear_plugin_list()
         self.controller.update()
         for p in self.controller.plugins:
@@ -67,10 +78,10 @@ class PluginManagerDialog(object):
                     app.config["plugins"]["enabled"].remove(package_name)
         app.config.save()
         if self.controller.restart_required:
-            logging.warning('''\
-Plugins were installed/uninstalled.
-Program needs to be closed.
-Please start program again for changes to take effect.''')
+            logging.warning('Plugins were installed/uninstalled.\n'
+                            'Program needs to be closed.\n'
+                            'Please start program again for changes to take '
+                            'effect.')
             # Use return code of `5` to signal program should be restarted.
             app.main_window_controller.on_destroy(None, return_code=5)
             return response
