@@ -28,6 +28,7 @@ import tarfile
 import tempfile
 
 import gtk
+import mpm.api
 import path_helpers as ph
 import yaml
 from jsonrpc.proxy import JSONRPCException
@@ -124,6 +125,11 @@ class PluginController(object):
             UI widget instance.
         '''
         return self.box
+
+    @property
+    def is_conda_plugin(self):
+        return (self.get_plugin_path().parent.realpath() ==
+                mpm.api.MICRODROP_CONDA_ETC.joinpath('plugins', 'enabled'))
 
     def on_button_uninstall_clicked(self, widget, data=None):
         '''
