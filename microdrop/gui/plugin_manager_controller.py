@@ -522,7 +522,30 @@ class PluginManagerController(SingletonPlugin):
         ----------
         plugin_path : str
             Path to installed plugin directory.
+
+        Raises
+        ------
+        RuntimeError
+            If plugin directory is a Conda MicroDrop plugin (uninstall for
+            Conda plugins is not currently supported).
         '''
+        # TODO
+        # ----
+        #
+        #  - [ ] Implement Conda MicroDrop plugin uninstall behaviour using
+        #    `mpm.api` API.
+        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        #    Conda MicroDrop plugins)
+
+        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
+        # MicroDrop plugins).
+        is_conda_plugin = (ph.path(plugin_path).realpath().parent ==
+                           mpm.api.MICRODROP_CONDA_ETC.joinpath('plugins',
+                                                                'enabled'))
+        if is_conda_plugin:
+            raise RuntimeError('Uninstall of Conda MicroDrop plugins is not '
+                               'currently supported.')
+
         # Add plugin to list of requested deletions.
         self.requested_deletions.append(plugin_path)
         self.update()
