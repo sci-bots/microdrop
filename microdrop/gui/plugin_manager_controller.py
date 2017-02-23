@@ -28,6 +28,7 @@ import tarfile
 import tempfile
 
 import gtk
+import mpm.api
 import path_helpers as ph
 import yaml
 from jsonrpc.proxy import JSONRPCException
@@ -78,6 +79,17 @@ class PluginController(object):
                           padding=5)
         self.box.pack_end(self.label_version, expand=True, fill=False)
         self.update()
+
+        # TODO Remove this special handling after implementing full support for
+        # Conda MicroDrop plugins.
+        if self.is_conda_plugin:
+            # Disable buttons for currently unsupported actions for Conda
+            # MicroDrop plugins.
+            for button_i in (self.button_uninstall, self.button_update):
+                button_i.props.sensitive = False
+                button_i.set_tooltip_text('Not currently supported for Conda '
+                                          'MicroDrop plugins')
+
         self.box.show_all()
 
     @property
@@ -125,12 +137,37 @@ class PluginController(object):
         '''
         return self.box
 
+    @property
+    def is_conda_plugin(self):
+        return (self.get_plugin_path().parent.realpath() ==
+                mpm.api.MICRODROP_CONDA_ETC.joinpath('plugins', 'enabled'))
+
     def on_button_uninstall_clicked(self, widget, data=None):
         '''
         Handler for ``"Uninstall"`` button.
 
         Prompt user to confirm before uninstalling plugin.
+
+        Notes
+        -----
+        An error is reported if the plugin is a Conda MicroDrop plugin
+        (uninstall for Conda plugins is not currently supported).
         '''
+        # TODO
+        # ----
+        #
+        #  - [ ] Implement Conda MicroDrop plugin uninstall behaviour using
+        #    `mpm.api` API.
+        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        #    Conda MicroDrop plugins)
+
+        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
+        # MicroDrop plugins).
+        if self.is_conda_plugin:
+            logging.error('Uninstall of Conda MicroDrop plugins is not '
+                          'currently supported.')
+            return
+
         package_name = self.get_plugin_package_name()
         response = yesno('Uninstall plugin %s?' % package_name)
         if response == gtk.RESPONSE_YES:
@@ -152,7 +189,27 @@ class PluginController(object):
     def on_button_update_clicked(self, widget, data=None):
         '''
         Handler for ``"Update"`` button.
+
+        Notes
+        -----
+        An error is reported if the plugin is a Conda MicroDrop plugin (update
+        for Conda plugins is not currently supported).
         '''
+        # TODO
+        # ----
+        #
+        #  - [ ] Implement Conda MicroDrop plugin update behaviour using
+        #    `mpm.api` API.
+        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        #    Conda MicroDrop plugins)
+
+        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
+        # MicroDrop plugins).
+        if self.is_conda_plugin:
+            logging.error('Update of Conda MicroDrop plugins is not currently '
+                          'supported.')
+            return
+
         app = get_app()
         try:
             self.controller.update_plugin(self, verbose=True)
@@ -251,7 +308,27 @@ class PluginManagerController(SingletonPlugin):
         -------
         bool
             ``True`` if plugin was upgraded, otherwise, ``False``.
+
+        Raises
+        ------
+        RuntimeError
+            If plugin directory is a Conda MicroDrop plugin (update for
+            Conda plugins is not currently supported).
         '''
+        # TODO
+        # ----
+        #
+        #  - [ ] Implement Conda MicroDrop plugin update behaviour using
+        #    `mpm.api` API.
+        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        #    Conda MicroDrop plugins)
+
+        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
+        # MicroDrop plugins).
+        if plugin_controller.is_conda_plugin:
+            raise RuntimeError('Update of Conda MicroDrop plugins is not '
+                               'currently supported.')
+
         app = get_app()
         server_url = app.get_app_value('server_url')
         plugin_metadata = plugin_controller.get_plugin_info()
@@ -391,6 +468,14 @@ class PluginManagerController(SingletonPlugin):
             except IOError:
                 logger.info('Could not connect to plugin repository at: %s',
                             app.get_app_value('server_url'))
+            except RuntimeError, exception:
+                if 'Conda' in str(exception):
+                    logger.info('Update of Conda MicroDrop plugins is not '
+                                'currently supported.')
+                else:
+                    raise
+                # TODO Remove this special handling after implementing full
+                # support for Conda MicroDrop plugins.
         return plugin_updated
 
     def install_from_archive(self, archive_path, force=False):
@@ -437,7 +522,30 @@ class PluginManagerController(SingletonPlugin):
         ----------
         plugin_path : str
             Path to installed plugin directory.
+
+        Raises
+        ------
+        RuntimeError
+            If plugin directory is a Conda MicroDrop plugin (uninstall for
+            Conda plugins is not currently supported).
         '''
+        # TODO
+        # ----
+        #
+        #  - [ ] Implement Conda MicroDrop plugin uninstall behaviour using
+        #    `mpm.api` API.
+        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        #    Conda MicroDrop plugins)
+
+        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
+        # MicroDrop plugins).
+        is_conda_plugin = (ph.path(plugin_path).realpath().parent ==
+                           mpm.api.MICRODROP_CONDA_ETC.joinpath('plugins',
+                                                                'enabled'))
+        if is_conda_plugin:
+            raise RuntimeError('Uninstall of Conda MicroDrop plugins is not '
+                               'currently supported.')
+
         # Add plugin to list of requested deletions.
         self.requested_deletions.append(plugin_path)
         self.update()
