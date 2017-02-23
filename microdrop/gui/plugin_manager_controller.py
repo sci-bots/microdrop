@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+import inspect
 import os
 import subprocess
 import sys
@@ -182,7 +182,7 @@ class PluginController(object):
         '''
         return get_plugin_package_name(self.plugin_class.__module__)
 
-    def get_plugin_path(self, packge_name=None):
+    def get_plugin_path(self, package_name=None):
         '''
         Parameters
         ----------
@@ -194,11 +194,13 @@ class PluginController(object):
         path_helpers.path
             Path to plugin directory.
         '''
-        if packge_name is None:
-            packge_name = self.get_plugin_package_name()
-        app = get_app()
-        return (path(app.config.data['plugins']['directory'])
-                .joinpath(packge_name))
+        if package_name is None:
+            package_name = self.get_plugin_package_name()
+
+        # Find path to file where plugin/service class is defined.
+        class_def_file = path(inspect.getfile(self.service.__class__))
+
+        return class_def_file.parent
 
     def on_button_clicked(self, widget, data=None):
         '''
