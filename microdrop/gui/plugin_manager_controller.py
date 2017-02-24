@@ -81,16 +81,6 @@ class PluginController(object):
         self.box.pack_end(self.label_version, expand=True, fill=False)
         self.update()
 
-        # TODO Remove this special handling after implementing full support for
-        # Conda MicroDrop plugins.
-        if self.is_conda_plugin:
-            # Disable buttons for currently unsupported actions for Conda
-            # MicroDrop plugins.
-            for button_i in (self.button_uninstall, self.button_update):
-                button_i.props.sensitive = False
-                button_i.set_tooltip_text('Not currently supported for Conda '
-                                          'MicroDrop plugins')
-
         self.box.show_all()
 
     @property
@@ -157,21 +147,34 @@ class PluginController(object):
         # TODO
         # ----
         #
-        #  - [ ] Implement Conda MicroDrop plugin uninstall behaviour using
+        #  - [t] Implement Conda MicroDrop plugin uninstall behaviour using
         #    `mpm.api` API.
         #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
         #    Conda MicroDrop plugins)
-
-        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
-        # MicroDrop plugins).
-        if self.is_conda_plugin:
-            logging.error('Uninstall of Conda MicroDrop plugins is not '
-                          'currently supported.')
+        package_name = self.get_plugin_package_name()
+        # Prompt user to confirm uninstall.
+        response = yesno('Uninstall plugin %s?' % package_name)
+        if response != gtk.RESPONSE_YES:
             return
 
-        package_name = self.get_plugin_package_name()
-        response = yesno('Uninstall plugin %s?' % package_name)
-        if response == gtk.RESPONSE_YES:
+        if self.is_conda_plugin:
+            # Plugin in a Conda MicroDrop plugin.
+            try:
+                uninstall_json_log = mpm.api.uninstall(package_name)
+            except RuntimeError, exception:
+                if 'CondaHTTPError' in exception:
+                    # Error accessing Conda server.
+                    logger.warning('Could not connect to server.')
+                else:
+                    raise
+            else:
+                logger.info('Uninstall %s: %s', package_name,
+                            uninstall_json_log)
+                if not uninstall_json_log.get('success'):
+                    logger.error('Error uninstalling %s', package_name)
+        else:
+            # Assume MicroDrop 2.0 plugin
+
             # remove the plugin from he enabled list
             app = get_app()
             if package_name in app.config["plugins"]["enabled"]:
@@ -185,7 +188,8 @@ class PluginController(object):
                 app.main_window_controller.info('%s plugin successfully '
                                                 'removed.' % package_name,
                                                 'Uninstall plugin')
-                self.controller.dialog.update()
+        # Update dialog.
+        self.controller.dialog.update()
 
     def on_button_update_clicked(self, widget, data=None):
         '''
@@ -199,28 +203,52 @@ class PluginController(object):
         # TODO
         # ----
         #
-        #  - [ ] Implement Conda MicroDrop plugin update behaviour using
+        #  - [t] Implement Conda MicroDrop plugin update behaviour using
         #    `mpm.api` API.
         #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
         #    Conda MicroDrop plugins)
 
-        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
-        # MicroDrop plugins).
         if self.is_conda_plugin:
-            logging.error('Update of Conda MicroDrop plugins is not currently '
-                          'supported.')
-            return
+            # Plugin in a Conda MicroDrop plugin.  Update Conda package.
+            package_name = self.get_plugin_package_name()
 
-        app = get_app()
-        try:
-            self.controller.update_plugin(self, verbose=True)
-        except IOError:
-            logger.warning('Could not connect to plugin server: %s',
-                           app.get_app_value('server_url'))
-        except (JSONRPCException, JSONDecodeException):
-            logger.warning('Plugin %s not available on plugin server',
-                           app.get_app_value('server_url'))
-            return True
+            # XXX Disable default logging handlers to prevent `logging.error`
+            # calls from popping up error dialogs while attempting to update.
+            # TODO Avoid `conda_helpers` error log messages using [logging
+            # filters][filter] instead.
+            #
+            # [filter]: https://docs.python.org/2/library/logging.html#filter-objects
+            log_messages = []
+            with lh.logging_restore(clear_handlers=True):
+                try:
+                    update_json_log = mpm.api.update(package_name)
+                except RuntimeError, exception:
+                    if 'CondaHTTPError' in str(exception):
+                        # Error accessing Conda server.
+                        log_messages.append(('warning', 'Could not connect to '
+                                             'update server.'))
+                    else:
+                        raise
+                else:
+                    log_messages.append(('info', 'Update %s: %s', package_name,
+                                         update_json_log))
+                    if not update_json_log.get('success'):
+                        log_messages.append(('error', 'Error updating %s',
+                                             package_name))
+            # Log messages queued while log handlers were disabled.
+            for message_i in log_messages:
+                getattr(logger, message_i[0])(*message_i[1:])
+        else:
+            # Assume MicroDrop 2.0 plugin
+            app = get_app()
+            try:
+                self.controller.update_plugin(self, verbose=True)
+            except IOError:
+                logger.warning('Could not connect to plugin server: %s',
+                            app.get_app_value('server_url'))
+            except (JSONRPCException, JSONDecodeException):
+                logger.warning('Plugin %s not available on plugin server',
+                            app.get_app_value('server_url'))
         return True
 
     def get_plugin_info(self):
@@ -319,8 +347,6 @@ class PluginManagerController(SingletonPlugin):
         # TODO
         # ----
         #
-        #  - [ ] Implement Conda MicroDrop plugin update behaviour using
-        #    `mpm.api` API.
         #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
         #    Conda MicroDrop plugins)
 
@@ -533,8 +559,6 @@ class PluginManagerController(SingletonPlugin):
         # TODO
         # ----
         #
-        #  - [ ] Implement Conda MicroDrop plugin uninstall behaviour using
-        #    `mpm.api` API.
         #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
         #    Conda MicroDrop plugins)
 
