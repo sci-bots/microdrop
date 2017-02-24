@@ -30,9 +30,11 @@ requirements:
     - ipython
     - jupyter-helpers
     - jinja2
+    - logging-helpers >=0.2
     - lxml
     - matplotlib
     - microdrop-device-converter >=0.1.post5
+    - microdrop-plugin-manager >=0.8
     - microdrop-plugin-template
     - networkx
     - openpyxl
@@ -78,9 +80,11 @@ requirements:
     - ipython
     - jupyter-helpers
     - jinja2
+    - logging-helpers >=0.2
     - lxml
     - matplotlib
     - microdrop-device-converter >=0.1.post5
+    - microdrop-plugin-manager >=0.8
     - microdrop-plugin-template
     - networkx
     - openpyxl
