@@ -69,10 +69,11 @@ class PluginController(object):
         self.button_update = gtk.Button('Update')
         self.button_update.connect('clicked', self.on_button_update_clicked,
                                    None)
-        self.button = gtk.Button('Enable')
-        self.button.connect('clicked', self.on_button_clicked, None)
+        self.button_enable = gtk.Button('Enable')
+        self.button_enable.connect('clicked', self.on_button_enable_clicked,
+                                   None)
         self.box.pack_start(self.label, expand=True, fill=True)
-        self.box.pack_end(self.button, expand=False, fill=False, padding=5)
+        self.box.pack_end(self.button_enable, expand=False, fill=False, padding=5)
         self.box.pack_end(self.button_update, expand=False, fill=False,
                           padding=5)
         self.box.pack_end(self.button_uninstall, expand=False, fill=False,
@@ -114,9 +115,9 @@ class PluginController(object):
         '''
         self.service = get_service_instance(self.plugin_class)
         if self.enabled():
-            self.button.set_label('Disable')
+            self.button_enable.set_label('Disable')
         else:
-            self.button.set_label('Enable')
+            self.button_enable.set_label('Enable')
 
     def toggle_enabled(self):
         '''
@@ -261,7 +262,7 @@ class PluginController(object):
 
         return class_def_file.parent
 
-    def on_button_clicked(self, widget, data=None):
+    def on_button_enable_clicked(self, widget, data=None):
         '''
         Handler for ``"Enable"/"Disable"`` button.
         '''
