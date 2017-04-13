@@ -43,8 +43,9 @@ class PluginDownloadDialog(object):
 
     @property
     def controller(self):
-        service = get_service_instance_by_name(
-                'microdrop.gui.plugin_manager_controller', env='microdrop')
+        service = get_service_instance_by_name('microdrop.gui'
+                                               '.plugin_manager_controller',
+                                               env='microdrop')
         return service
 
     def update(self):
@@ -66,7 +67,7 @@ class PluginDownloadDialog(object):
         if not to_install:
             return None
         self.list_select_view = ListSelectView(sorted(to_install),
-                'plugin_name')
+                                               'plugin_name')
         self.vbox_plugins.pack_start(self.list_select_view.widget)
         self.vbox_plugins.show_all()
         return True
