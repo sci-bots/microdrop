@@ -16,36 +16,29 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
+from shutil import ignore_patterns
 import inspect
+import logging
 import os
+import platform
 import subprocess
 import sys
-import platform
-import logging
-from shutil import ignore_patterns
-from zipfile import ZipFile
-import tarfile
-import tempfile
 import warnings
 
+from microdrop_utility.gui import yesno
 import gtk
 import logging_helpers as lh
 import mpm.api
 import path_helpers as ph
 import yaml
-from jsonrpc.proxy import JSONRPCException
-from jsonrpc.json import JSONDecodeException
-from application_repository.plugins.proxy import PluginRepository
-from microdrop_utility import Version
-from microdrop_utility.gui import yesno
 
-from ..app_context import get_app, APP_VERSION
+from ..app_context import get_app
+from ..gui.plugin_manager_dialog import PluginManagerDialog
 from ..plugin_helpers import get_plugin_info
 from ..plugin_manager import (IPlugin, implements, SingletonPlugin,
                               PluginGlobals, get_service_instance,
                               get_plugin_package_name, enable as
                               enable_service, disable as disable_service)
-from ..gui.plugin_manager_dialog import PluginManagerDialog
 
 logger = logging.getLogger(__name__)
 
