@@ -338,12 +338,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 logger.warning('Plugins have been updated.  The application '
                                'must be restarted.')
                 if self.main_window_controller is not None:
-                    self.main_window_controller.on_destroy(None)
-                else:
                     logger.info('Closing app after plugins auto-upgrade')
                     # Use return code of `5` to signal program should be
                     # restarted.
-                    self.main_window_controller.on_destroy(None, return_code=5)
+                    gtk.idle_add(self.main_window_controller.on_destroy, None,
+                                 None, 5)
             else:
                 logger.info('No plugins have been updated')
 
