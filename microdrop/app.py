@@ -364,9 +364,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         # Import plugins from MicroDrop v2.0 profile `plugins` directory.
         plugin_manager.load_plugins(self.config['plugins']['directory'])
         # Import enabled plugins from Conda environment.
-        plugin_manager.load_plugins(mpm.api.MICRODROP_CONDA_ETC
-                                    .joinpath('plugins', 'enabled'),
-                                    import_from_parent=False)
+        conda_plugins_dir = mpm.api.MICRODROP_CONDA_ETC.joinpath('plugins',
+                                                                 'enabled')
+        if conda_plugins_dir.isdir():
+            plugin_manager.load_plugins(conda_plugins_dir,
+                                        import_from_parent=False)
         self.update_log_file()
 
         logger.info('User data directory: %s' % self.config['data_dir'])
