@@ -64,6 +64,12 @@ class PluginManagerDialog(object):
             self.vbox_plugins.pack_start(p.get_widget())
 
     def run(self):
+        # TODO
+        # ----
+        #
+        #  - [ ] Remove all references to `app`
+        #  - [ ] Use `MICRODROP_CONDA_ETC/plugins/enabled` to maintain enabled
+        #    plugin references instead of MicroDrop profile `microdrop.ini`
         app = get_app()
         self.update()
         response = self.window.run()
