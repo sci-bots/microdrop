@@ -398,8 +398,9 @@ class PluginManagerController(SingletonPlugin):
         self.update()
         # Update all plugins to latest versions.
         try:
-            install_log = mpm.api.update()
-            return 'actions' in install_log
+            with lh.logging_restore(clear_handlers=True):
+                install_log = mpm.api.update()
+                return 'actions' in install_log
         except RuntimeError, exception:
             if "CondaHTTPError" in str(exception):
                 logger.debug(str(exception))
