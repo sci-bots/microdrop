@@ -223,7 +223,7 @@ class PluginController(object):
             log_messages = []
             with lh.logging_restore(clear_handlers=True):
                 try:
-                    update_json_log = mpm.api.update(package_name)
+                    update_json_log = mpm.api.install(package_name)
                 except RuntimeError, exception:
                     if 'CondaHTTPError' in str(exception):
                         # Error accessing Conda server.
