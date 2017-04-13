@@ -100,16 +100,25 @@ class PluginManagerDialog(object):
                 self.controller.download_and_install_plugin(p)
 
     def on_button_install_clicked(self, *args, **kwargs):
-        response = open_filechooser('Select plugin file',
-                action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                patterns=['*.tar.gz', '*.tgz', '*.zip'])
-        if response is None:
+        archive_path = open_filechooser('Select plugin file',
+                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                        patterns=['*.tar.bz2'])
+        if archive_path is None:
             return True
 
-        return self.controller.install_from_archive(response)
+        return self.controller.install_from_archive(archive_path)
 
     def on_button_update_all_clicked(self, *args, **kwargs):
-        self.controller.update_all_plugins()
+        if self.controller.update_all_plugins():
+            app = get_app()
+            logging.warning('Plugins were installed/uninstalled.\n'
+                            'Program needs to be closed.\n'
+                            'Please start program again for changes to take '
+                            'effect.')
+            # Use return code of `5` to signal program should be restarted.
+            app.main_window_controller.on_destroy(None, return_code=5)
+        else:
+            logging.warning('No updates available.')
 
 
 if __name__ == '__main__':

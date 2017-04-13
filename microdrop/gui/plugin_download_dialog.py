@@ -16,12 +16,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+import json
 import logging
 
-import gtk
 from pygtkhelpers.ui.list_select import ListSelectView
 from application_repository.plugins.proxy import PluginRepository
+import gtk
+import mpm.api
 
 from ..app_context import get_app, APP_VERSION
 from ..plugin_manager import get_service_instance_by_name
@@ -56,14 +57,18 @@ class PluginDownloadDialog(object):
         self.clear_plugin_list()
         self.controller.update()
 
-        server_url = app.get_app_value('server_url')
-        plugin_repo = PluginRepository(server_url)
+        try:
+            available_packages = mpm.api.available_packages()
+        except RuntimeError, exception:
+            exception_json = json.load(str(exception))
+            logging.error('Could not get list of available plugins.\n%s',
+                          exception_json['error'])
+            return
+
         # Only plugins with the same *major* version will be returned.
-        available = set(plugin_repo
-                        .available_packages(app_version=APP_VERSION))
-        installed = set([p.get_plugin_package_name()
-                         for p in self.controller.plugins])
-        to_install = available.difference(installed)
+        installed_packages = set([p.get_plugin_package_name()
+                                  for p in self.controller.plugins])
+        to_install = set(available_packages).difference(installed_packages)
         if not to_install:
             return None
         self.list_select_view = ListSelectView(sorted(to_install),

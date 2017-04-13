@@ -28,6 +28,7 @@ import tarfile
 import tempfile
 
 import gtk
+import logging_helpers as lh
 import mpm.api
 import path_helpers as ph
 import yaml
@@ -240,15 +241,9 @@ class PluginController(object):
                 getattr(logger, message_i[0])(*message_i[1:])
         else:
             # Assume MicroDrop 2.0 plugin
-            app = get_app()
-            try:
-                self.controller.update_plugin(self, verbose=True)
-            except IOError:
-                logger.warning('Could not connect to plugin server: %s',
-                            app.get_app_value('server_url'))
-            except (JSONRPCException, JSONDecodeException):
-                logger.warning('Plugin %s not available on plugin server',
-                            app.get_app_value('server_url'))
+            logger.warning('Plugin appears to be a MicroDrop 2.0 plugin. Only '
+                           'Conda MicroDrop plugins support updating.')
+            return False
         return True
 
     def get_plugin_info(self):
@@ -322,73 +317,6 @@ class PluginManagerController(SingletonPlugin):
         self.e = PluginGlobals.env('microdrop.managed')
         self.dialog = PluginManagerDialog()
 
-    def update_plugin(self, plugin_controller, verbose=False, force=False):
-        '''
-        Parameters
-        ----------
-        plugin_controller : PluginController
-            Controller for plugin to update.
-        verbose : bool, optional
-            If ``True``, log warning message if plugin is up-to-date.
-        force : bool, optional
-            If ``True``, update without prompting for confirmation.
-
-        Returns
-        -------
-        bool
-            ``True`` if plugin was upgraded, otherwise, ``False``.
-
-        Raises
-        ------
-        RuntimeError
-            If plugin directory is a Conda MicroDrop plugin (update for
-            Conda plugins is not currently supported).
-        '''
-        # TODO
-        # ----
-        #
-        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
-        #    Conda MicroDrop plugins)
-
-        # XXX For now, only support MicroDrop 2.0 plugins (no support for Conda
-        # MicroDrop plugins).
-        if plugin_controller.is_conda_plugin:
-            raise RuntimeError('Update of Conda MicroDrop plugins is not '
-                               'currently supported.')
-
-        app = get_app()
-        server_url = app.get_app_value('server_url')
-        plugin_metadata = plugin_controller.get_plugin_info()
-        package_name = plugin_metadata.package_name
-        plugin_name = plugin_metadata.plugin_name
-
-        plugin_repo = PluginRepository(server_url)
-        latest_version = Version(**plugin_repo
-                                 .latest_version(package_name,
-                                                 app_version=APP_VERSION))
-
-        # Check the plugin tag versus the tag of latest version from the
-        # update respository. If they are different, it's a sign that they
-        # the currently installed plugin may be incompatible.
-        if plugin_controller.version.tags != latest_version.tags:
-            if yesno('The currently installed plugin (%s-%s) is from a '
-                     'different branch and may not be compatible with '
-                     'this version of MicroDrop. Would you like to download '
-                     'a compatible version?' % (plugin_name,
-                                                plugin_controller.version)
-                     ) == gtk.RESPONSE_YES:
-                return self.download_and_install_plugin(package_name,
-                                                        force=force)
-        elif plugin_controller.version < latest_version:
-            return self.download_and_install_plugin(package_name, force=force)
-        else:
-            message = 'Plugin %s is up to date (version %s)' % (
-                plugin_name, plugin_controller.version)
-            if verbose:
-                logger.warning(message)
-            logger.info(message)
-            return False
-
     def download_and_install_plugin(self, package_name, force=False):
         '''
         Parameters
@@ -397,26 +325,16 @@ class PluginManagerController(SingletonPlugin):
             Plugin Python module name (e.g., ``dmf_control_board_plugin``).
 
             Corresponds to ``package_name`` key in plugin ``properties.yml`` file.
-        force : bool, optional
-            If ``True``, install/update without prompting for confirmation.
+        force : bool, deprecated
+            Ignored.
 
         Returns
         -------
         bool
             ``True`` if plugin was installed or upgraded, otherwise, ``False``.
         '''
-        temp_dir = ph.path(tempfile.mkdtemp(prefix='microdrop_plugin_update'))
-        try:
-            app = get_app()
-            server_url = app.get_app_value('server_url')
-            plugin_repo = PluginRepository(server_url)
-            plugin_repo.download_latest(package_name, temp_dir,
-                                        app_version=APP_VERSION)
-            archive_path = temp_dir.files()[0]
-            return self.install_from_archive(archive_path, force=force)
-        finally:
-            temp_dir.rmtree()
-        return False
+        # Install Conda plugin package.
+        return mpm.api.install(package_name).get('success')
 
     def get_plugin_names(self):
         '''
@@ -463,16 +381,10 @@ class PluginManagerController(SingletonPlugin):
                                                  for p1, p2 in
                                                  self.rename_queue]))
 
-    def update_all_plugins(self, force=False):
+    def update_all_plugins(self, **kwargs):
         '''
         Upgrade each plugin to the latest version available (if not already
         installed).
-
-        Parameters
-        ----------
-        force : bool, optional
-            If ``True``, for each plugin, if a different version of the plugin
-            is already installed, upgrade without prompting for confirmation.
 
         Returns
         -------
@@ -480,66 +392,50 @@ class PluginManagerController(SingletonPlugin):
             ``True`` if any plugin was upgraded, otherwise, ``False``.
         '''
         self.update()
-        plugin_updated = False
-        app = get_app()
-        for p in self.plugins:
-            plugin_name = p.get_plugin_info().plugin_name
-            try:
-                result = self.update_plugin(p, force=force)
-                logger.info('[update_all_plugins] plugin_name=%s %s',
-                            plugin_name, result)
-                plugin_updated = plugin_updated or result
-            except (JSONRPCException, JSONDecodeException):
-                logger.info('Plugin %s not available on plugin server %s',
-                            plugin_name, app.get_app_value('server_url'))
-            except IOError:
-                logger.info('Could not connect to plugin repository at: %s',
-                            app.get_app_value('server_url'))
-            except RuntimeError, exception:
-                if 'Conda' in str(exception):
-                    logger.info('Update of Conda MicroDrop plugins is not '
-                                'currently supported.')
-                else:
-                    raise
-                # TODO Remove this special handling after implementing full
-                # support for Conda MicroDrop plugins.
-        return plugin_updated
+        # Update all plugins to latest versions.
+        try:
+            install_log = mpm.api.update()
+            return 'actions' in install_log
+        except RuntimeError, exception:
+            if "CondaHTTPError" in str(exception):
+                logger.debug(str(exception))
 
-    def install_from_archive(self, archive_path, force=False):
+    def install_from_archive(self, archive_path, **kwargs):
         '''
-        Install a plugin from an archive (i.e., `.tar.gz` or `.zip`).
+        Install a plugin from an archive (i.e., `.tar.bz2`).
+
+        ..note::
+
+            Installing a plugin from an archive **does not install
+            dependencies**.
 
         Parameters
         ----------
         archive_path : str
             Path to plugin archive file.
-        force : bool, optional
-            If ``True``, install/update without prompting for confirmation.
 
         Returns
         -------
         bool
             ``True`` if plugin was installed or upgraded, otherwise, ``False``.
         '''
-        temp_dir = ph.path(tempfile.mkdtemp(prefix='microdrop_'))
-        logger.debug('extracting to: %s', temp_dir)
-        archive_path = ph.path(archive_path)
-
         try:
-            if archive_path.ext == '.zip':
-                zip_file = ZipFile(archive_path)
-                zip_file.extractall(temp_dir)
-                zip_file.close()
+            mpm.api.install('--offline', '--file', archive_path)
+        except ValueError, exception:
+            # XXX Note that `--json` flag is erroneously ignored when executing
+            # `conda install` with `tar.bz2` archive (see [here][conda-4879]).
+            #
+            # As a workaround, if command fails with a JSON decoding error,
+            # assume that the install completed successfully.
+            #
+            # TODO Check status of [related Conda issue][conda-4879] and remove
+            # workaround once the bug is fixed.
+            #
+            # [conda-4879]: https://github.com/conda/conda/issues/4879
+            if 'No JSON object could be decoded' in str(exception):
+                return True
             else:
-                # extension must be .tar.gz or .tgz
-                tar_file = tarfile.open(archive_path, 'r:gz')
-                tar_file.extractall(temp_dir)
-                tar_file.close()
-            return self.verify_and_install_new_plugin(temp_dir, force=force)
-        finally:
-            # Post-pone deletion until next program launch
-            self.requested_deletions.append(temp_dir)
-            self.update()
+                raise
 
     def uninstall_plugin(self, plugin_path):
         '''
