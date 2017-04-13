@@ -88,6 +88,9 @@ class PluginManagerDialog(object):
         return response
 
     def on_button_download_clicked(self, *args, **kwargs):
+        '''
+        Launch download dialog and install selected plugins.
+        '''
         d = PluginDownloadDialog()
         response = d.run()
 

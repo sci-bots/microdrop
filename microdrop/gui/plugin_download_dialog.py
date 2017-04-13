@@ -48,6 +48,9 @@ class PluginDownloadDialog(object):
         return service
 
     def update(self):
+        '''
+        Update widgets.
+        '''
         app = get_app()
         self.clear_plugin_list()
         self.controller.update()
@@ -69,9 +72,23 @@ class PluginDownloadDialog(object):
         return True
 
     def selected_items(self):
+        '''
+        Returns
+        -------
+        list
+            Currently selected plugin items.
+        '''
         return self.list_select_view.selected_items()
 
     def run(self):
+        '''
+        Returns
+        -------
+        gtk._gtk.ResponseType
+            If plugins are selected for installation, return `gtk.RESPONSE_OK`.
+
+            Otherwise, return `gtk.RESPONSE_CANCEL`.
+        '''
         app = get_app()
         try:
             if self.update() is None:
