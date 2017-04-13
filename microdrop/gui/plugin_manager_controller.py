@@ -26,6 +26,7 @@ from shutil import ignore_patterns
 from zipfile import ZipFile
 import tarfile
 import tempfile
+import warnings
 
 import gtk
 import logging_helpers as lh
@@ -391,6 +392,9 @@ class PluginManagerController(SingletonPlugin):
         bool
             ``True`` if any plugin was upgraded, otherwise, ``False``.
         '''
+        if kwargs:
+            warnings.warn('The `update_all_plugins` method no longer accepts '
+                          '`force` keyword', DeprecationWarning)
         self.update()
         # Update all plugins to latest versions.
         try:
@@ -419,6 +423,9 @@ class PluginManagerController(SingletonPlugin):
         bool
             ``True`` if plugin was installed or upgraded, otherwise, ``False``.
         '''
+        if kwargs:
+            warnings.warn('The `install_from_archive` method no longer accepts'
+                          ' `force` keyword', DeprecationWarning)
         try:
             mpm.api.install('--offline', '--file', archive_path)
         except ValueError, exception:
