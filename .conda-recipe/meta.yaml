@@ -24,7 +24,7 @@ requirements:
     - geo_util
     - gitpython
     - ipython
-    - ipython-helpers
+    - jupyter-helpers
     - matplotlib
     - microdrop-plugin-manager
     - microdrop-plugin-template
@@ -60,7 +60,7 @@ requirements:
     - sympy
     - task-scheduler
     - tornado
-    - wheeler.pygtkhelpers >=0.14.post7
+    - wheeler.pygtkhelpers >=0.16
 
   run:
     - application-repository
@@ -70,7 +70,7 @@ requirements:
     - geo_util
     - gitpython
     - ipython
-    - ipython-helpers
+    - jupyter-helpers
     - matplotlib
     - microdrop-plugin-manager
     - microdrop-plugin-template
@@ -105,7 +105,7 @@ requirements:
     - sympy
     - task-scheduler
     - tornado
-    - wheeler.pygtkhelpers >=0.14.post7
+    - wheeler.pygtkhelpers >=0.16
 
 about:
   home: https://github.com/wheeler-microfluidics/microdrop/tree/release-1.0

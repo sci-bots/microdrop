@@ -14,7 +14,7 @@ import version
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'flatland-fork', 'geo-util', 'ipython',
-                    'ipython-helpers>=0.4', 'matplotlib>=1.5.0',
+                    'jupyter-helpers>=0.10', 'matplotlib>=1.5.0',
                     'microdrop-plugin-template>=1.1.post30',
                     'microdrop_utility>=0.4.post2', 'networkx',
                     'opencv-helpers', 'openpyxl', 'pandas', 'pandas',
@@ -25,7 +25,7 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'pyutilib.component.loader>=3.3.1', 'pyyaml', 'pyzmq',
                     'run-exe>=0.5', 'scipy', 'si-prefix',
                     'svg_model>=0.5.post24', 'svgwrite', 'task_scheduler',
-                    'tornado', 'wheeler.pygtkhelpers>=0.12.post7']
+                    'tornado', 'wheeler.pygtkhelpers>=0.16']
 
 if platform.system() == 'Windows':
     install_requires += ['pycairo-gtk2-win', 'pygst-0.10-win', 'pywin32']
