@@ -61,7 +61,7 @@ requirements:
     - sympy
     - task-scheduler
     - tornado
-    - wheeler.pygtkhelpers >=0.15
+    - wheeler.pygtkhelpers >=0.16
     - zmq-plugin >=0.2.post2
 
   run:
@@ -108,7 +108,7 @@ requirements:
     - sympy
     - task-scheduler
     - tornado
-    - wheeler.pygtkhelpers >=0.15
+    - wheeler.pygtkhelpers >=0.16
     - zmq-plugin >=0.2.post2
 
 about:

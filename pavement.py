@@ -26,7 +26,7 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'pyutilib.component.loader>=3.3.1', 'pyyaml', 'pyzmq',
                     'run-exe>=0.5', 'si-prefix>=0.4.post10', 'scipy',
                     'svgwrite', 'svg-model>=0.6', 'task_scheduler',
-                    'tornado', 'wheeler.pygtkhelpers>=0.15',
+                    'tornado', 'wheeler.pygtkhelpers>=0.16',
                     'zmq-plugin>=0.2.post2']
 
 if platform.system() == 'Windows':

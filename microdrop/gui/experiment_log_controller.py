@@ -111,7 +111,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
     # Callback methods
     def on_app_exit(self):
         self.save()
-        logger.info('[ExperimentLogController] Killing IPython notebooks')
+        logger.info('[ExperimentLogController] Killing Jupyter notebooks')
         if self.notebook_manager_view is not None:
             self.notebook_manager_view.stop()
 
@@ -202,14 +202,14 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
 
         app_values = self.get_app_values()
 
-        # Create buttons to manage background IPython notebook sessions.
+        # Create buttons to manage background Jupyter notebook sessions.
         # Sessions are killed when microdrop exits.
         self.notebook_manager_view = NotebookManagerView()
         self.apply_notebook_dir(app_values['notebook_directory'])
 
         vbox = self.builder.get_object('vbox1')
         hbox = gtk.HBox()
-        label = gtk.Label('IPython notebook:')
+        label = gtk.Label('Jupyter notebook:')
         hbox.pack_start(label, False, False)
         hbox.pack_end(self.notebook_manager_view.widget, False, False)
         vbox.pack_start(hbox, False, False)
@@ -344,7 +344,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                                                                 'static'))
             skeleton_dir.joinpath('notebooks').copytree(notebook_directory)
         self.previous_notebook_dir = notebook_directory
-        # Set the default template directory of the IPython notebook manager
+        # Set the default template directory of the Jupyter notebook manager
         # widget to the notebooks directory.
         self.notebook_manager_view.template_dir = notebook_directory
 
