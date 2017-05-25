@@ -28,7 +28,7 @@ requirements:
     - git_helpers
     - gitpython
     - ipython
-    - ipython-helpers
+    - jupyter-helpers
     - jinja2
     - lxml
     - matplotlib
@@ -61,7 +61,7 @@ requirements:
     - sympy
     - task-scheduler
     - tornado
-    - wheeler.pygtkhelpers >=0.14.post7
+    - wheeler.pygtkhelpers >=0.15
     - zmq-plugin >=0.2.post2
 
   run:
@@ -76,7 +76,7 @@ requirements:
     - git_helpers
     - gitpython
     - ipython
-    - ipython-helpers
+    - jupyter-helpers
     - jinja2
     - lxml
     - matplotlib
@@ -108,7 +108,7 @@ requirements:
     - sympy
     - task-scheduler
     - tornado
-    - wheeler.pygtkhelpers >=0.14.post7
+    - wheeler.pygtkhelpers >=0.15
     - zmq-plugin >=0.2.post2
 
 about:

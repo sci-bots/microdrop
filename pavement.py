@@ -14,7 +14,7 @@ import version
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'droplet-planning>=0.2', 'flatland-fork', 'geo-util',
-                    'ipython', 'ipython-helpers>=0.4', 'jinja2',
+                    'ipython', 'jupyter-helpers', 'jinja2',
                     'matplotlib>=1.5.0',
                     'microdrop-device-converter>=0.1.post5',
                     'microdrop-plugin-template>=1.1.post30',
@@ -26,7 +26,7 @@ install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
                     'pyutilib.component.loader>=3.3.1', 'pyyaml', 'pyzmq',
                     'run-exe>=0.5', 'si-prefix>=0.4.post10', 'scipy',
                     'svgwrite', 'svg-model>=0.6', 'task_scheduler',
-                    'tornado', 'wheeler.pygtkhelpers>=0.13.post17',
+                    'tornado', 'wheeler.pygtkhelpers>=0.15',
                     'zmq-plugin>=0.2.post2']
 
 if platform.system() == 'Windows':
