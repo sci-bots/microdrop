@@ -14,6 +14,7 @@ specs:
   - pywin32
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
   # Install requirements for "featured" plugins
+  - device-quality-control-plugin-requirements >=2.1
   - dmf-device-ui-plugin-requirements >=2.0.post37
   - dropbot-dx-plugin-requirements >=2.3.post1
   - droplet-planning-plugin-requirements >=1.0.post36
