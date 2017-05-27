@@ -3,6 +3,7 @@ version: {{ GIT_DESCRIBE_TAG[1:] }}
 
 channels:
   - https://conda.anaconda.org/wheeler-microfluidics/
+  - https://conda.anaconda.org/conda-forge/
   - http://repo.continuum.io/pkgs/free/
 
 specs:
@@ -22,6 +23,7 @@ license_file: EULA.txt
 
 conda_default_channels:
   - https://conda.anaconda.org/wheeler-microfluidics/
+  - https://conda.anaconda.org/conda-forge/
   - http://repo.continuum.io/pkgs/free/
 
 # Welcome image for Windows installer
