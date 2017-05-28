@@ -189,31 +189,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         logger.info('MicroDrop version: %s', self.version)
         logger.info('Running in working directory: %s', os.getcwd())
 
-        # Run post install hooks for freshly installed plugins.
-        # It is necessary to delay the execution of these hooks here due to
-        # Windows file locking preventing the deletion of files that are in use.
-        post_install_queue_path = \
-            path(self.config.data['plugins']['directory']) \
-            .joinpath('post_install_queue.yml')
-        if post_install_queue_path.isfile():
-            post_install_queue = yaml.load(post_install_queue_path.bytes())
-            post_install_queue = map(path, post_install_queue)
-
-            logger.info('[App] processing post install hooks.')
-            for p in post_install_queue[:]:
-                try:
-                    info = get_plugin_info(p)
-                    logger.info("  running post install hook for %s" %
-                                info.plugin_name)
-                    plugin_manager.post_install(p)
-                except Exception:
-                    logging.info(''.join(traceback.format_exc()))
-                    logging.error('Error running post-install hook for %s.',
-                                  p.name, exc_info=True)
-                finally:
-                    post_install_queue.remove(p)
-            post_install_queue_path.write_bytes(yaml.dump(post_install_queue))
-
         # Delete paths that were marked during the uninstallation of a plugin.
         # It is necessary to delay the deletion until here due to Windows file
         # locking preventing the deletion of files that are in use.

@@ -156,7 +156,6 @@ class PluginManagerController(SingletonPlugin):
         self.plugins = []
         # Maintain a list of path deletions to be processed on next app launch
         self.requested_deletions = []
-        self.post_install_queue = []
         self.rename_queue = []
         self.restart_required = False
         self.e = PluginGlobals.env('microdrop.managed')
@@ -240,12 +239,6 @@ class PluginManagerController(SingletonPlugin):
         rename_queue_path.write_bytes(yaml.dump([(p1.abspath(), p2.abspath())
                                                  for p1, p2 in
                                                  self.rename_queue]))
-        post_install_queue_path = (path(app.config.data['plugins']['directory'])
-                             .joinpath('post_install_queue.yml'))
-        post_install_queue_path.write_bytes(yaml.dump([p.abspath()
-                                                       for p in self
-                                                       .post_install_queue]))
-
     def update_all_plugins(self, force=False):
         self.update()
         plugin_updated = False
@@ -293,7 +286,6 @@ class PluginManagerController(SingletonPlugin):
     def install_plugin(self, plugin_root, install_path):
         plugin_root.copytree(install_path, symlinks=True,
                              ignore=ignore_patterns('*.pyc'))
-        self.post_install_queue.append(install_path)
         self.restart_required = True
 
     def post_uninstall(self, uninstall_path):
