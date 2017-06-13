@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+from collections import Counter
 import os
 import logging
 import shutil
@@ -36,7 +36,7 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_observers,
                               get_service_names)
-from ..protocol import Protocol
+from ..protocol import Protocol, SerializationError
 
 logger = logging.getLogger(__name__)
 
@@ -435,10 +435,42 @@ version of the software.'''.strip(), filename, why.future_version,
                 filename = ph.path(dialog.get_filename())
                 if filename.ext.lower() != '.json':
                     filename = filename + '.json'
-                with open(filename, 'w') as output:
-                    app.protocol.to_json(output, indent=2)
-                    logger.info('[ProcolController.on_export_protocol]: '
-                                'exported protocol to %s', filename)
+                try:
+                    with open(filename, 'w') as output:
+                        app.protocol.to_json(output, indent=2)
+                except SerializationError, exception:
+                    plugin_exception_counts = Counter([e['plugin']
+                                                    for e in exception.exceptions])
+                    logger.info('%s: `%s`', exception, exception.exceptions)
+                    result = yesno('Error exporting data for the following '
+                                    'plugins: `%s`\n\n'
+                                    'Would you like to exclude this data and '
+                                    'export anyway?' %
+                                    ', '.join(sorted(plugin_exception_counts
+                                                    .keys())))
+                    if result == gtk.RESPONSE_YES:
+                        # Delete plugin data that is causing serialization
+                        # errors.
+                        for exception_i in exception.exceptions:
+                            logger.info('Deleting `%s` for step %s',
+                                        exception_i['plugin'],
+                                        exception_i['step'])
+                            step_i = app.protocol.steps[exception_i['step']]
+                            del step_i.plugin_data[exception_i['plugin']]
+                        try:
+                            with open(filename, 'w') as output:
+                                app.protocol.to_json(output, indent=2)
+                        finally:
+                            # Mark protocol as changed since some plugin data
+                            # was deleted.
+                            self.modified = True
+                            emit_signal('on_protocol_changed')
+                    else:
+                        # Abort export.
+                        logger.warn('Export cancelled.')
+                        return
+                logger.info('[ProcolController.on_export_protocol]: '
+                            'exported protocol to %s', filename)
         finally:
             dialog.destroy()
 
