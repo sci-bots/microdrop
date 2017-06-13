@@ -288,6 +288,11 @@ class Protocol():
         """
         logger.debug("[Protocol].load(\"%s\")" % filename)
         logger.info("Loading Protocol from %s" % filename)
+        filename = ph.path(filename)
+        if filename.ext.lower() == '.json':
+            with filename.open('r') as input_:
+                return cls.from_json(istream=input_)
+
         start_time = time.time()
         out = None
         with open(filename, 'rb') as f:
