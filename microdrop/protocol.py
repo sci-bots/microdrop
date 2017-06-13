@@ -122,7 +122,7 @@ class Protocol():
 
     def __init__(self, name=None):
         self.steps = [Step()]
-        self.name = None
+        self.name = name
         self.plugin_data = {}
         self.plugin_fields = {}
         self.n_repeats = 1
