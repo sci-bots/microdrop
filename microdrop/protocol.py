@@ -87,6 +87,80 @@ VALIDATORS = {'protocol': jsonschema.Draft4Validator(PROTOCOL_SCHEMA),
               'step': jsonschema.Draft4Validator(STEP_SCHEMA)}
 
 
+class SerializationError(Exception):
+    '''
+    Attributes
+    ----------
+    message : str
+        Error message.
+    exceptions : list
+        List of objects corresponding to serialization exceptions.
+
+        Objects are in the following form:
+
+        ``{'step': <step number>, 'plugin': <plugin name>, 'data': <plugin data>, error': <error message>}``
+    '''
+    def __init__(self, message, exceptions):
+        super(SerializationError, self).__init__(message)
+        self.exceptions = exceptions
+
+
+def serialize_protocol(protocol_dict, serialize_func):
+    '''
+    Parameters
+    ----------
+    protocol_dict : dict
+        A MicroDrop protocol in dictionary format.
+
+        See :func:`protocol_to_dict` and :meth:`Protocol.to_dict`.
+    serialize_func : function
+        Serialization function.
+
+    Returns
+    -------
+    object
+        Result of call to ``serialize_func``.
+
+    Raises
+    ------
+    SerializationError
+        If exception occurs during serialization.
+
+        The ``SerializationError`` object includes an ``exceptions`` attribute
+        containing details on errors encountered.  See ``SerializationError``
+        class for more details.
+    '''
+    try:
+        # Serialize entire protocol.
+        return serialize_func(protocol_dict)
+    except Exception, exception:
+        # Exception occurred.  Try to identify where exception occurred.
+        logger.debug('Error serializing protocol.')
+        logger.debug('Search for steps causing exception')
+        # Try to serialize each step, and record which steps cause exceptions.
+        exception_steps = []
+        for i, step_i in enumerate(protocol_dict['steps']):
+            try:
+                serialize_func(step_i)
+            except Exception, exception:
+                exception_steps.append({'step': i, 'error': str(exception)})
+        logger.debug('Search for plugin(s) causing exception')
+        # For each step causing an exception, try to independently serialize
+        # data for each plugin, recording which plugins cause exceptions.
+        exceptions = []
+        for exception_step_i in exception_steps:
+            step_i = protocol_dict['steps'][exception_step_i['step']]
+            for plugin_name_ij, plugin_data_ij in step_i.iteritems():
+                try:
+                    serialize_func(plugin_data_ij)
+                except Exception, exception:
+                    exception_step_i.update({'error': str(exception),
+                                             'plugin': plugin_name_ij,
+                                             'data': plugin_data_ij})
+                    exceptions.append(exception_step_i)
+        raise SerializationError('Error serializing protocol.', exceptions)
+
+
 def protocol_to_frame(protocol_i):
     '''
     Parameters
@@ -293,8 +367,12 @@ def protocol_to_json(protocol, validate=True, ostream=None, json_kwargs=None,
     if validate:
         VALIDATORS['protocol'].validate(protocol_dict)
 
-    json.dump(obj=protocol_dict, fp=ostream, cls=zp.schema.PandasJsonEncoder,
-              **(json_kwargs or {}))
+    def serialize_func(obj):
+        return json.dump(obj=obj, fp=ostream,
+                         cls=zp.schema.PandasJsonEncoder,
+                         **(json_kwargs or {}))
+
+    serialize_protocol(protocol_dict, serialize_func)
 
     if return_required:
         return ostream.getvalue()
