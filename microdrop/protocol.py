@@ -532,28 +532,91 @@ class Protocol():
         '''
         return protocol_to_frame(self)
 
-    def to_json(self):
+    def to_json(self, ostream=None, **kwargs):
         '''
+        Parameters
+        ----------
+        ostream : file-like, optional
+            Output stream to write to.
+
         Returns
         -------
-        str
-            JSON-encoded dictionary, with two top-level keys:
-             - ``keys``:
-                   * Each key is a list containing a plugin name and a
-                     corresponding step field name.
-             - ``values``:
-                   * Maps to list of records (i.e., lists), one per protocol
-                     step.
+        None or str
+            If :data:`ostream` parameter is ``None``, return serialized
+            protocol in JSON format as string.
 
-            Each record in the ``values`` list may be *zipped together* with
-            ``keys`` to yield a plugin field name to value mapping for a single
-            protocol step.
+            See :func:`protocol_to_json` for details on JSON object structure.
 
         See Also
         --------
-        :meth:`to_frame`, :meth:`to_ndjson`
+        :meth:`to_dict`, :meth:`to_ndjson`
         '''
-        return protocol_to_json(self)
+        return protocol_to_json(self, ostream=ostream, json_kwargs=kwargs)
+
+    @classmethod
+    def from_json(cls, istream):
+        '''
+        Parameters
+        ----------
+        istream : str or file-like
+            Input JSON to read protocol from.
+
+            If file-like, read from as an input stream.
+
+            If a string, assume input is JSON serialized protocol string.
+
+        Returns
+        -------
+        Protocol
+            MicroDrop protocol.
+
+        See Also
+        --------
+        :meth:`to_json`, :meth:`to_dict`, :meth:`to_ndjson`
+        '''
+        if isinstance(istream, types.StringTypes):
+            # Assume input is JSON serialized protocol string.
+            load_func = json.loads
+        else:
+            # Read from `istream` as an input stream.
+            load_func = json.load
+        protocol_dict = load_func(istream, object_hook=
+                                  zp.schema.pandas_object_hook)
+        return protocol_from_dict(protocol_dict)
+
+    def to_dict(self):
+        '''
+        Returns
+        -------
+        dict
+            Dictionary object with the following top-level keys:
+            - ``name``: Protocol name.
+            - ``version``: Protocol version.
+            - ``steps``: List of dictionaries, each containing data for a single
+            protocol step.
+            - ``uuid, optional``: Universally unique identifier.
+        '''
+        return protocol_to_dict(self, loaded=True)
+
+    @classmethod
+    def from_dict(cls, protocol_dict):
+        '''
+        Parameters
+        ----------
+        protocol_dict : dict
+            Dictionary object with the following top-level keys:
+             - ``name``: Protocol name.
+             - ``version``: Protocol version.
+             - ``steps``: List of dictionaries, each containing data for a single
+               protocol step.
+             - ``uuid, optional``: Universally unique identifier.
+
+        Returns
+        -------
+        Protocol
+            MicroDrop protocol.
+        '''
+        return protocol_from_dict(protocol_dict)
 
     def to_ndjson(self, ostream=None):
         '''
@@ -577,7 +640,7 @@ class Protocol():
 
         See Also
         --------
-        :meth:`to_frame`, :meth:`to_json`
+        :meth:`to_json`
 
 
         .. _`ndjson`: http://ndjson.org/
