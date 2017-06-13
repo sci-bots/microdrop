@@ -31,6 +31,7 @@ import re
 import sys
 import time
 import types
+import importlib
 
 from microdrop_utility import Version, FutureVersionError
 import jsonschema
@@ -152,6 +153,15 @@ def safe_pickle_loads(data):
 
 def protocol_to_dict(protocol, loaded=True):
     '''
+    Convert a :class:`Protocol` to a dictionary representation.
+
+    Each plugin MAY independently implement a custom ``to_dict`` method on the
+    respective plugin step options class, along with a corresponding
+    ``from_dict`` class method.  If these methods are implemented, the
+    resulting dictionary from ``to_dict`` MUST contain the key ``__class__``
+    indicating the fully-qualified class name of the step options (used to
+    reconstruct the step options with the ``from_dict`` class method).
+
     Parameters
     ----------
     protocol : Protocol
@@ -177,15 +187,32 @@ def protocol_to_dict(protocol, loaded=True):
                   safe_pickle_loads(step_i.get_data(plugin_ij))
                   for plugin_ij in sorted(step_i.plugins)}
                   for step_i in protocol.steps]
+    # For each step, use `to_dict` class method to convert Python object
+    # to dictionary for plugins where applicable.
+    for step_i in step_data:
+        to_update_i = []
+        for plugin_name_ij, plugin_data_ij in step_i.iteritems():
+            if hasattr(plugin_data_ij, 'to_dict'):
+                to_update_i.append((plugin_name_ij, plugin_data_ij.to_dict()))
+        for plugin_name_ij, plugin_data_ij in to_update_i:
+            step_i[plugin_name_ij] = plugin_data_ij
     protocol_dict = {'name': protocol.name,
                      'version': protocol.version,
                      'steps': step_data}
-
     return protocol_dict
 
 
 def protocol_from_dict(protocol_dict):
     '''
+    Convert a protocol dictionary representation to a :class:`Protocol`.
+
+    Each plugin MAY independently implement a custom ``to_dict`` method on the
+    respective plugin step options class, along with a corresponding
+    ``from_dict`` class method.  If these methods are implemented, the
+    fully-qualified class name is looked up in the respective ``__class__``
+    item in the step plugin data to reconstruct the step options with the
+    corresponding ``from_dict`` class method.
+
     Parameters
     ----------
     protocol_dict : dict
@@ -212,6 +239,24 @@ def protocol_from_dict(protocol_dict):
                                         for plugin_ij, data_ij in
                                         step_i.iteritems()})
                       for step_i in protocol_dict['steps']]
+
+    # For each step, use `from_dict` class method to reconstruct Python object
+    # for plugins where applicable.
+    for step_i in protocol.steps:
+        to_update_i = []
+        for plugin_name_ij, plugin_data_ij in step_i.plugin_data.iteritems():
+            if '__class__' in plugin_data_ij:
+                class_str = plugin_data_ij.pop('__class__')
+                module_str = '.'.join(class_str.split('.')[:-1])
+                class_name_str = class_str.split('.')[-1]
+                module_ij = importlib.import_module(module_str)
+                class_ = getattr(module_ij, class_name_str)
+                if hasattr(class_, 'from_dict'):
+                    to_update_i.append((plugin_name_ij,
+                                        class_.from_dict(plugin_data_ij)))
+        for plugin_name_ij, plugin_data_ij in to_update_i:
+            step_i.plugin_data[plugin_name_ij] = plugin_data_ij
+
     return protocol
 
 
