@@ -405,6 +405,8 @@ version of the software.'''.strip(), filename, why.future_version,
             if response == gtk.RESPONSE_OK:
                 filename = dialog.get_filename()
                 self.load_protocol(filename)
+                self.modified = True
+                emit_signal("on_protocol_changed")
         finally:
             dialog.destroy()
 
