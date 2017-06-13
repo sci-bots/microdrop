@@ -181,29 +181,30 @@ class Protocol():
             out.version = str(Version(0))
         out._upgrade()
 
-        enabled_plugins = get_service_names(env='microdrop.managed') + \
-            get_service_names('microdrop')
-
         for k, v in out.plugin_data.items():
-            if k in enabled_plugins:
+            try:
+                out.plugin_data[k] = pickle.loads(v)
+            except Exception, e:
                 try:
-                    out.plugin_data[k] = pickle.loads(v)
-                except Exception, e:
                     out.plugin_data[k] = yaml.load(v)
+                except Exception, e:
+                    logger.error('[Protocol].load() Error unpickling plugin '
+                                 'data for %s', k, exc_info=True)
         for i in range(len(out)):
             for k, v in out[i].plugin_data.items():
-                if k in enabled_plugins:
+                try:
+                    out[i].plugin_data[k] = pickle.loads(v)
+                except Exception, e:
                     try:
-                        out[i].plugin_data[k] = pickle.loads(v)
-                    except Exception, e:
                         # enable loading of old protocols where the
-                        # dmf_device_controller was imported as a relative
-                        # package
-                        v = v.replace('!!python/object:gui.'
-                                          'dmf_device_controller.',
+                        # dmf_device_controller was imported as a relative package
+                        v = v.replace('!!python/object:gui.dmf_device_controller.',
                                       '!!python/object:microdrop.gui.'
-                                          'dmf_device_controller.')
+                                      'dmf_device_controller.')
                         out[i].plugin_data[k] = yaml.load(v)
+                    except Exception, e:
+                        logger.error('[Protocol].load() Error unpickling '
+                                     'plugin data for %s', k, exc_info=True)
         logger.debug("[Protocol].load() loaded in %f s." % \
                      (time.time()-start_time))
         return out
