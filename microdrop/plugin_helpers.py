@@ -2,7 +2,7 @@ from collections import namedtuple
 import logging
 
 from microdrop_utility import Version
-from path_helpers import path
+import path_helpers as ph
 import yaml
 
 from .app_context import get_app
@@ -30,18 +30,29 @@ PluginMetaData.from_dict = staticmethod(from_dict)
 
 def get_plugin_info(plugin_root):
     '''
-    Return a named tuple:
-        (package_name, plugin_name, version)
-    If plugin is not installed or invalid, returned tuple will be None.
+    Load the plugin properties metadata from a plugin directory.
+
+    Parameters
+    ----------
+    plugin_root : str
+        Path to plugin directory.
+
+    Returns
+    -------
+    namedtuple or None
+        Plugin metadata in the form ``(package_name, plugin_name, version)``.
+
+        Returns ``None`` if plugin is not installed or is invalid.
     '''
-    # Load the plugin properties into a PluginMetaData object
-    properties = plugin_root / path('properties.yml')
+    plugin_root = ph.path(plugin_root)
+    properties = plugin_root.joinpath('properties.yml')
 
     if not properties.isfile():
         return None
     else:
-        plugin_metadata = PluginMetaData.from_dict(\
-                yaml.load(properties.bytes()))
+        with properties.open('r') as f_properties:
+            properties_dict = yaml.load(f_properties)
+            plugin_metadata = PluginMetaData.from_dict(properties_dict)
         return plugin_metadata
 
 

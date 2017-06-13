@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+import inspect
 import os
 import subprocess
 import sys
@@ -28,7 +28,7 @@ import tarfile
 import tempfile
 
 import gtk
-from path_helpers import path
+import path_helpers as ph
 import yaml
 from jsonrpc.proxy import JSONRPCException
 from jsonrpc.json import JSONDecodeException
@@ -44,8 +44,13 @@ from ..plugin_manager import (IPlugin, implements, SingletonPlugin,
                               enable_service, disable as disable_service)
 from ..gui.plugin_manager_dialog import PluginManagerDialog
 
+logger = logging.getLogger(__name__)
+
 
 class PluginController(object):
+    '''
+    Manage an installed plugin.
+    '''
     def __init__(self, controller, name):
         self.controller = controller
         self.name = name
@@ -80,9 +85,21 @@ class PluginController(object):
         return getattr(self.plugin_class, 'version', None)
 
     def enabled(self):
+        '''
+        Returns
+        -------
+        bool
+            ``True`` if plugin instance is enabled.
+
+            Otherwise, ``False``.
+        '''
         return not(self.service is None or not self.service.enabled())
 
     def update(self):
+        '''
+        Update reference to plugin/service instance and update enable button
+        state.
+        '''
         self.service = get_service_instance(self.plugin_class)
         if self.enabled():
             self.button.set_label('Disable')
@@ -90,6 +107,9 @@ class PluginController(object):
             self.button.set_label('Enable')
 
     def toggle_enabled(self):
+        '''
+        Toggle enable state of plugin/service instance.
+        '''
         if not self.enabled():
             enable_service(self.service.name)
         else:
@@ -97,9 +117,20 @@ class PluginController(object):
         self.update()
 
     def get_widget(self):
+        '''
+        Returns
+        -------
+        gtk.HBox
+            UI widget instance.
+        '''
         return self.box
 
     def on_button_uninstall_clicked(self, widget, data=None):
+        '''
+        Handler for ``"Uninstall"`` button.
+
+        Prompt user to confirm before uninstalling plugin.
+        '''
         package_name = self.get_plugin_package_name()
         response = yesno('Uninstall plugin %s?' % package_name)
         if response == gtk.RESPONSE_YES:
@@ -119,36 +150,80 @@ class PluginController(object):
                 self.controller.dialog.update()
 
     def on_button_update_clicked(self, widget, data=None):
+        '''
+        Handler for ``"Update"`` button.
+        '''
         app = get_app()
         try:
             self.controller.update_plugin(self, verbose=True)
         except IOError:
-            logging.warning('Could not connect to plugin server: %s',
-                            app.get_app_value('server_url'))
+            logger.warning('Could not connect to plugin server: %s',
+                           app.get_app_value('server_url'))
         except (JSONRPCException, JSONDecodeException):
-            logging.warning('Plugin %s not available on plugin server' %
-                            (app.get_app_value('server_url')))
+            logger.warning('Plugin %s not available on plugin server',
+                           app.get_app_value('server_url'))
             return True
         return True
 
     def get_plugin_info(self):
+        '''
+        Returns
+        -------
+        namedtuple
+            Plugin metadata in the form
+            ``(package_name, plugin_name, version)``.
+        '''
         return get_plugin_info(self.get_plugin_path())
 
     def get_plugin_package_name(self):
+        '''
+        Returns
+        -------
+        str
+            Relative module name (e.g., ``'dmf_control_board_plugin'``)
+        '''
         return get_plugin_package_name(self.plugin_class.__module__)
 
-    def get_plugin_path(self, packge_name=None):
-        if packge_name is None:
-            packge_name = self.get_plugin_package_name()
-        app = get_app()
-        return (path(app.config.data['plugins']['directory'])
-                .joinpath(packge_name))
+    def get_plugin_path(self, package_name=None):
+        '''
+        Parameters
+        ----------
+        package_name : str, optional
+            Relative module name (e.g., ``'dmf_control_board_plugin'``)
+
+        Returns
+        -------
+        path_helpers.path
+            Path to plugin directory.
+        '''
+        if package_name is None:
+            package_name = self.get_plugin_package_name()
+
+        # Find path to file where plugin/service class is defined.
+        class_def_file = ph.path(inspect.getfile(self.service.__class__))
+
+        return class_def_file.parent
 
     def on_button_clicked(self, widget, data=None):
+        '''
+        Handler for ``"Enable"/"Disable"`` button.
+        '''
         self.toggle_enabled()
 
 
 class PluginManagerController(SingletonPlugin):
+    '''
+    Manage installed plugins.
+
+    Methods include:
+
+     - :meth:`uninstall_plugin`
+     - :meth:`install_plugin`
+     - :meth:`download_and_install_plugin`
+     - :meth:`install_from_archive`
+     - :meth:`update_plugin`
+     - :meth:`uninstall_plugin`
+    '''
     implements(IPlugin)
 
     def __init__(self):
@@ -162,6 +237,21 @@ class PluginManagerController(SingletonPlugin):
         self.dialog = PluginManagerDialog()
 
     def update_plugin(self, plugin_controller, verbose=False, force=False):
+        '''
+        Parameters
+        ----------
+        plugin_controller : PluginController
+            Controller for plugin to update.
+        verbose : bool, optional
+            If ``True``, log warning message if plugin is up-to-date.
+        force : bool, optional
+            If ``True``, update without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if plugin was upgraded, otherwise, ``False``.
+        '''
         app = get_app()
         server_url = app.get_app_value('server_url')
         plugin_metadata = plugin_controller.get_plugin_info()
@@ -191,12 +281,27 @@ class PluginManagerController(SingletonPlugin):
             message = 'Plugin %s is up to date (version %s)' % (
                 plugin_name, plugin_controller.version)
             if verbose:
-                logging.warning(message)
-            logging.info(message)
+                logger.warning(message)
+            logger.info(message)
             return False
 
     def download_and_install_plugin(self, package_name, force=False):
-        temp_dir = path(tempfile.mkdtemp(prefix='microdrop_plugin_update'))
+        '''
+        Parameters
+        ----------
+        package_name : str
+            Plugin Python module name (e.g., ``dmf_control_board_plugin``).
+
+            Corresponds to ``package_name`` key in plugin ``properties.yml`` file.
+        force : bool, optional
+            If ``True``, install/update without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if plugin was installed or upgraded, otherwise, ``False``.
+        '''
+        temp_dir = ph.path(tempfile.mkdtemp(prefix='microdrop_plugin_update'))
         try:
             app = get_app()
             server_url = app.get_app_value('server_url')
@@ -210,9 +315,23 @@ class PluginManagerController(SingletonPlugin):
         return False
 
     def get_plugin_names(self):
+        '''
+        Returns
+        -------
+        list(str)
+            List of plugin class names (e.g., ``['StepLabelPlugin', ...]``).
+        '''
         return list(self.e.plugin_registry.keys())
 
     def update(self):
+        '''
+        Update list of plugin controllers (one controller for each imported
+        plugin in the ``microdrop.managed`` environment).
+
+        ..notes::
+            Also update **deletion**, **rename**, and **post-install** queue
+            files.
+        '''
         plugin_names = self.get_plugin_names()
         del self.plugins
         self.plugins = []
@@ -228,18 +347,34 @@ class PluginManagerController(SingletonPlugin):
 
         # Save the list of path deletions to be processed on next app launch
         app = get_app()
-        requested_deletion_path = (path(app.config.data['plugins']
-                                        ['directory'])
+        requested_deletion_path = (ph.path(app.config.data['plugins']
+                                           ['directory'])
                                    .joinpath('requested_deletions.yml'))
         requested_deletion_path.write_bytes(yaml.dump([p.abspath()
                                                        for p in self
                                                        .requested_deletions]))
-        rename_queue_path = (path(app.config.data['plugins']['directory'])
+        rename_queue_path = (ph.path(app.config.data['plugins']['directory'])
                              .joinpath('rename_queue.yml'))
         rename_queue_path.write_bytes(yaml.dump([(p1.abspath(), p2.abspath())
                                                  for p1, p2 in
                                                  self.rename_queue]))
+
     def update_all_plugins(self, force=False):
+        '''
+        Upgrade each plugin to the latest version available (if not already
+        installed).
+
+        Parameters
+        ----------
+        force : bool, optional
+            If ``True``, for each plugin, if a different version of the plugin
+            is already installed, upgrade without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if any plugin was upgraded, otherwise, ``False``.
+        '''
         self.update()
         plugin_updated = False
         app = get_app()
@@ -247,21 +382,36 @@ class PluginManagerController(SingletonPlugin):
             plugin_name = p.get_plugin_info().plugin_name
             try:
                 result = self.update_plugin(p, force=force)
-                logging.info('[update_all_plugins] plugin_name=%s %s' %
-                             (plugin_name, result))
+                logger.info('[update_all_plugins] plugin_name=%s %s',
+                            plugin_name, result)
                 plugin_updated = plugin_updated or result
             except (JSONRPCException, JSONDecodeException):
-                logging.info('Plugin %s not available on plugin server %s' % (
-                    plugin_name, app.get_app_value('server_url')))
+                logger.info('Plugin %s not available on plugin server %s',
+                            plugin_name, app.get_app_value('server_url'))
             except IOError:
-                logging.info('Could not connect to plugin repository at: %s' %
-                             app.get_app_value('server_url'))
+                logger.info('Could not connect to plugin repository at: %s',
+                            app.get_app_value('server_url'))
         return plugin_updated
 
     def install_from_archive(self, archive_path, force=False):
-        temp_dir = path(tempfile.mkdtemp(prefix='microdrop_'))
-        logging.debug('extracting to: %s' % temp_dir)
-        archive_path = path(archive_path)
+        '''
+        Install a plugin from an archive (i.e., `.tar.gz` or `.zip`).
+
+        Parameters
+        ----------
+        archive_path : str
+            Path to plugin archive file.
+        force : bool, optional
+            If ``True``, install/update without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if plugin was installed or upgraded, otherwise, ``False``.
+        '''
+        temp_dir = ph.path(tempfile.mkdtemp(prefix='microdrop_'))
+        logger.debug('extracting to: %s', temp_dir)
+        archive_path = ph.path(archive_path)
 
         try:
             if archive_path.ext == '.zip':
@@ -280,15 +430,44 @@ class PluginManagerController(SingletonPlugin):
             self.update()
 
     def uninstall_plugin(self, plugin_path):
+        '''
+        Uninstall a plugin.
+
+        Parameters
+        ----------
+        plugin_path : str
+            Path to installed plugin directory.
+        '''
+        # Add plugin to list of requested deletions.
         self.requested_deletions.append(plugin_path)
         self.update()
 
     def install_plugin(self, plugin_root, install_path):
+        '''
+        Install a plugin from a directory.
+
+        Parameters
+        ----------
+        plugin_root : str
+            Path to (extracted) plugin directory.
+        install_path : str
+            Path to install plugin to.
+        '''
+        plugin_root = ph.path(plugin_root)
         plugin_root.copytree(install_path, symlinks=True,
                              ignore=ignore_patterns('*.pyc'))
         self.restart_required = True
 
     def post_uninstall(self, uninstall_path):
+        '''
+        Execute post-uninstall hook.
+
+        Parameters
+        ----------
+        uninstall_path : str
+            Path to uninstalled plugin directory.
+        '''
+        uninstall_path = ph.path(uninstall_path)
         # __NB__ The `cwd` directory ["is not considered when searching the
         # executable, so you can't specify the program's path relative to
         # `cwd`."][cwd].  Therefore, we manually change to the directory
@@ -323,27 +502,41 @@ class PluginManagerController(SingletonPlugin):
                     os.chdir(cwd)
 
     def verify_and_install_new_plugin(self, plugin_root, force=False):
+        '''
+        Parameters
+        ----------
+        plugin_root : str
+            Path to plugin directory.
+        force : bool, optional
+            If ``True`` and a different version of the plugin is already
+            installed, upgrade without prompting for confirmation.
+
+        Returns
+        -------
+        bool
+            ``True`` if plugin was installed or upgraded, otherwise, ``False``.
+        '''
         plugin_metadata = get_plugin_info(plugin_root)
         if plugin_metadata is None:
-            logging.error('%s does not contain a valid plugin.' % plugin_root)
+            logger.error('%s does not contain a valid plugin.', plugin_root)
             return False
-        logging.info('Installing: %s' % (plugin_metadata, ))
+        logger.info('Installing: %s', plugin_metadata)
 
         app = get_app()
-        installed_plugin_path = (path(app.config.data['plugins']['directory'])
+        installed_plugin_path = (ph.path(app.config.data['plugins']
+                                         ['directory'])
                                  .joinpath(plugin_metadata.package_name))
         installed_metadata = get_plugin_info(installed_plugin_path)
 
         if installed_metadata:
-            logging.info('Currently installed: %s' % (installed_metadata,))
-            if installed_metadata.version.tags == \
-                    plugin_metadata.version.tags and \
-                    installed_metadata.version >= plugin_metadata.version:
+            logger.info('Currently installed: %s', installed_metadata)
+            if all([installed_metadata.version.tags ==
+                    plugin_metadata.version.tags,
+                    installed_metadata.version >= plugin_metadata.version]):
                 # Installed version is up-to-date
-                message = ('Plugin %s is up-to-date (version %s).  Skipping '
-                           'installation.' % (installed_metadata.plugin_name,
-                           installed_metadata.version))
-                logging.info(message)
+                logger.info('Plugin %s is up-to-date (version %s).  Skipping '
+                            'installation.', installed_metadata.plugin_name,
+                            installed_metadata.version)
                 return
             else:
                 message = ('A newer version (%s) of the %s plugin is available'
@@ -352,7 +545,7 @@ class PluginManagerController(SingletonPlugin):
                                                        .plugin_name,
                                                        installed_metadata
                                                        .version))
-                logging.info(message)
+                logger.info(message)
                 if not force:
                     response = yesno('''%s Would you like to upgrade?''' %
                                      message)
@@ -366,8 +559,9 @@ class PluginManagerController(SingletonPlugin):
                         count = 1
                         target_path = installed_plugin_path
                         while installed_plugin_path.exists():
-                            installed_plugin_path = path(
-                                '%s%d' % (installed_plugin_path, count))
+                            installed_plugin_path = \
+                                ph.path('%s%d' % (installed_plugin_path,
+                                                  count))
                         if target_path != installed_plugin_path:
                             self.rename_queue.append((installed_plugin_path,
                                                       target_path))
@@ -376,18 +570,18 @@ class PluginManagerController(SingletonPlugin):
                         return False
         else:
             # There is no valid version of this plugin currently installed.
-            logging.info('%s is not currently installed' %
-                         plugin_metadata.plugin_name)
+            logger.info('%s is not currently installed',
+                        plugin_metadata.plugin_name)
 
             # enable new plugins by default
             app.config["plugins"]["enabled"].append(plugin_metadata
                                                     .package_name)
         try:
             self.install_plugin(plugin_root, installed_plugin_path)
-            logging.info('%s installed successfully' %
-                         plugin_metadata.plugin_name)
+            logger.info('%s installed successfully',
+                        plugin_metadata.plugin_name)
         except Exception, why:
-            logging.error('Error installing plugin. %s.', why)
+            logger.error('Error installing plugin. %s.', why)
         app.main_window_controller.info('%s plugin installed successfully.'
                                         % plugin_metadata.plugin_name,
                                         'Install plugin')

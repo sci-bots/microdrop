@@ -18,7 +18,7 @@ along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from collections import OrderedDict
-from copy import deepcopy
+import copy
 try:
     import cPickle as pickle
 except ImportError:
@@ -30,25 +30,142 @@ import logging
 import re
 import sys
 import time
+import types
+import importlib
 
 from microdrop_utility import Version, FutureVersionError
+import jsonschema
 import numpy as np
 import pandas as pd
+import path_helpers as ph
 import yaml
 import zmq_plugin as zp
 import zmq_plugin.schema
 
-from .plugin_manager import emit_signal, get_service_names
+from .plugin_manager import emit_signal
 
 
 logger = logging.getLogger(__name__)
+
+
+MESSAGE_SCHEMA = {
+    'definitions':
+    {'unique_id': {'type': 'string', 'description': 'Typically UUID'},
+     'plugin_data': {'type': 'object',
+                     'description': 'Plugin state data'},
+     'protocol':
+     {'description': 'MicroDrop protocol',
+      'type': 'object',
+      'properties':
+      {'name': {'type': 'string', 'description': 'Protocol name'},
+       'uuid': {'$ref': '#/definitions/unique_id'},
+       'version' : {'type': 'string',
+                    'default': '0.2.0',
+                    'enum': ['0.2.0'],
+                    'description': 'The MicroDrop protocol version'},
+       'steps': {"type": "array",
+                 "items": {'$ref': '#/definitions/step'}}},
+      'required': ['name', 'version']},
+     'step':
+     {'description': 'MicroDrop protocol step',
+      'type': 'object',
+      'properties':
+      {'plugin_data': {'$ref': '#/definitions/plugin_data'},
+       'version' : {'type': 'string',
+                    'default': '0.2.0',
+                    'enum': ['0.2.0'],
+                    'description': 'The MicroDrop step version'},
+      'additionalProperties': False}}},
+}
+
+PROTOCOL_SCHEMA = copy.deepcopy(MESSAGE_SCHEMA)
+PROTOCOL_SCHEMA['allOf'] = [{'$ref': '#/definitions/protocol'}]
+STEP_SCHEMA = copy.deepcopy(MESSAGE_SCHEMA)
+STEP_SCHEMA['allOf'] = [{'$ref': '#/definitions/step'}]
+
+VALIDATORS = {'protocol': jsonschema.Draft4Validator(PROTOCOL_SCHEMA),
+              'step': jsonschema.Draft4Validator(STEP_SCHEMA)}
+
+
+class SerializationError(Exception):
+    '''
+    Attributes
+    ----------
+    message : str
+        Error message.
+    exceptions : list
+        List of objects corresponding to serialization exceptions.
+
+        Objects are in the following form:
+
+        ``{'step': <step number>, 'plugin': <plugin name>, 'data': <plugin data>, error': <error message>}``
+    '''
+    def __init__(self, message, exceptions):
+        super(SerializationError, self).__init__(message)
+        self.exceptions = exceptions
+
+
+def serialize_protocol(protocol_dict, serialize_func):
+    '''
+    Parameters
+    ----------
+    protocol_dict : dict
+        A MicroDrop protocol in dictionary format.
+
+        See :func:`protocol_to_dict` and :meth:`Protocol.to_dict`.
+    serialize_func : function
+        Serialization function.
+
+    Returns
+    -------
+    object
+        Result of call to ``serialize_func``.
+
+    Raises
+    ------
+    SerializationError
+        If exception occurs during serialization.
+
+        The ``SerializationError`` object includes an ``exceptions`` attribute
+        containing details on errors encountered.  See ``SerializationError``
+        class for more details.
+    '''
+    try:
+        # Serialize entire protocol.
+        return serialize_func(protocol_dict)
+    except Exception, exception:
+        # Exception occurred.  Try to identify where exception occurred.
+        logger.debug('Error serializing protocol.')
+        logger.debug('Search for steps causing exception')
+        # Try to serialize each step, and record which steps cause exceptions.
+        exception_steps = []
+        for i, step_i in enumerate(protocol_dict['steps']):
+            try:
+                serialize_func(step_i)
+            except Exception, exception:
+                exception_steps.append({'step': i, 'error': str(exception)})
+        logger.debug('Search for plugin(s) causing exception')
+        # For each step causing an exception, try to independently serialize
+        # data for each plugin, recording which plugins cause exceptions.
+        exceptions = []
+        for exception_step_i in exception_steps:
+            step_i = protocol_dict['steps'][exception_step_i['step']]
+            for plugin_name_ij, plugin_data_ij in step_i.iteritems():
+                try:
+                    serialize_func(plugin_data_ij)
+                except Exception, exception:
+                    exception_step_i.update({'error': str(exception),
+                                             'plugin': plugin_name_ij,
+                                             'data': plugin_data_ij})
+                    exceptions.append(exception_step_i)
+        raise SerializationError('Error serializing protocol.', exceptions)
 
 
 def protocol_to_frame(protocol_i):
     '''
     Parameters
     ----------
-    protocol_i : microdrop.protocol.Protocol
+    protocol_i : Protocol
         MicroDrop protocol.
 
         .. note::
@@ -86,35 +203,179 @@ def protocol_to_frame(protocol_i):
     return df_protocol
 
 
-def protocol_to_json(protocol):
+def safe_pickle_loads(data):
     '''
     Parameters
     ----------
-    protocol : microdrop.protocol.Protocol
+    data : bytes
+        Pickled data.
+
+    Returns
+    -------
+    object or None
+        Deserialized pickled object.
+
+        If exception occurs during unpickling, error is logged and ``None`` is
+        returned.
+    '''
+    try:
+        return pickle.loads(data)
+    except Exception, exception:
+        logger.error('Error deserializing pickle data: `%s`\n%s', data,
+                     exception)
+
+
+def protocol_to_dict(protocol, loaded=True):
+    '''
+    Convert a :class:`Protocol` to a dictionary representation.
+
+    Each plugin MAY independently implement a custom ``to_dict`` method on the
+    respective plugin step options class, along with a corresponding
+    ``from_dict`` class method.  If these methods are implemented, the
+    resulting dictionary from ``to_dict`` MUST contain the key ``__class__``
+    indicating the fully-qualified class name of the step options (used to
+    reconstruct the step options with the ``from_dict`` class method).
+
+    Parameters
+    ----------
+    protocol : Protocol
         MicroDrop protocol.
 
         .. note::
             A MicroDrop protocol object is stored as pickled in the
             ``protocol`` file in each experiment log directory.
+    loaded : bool, optional
+        ``True`` if protocol was loaded using :meth:`Protocol.load`.
 
     Returns
     -------
-    str
-        json-encoded dictionary, with two top-level keys:
-         - ``keys``:
-               * Each key is a list containing a plugin name and a
-                 corresponding step field name.
-         - ``values``:
-               * Maps to list of records (i.e., lists), one per protocol
-                 step.
-        Each record in the ``values`` list may be *zipped together* with
-        ``keys`` to yield a plugin field name to value mapping for a single
-        protocol step.
+    dict
+        Dictionary object with the following top-level keys:
+         - ``name``: Protocol name.
+         - ``version``: Protocol version.
+         - ``steps``: List of dictionaries, each containing data for a single
+           protocol step.
+         - ``uuid, optional``: Universally unique identifier.
     '''
-    df_protocol = protocol.to_frame()
-    return json.dumps({'values': df_protocol.values.tolist(),
-                       'keys': df_protocol.columns.values.tolist()},
-                      cls=zp.schema.PandasJsonEncoder)
+    step_data = [{plugin_ij: step_i.get_data(plugin_ij) if loaded else
+                  safe_pickle_loads(step_i.get_data(plugin_ij))
+                  for plugin_ij in sorted(step_i.plugins)}
+                  for step_i in protocol.steps]
+    # For each step, use `to_dict` class method to convert Python object
+    # to dictionary for plugins where applicable.
+    for step_i in step_data:
+        to_update_i = []
+        for plugin_name_ij, plugin_data_ij in step_i.iteritems():
+            if hasattr(plugin_data_ij, 'to_dict'):
+                to_update_i.append((plugin_name_ij, plugin_data_ij.to_dict()))
+        for plugin_name_ij, plugin_data_ij in to_update_i:
+            step_i[plugin_name_ij] = plugin_data_ij
+    protocol_dict = {'name': protocol.name,
+                     'version': protocol.version,
+                     'steps': step_data}
+    return protocol_dict
+
+
+def protocol_from_dict(protocol_dict):
+    '''
+    Convert a protocol dictionary representation to a :class:`Protocol`.
+
+    Each plugin MAY independently implement a custom ``to_dict`` method on the
+    respective plugin step options class, along with a corresponding
+    ``from_dict`` class method.  If these methods are implemented, the
+    fully-qualified class name is looked up in the respective ``__class__``
+    item in the step plugin data to reconstruct the step options with the
+    corresponding ``from_dict`` class method.
+
+    Parameters
+    ----------
+    protocol_dict : dict
+        Dictionary object with the following top-level keys:
+         - ``name``: Protocol name.
+         - ``version``: Protocol version.
+         - ``steps``: List of dictionaries, each containing data for a single
+           protocol step.
+         - ``uuid, optional``: Universally unique identifier.
+
+    Returns
+    -------
+    Protocol
+        MicroDrop protocol.
+    '''
+    try:
+        VALIDATORS['protocol'].validate(protocol_dict)
+    except jsonschema.ValidationError:
+        logging.warning('Error validating protocol dictionary.', exc_info=True)
+        raise
+    protocol = Protocol(name=protocol_dict['name'])
+    assert(protocol.version == protocol_dict['version'])
+    protocol.steps = [Step(plugin_data={plugin_ij: data_ij
+                                        for plugin_ij, data_ij in
+                                        step_i.iteritems()})
+                      for step_i in protocol_dict['steps']]
+
+    # For each step, use `from_dict` class method to reconstruct Python object
+    # for plugins where applicable.
+    for step_i in protocol.steps:
+        to_update_i = []
+        for plugin_name_ij, plugin_data_ij in step_i.plugin_data.iteritems():
+            if '__class__' in plugin_data_ij:
+                class_str = plugin_data_ij.pop('__class__')
+                module_str = '.'.join(class_str.split('.')[:-1])
+                class_name_str = class_str.split('.')[-1]
+                module_ij = importlib.import_module(module_str)
+                class_ = getattr(module_ij, class_name_str)
+                if hasattr(class_, 'from_dict'):
+                    to_update_i.append((plugin_name_ij,
+                                        class_.from_dict(plugin_data_ij)))
+        for plugin_name_ij, plugin_data_ij in to_update_i:
+            step_i.plugin_data[plugin_name_ij] = plugin_data_ij
+
+    return protocol
+
+
+def protocol_to_json(protocol, validate=True, ostream=None, json_kwargs=None,
+                     **kwargs):
+    '''
+    Parameters
+    ----------
+    protocol : Protocol
+        MicroDrop protocol.
+    validate : bool, optional
+        If ``True``, validate protocol in dictionary form before serializing to
+        JSON.
+    ostream : file-like, optional
+        Output stream to write to.
+    kwargs : bool, optional
+        ``True`` if protocol was loaded using :meth:`Protocol.load`.
+
+    Returns
+    -------
+    None or str
+        If :data:`ostream` parameter is ``None``, return serialized
+        protocol in JSON format as string.
+
+        See :func:`protocol_to_dict` for details on JSON object structure.
+    '''
+    if ostream is None:
+        ostream = StringIO.StringIO()
+        return_required = True
+    else:
+        return_required = False
+    protocol_dict = protocol_to_dict(protocol, **kwargs)
+
+    if validate:
+        VALIDATORS['protocol'].validate(protocol_dict)
+
+    def serialize_func(obj):
+        return json.dump(obj=obj, fp=ostream,
+                         cls=zp.schema.PandasJsonEncoder,
+                         **(json_kwargs or {}))
+
+    serialize_protocol(protocol_dict, serialize_func)
+
+    if return_required:
+        return ostream.getvalue()
 
 
 class Protocol():
@@ -122,7 +383,7 @@ class Protocol():
 
     def __init__(self, name=None):
         self.steps = [Step()]
-        self.name = None
+        self.name = name
         self.plugin_data = {}
         self.plugin_fields = {}
         self.n_repeats = 1
@@ -150,6 +411,11 @@ class Protocol():
         """
         logger.debug("[Protocol].load(\"%s\")" % filename)
         logger.info("Loading Protocol from %s" % filename)
+        filename = ph.path(filename)
+        if filename.ext.lower() == '.json':
+            with filename.open('r') as input_:
+                return cls.from_json(istream=input_)
+
         start_time = time.time()
         out = None
         with open(filename, 'rb') as f:
@@ -181,29 +447,30 @@ class Protocol():
             out.version = str(Version(0))
         out._upgrade()
 
-        enabled_plugins = get_service_names(env='microdrop.managed') + \
-            get_service_names('microdrop')
-
         for k, v in out.plugin_data.items():
-            if k in enabled_plugins:
+            try:
+                out.plugin_data[k] = pickle.loads(v)
+            except Exception, e:
                 try:
-                    out.plugin_data[k] = pickle.loads(v)
-                except Exception, e:
                     out.plugin_data[k] = yaml.load(v)
+                except Exception, e:
+                    logger.error('[Protocol].load() Error unpickling plugin '
+                                 'data for %s', k, exc_info=True)
         for i in range(len(out)):
             for k, v in out[i].plugin_data.items():
-                if k in enabled_plugins:
+                try:
+                    out[i].plugin_data[k] = pickle.loads(v)
+                except Exception, e:
                     try:
-                        out[i].plugin_data[k] = pickle.loads(v)
-                    except Exception, e:
                         # enable loading of old protocols where the
-                        # dmf_device_controller was imported as a relative
-                        # package
-                        v = v.replace('!!python/object:gui.'
-                                          'dmf_device_controller.',
+                        # dmf_device_controller was imported as a relative package
+                        v = v.replace('!!python/object:gui.dmf_device_controller.',
                                       '!!python/object:microdrop.gui.'
-                                          'dmf_device_controller.')
+                                      'dmf_device_controller.')
                         out[i].plugin_data[k] = yaml.load(v)
+                    except Exception, e:
+                        logger.error('[Protocol].load() Error unpickling '
+                                     'plugin data for %s', k, exc_info=True)
         logger.debug("[Protocol].load() loaded in %f s." % \
                      (time.time()-start_time))
         return out
@@ -268,7 +535,7 @@ class Protocol():
         return self.steps[i]
 
     def save(self, filename, format='pickle'):
-        out = deepcopy(self)
+        out = copy.deepcopy(self)
         if hasattr(out, 'filename'):
             del out.filename
 
@@ -393,28 +660,91 @@ class Protocol():
         '''
         return protocol_to_frame(self)
 
-    def to_json(self):
+    def to_json(self, ostream=None, **kwargs):
         '''
+        Parameters
+        ----------
+        ostream : file-like, optional
+            Output stream to write to.
+
         Returns
         -------
-        str
-            JSON-encoded dictionary, with two top-level keys:
-             - ``keys``:
-                   * Each key is a list containing a plugin name and a
-                     corresponding step field name.
-             - ``values``:
-                   * Maps to list of records (i.e., lists), one per protocol
-                     step.
+        None or str
+            If :data:`ostream` parameter is ``None``, return serialized
+            protocol in JSON format as string.
 
-            Each record in the ``values`` list may be *zipped together* with
-            ``keys`` to yield a plugin field name to value mapping for a single
-            protocol step.
+            See :func:`protocol_to_json` for details on JSON object structure.
 
         See Also
         --------
-        :meth:`to_frame`, :meth:`to_ndjson`
+        :meth:`to_dict`, :meth:`to_ndjson`
         '''
-        return protocol_to_json(self)
+        return protocol_to_json(self, ostream=ostream, json_kwargs=kwargs)
+
+    @classmethod
+    def from_json(cls, istream):
+        '''
+        Parameters
+        ----------
+        istream : str or file-like
+            Input JSON to read protocol from.
+
+            If file-like, read from as an input stream.
+
+            If a string, assume input is JSON serialized protocol string.
+
+        Returns
+        -------
+        Protocol
+            MicroDrop protocol.
+
+        See Also
+        --------
+        :meth:`to_json`, :meth:`to_dict`, :meth:`to_ndjson`
+        '''
+        if isinstance(istream, types.StringTypes):
+            # Assume input is JSON serialized protocol string.
+            load_func = json.loads
+        else:
+            # Read from `istream` as an input stream.
+            load_func = json.load
+        protocol_dict = load_func(istream, object_hook=
+                                  zp.schema.pandas_object_hook)
+        return protocol_from_dict(protocol_dict)
+
+    def to_dict(self):
+        '''
+        Returns
+        -------
+        dict
+            Dictionary object with the following top-level keys:
+            - ``name``: Protocol name.
+            - ``version``: Protocol version.
+            - ``steps``: List of dictionaries, each containing data for a single
+            protocol step.
+            - ``uuid, optional``: Universally unique identifier.
+        '''
+        return protocol_to_dict(self, loaded=True)
+
+    @classmethod
+    def from_dict(cls, protocol_dict):
+        '''
+        Parameters
+        ----------
+        protocol_dict : dict
+            Dictionary object with the following top-level keys:
+             - ``name``: Protocol name.
+             - ``version``: Protocol version.
+             - ``steps``: List of dictionaries, each containing data for a single
+               protocol step.
+             - ``uuid, optional``: Universally unique identifier.
+
+        Returns
+        -------
+        Protocol
+            MicroDrop protocol.
+        '''
+        return protocol_from_dict(protocol_dict)
 
     def to_ndjson(self, ostream=None):
         '''
@@ -438,7 +768,7 @@ class Protocol():
 
         See Also
         --------
-        :meth:`to_frame`, :meth:`to_json`
+        :meth:`to_json`
 
 
         .. _`ndjson`: http://ndjson.org/
@@ -480,10 +810,10 @@ class Step(object):
         if plugin_data is None:
             self.plugin_data = {}
         else:
-            self.plugin_data = deepcopy(plugin_data)
+            self.plugin_data = copy.deepcopy(plugin_data)
 
     def copy(self):
-        return Step(plugin_data=deepcopy(self.plugin_data))
+        return Step(plugin_data=copy.deepcopy(self.plugin_data))
 
     @property
     def plugins(self):
