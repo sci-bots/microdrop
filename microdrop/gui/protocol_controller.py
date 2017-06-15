@@ -451,12 +451,8 @@ version of the software.'''.strip(), filename, why.future_version,
                     if result == gtk.RESPONSE_YES:
                         # Delete plugin data that is causing serialization
                         # errors.
-                        for exception_i in exception.exceptions:
-                            logger.info('Deleting `%s` for step %s',
-                                        exception_i['plugin'],
-                                        exception_i['step'])
-                            step_i = app.protocol.steps[exception_i['step']]
-                            del step_i.plugin_data[exception_i['plugin']]
+                        app.protocol.remove_exceptions(exception.exceptions,
+                                                       inplace=True)
                         try:
                             with open(filename, 'w') as output:
                                 app.protocol.to_json(output, indent=2)
