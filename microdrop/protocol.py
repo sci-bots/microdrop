@@ -613,6 +613,47 @@ def protocol_remove_exceptions(protocol, exceptions, inplace=False):
                                        plugin_data_getter, inplace=inplace)
 
 
+def protocol_dict_transform_plugin_data(protocol_dict, transform_func,
+                                        inplace=False):
+    '''
+    Parameters
+    ----------
+    protocol_dict : dict
+        A MicroDrop protocol in dictionary format.
+
+        See :func:`protocol_to_dict` and :meth:`Protocol.to_dict`.
+    transform_func : function
+        Function to transform a plugin data dictionary.
+
+        Must accept a plugin data :class:`dict` as the only argument and return
+        a :class:`dict` in the same form, but potentially with different
+        contents.
+    inplace : bool, optional
+        If ``True``, directly modify :data:`protocol_dict`.
+
+        Otherwise, return modified copy.
+
+        Default is ``False``.
+
+    Returns
+    -------
+    dict
+        A MicroDrop protocol in dictionary format with protocol-level and
+        step-level plugin data dictionaries transformed using
+        :data:`transform_func`.
+    '''
+    if not inplace:
+        protocol_dict = copy.deepcopy(protocol_dict)
+
+    protocol_dict['plugin_data'] = transform_func(protocol_dict
+                                                  .get('plugin_data', {}))
+    protocol_dict['steps'] = map(transform_func,
+                                 protocol_dict['steps'])
+
+    if not inplace:
+        return protocol_dict
+
+
 class Protocol():
     class_version = str(Version(0,2))
 
