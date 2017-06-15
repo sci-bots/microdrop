@@ -257,7 +257,7 @@ def protocol_to_dict(protocol, loaded=True):
     '''
     step_data = [{plugin_ij: step_i.get_data(plugin_ij) if loaded else
                   safe_pickle_loads(step_i.get_data(plugin_ij))
-                  for plugin_ij in sorted(step_i.plugins)}
+                  for plugin_ij in step_i.plugins}
                   for step_i in protocol.steps]
     # For each step, use `to_dict` class method to convert Python object
     # to dictionary for plugins where applicable.
