@@ -24,6 +24,7 @@ try:
 except ImportError:
     import pickle
 import cStringIO as StringIO
+import importlib
 import itertools as it
 import json
 import logging
@@ -31,11 +32,9 @@ import re
 import sys
 import time
 import types
-import importlib
 
 from microdrop_utility import Version, FutureVersionError
 import jsonschema
-import numpy as np
 import pandas as pd
 import path_helpers as ph
 import yaml
