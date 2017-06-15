@@ -939,10 +939,6 @@ class Protocol():
     ###########################################################################
     # Protocol-wide plugin data
     # -------------------------
-    def get_step_values(self, plugin_name):
-        logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
-        return self.plugin_data.get(plugin_name)
-
     def get_data(self, plugin_name):
         logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
         return self.plugin_data.get(plugin_name)
