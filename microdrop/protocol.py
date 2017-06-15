@@ -590,6 +590,9 @@ class Protocol():
         self.current_repetition = 0
         self.version = self.class_version
 
+    ###########################################################################
+    # Load/save methods
+    # -----------------
     @classmethod
     def load(cls, filename):
         """
@@ -673,64 +676,8 @@ class Protocol():
                      (time.time()-start_time))
         return out
 
-    def _upgrade(self):
-        """
-        Upgrade the serialized object if necessary.
-
-        Raises:
-            FutureVersionError: file was written by a future version of the
-                software.
-        """
-        logger.debug("[Protocol]._upgrade()")
-        version = Version.fromstring(self.version)
-        logger.debug('[Protocol] version=%s, class_version=%s' % (str(version), self.class_version))
-        if version > Version.fromstring(self.class_version):
-            logger.debug('[Protocol] version>class_version')
-            raise FutureVersionError(Version.fromstring(self.class_version), version)
-        elif version < Version.fromstring(self.class_version):
-            if version < Version(0,1):
-                for k, v in self.plugin_data.items():
-                    self.plugin_data[k] = yaml.dump(v)
-                for step in self.steps:
-                    for k, v in step.plugin_data.items():
-                        step.plugin_data[k] = yaml.dump(v)
-                self.version = str(Version(0,1))
-                logger.debug('[Protocol] upgrade to version %s' % self.version)
-            if version < Version(0,2):
-                self.current_step_attempt = 0
-                self.version = str(Version(0,2))
-                logger.debug('[Protocol] upgrade to version %s' % self.version)
-        # else the versions are equal and don't need to be upgraded
-
-    @property
-    def plugins(self):
-        return set(self.plugin_data.keys())
-
-    def plugin_name_lookup(self, name, re_pattern=False):
-        if not re_pattern:
-            return name
-
-        for plugin_name in self.plugins:
-            if re.search(name, plugin_name):
-                return plugin_name
-        return None
-
-    def get_step_values(self, plugin_name):
-        logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
-        return self.plugin_data.get(plugin_name)
-
-    def get_data(self, plugin_name):
-        logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
-        return self.plugin_data.get(plugin_name)
-
-    def set_data(self, plugin_name, data):
-        self.plugin_data[plugin_name] = data
-
-    def __len__(self):
-        return len(self.steps)
-
-    def __getitem__(self, i):
-        return self.steps[i]
+    def remove_exceptions(self, exceptions, inplace=False):
+        return protocol_remove_exceptions(self, exceptions, inplace=inplace)
 
     def save(self, filename, format='pickle'):
         out = copy.deepcopy(self)
@@ -753,91 +700,39 @@ class Protocol():
             else:
                 raise TypeError
 
-    def get_step_number(self, default):
-        if default is None:
-            return self.current_step_number
-        return default
+    def to_dict(self):
+        '''
+        Returns
+        -------
+        dict
+            Dictionary object with the following top-level keys:
+            - ``name``: Protocol name.
+            - ``version``: Protocol version.
+            - ``steps``: List of dictionaries, each containing data for a single
+            protocol step.
+            - ``uuid, optional``: Universally unique identifier.
+        '''
+        return protocol_to_dict(self, loaded=True)
 
-    def get_step(self, step_number=None):
-        step_number = self.get_step_number(step_number)
-        return self.steps[step_number]
+    @classmethod
+    def from_dict(cls, protocol_dict):
+        '''
+        Parameters
+        ----------
+        protocol_dict : dict
+            Dictionary object with the following top-level keys:
+             - ``name``: Protocol name.
+             - ``version``: Protocol version.
+             - ``steps``: List of dictionaries, each containing data for a single
+               protocol step.
+             - ``uuid, optional``: Universally unique identifier.
 
-    def current_step(self):
-        return self.steps[self.current_step_number]
-
-    def insert_steps(self, step_number=None, count=None, values=None):
-        if values is None and count is None:
-            raise ValueError, 'Either count or values must be specified'
-        elif values is None:
-            values = [Step()] * count
-        for value in values[::-1]:
-            self.insert_step(step_number, value, notify=False)
-        emit_signal('on_steps_inserted', args=range(step_number, step_number +
-                                                    len(values)))
-
-    def insert_step(self, step_number=None, value=None, notify=True):
-        if step_number is None:
-            step_number = self.current_step_number
-        if value is None:
-            value = Step()
-        self.steps.insert(step_number, value)
-        emit_signal('on_step_created', args=[self.current_step_number])
-        if notify:
-            emit_signal('on_step_inserted', args=[self.current_step_number])
-
-    def delete_step(self, step_number):
-        step_to_remove = self.steps[step_number]
-        del self.steps[step_number]
-        emit_signal('on_step_removed', args=[step_number, step_to_remove])
-
-        if len(self.steps) == 0:
-            # If we deleted the last remaining step, we need to insert a new
-            # default Step
-            self.insert_step(0, Step())
-            self.goto_step(0)
-        elif self.current_step_number == len(self.steps):
-            self.goto_step(step_number - 1)
-        else:
-            self.goto_step(self.current_step_number)
-
-    def delete_steps(self, step_ids):
-        sorted_ids = sorted(step_ids)
-        # Process deletion of steps in reverse order to avoid ID mismatch due
-        # to deleted rows.
-        sorted_ids.reverse()
-        for id in sorted_ids:
-            self.delete_step(id)
-
-    def next_step(self):
-        if self.current_step_number == len(self.steps) - 1:
-            self.insert_step(step_number=self.current_step_number,
-                             value=self.current_step().copy(), notify=False)
-            self.next_step()
-            emit_signal('on_step_inserted', args=[self.current_step_number])
-        else:
-            self.goto_step(self.current_step_number + 1)
-
-    def next_repetition(self):
-        if self.current_repetition < self.n_repeats - 1:
-            self.current_repetition += 1
-            self.goto_step(0)
-
-    def prev_step(self):
-        if self.current_step_number > 0:
-            self.goto_step(self.current_step_number - 1)
-
-    def first_step(self):
-        self.current_repetition = 0
-        self.goto_step(0)
-
-    def last_step(self):
-        self.goto_step(len(self.steps) - 1)
-
-    def goto_step(self, step_number):
-        logging.debug('[Protocol].goto_step(%s)' % step_number)
-        original_step_number = self.current_step_number
-        self.current_step_number = step_number
-        emit_signal('on_step_swapped', [original_step_number, step_number])
+        Returns
+        -------
+        Protocol
+            MicroDrop protocol.
+        '''
+        return protocol_from_dict(protocol_dict)
 
     def to_frame(self):
         '''
@@ -908,40 +803,6 @@ class Protocol():
             load_func = json.load
         protocol_dict = load_func(istream, object_hook=
                                   zp.schema.pandas_object_hook)
-        return protocol_from_dict(protocol_dict)
-
-    def to_dict(self):
-        '''
-        Returns
-        -------
-        dict
-            Dictionary object with the following top-level keys:
-            - ``name``: Protocol name.
-            - ``version``: Protocol version.
-            - ``steps``: List of dictionaries, each containing data for a single
-            protocol step.
-            - ``uuid, optional``: Universally unique identifier.
-        '''
-        return protocol_to_dict(self, loaded=True)
-
-    @classmethod
-    def from_dict(cls, protocol_dict):
-        '''
-        Parameters
-        ----------
-        protocol_dict : dict
-            Dictionary object with the following top-level keys:
-             - ``name``: Protocol name.
-             - ``version``: Protocol version.
-             - ``steps``: List of dictionaries, each containing data for a single
-               protocol step.
-             - ``uuid, optional``: Universally unique identifier.
-
-        Returns
-        -------
-        Protocol
-            MicroDrop protocol.
-        '''
         return protocol_from_dict(protocol_dict)
 
     def to_ndjson(self, ostream=None, ignore_errors=False):
@@ -1030,8 +891,159 @@ class Protocol():
                                   for line_i in istream.readlines()]
         return protocol_from_dict(protocol_dict)
 
-    def remove_exceptions(self, exceptions, inplace=False):
-        return protocol_remove_exceptions(self, exceptions, inplace=inplace)
+    def _upgrade(self):
+        """
+        Upgrade the serialized object if necessary.
+
+        Raises:
+            FutureVersionError: file was written by a future version of the
+                software.
+        """
+        logger.debug("[Protocol]._upgrade()")
+        version = Version.fromstring(self.version)
+        logger.debug('[Protocol] version=%s, class_version=%s' % (str(version), self.class_version))
+        if version > Version.fromstring(self.class_version):
+            logger.debug('[Protocol] version>class_version')
+            raise FutureVersionError(Version.fromstring(self.class_version), version)
+        elif version < Version.fromstring(self.class_version):
+            if version < Version(0,1):
+                for k, v in self.plugin_data.items():
+                    self.plugin_data[k] = yaml.dump(v)
+                for step in self.steps:
+                    for k, v in step.plugin_data.items():
+                        step.plugin_data[k] = yaml.dump(v)
+                self.version = str(Version(0,1))
+                logger.debug('[Protocol] upgrade to version %s' % self.version)
+            if version < Version(0,2):
+                self.current_step_attempt = 0
+                self.version = str(Version(0,2))
+                logger.debug('[Protocol] upgrade to version %s' % self.version)
+        # else the versions are equal and don't need to be upgraded
+
+    ###########################################################################
+    # Plugin name accessors
+    # ---------------------
+    @property
+    def plugins(self):
+        return set(self.plugin_data.keys())
+
+    def plugin_name_lookup(self, name, re_pattern=False):
+        if not re_pattern:
+            return name
+
+        for plugin_name in self.plugins:
+            if re.search(name, plugin_name):
+                return plugin_name
+        return None
+
+    ###########################################################################
+    # Protocol-wide plugin data
+    # -------------------------
+    def get_step_values(self, plugin_name):
+        logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
+        return self.plugin_data.get(plugin_name)
+
+    def get_data(self, plugin_name):
+        logging.debug('[Protocol] plugin_data=%s' % self.plugin_data)
+        return self.plugin_data.get(plugin_name)
+
+    def set_data(self, plugin_name, data):
+        self.plugin_data[plugin_name] = data
+
+    ###########################################################################
+    # Execution state
+    # ---------------
+    def __len__(self):
+        return len(self.steps)
+
+    def __getitem__(self, i):
+        return self.steps[i]
+
+    def get_step_number(self, default):
+        if default is None:
+            return self.current_step_number
+        return default
+
+    def get_step(self, step_number=None):
+        step_number = self.get_step_number(step_number)
+        return self.steps[step_number]
+
+    def current_step(self):
+        return self.steps[self.current_step_number]
+
+    def insert_steps(self, step_number=None, count=None, values=None):
+        if values is None and count is None:
+            raise ValueError, 'Either count or values must be specified'
+        elif values is None:
+            values = [Step()] * count
+        for value in values[::-1]:
+            self.insert_step(step_number, value, notify=False)
+        emit_signal('on_steps_inserted', args=range(step_number, step_number +
+                                                    len(values)))
+
+    def insert_step(self, step_number=None, value=None, notify=True):
+        if step_number is None:
+            step_number = self.current_step_number
+        if value is None:
+            value = Step()
+        self.steps.insert(step_number, value)
+        emit_signal('on_step_created', args=[self.current_step_number])
+        if notify:
+            emit_signal('on_step_inserted', args=[self.current_step_number])
+
+    def delete_step(self, step_number):
+        step_to_remove = self.steps[step_number]
+        del self.steps[step_number]
+        emit_signal('on_step_removed', args=[step_number, step_to_remove])
+
+        if len(self.steps) == 0:
+            # If we deleted the last remaining step, we need to insert a new
+            # default Step
+            self.insert_step(0, Step())
+            self.goto_step(0)
+        elif self.current_step_number == len(self.steps):
+            self.goto_step(step_number - 1)
+        else:
+            self.goto_step(self.current_step_number)
+
+    def delete_steps(self, step_ids):
+        sorted_ids = sorted(step_ids)
+        # Process deletion of steps in reverse order to avoid ID mismatch due
+        # to deleted rows.
+        sorted_ids.reverse()
+        for id in sorted_ids:
+            self.delete_step(id)
+
+    def next_step(self):
+        if self.current_step_number == len(self.steps) - 1:
+            self.insert_step(step_number=self.current_step_number,
+                             value=self.current_step().copy(), notify=False)
+            self.next_step()
+            emit_signal('on_step_inserted', args=[self.current_step_number])
+        else:
+            self.goto_step(self.current_step_number + 1)
+
+    def next_repetition(self):
+        if self.current_repetition < self.n_repeats - 1:
+            self.current_repetition += 1
+            self.goto_step(0)
+
+    def prev_step(self):
+        if self.current_step_number > 0:
+            self.goto_step(self.current_step_number - 1)
+
+    def first_step(self):
+        self.current_repetition = 0
+        self.goto_step(0)
+
+    def last_step(self):
+        self.goto_step(len(self.steps) - 1)
+
+    def goto_step(self, step_number):
+        logging.debug('[Protocol].goto_step(%s)' % step_number)
+        original_step_number = self.current_step_number
+        self.current_step_number = step_number
+        emit_signal('on_step_swapped', [original_step_number, step_number])
 
 
 class Step(object):
