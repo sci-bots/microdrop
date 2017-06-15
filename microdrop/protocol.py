@@ -378,11 +378,14 @@ def protocol_to_json(protocol, validate=True, ostream=None, json_kwargs=None,
 
 def protocol_to_ndjson(protocol, ostream=None):
     '''
-    Write protocol as newline delimted JSON (i.e., `ndjson`_, see
+    Write protocol as newline delimited JSON (i.e., `ndjson`_, see
     `specification`_).
 
-    Each subsequent line in the output is a nested JSON record, list), one line
-    per protocol step.  The keys of the top-level object of each record
+    The first row is a header JSON object containing **at least** the keys
+    ``name`` and ``version``.
+
+    Each subsequent line in the output is a nested JSON object, one line per
+    protocol step.  The keys of the top-level object of each step object
     correspond to plugin names.  The second-level keys correspond to the step
     field name.
 
@@ -943,13 +946,8 @@ class Protocol():
 
     def to_ndjson(self, ostream=None, ignore_errors=False):
         '''
-        Write protocol as newline delimted JSON (i.e., `ndjson`_, see
+        Write protocol as newline delimited JSON (i.e., `ndjson`_, see
         `specification`_).
-
-        Each subsequent line in the output is a nested JSON record, list), one
-        line per protocol step.  The keys of the top-level object of each record
-        correspond to plugin names.  The second-level keys correspond to the
-        step field name.
 
         Parameters
         ----------
@@ -975,7 +973,7 @@ class Protocol():
 
         See Also
         --------
-        :meth:`to_json`
+        :func:`protocol_to_ndjson`, :meth:`to_json`
 
 
         .. _`ndjson`: http://ndjson.org/
@@ -991,6 +989,46 @@ class Protocol():
                             'encountered during serialization.')
                 protocol_clean = self.remove_exceptions(exception.exceptions)
                 return protocol_to_ndjson(protocol_clean, ostream=ostream)
+
+    @classmethod
+    def from_ndjson(cls, istream=None):
+        '''
+        Read protocol from newline delimited JSON (i.e., `ndjson`_, see
+        `specification`_).
+
+        Parameters
+        ----------
+        istream : str or file-like
+            Input new-line delimited JSON to read protocol from.
+
+            If file-like, read from as an input stream.
+
+            If a string, assume input is new-line delimited JSON serialized
+            protocol string.
+
+        Returns
+        -------
+        Protocol
+            MicroDrop protocol.
+
+        See Also
+        --------
+        :func:`protocol_to_ndjson`, :meth:`to_ndjson`, :meth:`to_json`
+
+
+        .. _`ndjson`: http://ndjson.org/
+        .. _`specification`: http://specs.frictionlessdata.io/ndjson/
+        '''
+        if isinstance(istream, types.StringTypes):
+            # Assume input is new-line delimited JSON serialized protocol
+            # string.
+            istream = StringIO.StringIO(istream)
+        load_f = lambda x: json.loads(x, object_hook=
+                                      zp.schema.pandas_object_hook)
+        protocol_dict = load_f(istream.readline())
+        protocol_dict['steps'] = [load_f(line_i)
+                                  for line_i in istream.readlines()]
+        return protocol_from_dict(protocol_dict)
 
     def remove_exceptions(self, exceptions, inplace=False):
         return protocol_remove_exceptions(self, exceptions, inplace=inplace)
