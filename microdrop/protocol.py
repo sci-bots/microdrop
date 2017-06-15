@@ -378,6 +378,89 @@ def protocol_to_json(protocol, validate=True, ostream=None, json_kwargs=None,
         return ostream.getvalue()
 
 
+def protocol_dict_remove_exceptions(protocol_dict, exceptions, inplace=False):
+    '''
+    Parameters
+    ----------
+    protocol_dict : dict
+        Dictionary object with the following top-level keys:
+         - ``name``: Protocol name.
+         - ``version``: Protocol version.
+         - ``steps``: List of dictionaries, each containing data for a single
+           protocol step.
+         - ``uuid, optional``: Universally unique identifier.
+    exceptions : list-like
+        Exceptions in format recorded in :data:`exceptions` attribute of
+        :class:`SerializationError` instances.
+    inplace : bool, optional
+        If ``True``, directly modify :data:`protocol_dict`.
+
+        Otherwise, return modified copy.
+
+        Default is ``False``.
+
+    Returns
+    -------
+    dict or None
+        Modified copy of :data:`protocol_dict` if :data:`inplace` is ``False``.
+
+    See also
+    --------
+    :func:`protocol_dict_remove_exceptions`
+    '''
+    if not inplace:
+        protocol_dict = copy.deepcopy(protocol_dict)
+
+    # Delete plugin data that is causing serialization errors.
+    for exception_i in exceptions:
+        step_i = protocol_dict['steps'][exception_i['step']]
+        del step_i[exception_i['plugin']]
+        logger.info('Deleted `%s` for step %s', exception_i['plugin'],
+                    exception_i['step'])
+
+    if not inplace:
+        return protocol_dict
+
+
+def protocol_remove_exceptions(protocol, exceptions, inplace=False):
+    '''
+    Parameters
+    ----------
+    protocol : Protocol
+        MicroDrop protocol.
+    exceptions : list-like
+        Exceptions in format recorded in :data:`exceptions` attribute of
+        :class:`SerializationError` instances.
+    inplace : bool, optional
+        If ``True``, directly modify :data:`protocol`.
+
+        Otherwise, return modified copy.
+
+        Default is ``False``.
+
+    Returns
+    -------
+    Protocol or None
+        Modified copy of :data:`protocol` if :data:`inplace` is ``False``.
+
+    See also
+    --------
+    :func:`protocol_dict_remove_exceptions`
+    '''
+    if not inplace:
+        protocol = copy.deepcopy(protocol)
+
+    # Delete plugin data that is causing serialization errors.
+    for exception_i in exceptions:
+        step_i = protocol.steps[exception_i['step']]
+        del step_i.plugin_data[exception_i['plugin']]
+        logger.info('Deleted `%s` for step %s', exception_i['plugin'],
+                    exception_i['step'])
+
+    if not inplace:
+        return protocol
+
+
 class Protocol():
     class_version = str(Version(0,2))
 
@@ -803,6 +886,9 @@ class Protocol():
         finally:
             if return_required:
                 return ostream.getvalue()
+
+    def remove_exceptions(self, exceptions, inplace=False):
+        return protocol_remove_exceptions(self, exceptions, inplace=inplace)
 
 
 class Step(object):
