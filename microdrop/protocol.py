@@ -581,15 +581,17 @@ class Protocol():
     class_version = str(Version(0,2))
 
     def __init__(self, name=None):
-        self.steps = [Step()]
+        self.version = self.class_version
         self.name = name
+        self.steps = [Step()]
         self.plugin_data = {}
         self.plugin_fields = {}
+
+        # Protocol execution state
         self.n_repeats = 1
         self.current_step_attempt = 0
         self.current_step_number = 0
         self.current_repetition = 0
-        self.version = self.class_version
 
     ###########################################################################
     # Load/save methods
