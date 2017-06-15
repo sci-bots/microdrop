@@ -25,7 +25,6 @@ except ImportError:
     import pickle
 import cStringIO as StringIO
 import importlib
-import itertools as it
 import json
 import logging
 import re
@@ -458,6 +457,53 @@ def protocol_to_ndjson(protocol, ostream=None):
         return ostream.getvalue()
 
 
+def _protocol_remove_exceptions(protocol, exceptions, step_getter,
+                                plugin_data_getter, inplace=False):
+    '''
+    Parameters
+    ----------
+    protocol : Protocol or dict
+        MicroDrop protocol or dictionary representation.
+    exceptions : list-like
+        Exceptions in format recorded in :data:`exceptions` attribute of
+        :class:`SerializationError` instances.
+    step_getter : function
+        Function that takes a protocol object and an integer step number and
+        returns a corresponding step object.
+    plugin_data_getter : function
+        Function that takes a step object and returns a corresponding plugin
+        data dictionary.
+    inplace : bool, optional
+        If ``True``, directly modify :data:`protocol`.
+
+        Otherwise, return modified copy.
+
+        Default is ``False``.
+
+    Returns
+    -------
+    Protocol or dict or None
+        Modified copy of :data:`protocol` if :data:`inplace` is ``False``.
+
+    See also
+    --------
+    :func:`protocol_remove_exceptions`, :func:`protocol_dict_remove_exceptions`
+    '''
+    if not inplace:
+        protocol = copy.deepcopy(protocol)
+
+    # Delete plugin data that is causing serialization errors.
+    for exception_i in exceptions:
+        step_i = step_getter(protocol, exception_i['step'])
+        plugin_data_i = plugin_data_getter(step_i)
+        del plugin_data_i[exception_i['plugin']]
+        logger.info('Deleted `%s` for step %s', exception_i['plugin'],
+                    exception_i['step'])
+
+    if not inplace:
+        return protocol
+
+
 def protocol_dict_remove_exceptions(protocol_dict, exceptions, inplace=False):
     '''
     Parameters
@@ -488,18 +534,11 @@ def protocol_dict_remove_exceptions(protocol_dict, exceptions, inplace=False):
     --------
     :func:`protocol_dict_remove_exceptions`
     '''
-    if not inplace:
-        protocol_dict = copy.deepcopy(protocol_dict)
+    step_getter = lambda protocol_i, step_i: protocol_i['steps'][step_i]
+    plugin_data_getter = lambda step_i: step_i
 
-    # Delete plugin data that is causing serialization errors.
-    for exception_i in exceptions:
-        step_i = protocol_dict['steps'][exception_i['step']]
-        del step_i[exception_i['plugin']]
-        logger.info('Deleted `%s` for step %s', exception_i['plugin'],
-                    exception_i['step'])
-
-    if not inplace:
-        return protocol_dict
+    return _protocol_remove_exceptions(protocol_dict, exceptions, step_getter,
+                                       plugin_data_getter, inplace=inplace)
 
 
 def protocol_remove_exceptions(protocol, exceptions, inplace=False):
@@ -527,18 +566,11 @@ def protocol_remove_exceptions(protocol, exceptions, inplace=False):
     --------
     :func:`protocol_dict_remove_exceptions`
     '''
-    if not inplace:
-        protocol = copy.deepcopy(protocol)
+    step_getter = lambda protocol_i, step_i: protocol_i.steps[step_i]
+    plugin_data_getter = lambda step_i: step_i.plugin_data
 
-    # Delete plugin data that is causing serialization errors.
-    for exception_i in exceptions:
-        step_i = protocol.steps[exception_i['step']]
-        del step_i.plugin_data[exception_i['plugin']]
-        logger.info('Deleted `%s` for step %s', exception_i['plugin'],
-                    exception_i['step'])
-
-    if not inplace:
-        return protocol
+    return _protocol_remove_exceptions(protocol, exceptions, step_getter,
+                                       plugin_data_getter, inplace=inplace)
 
 
 class Protocol():
