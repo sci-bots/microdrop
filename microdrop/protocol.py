@@ -270,7 +270,8 @@ def protocol_to_dict(protocol, loaded=True):
             step_i[plugin_name_ij] = plugin_data_ij
     protocol_dict = {'name': protocol.name,
                      'version': protocol.version,
-                     'steps': step_data}
+                     'steps': step_data,
+                     'plugin_data': protocol.plugin_data}
     return protocol_dict
 
 
