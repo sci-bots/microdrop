@@ -377,6 +377,87 @@ def protocol_to_json(protocol, validate=True, ostream=None, json_kwargs=None,
         return ostream.getvalue()
 
 
+def protocol_to_ndjson(protocol, ostream=None):
+    '''
+    Write protocol as newline delimted JSON (i.e., `ndjson`_, see
+    `specification`_).
+
+    Each subsequent line in the output is a nested JSON record, list), one line
+    per protocol step.  The keys of the top-level object of each record
+    correspond to plugin names.  The second-level keys correspond to the step
+    field name.
+
+    Parameters
+    ----------
+    protocol : Protocol
+        MicroDrop protocol.
+    ostream : file-like, optional
+        Output stream to write to.
+
+    Returns
+    -------
+    None or str
+        If :data:`ostream` parameter is ``None``, return output as string.
+
+    Raises
+    ------
+    SerializationError
+        If exception occurs during serialization.
+
+        The ``SerializationError`` object includes an ``exceptions`` attribute
+        containing details on errors encountered.  See ``SerializationError``
+        class for more details.
+
+    See Also
+    --------
+    :func:`protocol_to_json`
+
+
+    .. _`ndjson`: http://ndjson.org/
+    .. _`specification`: http://specs.frictionlessdata.io/ndjson/
+    '''
+    protocol_dict = protocol.to_dict()
+
+    if ostream is None:
+        ostream = StringIO.StringIO()
+        return_required = True
+    else:
+        return_required = False
+
+    steps = protocol_dict.pop('steps')
+
+    def serialize_func(obj):
+        return json.dumps(obj, cls=zp.schema.PandasJsonEncoder)
+
+    # Write JSON header (does not include any step data).
+    print >> ostream, serialize_func(protocol_dict)
+    # Write plugin data for each step to a separate line in the output
+    # stream.
+    exceptions = []
+    for i, step_i in enumerate(steps):
+        try:
+            print >> ostream, serialize_func(step_i)
+        except Exception, exception:
+            # Exception occurred while serializing step.
+            logger.debug('Error serializing step.')
+            # Try to independently serialize data for each plugin,
+            # recording which plugins cause exceptions.
+            logger.debug('Search for plugin(s) causing exception')
+            for plugin_name_ij, plugin_data_ij in step_i.iteritems():
+                try:
+                    serialize_func(plugin_data_ij)
+                except Exception, exception:
+                    exception_step_i = {'step': i,
+                                        'error': str(exception),
+                                        'plugin': plugin_name_ij,
+                                        'data': plugin_data_ij}
+                    exceptions.append(exception_step_i)
+    if exceptions:
+        raise SerializationError('Error serializing protocol.', exceptions)
+    if return_required:
+        return ostream.getvalue()
+
+
 def protocol_dict_remove_exceptions(protocol_dict, exceptions, inplace=False):
     '''
     Parameters
@@ -828,7 +909,7 @@ class Protocol():
         '''
         return protocol_from_dict(protocol_dict)
 
-    def to_ndjson(self, ostream=None):
+    def to_ndjson(self, ostream=None, ignore_errors=False):
         '''
         Write protocol as newline delimted JSON (i.e., `ndjson`_, see
         `specification`_).
@@ -842,11 +923,23 @@ class Protocol():
         ----------
         ostream : file-like, optional
             Output stream to write to.
+        ignore_errors : bool, optional
+            If ``True``, skip any step plugin data that causes an error during
+            serialization.
 
         Returns
         -------
         None or str
             If :data:`ostream` parameter is ``None``, return output as string.
+
+        Raises
+        ------
+        SerializationError
+            If exception occurs during serialization.
+
+            The ``SerializationError`` object includes an ``exceptions``
+            attribute containing details on errors encountered.  See
+            ``SerializationError`` class for more details.
 
         See Also
         --------
@@ -856,35 +949,16 @@ class Protocol():
         .. _`ndjson`: http://ndjson.org/
         .. _`specification`: http://specs.frictionlessdata.io/ndjson/
         '''
-        df_protocol = self.to_frame()
-
-        if ostream is None:
-            ostream = StringIO.StringIO()
-            return_required = True
-        else:
-            return_required = False
-
-        field_groups = [(group_i, list(fields_i))
-                        for group_i, fields_i in
-                        it.groupby(df_protocol.columns.values, lambda v: v[0])]
-        field_counts = np.cumsum([len(f[1]) for f in field_groups])
-        field_bases = field_counts.copy()
-        field_bases[1:] = field_counts[:-1]
-        field_bases[0] = 0
-
         try:
-            for row_i in df_protocol.values:
-                row_dict_i = dict([(plugin_name_j,
-                                    dict(zip(zip(*fields_j)[1],
-                                             row_i[start_j:end_j])))
-                                for (plugin_name_j, fields_j), start_j, end_j
-                                in zip(field_groups, field_bases[:-1],
-                                        field_counts[:-1])])
-                print >> ostream, json.dumps(row_dict_i,
-                                             cls=zp.schema.PandasJsonEncoder)
-        finally:
-            if return_required:
-                return ostream.getvalue()
+            return protocol_to_ndjson(self, ostream=ostream)
+        except SerializationError, exception:
+            if not ignore_errors:
+                raise
+            else:
+                logging.warn('Skipping plugin data in steps where exceptions '
+                            'encountered during serialization.')
+                protocol_clean = self.remove_exceptions(exception.exceptions)
+                return protocol_to_ndjson(protocol_clean, ostream=ostream)
 
     def remove_exceptions(self, exceptions, inplace=False):
         return protocol_remove_exceptions(self, exceptions, inplace=inplace)
