@@ -223,6 +223,66 @@ def safe_pickle_loads(data):
                      exception)
 
 
+def _plugin_data_to_dict(plugin_data, loaded=True):
+    '''
+    Parameters
+    ----------
+    plugin_data : dict
+        Dictionary containing plugin data, keyed by plugin name.
+    loaded : bool, optional
+        ``True`` if protocol was loaded using :meth:`Protocol.load`, with the
+        implication being that the plugin data will already be unpickled.
+
+        If ``False``, plugin data will be unpickled.
+
+    Returns
+    -------
+    dict
+        Dictionary containing JSON-safe plugin data, e.g., for a single
+        protocol step.
+    '''
+    result = {}
+
+    for plugin_ij, plugin_data_ij in plugin_data.iteritems():
+        # Unpickle data if necessary.
+        if not loaded:
+            plugin_data_ij = safe_pickle_loads(plugin_data_ij)
+        # Use `to_dict` class method to convert Python object to dictionary for
+        # plugins where applicable.
+        if hasattr(plugin_data_ij, 'to_dict'):
+            plugin_data_ij = plugin_data_ij.to_dict()
+        result[plugin_ij] = plugin_data_ij
+    return result
+
+
+def _plugin_data_from_dict(plugin_data_dict):
+    '''
+    Parameters
+    ----------
+    plugin_data : dict
+        Dictionary containing JSON-safe plugin data, keyed by plugin name.
+
+    Returns
+    -------
+    dict
+        Dictionary containing Python plugin data.
+    '''
+    result = {}
+    for plugin_ij, plugin_data_ij in plugin_data_dict.iteritems():
+        # Use `from_dict` class method to reconstruct Python object for plugins
+        # where applicable.
+        if '__class__' in plugin_data_ij:
+            class_str = plugin_data_ij.pop('__class__')
+            module_str = '.'.join(class_str.split('.')[:-1])
+            class_name_str = class_str.split('.')[-1]
+            module_ij = importlib.import_module(module_str)
+            class_ = getattr(module_ij, class_name_str)
+            if hasattr(class_, 'from_dict'):
+                plugin_data_ij = class_.from_dict(plugin_data_ij)
+        result[plugin_ij] = plugin_data_ij
+    return result
+
+
 def protocol_to_dict(protocol, loaded=True):
     '''
     Convert a :class:`Protocol` to a dictionary representation.
@@ -255,23 +315,12 @@ def protocol_to_dict(protocol, loaded=True):
            protocol step.
          - ``uuid, optional``: Universally unique identifier.
     '''
-    step_data = [{plugin_ij: step_i.get_data(plugin_ij) if loaded else
-                  safe_pickle_loads(step_i.get_data(plugin_ij))
-                  for plugin_ij in step_i.plugins}
-                  for step_i in protocol.steps]
-    # For each step, use `to_dict` class method to convert Python object
-    # to dictionary for plugins where applicable.
-    for step_i in step_data:
-        to_update_i = []
-        for plugin_name_ij, plugin_data_ij in step_i.iteritems():
-            if hasattr(plugin_data_ij, 'to_dict'):
-                to_update_i.append((plugin_name_ij, plugin_data_ij.to_dict()))
-        for plugin_name_ij, plugin_data_ij in to_update_i:
-            step_i[plugin_name_ij] = plugin_data_ij
     protocol_dict = {'name': protocol.name,
                      'version': protocol.version,
-                     'steps': step_data,
-                     'plugin_data': protocol.plugin_data}
+                     'steps': [_plugin_data_to_dict(step_i.plugin_data,
+                                                    loaded=loaded)
+                               for step_i in protocol.steps],
+                     'plugin_data': _plugin_data_to_dict(protocol.plugin_data)}
     return protocol_dict
 
 
@@ -308,28 +357,15 @@ def protocol_from_dict(protocol_dict):
         raise
     protocol = Protocol(name=protocol_dict['name'])
     assert(protocol.version == protocol_dict['version'])
-    protocol.steps = [Step(plugin_data={plugin_ij: data_ij
-                                        for plugin_ij, data_ij in
-                                        step_i.iteritems()})
+
+    # Convert step dictionaries to Python `Step` instances.
+    protocol.steps = [Step(plugin_data=_plugin_data_from_dict(step_i))
                       for step_i in protocol_dict['steps']]
 
-    # For each step, use `from_dict` class method to reconstruct Python object
-    # for plugins where applicable.
-    for step_i in protocol.steps:
-        to_update_i = []
-        for plugin_name_ij, plugin_data_ij in step_i.plugin_data.iteritems():
-            if '__class__' in plugin_data_ij:
-                class_str = plugin_data_ij.pop('__class__')
-                module_str = '.'.join(class_str.split('.')[:-1])
-                class_name_str = class_str.split('.')[-1]
-                module_ij = importlib.import_module(module_str)
-                class_ = getattr(module_ij, class_name_str)
-                if hasattr(class_, 'from_dict'):
-                    to_update_i.append((plugin_name_ij,
-                                        class_.from_dict(plugin_data_ij)))
-        for plugin_name_ij, plugin_data_ij in to_update_i:
-            step_i.plugin_data[plugin_name_ij] = plugin_data_ij
-
+    # Convert protocol level plugin data dictionary to Python objects where
+    # applicable.
+    protocol.plugin_data = _plugin_data_from_dict(protocol_dict
+                                                  .get('plugin_data'))
     return protocol
 
 
