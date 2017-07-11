@@ -301,8 +301,14 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                  ph.path(self.config['data_dir'])
                                  .joinpath('microdrop.log')})
 
-        # Import plugins from MicroDrop v2.0 profile `plugins` directory.
-        plugin_manager.load_plugins(self.config['plugins']['directory'])
+        import sys
+
+        pwd = ph.path(os.getcwd()).realpath()
+        if '' in sys.path and pwd.joinpath('plugins').isdir():
+            logger.info('[warning] Removing working directory `%s` from Python'
+                        ' import path.', pwd)
+            sys.path.remove('')
+
         # Import enabled plugins from Conda environment.
         conda_plugins_dir = mpm.api.MICRODROP_CONDA_ETC.joinpath('plugins',
                                                                  'enabled')
