@@ -37,7 +37,7 @@ class CommandPlugin(SingletonPlugin):
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    plugin_name = 'wheelerlab.command_plugin'
+    plugin_name = 'microdrop.command_plugin'
 
     def __init__(self):
         self.name = self.plugin_name

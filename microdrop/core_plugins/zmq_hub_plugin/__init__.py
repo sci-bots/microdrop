@@ -46,7 +46,7 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    plugin_name = 'wheelerlab.zmq_hub_plugin'
+    plugin_name = 'microdrop.zmq_hub_plugin'
 
     '''
     AppFields

@@ -173,7 +173,7 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
     Parameters
     ----------
     name : str
-        Plugin name (e.g., ``wheelerlab.zmq_hub_plugin``).
+        Plugin name (e.g., ``microdrop.zmq_hub_plugin``).
 
         Corresponds to ``plugin_name`` key in plugin ``properties.yml`` file.
     env : str, optional
@@ -184,6 +184,11 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
     -------
     object
         Active service instance matching specified plugin name.
+
+    Raises
+    ------
+    KeyError
+        If no plugin is found registered with the specified name.
     '''
     e = PluginGlobals.env(env)
     plugins = [p for i, p in enumerate(e.services) if name == p.name]
@@ -272,14 +277,18 @@ def get_service_names(env='microdrop.managed'):
     Returns
     -------
     list
-        List of plugin names (e.g., ``['wheelerlab.step_label_plugin', ...]``).
+        List of plugin names (e.g., ``['microdrop.step_label_plugin', ...]``).
     '''
     e = PluginGlobals.env(env)
     service_names = []
     for name in get_plugin_names(env):
         plugin_class = e.plugin_registry[name]
         service = get_service_instance(plugin_class, env=env)
-        service_names.append(service.name)
+        if service is None:
+            logger.warn('Plugin `%s` exists in registry, but instance cannot '
+                        'be found.', name)
+        else:
+            service_names.append(service.name)
     return service_names
 
 
@@ -403,7 +412,7 @@ def enable(name, env='microdrop.managed'):
     Parameters
     ----------
     name : str
-        Plugin name (e.g., ``wheelerlab.zmq_hub_plugin``).
+        Plugin name (e.g., ``microdrop.zmq_hub_plugin``).
 
         Corresponds to ``plugin_name`` key in plugin ``properties.yml`` file.
     env : str, optional
@@ -426,7 +435,7 @@ def disable(name, env='microdrop.managed'):
     Parameters
     ----------
     name : str
-        Plugin name (e.g., ``wheelerlab.zmq_hub_plugin``).
+        Plugin name (e.g., ``microdrop.zmq_hub_plugin``).
 
         Corresponds to ``plugin_name`` key in plugin ``properties.yml`` file.
     env : str, optional

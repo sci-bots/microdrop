@@ -89,9 +89,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     'microdrop.gui.main_window_controller',
                     'microdrop.gui.protocol_controller',
                     'microdrop.gui.protocol_grid_controller',
-                    'wheelerlab.zmq_hub_plugin',
-                    'wheelerlab.electrode_controller_plugin',
-                    'wheelerlab.device_info_plugin']
+                    'microdrop.zmq_hub_plugin',
+                    'microdrop.electrode_controller_plugin',
+                    'microdrop.device_info_plugin']
 
     AppFields = Form.of(
         Integer.named('x').using(default=None, optional=True,

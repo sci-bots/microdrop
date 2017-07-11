@@ -26,7 +26,7 @@ def get_app():
 def get_hub_uri():
     from plugin_manager import get_service_instance_by_name
 
-    hub_plugin = get_service_instance_by_name('wheelerlab.zmq_hub_plugin',
+    hub_plugin = get_service_instance_by_name('microdrop.zmq_hub_plugin',
                                               env='microdrop')
     hub_uri = hub_plugin.get_app_values().get('hub_uri')
     if hub_uri is not None:

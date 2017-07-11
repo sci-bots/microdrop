@@ -42,6 +42,7 @@ from ..plugin_manager import (IPlugin, implements, SingletonPlugin,
 
 logger = logging.getLogger(__name__)
 
+PluginGlobals.push_env('microdrop')
 
 class PluginController(object):
     '''
@@ -616,3 +617,6 @@ class PluginManagerController(SingletonPlugin):
                                         % plugin_metadata.plugin_name,
                                         'Install plugin')
         return True
+
+
+PluginGlobals.pop_env()

@@ -168,7 +168,7 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
         self.builder = None
         self.widget = None
         self._enabled_fields = None
-        # e.g., 'wheelerlab.dmf_control_board_1.2':\
+        # e.g., 'microdrop.dmf_control_board_1.2':\
                 #set(['duration', 'voltage'])}
 
     @property

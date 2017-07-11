@@ -188,7 +188,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    plugin_name = 'wheelerlab.electrode_controller_plugin'
+    plugin_name = 'microdrop.electrode_controller_plugin'
 
     def __init__(self):
         self.name = self.plugin_name
@@ -246,7 +246,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
 
     def on_step_swapped(self, old_step_number, step_number):
         if self.plugin is not None:
-            self.plugin.execute_async('wheelerlab.electrode_controller_plugin',
+            self.plugin.execute_async('microdrop.electrode_controller_plugin',
                                       'get_channel_states')
 
 

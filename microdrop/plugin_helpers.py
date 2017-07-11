@@ -238,13 +238,13 @@ class StepOptionsController(object):
 
 
 def hub_execute_async(*args, **kwargs):
-    service = get_service_instance_by_name('wheelerlab.device_info_plugin',
+    service = get_service_instance_by_name('microdrop.device_info_plugin',
                                            env='microdrop')
     return service.plugin.execute_async(*args, **kwargs)
 
 
 def hub_execute(*args, **kwargs):
-    service = get_service_instance_by_name('wheelerlab.device_info_plugin',
+    service = get_service_instance_by_name('microdrop.device_info_plugin',
                                            env='microdrop')
     try:
         return service.plugin.execute(*args, **kwargs)
