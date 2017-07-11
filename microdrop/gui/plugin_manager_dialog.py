@@ -28,6 +28,9 @@ from ..gui.plugin_download_dialog import PluginDownloadDialog
 from ..plugin_manager import get_service_instance_by_name
 
 
+logger = logging.getLogger(__name__)
+
+
 class PluginManagerDialog(object):
     '''
     List installed plugins with the following action buttons for each plugin:
@@ -102,8 +105,8 @@ class PluginManagerDialog(object):
 
         if response == gtk.RESPONSE_OK:
             for p in d.selected_items():
-                print 'installing: %s' % p
                 self.controller.download_and_install_plugin(p)
+                logger.info('Installed: %s', p)
 
     def on_button_install_clicked(self, *args, **kwargs):
         archive_path = open_filechooser('Select plugin file',
