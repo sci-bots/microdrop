@@ -317,10 +317,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                         import_from_parent=False)
         self.update_log_file()
 
-        logger.info('User data directory: %s' % self.config['data_dir'])
-        logger.info('Plugins directory: %s' %
-                    self.config['plugins']['directory'])
-        logger.info('Devices directory: %s' % self.get_device_directory())
+        logger.info('User data directory: %s', self.config['data_dir'])
+        logger.info('Plugins directory: %s', conda_plugins_dir)
+        logger.info('Devices directory: %s', self.get_device_directory())
 
         FormViewDialog.default_parent = self.main_window_controller.view
         self.builder.connect_signals(self.signals)

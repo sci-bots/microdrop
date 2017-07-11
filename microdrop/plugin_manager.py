@@ -36,6 +36,9 @@ import task_scheduler
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
 
+logger = logging.getLogger(__name__)
+
+
 
 ScheduleRequest = namedtuple('ScheduleRequest', 'before after')
 
@@ -64,6 +67,7 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
         Newly created plugins (plugins are not recreated if they were
         previously loaded.)
     '''
+    logger.info('[load_plugins] plugins_dir=`%s`', plugins_dir)
     plugins_dir = ph.path(plugins_dir).realpath()
     logging.info('Loading plugins:')
     plugins_root = plugins_dir.parent if import_from_parent else plugins_dir
