@@ -183,66 +183,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         logger.info('MicroDrop version: %s', self.version)
         logger.info('Running in working directory: %s', os.getcwd())
 
-        # Delete paths that were marked during the uninstallation of a plugin.
-        # It is necessary to delay the deletion until here due to Windows file
-        # locking preventing the deletion of files that are in use.
-        deletions_path = ph.path(self.config.data['plugins']['directory'])\
-                .joinpath('requested_deletions.yml')
-        if deletions_path.isfile():
-            requested_deletions = yaml.load(deletions_path.bytes())
-            requested_deletions = map(ph.path, requested_deletions)
-
-            logger.info('[App] processing requested deletions.')
-            for p in requested_deletions[:]:
-                try:
-                    if p != p.abspath():
-                        logger.info('    (warning) ignoring path %s since it '
-                                    'is not absolute', p)
-                        continue
-                    if p.isdir():
-                        info = get_plugin_info(p)
-                        if info:
-                            logger.info('  deleting %s' % p)
-                            cwd = os.getcwd()
-                            os.chdir(p.parent)
-                            try:
-                                ph.path(p.name).rmtree()
-                            except Exception, why:
-                                logger.warning('Error deleting path %s (%s)',
-                                               p, why)
-                                raise
-                            os.chdir(cwd)
-                            requested_deletions.remove(p)
-                    else: # if the directory doesn't exist, remove it from the
-                          # list
-                        requested_deletions.remove(p)
-                except (AssertionError,):
-                    logger.info('  NOT deleting %s' % (p))
-                    continue
-                except (Exception,):
-                    logger.info('  NOT deleting %s' % (p))
-                    continue
-            deletions_path.write_bytes(yaml.dump(requested_deletions))
-
-        rename_queue_path = ph.path(self.config.data['plugins']['directory'])\
-                .joinpath('rename_queue.yml')
-        if rename_queue_path.isfile():
-            rename_queue = yaml.load(rename_queue_path.bytes())
-            requested_renames = [(ph.path(src), ph.path(dst))
-                                 for src, dst in rename_queue]
-            logger.info('[App] processing requested renames.')
-            remaining_renames = []
-            for src, dst in requested_renames:
-                try:
-                    if src.exists():
-                        src.rename(dst)
-                        logger.info('  renamed %s -> %s' % (src, dst))
-                except (AssertionError,):
-                    logger.info('  rename unsuccessful: %s -> %s' % (src, dst))
-                    remaining_renames.append((str(src), str(dst)))
-                    continue
-            rename_queue_path.write_bytes(yaml.dump(remaining_renames))
-
         # dmf device
         self.dmf_device = None
 
