@@ -326,15 +326,26 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.update_plugins()
 
         observers = {}
+        plugins_to_disable_by_default = []
         # Enable plugins according to schedule requests
         for package_name in self.config['plugins']['enabled']:
             try:
                 service = plugin_manager. \
                     get_service_instance_by_package_name(package_name)
                 observers[service.name] = service
-            except Exception, e:
-                self.config['plugins']['enabled'].remove(package_name)
-                logger.error(e, exc_info=True)
+            except KeyError:
+                logger.warning('No plugin found registered with name `%s`',
+                               package_name)
+                # Mark plugin to be removed from "enabled" list to prevent
+                # trying to enable it on future launches.
+                plugins_to_disable_by_default.append(package_name)
+            except Exception, exception:
+                logger.error(exception, exc_info=True)
+        # Remove marked plugins from "enabled" list to prevent trying to enable
+        # it on future launches.
+        for package_name_i in plugins_to_disable_by_default:
+            self.config['plugins']['enabled'].remove(package_name_i)
+
         schedule = plugin_manager.get_schedule(observers, "on_plugin_enable")
 
         # Load optional plugins marked as enabled in config
