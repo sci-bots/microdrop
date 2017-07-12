@@ -329,7 +329,7 @@ class PluginManagerController(SingletonPlugin):
             ``True`` if plugin was installed or upgraded, otherwise, ``False``.
         '''
         # Install Conda plugin package.
-        result = mpm.api.install(package_name)
+        result = mpm.api.install(package_name, '--no-update-dependencies')
         if result.get('success'):
             mpm.api.enable_plugin(package_name)
         return result

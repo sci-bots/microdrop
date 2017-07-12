@@ -101,18 +101,35 @@ class PluginManagerDialog(object):
         Launch download dialog and install selected plugins.
         '''
         def _plugin_download_dialog():
-            d = PluginDownloadDialog()
-            response = d.run()
+            dialog = PluginDownloadDialog()
+            response = dialog.run()
 
             if response == gtk.RESPONSE_OK:
                 installed_plugins = []
-                for p in d.selected_items():
-                    result = self.controller.download_and_install_plugin(p)
-                    if result.get('success'):
-                        logger.info('Installed: %s', p)
-                        installed_plugins.append(p)
-            logger.info('Installed the following plugins: %s',
-                        ', '.join(installed_plugins))
+                for plugin_i in dialog.selected_items():
+                    result_i = self.controller.download_and_install_plugin(plugin_i)
+                    if result_i.get('success'):
+                        logger.info('Installed: %s', plugin_i)
+                        package_links_i = (result_i.get('actions', {})
+                                           .get('LINK', [None]))
+                        if package_links_i:
+                            installed_plugins.append(package_links_i[0])
+
+                try:
+                    # Display dialog notifying which plugins were installed.
+                    dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
+                    dialog.set_title('Plugins installed')
+                    dialog.props.text = 'The following plugins were installed:'
+                    dialog.props.secondary_use_markup = True
+                    # Form list of plugins (along with version).
+                    dialog.props.secondary_text = \
+                        '\n'.join([' - <b>{}</b>'.format(plugin_label_i)
+                                for plugin_label_i in installed_plugins])
+                    dialog.run()
+                    dialog.destroy()
+                except:
+                    logger.info('Error generating plugins install summary.',
+                                exc_info=True)
         gtk.idle_add(_plugin_download_dialog)
 
     def on_button_install_clicked(self, *args, **kwargs):
