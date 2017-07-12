@@ -100,13 +100,20 @@ class PluginManagerDialog(object):
         '''
         Launch download dialog and install selected plugins.
         '''
-        d = PluginDownloadDialog()
-        response = d.run()
+        def _plugin_download_dialog():
+            d = PluginDownloadDialog()
+            response = d.run()
 
-        if response == gtk.RESPONSE_OK:
-            for p in d.selected_items():
-                self.controller.download_and_install_plugin(p)
-                logger.info('Installed: %s', p)
+            if response == gtk.RESPONSE_OK:
+                installed_plugins = []
+                for p in d.selected_items():
+                    result = self.controller.download_and_install_plugin(p)
+                    if result.get('success'):
+                        logger.info('Installed: %s', p)
+                        installed_plugins.append(p)
+            logger.info('Installed the following plugins: %s',
+                        ', '.join(installed_plugins))
+        gtk.idle_add(_plugin_download_dialog)
 
     def on_button_install_clicked(self, *args, **kwargs):
         archive_path = open_filechooser('Select plugin file',
