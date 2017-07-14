@@ -23,7 +23,7 @@ If you're having problems, see the **[Troubleshooting Guide](https://github.com/
 
 ## Mailing lists
 
-Sign up for the [DropBot ​development mailing list](https://groups.google.com/forum/#!forum/dropbot-dev) to report issues or ask questions related to DropBot and/or MicroDrop. For announcements concerning future releases/updates, join the [announcement list](https://groups.google.com/forum/#!forum/dropbot-announce).
+Sign up for the [DropBot development mailing list](https://groups.google.com/forum/#!forum/dropbot-dev) to report issues or ask questions related to DropBot and/or MicroDrop. For announcements concerning future releases/updates, join the [announcement list](https://groups.google.com/forum/#!forum/dropbot-announce).
 
 ## Credits ##
 
