@@ -1,0 +1,26 @@
+environment:
+  GIT_REPOSITORY: https://github.com/wheeler-microfluidics/microdrop.git
+  matrix:
+    - PYTHON_VERSION: 2.7
+      MINICONDA: C:\Miniconda
+      PYTHON_ARCH: "32"
+
+version: '2.6
+_appveyor-{build}'
+
+init:
+  - "ECHO %PYTHON_VERSION% %MINICONDA%"
+
+install:
+  # Exit if no .conda-recipe folder
+  - ps: if(!(Test-Path ".conda-recipe")){Add-AppveyorMessage -Message "No Conda Recipe Found" -Category "Error"; throw "Missing .conda-recipe folder"}
+  - git clone --depth=1 https://github.com/sci-bots/sci-bots-configs.git
+  - .\sci-bots-configs\appveyor-install.bat
+
+# Handle build and tests using conda (defined in .conda-recipe/meta.yaml)
+build: false
+test_script:
+  - echo Build Complete
+
+after_test:
+  - powershell -executionpolicy remotesigned -File .\sci-bots-configs\appveyor-after-test.ps1
