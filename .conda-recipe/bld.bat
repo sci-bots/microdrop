@@ -13,18 +13,18 @@ REM an `if` block to only execute during package installation.
 REM Install source directory as Python package.
 "%PYTHON%" -m pip install --no-cache --find-links http://192.99.4.95/wheels --trusted-host 192.99.4.95 .
 REM TODO: Find way to get source directory path from within appveyor
-nosetests "%SRC_DIR%" -vv --with-xunit
-if errorlevel 1 (
-  IF DEFINED PROJECT_DIRECTORY (
-    cp .\\nosetests.xml "%PROJECT_DIRECTORY%"\\nosetests.xml
-    dir "%PROJECT_DIRECTORY%"
-  )
-  exit 1
-)
-
-REM If a project directory specified, then copy results into the directory
-IF DEFINED PROJECT_DIRECTORY (
-  cp .\\nosetests.xml "%PROJECT_DIRECTORY%"\\nosetests.xml
-  dir "%PROJECT_DIRECTORY%"
-)
+REM nosetests "%SRC_DIR%" -vv --with-xunit
+REM if errorlevel 1 (
+REM   IF DEFINED PROJECT_DIRECTORY (
+REM     cp .\\nosetests.xml "%PROJECT_DIRECTORY%"\\nosetests.xml
+REM     dir "%PROJECT_DIRECTORY%"
+REM   )
+REM   exit 1
+REM )
+REM
+REM REM If a project directory specified, then copy results into the directory
+REM IF DEFINED PROJECT_DIRECTORY (
+REM   cp .\\nosetests.xml "%PROJECT_DIRECTORY%"\\nosetests.xml
+REM   dir "%PROJECT_DIRECTORY%"
+REM )
 if errorlevel 1 exit 1
