@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+from collections import Counter
 import os
 import logging
 import shutil
@@ -24,11 +24,11 @@ import shutil
 from microdrop_utility import FutureVersionError
 from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
                                    textentry_validate, text_entry_dialog)
-from textbuffer_with_undo import UndoableBuffer
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
 import gobject
 import gtk
+import path_helpers as ph
 import zmq
 
 from ..app_context import get_app, get_hub_uri
@@ -36,7 +36,7 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_observers,
                               get_service_names)
-from ..protocol import Protocol
+from ..protocol import Protocol, SerializationError
 
 logger = logging.getLogger(__name__)
 
@@ -182,10 +182,18 @@ class ProtocolController(SingletonPlugin):
         register_shortcuts(view, shortcuts)
 
     def load_protocol(self, filename):
-        app = get_app()
-        p = None
+        '''
+        Load protocol from file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to MicroDrop protocol file.
+        '''
+        filename = ph.path(filename)
+
         try:
-            p = Protocol.load(filename)
+            protocol = Protocol.load(filename)
         except FutureVersionError, why:
             logger.error('''
 Could not open protocol: %s
@@ -196,41 +204,51 @@ version of the software.'''.strip(), filename, why.future_version,
                          why.current_version)
         except Exception, why:
             logger.error("Could not open %s. %s", filename, why)
-        if p:
-            # check if the protocol contains data from plugins that are not
-            # enabled
-            enabled_plugins = get_service_names(env='microdrop.managed') + \
-                get_service_names('microdrop')
-            missing_plugins = []
-            for k, v in p.plugin_data.items():
+        else:
+            self.activate_protocol(protocol)
+
+    def activate_protocol(self, protocol):
+        '''
+        Parameters
+        ----------
+        plugin : microdrop.protocol.Protocol
+            MicroDrop protocol.
+        '''
+        # Check if the protocol contains data from plugins that are not
+        # enabled.
+        enabled_plugins = (get_service_names(env='microdrop.managed') +
+                           get_service_names('microdrop'))
+        missing_plugins = []
+        for k, v in protocol.plugin_data.items():
+            if k not in enabled_plugins and k not in missing_plugins:
+                missing_plugins.append(k)
+        for i in range(len(protocol)):
+            for k, v in protocol[i].plugin_data.items():
                 if k not in enabled_plugins and k not in missing_plugins:
                     missing_plugins.append(k)
-            for i in range(len(p)):
-                for k, v in p[i].plugin_data.items():
-                    if k not in enabled_plugins and k not in missing_plugins:
-                        missing_plugins.append(k)
-            if missing_plugins:
-                logger.info('load protocol(%s): missing plugins: %s', filename,
-                            ', '.join(missing_plugins))
-                result = yesno('Some data in the protocol "%s" requires '
-                               'plugins that are not currently installed:'
-                               '\n\t%s\nThis data will be ignored unless you '
-                               'install and enable these plugins. Would you'
-                               'like to permanently clear this data from the '
-                               'protocol?' % (p.name,
-                                            ",\n\t".join(missing_plugins)))
-                if result == gtk.RESPONSE_YES:
-                    logger.info('Deleting protocol data for missing items')
-                    for k, v in p.plugin_data.items():
+        self.modified = False
+        if missing_plugins:
+            logger.info('protocol missing plugins: %s',
+                        ', '.join(missing_plugins))
+            result = yesno('Some data in the protocol "%s" requires '
+                           'plugins that are not currently installed:'
+                           '\n\t%s\nThis data will be ignored unless you '
+                           'install and enable these plugins. Would you'
+                           'like to permanently clear this data from the '
+                           'protocol?' % (protocol.name,
+                                          ",\n\t".join(missing_plugins)))
+            if result == gtk.RESPONSE_YES:
+                logger.info('Deleting protocol data for missing items')
+                for k, v in protocol.plugin_data.items():
+                    if k in missing_plugins:
+                        del protocol.plugin_data[k]
+                for i in range(len(protocol)):
+                    for k, v in protocol[i].plugin_data.items():
                         if k in missing_plugins:
-                            del p.plugin_data[k]
-                    for i in range(len(p)):
-                        for k, v in p[i].plugin_data.items():
-                            if k in missing_plugins:
-                                del p[i].plugin_data[k]
-                    self.save_protocol()
-            self.modified = False
-            emit_signal("on_protocol_swapped", [app.protocol, p])
+                            del protocol[i].plugin_data[k]
+                self.modified = True
+        app = get_app()
+        emit_signal("on_protocol_swapped", [app.protocol, protocol])
 
     def create_protocol(self):
         old_protocol = get_app().protocol
@@ -276,6 +294,8 @@ version of the software.'''.strip(), filename, why.future_version,
         app.signals["on_menu_rename_protocol_activate"] = self.on_rename_protocol
         app.signals["on_menu_save_protocol_activate"] = self.on_save_protocol
         app.signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
+        app.signals["on_protocol_import_activate"] = self.on_import_protocol
+        app.signals["on_protocol_export_activate"] = self.on_export_protocol
         app.signals["on_textentry_protocol_repeats_focus_out_event"] = \
                 self.on_textentry_protocol_repeats_focus_out
         app.signals["on_textentry_protocol_repeats_key_press_event"] = \
@@ -360,6 +380,95 @@ version of the software.'''.strip(), filename, why.future_version,
                 self.run_protocol()
             return True
         return False
+
+    def on_import_protocol(self, widget=None, data=None):
+        app = get_app()
+        self.save_check()
+
+        filter_ = gtk.FileFilter()
+        filter_.set_name('Exported MicroDrop protocols (*.json)')
+        filter_.add_pattern("*.json")
+
+        dialog = gtk.FileChooserDialog(title="Import protocol",
+                                       action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                       buttons=(gtk.STOCK_CANCEL,
+                                                gtk.RESPONSE_CANCEL,
+                                                gtk.STOCK_OPEN,
+                                                gtk.RESPONSE_OK))
+        dialog.add_filter(filter_)
+        dialog.set_default_response(gtk.RESPONSE_OK)
+        dialog.set_current_folder(os.path.join(app.get_device_directory(),
+                                               app.dmf_device.name,
+                                               "protocols"))
+        response = dialog.run()
+        try:
+            if response == gtk.RESPONSE_OK:
+                filename = dialog.get_filename()
+                self.load_protocol(filename)
+                self.modified = True
+                emit_signal("on_protocol_changed")
+        finally:
+            dialog.destroy()
+
+    def on_export_protocol(self, widget=None, data=None):
+        app = get_app()
+
+        filter_ = gtk.FileFilter()
+        filter_.set_name(' MicroDrop protocols (*.json)')
+        filter_.add_pattern("*.json")
+
+        dialog = gtk.FileChooserDialog(title="Export protocol",
+                                       action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                       buttons=(gtk.STOCK_CANCEL,
+                                                gtk.RESPONSE_CANCEL,
+                                                gtk.STOCK_SAVE,
+                                                gtk.RESPONSE_OK))
+        dialog.add_filter(filter_)
+        dialog.set_default_response(gtk.RESPONSE_OK)
+        dialog.set_current_name(app.protocol.name)
+        dialog.set_current_folder(os.path.join(app.get_device_directory(),
+                                               app.dmf_device.name,
+                                               "protocols"))
+        response = dialog.run()
+        try:
+            if response == gtk.RESPONSE_OK:
+                filename = ph.path(dialog.get_filename())
+                if filename.ext.lower() != '.json':
+                    filename = filename + '.json'
+                try:
+                    with open(filename, 'w') as output:
+                        app.protocol.to_json(output, indent=2)
+                except SerializationError, exception:
+                    plugin_exception_counts = Counter([e['plugin']
+                                                    for e in exception.exceptions])
+                    logger.info('%s: `%s`', exception, exception.exceptions)
+                    result = yesno('Error exporting data for the following '
+                                    'plugins: `%s`\n\n'
+                                    'Would you like to exclude this data and '
+                                    'export anyway?' %
+                                    ', '.join(sorted(plugin_exception_counts
+                                                    .keys())))
+                    if result == gtk.RESPONSE_YES:
+                        # Delete plugin data that is causing serialization
+                        # errors.
+                        app.protocol.remove_exceptions(exception.exceptions,
+                                                       inplace=True)
+                        try:
+                            with open(filename, 'w') as output:
+                                app.protocol.to_json(output, indent=2)
+                        finally:
+                            # Mark protocol as changed since some plugin data
+                            # was deleted.
+                            self.modified = True
+                            emit_signal('on_protocol_changed')
+                    else:
+                        # Abort export.
+                        logger.warn('Export cancelled.')
+                        return
+                logger.info('[ProcolController.on_export_protocol]: '
+                            'exported protocol to %s', filename)
+        finally:
+            dialog.destroy()
 
     def on_load_protocol(self, widget=None, data=None):
         app = get_app()

@@ -168,7 +168,7 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
         self.builder = None
         self.widget = None
         self._enabled_fields = None
-        # e.g., 'wheelerlab.dmf_control_board_1.2':\
+        # e.g., 'microdrop.dmf_control_board_1.2':\
                 #set(['duration', 'voltage'])}
 
     @property
@@ -246,13 +246,11 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
 
         for i, step in enumerate(steps):
             values = emit_signal('get_step_values', [i])
-            #logging.debug('[ProtocolGridController]   Step[%d]=%s values=%s',
-                          #i, step, values)
 
             attributes = dict()
             for form_name, form in combined_fields.forms.iteritems():
                 attr_values = values[form_name]
-                #logging.debug('[CombinedRow] attr_values=%s' % attr_values)
+                #logging.debug('[CombinedRow] attr_values=%s', attr_values)
                 attributes[form_name] = RowFields(**attr_values)
             combined_row = CombinedRow(combined_fields, attributes=attributes)
             combined_fields.append(combined_row)

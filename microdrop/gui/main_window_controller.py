@@ -152,7 +152,7 @@ class MainWindowController(SingletonPlugin):
             def activate_debugger(parent):
                 try:
                     plugin = get_service_instance_by_name(
-                        'wheelerlab.dmf_control_board')
+                        'microdrop.dmf_control_board')
                     control_board = plugin.control_board
                 except KeyError:
                     plugin = None
@@ -197,7 +197,7 @@ class MainWindowController(SingletonPlugin):
             app.set_app_values(data)
 
             emit_signal("on_app_exit")
-            hub = get_service_instance_by_name('wheelerlab.zmq_hub_plugin',
+            hub = get_service_instance_by_name('microdrop.zmq_hub_plugin',
                                                env='microdrop')
             hub.on_plugin_disable()
 

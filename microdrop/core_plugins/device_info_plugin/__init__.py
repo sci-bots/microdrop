@@ -78,7 +78,7 @@ class DeviceInfoPlugin(SingletonPlugin):
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
-    plugin_name = 'wheelerlab.device_info_plugin'
+    plugin_name = 'microdrop.device_info_plugin'
 
     def __init__(self):
         self.name = self.plugin_name

@@ -28,7 +28,18 @@ from ..gui.plugin_download_dialog import PluginDownloadDialog
 from ..plugin_manager import get_service_instance_by_name
 
 
+logger = logging.getLogger(__name__)
+
+
 class PluginManagerDialog(object):
+    '''
+    List installed plugins with the following action buttons for each plugin:
+
+     - Enable
+     - Disable
+     - Update
+     - **TODO** Uninstall
+    '''
     def __init__(self):
         builder = gtk.Builder()
         builder.add_from_file(glade_path()
@@ -42,17 +53,26 @@ class PluginManagerDialog(object):
 
     @property
     def controller(self):
-        service = get_service_instance_by_name(
-                'microdrop.gui.plugin_manager_controller', env='microdrop')
+        plugin_name = 'microdrop.gui.plugin_manager_controller'
+        service = get_service_instance_by_name(plugin_name, env='microdrop')
         return service
 
     def update(self):
+        '''
+        Update plugin list widget.
+        '''
         self.clear_plugin_list()
         self.controller.update()
         for p in self.controller.plugins:
             self.vbox_plugins.pack_start(p.get_widget())
 
     def run(self):
+        # TODO
+        # ----
+        #
+        #  - [ ] Remove all references to `app`
+        #  - [ ] Use `MICRODROP_CONDA_ETC/plugins/enabled` to maintain enabled
+        #    plugin references instead of MicroDrop profile `microdrop.ini`
         app = get_app()
         self.update()
         response = self.window.run()
@@ -67,35 +87,71 @@ class PluginManagerDialog(object):
                     app.config["plugins"]["enabled"].remove(package_name)
         app.config.save()
         if self.controller.restart_required:
-            logging.warning('''\
-Plugins were installed/uninstalled.
-Program needs to be closed.
-Please start program again for changes to take effect.''')
+            logging.warning('Plugins were installed/uninstalled.\n'
+                            'Program needs to be closed.\n'
+                            'Please start program again for changes to take '
+                            'effect.')
             # Use return code of `5` to signal program should be restarted.
             app.main_window_controller.on_destroy(None, return_code=5)
             return response
         return response
 
     def on_button_download_clicked(self, *args, **kwargs):
-        d = PluginDownloadDialog()
-        response = d.run()
+        '''
+        Launch download dialog and install selected plugins.
+        '''
+        def _plugin_download_dialog():
+            dialog = PluginDownloadDialog()
+            response = dialog.run()
 
-        if response == gtk.RESPONSE_OK:
-            for p in d.selected_items():
-                print 'installing: %s' % p
-                self.controller.download_and_install_plugin(p)
+            if response == gtk.RESPONSE_OK:
+                installed_plugins = []
+                for plugin_i in dialog.selected_items():
+                    result_i = self.controller.download_and_install_plugin(plugin_i)
+                    if result_i.get('success'):
+                        logger.info('Installed: %s', plugin_i)
+                        package_links_i = (result_i.get('actions', {})
+                                           .get('LINK', [None]))
+                        if package_links_i:
+                            installed_plugins.append(package_links_i[0])
+
+                try:
+                    # Display dialog notifying which plugins were installed.
+                    dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
+                    dialog.set_title('Plugins installed')
+                    dialog.props.text = 'The following plugins were installed:'
+                    dialog.props.secondary_use_markup = True
+                    # Form list of plugins (along with version).
+                    dialog.props.secondary_text = \
+                        '\n'.join([' - <b>{}</b>'.format(plugin_label_i)
+                                for plugin_label_i in installed_plugins])
+                    dialog.run()
+                    dialog.destroy()
+                except:
+                    logger.info('Error generating plugins install summary.',
+                                exc_info=True)
+        gtk.idle_add(_plugin_download_dialog)
 
     def on_button_install_clicked(self, *args, **kwargs):
-        response = open_filechooser('Select plugin file',
-                action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                patterns=['*.tar.gz', '*.tgz', '*.zip'])
-        if response is None:
+        archive_path = open_filechooser('Select plugin file',
+                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                        patterns=['*.tar.bz2'])
+        if archive_path is None:
             return True
 
-        return self.controller.install_from_archive(response)
+        return self.controller.install_from_archive(archive_path)
 
     def on_button_update_all_clicked(self, *args, **kwargs):
-        self.controller.update_all_plugins()
+        if self.controller.update_all_plugins():
+            app = get_app()
+            logging.warning('Plugins were installed/uninstalled.\n'
+                            'Program needs to be closed.\n'
+                            'Please start program again for changes to take '
+                            'effect.')
+            # Use return code of `5` to signal program should be restarted.
+            app.main_window_controller.on_destroy(None, return_code=5)
+        else:
+            logging.warning('No updates available.')
 
 
 if __name__ == '__main__':

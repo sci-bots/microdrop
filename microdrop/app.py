@@ -17,24 +17,24 @@ You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
+import logging
 import os
-import re
-import subprocess
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import logging
-from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+import re
+import subprocess
+import sys
 import traceback
 
-import gtk
-from path_helpers import path
-import yaml
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
+import gtk
+import mpm.api
+import path_helpers as ph
+import yaml
 
 from . import plugin_manager
 from .protocol import Step
@@ -61,7 +61,7 @@ def parse_args(args=None):
     parser = ArgumentParser(description='MicroDrop: graphical user interface '
                             'for the DropBot Digital Microfluidics control '
                             'system.')
-    parser.add_argument('-c', '--config', type=path, default=None)
+    parser.add_argument('-c', '--config', type=ph.path, default=None)
 
     args = parser.parse_args()
     return args
@@ -89,9 +89,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     'microdrop.gui.main_window_controller',
                     'microdrop.gui.protocol_controller',
                     'microdrop.gui.protocol_grid_controller',
-                    'wheelerlab.zmq_hub_plugin',
-                    'wheelerlab.electrode_controller_plugin',
-                    'wheelerlab.device_info_plugin']
+                    'microdrop.zmq_hub_plugin',
+                    'microdrop.electrode_controller_plugin',
+                    'microdrop.device_info_plugin']
 
     AppFields = Form.of(
         Integer.named('x').using(default=None, optional=True,
@@ -102,26 +102,20 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                      properties={'show_in_gui': False}),
         Integer.named('height').using(default=500, optional=True,
                                       properties={'show_in_gui': False}),
-        Enum.named('update_automatically' #pylint: disable-msg=E1101,E1120
-            ).using(default=1, optional=True
-            ).valued('auto-update',
-                'check for updates, but ask before installing',
-                '''don't check for updates'''),
-        String.named('server_url').using( #pylint: disable-msg=E1120
-            default='http://microfluidics.utoronto.ca/update',
-            optional=True, properties=dict(show_in_gui=False)),
-        Boolean.named('realtime_mode').using( #pylint: disable-msg=E1120
-            default=False, optional=True,
-            properties=dict(show_in_gui=False)),
-        Filepath.named('log_file').using( #pylint: disable-msg=E1120
-            default='', optional=True,
-            properties={'action': gtk.FILE_CHOOSER_ACTION_SAVE}),
-        Boolean.named('log_enabled').using( #pylint: disable-msg=E1120
-            default=False, optional=True),
-        Enum.named('log_level').using( #pylint: disable-msg=E1101, E1120
-            default='info', optional=True
-            ).valued('debug', 'info', 'warning', 'error', 'critical'),
-    )
+        Enum.named('update_automatically').using(default=1, optional=True)
+        .valued('auto-update', 'check for updates, but ask before installing',
+                "don't check for updates"),
+        String.named('server_url')
+        .using(default='http://microfluidics.utoronto.ca/update',
+               optional=True, properties=dict(show_in_gui=False)),
+        Boolean.named('realtime_mode').using(default=False, optional=True,
+                                             properties=dict(show_in_gui=False)),
+        Filepath.named('log_file')
+        .using(default='', optional=True,
+               properties={'action': gtk.FILE_CHOOSER_ACTION_SAVE}),
+        Boolean.named('log_enabled').using(default=False, optional=True),
+        Enum.named('log_level').using(default='info', optional=True)
+        .valued('debug', 'info', 'warning', 'error', 'critical'))
 
     def __init__(self):
         args = parse_args()
@@ -188,90 +182,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             self._set_log_level(self.config.data[self.name]['log_level'])
         logger.info('MicroDrop version: %s', self.version)
         logger.info('Running in working directory: %s', os.getcwd())
-
-        # Run post install hooks for freshly installed plugins.
-        # It is necessary to delay the execution of these hooks here due to
-        # Windows file locking preventing the deletion of files that are in use.
-        post_install_queue_path = \
-            path(self.config.data['plugins']['directory']) \
-            .joinpath('post_install_queue.yml')
-        if post_install_queue_path.isfile():
-            post_install_queue = yaml.load(post_install_queue_path.bytes())
-            post_install_queue = map(path, post_install_queue)
-
-            logger.info('[App] processing post install hooks.')
-            for p in post_install_queue[:]:
-                try:
-                    info = get_plugin_info(p)
-                    logger.info("  running post install hook for %s" %
-                                info.plugin_name)
-                    plugin_manager.post_install(p)
-                except Exception:
-                    logging.info(''.join(traceback.format_exc()))
-                    logging.error('Error running post-install hook for %s.',
-                                  p.name, exc_info=True)
-                finally:
-                    post_install_queue.remove(p)
-            post_install_queue_path.write_bytes(yaml.dump(post_install_queue))
-
-        # Delete paths that were marked during the uninstallation of a plugin.
-        # It is necessary to delay the deletion until here due to Windows file
-        # locking preventing the deletion of files that are in use.
-        deletions_path = path(self.config.data['plugins']['directory'])\
-                .joinpath('requested_deletions.yml')
-        if deletions_path.isfile():
-            requested_deletions = yaml.load(deletions_path.bytes())
-            requested_deletions = map(path, requested_deletions)
-
-            logger.info('[App] processing requested deletions.')
-            for p in requested_deletions[:]:
-                try:
-                    if p != p.abspath():
-                        logger.info('    (warning) ignoring path %s since it '
-                                    'is not absolute', p)
-                        continue
-                    if p.isdir():
-                        info = get_plugin_info(p)
-                        if info:
-                            logger.info('  deleting %s' % p)
-                            cwd = os.getcwd()
-                            os.chdir(p.parent)
-                            try:
-                                path(p.name).rmtree() #ignore_errors=True)
-                            except Exception, why:
-                                logger.warning('Error deleting path %s (%s)',
-                                               p, why)
-                                raise
-                            os.chdir(cwd)
-                            requested_deletions.remove(p)
-                    else: # if the directory doesn't exist, remove it from the
-                          # list
-                        requested_deletions.remove(p)
-                except (AssertionError,):
-                    logger.info('  NOT deleting %s' % (p))
-                    continue
-                except (Exception,):
-                    logger.info('  NOT deleting %s' % (p))
-                    continue
-            deletions_path.write_bytes(yaml.dump(requested_deletions))
-
-        rename_queue_path = path(self.config.data['plugins']['directory'])\
-                .joinpath('rename_queue.yml')
-        if rename_queue_path.isfile():
-            rename_queue = yaml.load(rename_queue_path.bytes())
-            requested_renames = [(path(src), path(dst)) for src, dst in rename_queue]
-            logger.info('[App] processing requested renames.')
-            remaining_renames = []
-            for src, dst in requested_renames:
-                try:
-                    if src.exists():
-                        src.rename(dst)
-                        logger.info('  renamed %s -> %s' % (src, dst))
-                except (AssertionError,):
-                    logger.info('  rename unsuccessful: %s -> %s' % (src, dst))
-                    remaining_renames.append((str(src), str(dst)))
-                    continue
-            rename_queue_path.write_bytes(yaml.dump(remaining_renames))
 
         # dmf device
         self.dmf_device = None
@@ -368,12 +278,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 logger.warning('Plugins have been updated.  The application '
                                'must be restarted.')
                 if self.main_window_controller is not None:
-                    self.main_window_controller.on_destroy(None)
-                else:
                     logger.info('Closing app after plugins auto-upgrade')
                     # Use return code of `5` to signal program should be
                     # restarted.
-                    self.main_window_controller.on_destroy(None, return_code=5)
+                    gtk.idle_add(self.main_window_controller.on_destroy, None,
+                                 None, 5)
             else:
                 logger.info('No plugins have been updated')
 
@@ -389,31 +298,54 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         log_file = self.get_app_values()['log_file']
         if not log_file:
             self.set_app_values({'log_file':
-                                 path(self.config['data_dir'])
+                                 ph.path(self.config['data_dir'])
                                  .joinpath('microdrop.log')})
 
-        plugin_manager.load_plugins(self.config['plugins']['directory'])
+        import sys
+
+        pwd = ph.path(os.getcwd()).realpath()
+        if '' in sys.path and pwd.joinpath('plugins').isdir():
+            logger.info('[warning] Removing working directory `%s` from Python'
+                        ' import path.', pwd)
+            sys.path.remove('')
+
+        # Import enabled plugins from Conda environment.
+        conda_plugins_dir = mpm.api.MICRODROP_CONDA_ETC.joinpath('plugins',
+                                                                 'enabled')
+        if conda_plugins_dir.isdir():
+            plugin_manager.load_plugins(conda_plugins_dir,
+                                        import_from_parent=False)
         self.update_log_file()
 
-        logger.info('User data directory: %s' % self.config['data_dir'])
-        logger.info('Plugins directory: %s' %
-                    self.config['plugins']['directory'])
-        logger.info('Devices directory: %s' % self.get_device_directory())
+        logger.info('User data directory: %s', self.config['data_dir'])
+        logger.info('Plugins directory: %s', conda_plugins_dir)
+        logger.info('Devices directory: %s', self.get_device_directory())
 
         FormViewDialog.default_parent = self.main_window_controller.view
         self.builder.connect_signals(self.signals)
         self.update_plugins()
 
         observers = {}
+        plugins_to_disable_by_default = []
         # Enable plugins according to schedule requests
         for package_name in self.config['plugins']['enabled']:
             try:
                 service = plugin_manager. \
                     get_service_instance_by_package_name(package_name)
                 observers[service.name] = service
-            except Exception, e:
-                self.config['plugins']['enabled'].remove(package_name)
-                logger.error(e, exc_info=True)
+            except KeyError:
+                logger.warning('No plugin found registered with name `%s`',
+                               package_name)
+                # Mark plugin to be removed from "enabled" list to prevent
+                # trying to enable it on future launches.
+                plugins_to_disable_by_default.append(package_name)
+            except Exception, exception:
+                logger.error(exception, exc_info=True)
+        # Remove marked plugins from "enabled" list to prevent trying to enable
+        # it on future launches.
+        for package_name_i in plugins_to_disable_by_default:
+            self.config['plugins']['enabled'].remove(package_name_i)
+
         schedule = plugin_manager.get_schedule(observers, "on_plugin_enable")
 
         # Load optional plugins marked as enabled in config
@@ -436,7 +368,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         # if there is no device specified in the config file, try choosing one
         # from the device directory by default
-        device_directory = path(self.get_device_directory())
+        device_directory = ph.path(self.get_device_directory())
         if not self.config['dmf_device']['name']:
             try:
                 self.config['dmf_device']['name'] = \
@@ -479,18 +411,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.main_window_controller.main()
 
     def _set_log_level(self, level):
-        if level=='debug':
-            logger.setLevel(DEBUG)
-        elif level=='info':
-            logger.setLevel(INFO)
-        elif level=='warning':
-            logger.setLevel(WARNING)
-        elif level=='error':
-            logger.setLevel(ERROR)
-        elif level=='critical':
-            logger.setLevel(CRITICAL)
-        else:
-            raise TypeError
+        logger.setLevel(getattr(logging, level.upper()))
 
     def _set_log_file_handler(self, log_file):
         if self.log_file_handler:
@@ -557,7 +478,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         service = observers.service(plugin_name)
         values = service.get_app_values()
         if values and 'device_directory' in values:
-            directory = path(values['device_directory'])
+            directory = ph.path(values['device_directory'])
             if directory.isdir():
                 return directory
         return None
