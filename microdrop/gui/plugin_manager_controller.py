@@ -147,7 +147,7 @@ class PluginController(object):
         #    `mpm.api` API.
         #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
         #    Conda MicroDrop plugins)
-        package_name = self.get_plugin_package_name()
+        package_name = self.get_plugin_info().package_name
         # Prompt user to confirm uninstall.
         response = yesno('Uninstall plugin %s?' % package_name)
         if response != gtk.RESPONSE_YES:
@@ -331,7 +331,14 @@ class PluginManagerController(SingletonPlugin):
         # Install Conda plugin package.
         result = mpm.api.install(package_name, '--no-update-dependencies')
         if result.get('success'):
-            mpm.api.enable_plugin(package_name)
+            # Extract importable Python module name from Conda package name.
+            #
+            # XXX Plugins are currently Python modules, which means that the
+            # installed plugin directory must be a valid module name. However,
+            # Conda package name conventions may include `.` and `-`
+            # characters.
+            module_name = package_name.split('.')[-1].replace('-', '_')
+            mpm.api.enable_plugin(module_name)
         return result
 
     def get_plugin_names(self):
