@@ -146,6 +146,7 @@ class ProtocolController(SingletonPlugin):
         self.plugin = None
         self.plugin_timeout_id = None
 
+
     ###########################################################################
     # # Properties #
     @property
@@ -340,29 +341,37 @@ version of the software.'''.strip(), filename, why.future_version,
         app.protocol.goto_step(step_number)
 
     def on_first_step(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget, data.get_coords()):
-            app = get_app()
+        app = get_app()
+        if (not app.running and
+               (widget is None or 
+                contains_pointer(widget, data.get_coords()))):
             app.protocol.first_step()
             return True
         return False
 
     def on_prev_step(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget, data.get_coords()):
-            app = get_app()
+        app = get_app()
+        if (not app.running and
+               (widget is None or 
+                contains_pointer(widget, data.get_coords()))):
             app.protocol.prev_step()
             return True
         return False
 
     def on_next_step(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget, data.get_coords()):
-            app = get_app()
+        app = get_app()
+        if (not app.running and
+               (widget is None or 
+                contains_pointer(widget, data.get_coords()))):
             app.protocol.next_step()
             return True
         return False
 
     def on_last_step(self, widget=None, data=None):
-        if widget is None or contains_pointer(widget, data.get_coords()):
-            app = get_app()
+        app = get_app()
+        if (not app.running and
+               (widget is None or 
+                contains_pointer(widget, data.get_coords()))):
             app.protocol.last_step()
             return True
         return False
@@ -565,6 +574,7 @@ version of the software.'''.strip(), filename, why.future_version,
             "image_pause"))
         app.protocol.current_step_attempt = 0
         emit_signal("on_protocol_run")
+        self.set_sensitivity_of_protocol_navigation_buttons(False)
         self.run_step()
 
     def pause_protocol(self):
@@ -574,6 +584,13 @@ version of the software.'''.strip(), filename, why.future_version,
         self.button_run_protocol.set_image(self.builder.get_object(
             "image_play"))
         emit_signal("on_protocol_pause")
+        self.set_sensitivity_of_protocol_navigation_buttons(True)
+
+    def set_sensitivity_of_protocol_navigation_buttons(self, sensitive):
+        self.button_first_step.set_sensitive(sensitive)
+        self.button_prev_step.set_sensitive(sensitive)
+        self.button_next_step.set_sensitive(sensitive)
+        self.button_last_step.set_sensitive(sensitive)
 
     def run_step(self):
         app = get_app()
@@ -584,7 +601,8 @@ version of the software.'''.strip(), filename, why.future_version,
                                             app.protocol.current_step_attempt)
 
             self.waiting_for = get_observers("on_step_run", IPlugin).keys()
-            logger.info('[ProcolController.run_step]: waiting for %s',
+            logger.info('[ProcolController.run_step]: step: %d, waiting for %s',
+                        app.protocol.current_step_number,
                         ', '.join(self.waiting_for))
             emit_signal("on_step_run")
 
@@ -615,7 +633,7 @@ version of the software.'''.strip(), filename, why.future_version,
             else:
                 app.protocol.current_step_attempt = 0
                 if app.protocol.current_step_number < len(app.protocol)-1:
-                    self.on_next_step()
+                    app.protocol.next_step()
                 elif app.protocol.current_repetition < app.protocol.n_repeats-1:
                     app.protocol.next_repetition()
                 else: # we're on the last step
