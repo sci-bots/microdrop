@@ -638,6 +638,7 @@ version of the software.'''.strip(), filename, why.future_version,
                     app.protocol.next_repetition()
                 else: # we're on the last step
                     self.pause_protocol()
+                    emit_signal('on_protocol_finished')
 
     def _get_dmf_control_fields(self, step_number):
         step = get_app().protocol.get_step(step_number)
@@ -701,6 +702,12 @@ version of the software.'''.strip(), filename, why.future_version,
                     % app.protocol.name)
             if result == gtk.RESPONSE_YES:
                 self.save_protocol()
+
+    def on_experiment_log_changed(self, experiment_log):
+        # go to the first step when a new experiment starts
+        protocol = get_app().protocol
+        if protocol:
+            protocol.first_step()
 
     def get_schedule_requests(self, function_name):
         """

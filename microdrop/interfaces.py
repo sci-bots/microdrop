@@ -172,6 +172,13 @@ else:
             """
             pass
 
+        def on_protocol_finished(self):
+            """
+            Handler called when a protocol finishes (i.e., runs the last step of
+            the final repetition).
+            """
+            pass
+
         def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
             """
             Handler called when a different DMF device is swapped in (e.g., when
