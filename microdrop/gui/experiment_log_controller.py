@@ -250,14 +250,10 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
     def on_protocol_pause(self):
         app = get_app()
 
-        # if we're on the last step of the last repetition, start a new
-        # experiment log
-        if ((app.protocol.current_step_number == len(app.protocol) - 1) and
-            (app.protocol.current_repetition == app.protocol.n_repeats - 1)):
-
-            result = yesno('Experiment complete. Would you like to start a new experiment?')
-            if result == gtk.RESPONSE_YES:
-                self.save()
+    def on_protocol_finished(self):
+        result = yesno('Experiment complete. Would you like to start a new experiment?')
+        if result == gtk.RESPONSE_YES:
+            self.save()
 
     def on_step_run(self):
         app = get_app()

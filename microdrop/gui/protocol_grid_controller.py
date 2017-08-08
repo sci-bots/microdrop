@@ -203,6 +203,12 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
             return
         self.widget._on_step_options_changed(plugin, step_number)
 
+    def on_protocol_run(self):
+        self.widget.set_sensitive(False)
+
+    def on_protocol_pause(self):
+        self.widget.set_sensitive(True)
+
     def on_protocol_swapped(self, old_protocol, protocol):
         self.update_grid(protocol)
 

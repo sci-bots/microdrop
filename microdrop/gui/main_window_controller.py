@@ -215,7 +215,7 @@ class MainWindowController(SingletonPlugin):
         dialog.hide()
 
     def on_menu_online_help_activate(self, widget, data=None):
-        webbrowser.open_new_tab('http://microfluidics.utoronto.ca/microdrop/wiki/UserGuide')
+        webbrowser.open_new_tab('https://github.com/wheeler-microfluidics/microdrop/wiki')
 
     def on_menu_manage_plugins_activate(self, widget, data=None):
         service = get_service_instance_by_name(

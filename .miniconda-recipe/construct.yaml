@@ -25,6 +25,8 @@ specs:
   - microdrop.droplet-planning-plugin
   - microdrop.dmf-device-ui-plugin
   - microdrop.dropbot-plugin
+  - microdrop.user-prompt-plugin
+  - microdrop.step-label-plugin
 
 license_file: EULA.txt
 
