@@ -343,7 +343,7 @@ version of the software.'''.strip(), filename, why.future_version,
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         if (not app.running and
-               (widget is None or 
+               (widget is None or
                 contains_pointer(widget, data.get_coords()))):
             app.protocol.first_step()
             return True
@@ -352,7 +352,7 @@ version of the software.'''.strip(), filename, why.future_version,
     def on_prev_step(self, widget=None, data=None):
         app = get_app()
         if (not app.running and
-               (widget is None or 
+               (widget is None or
                 contains_pointer(widget, data.get_coords()))):
             app.protocol.prev_step()
             return True
@@ -361,7 +361,7 @@ version of the software.'''.strip(), filename, why.future_version,
     def on_next_step(self, widget=None, data=None):
         app = get_app()
         if (not app.running and
-               (widget is None or 
+               (widget is None or
                 contains_pointer(widget, data.get_coords()))):
             app.protocol.next_step()
             return True
@@ -370,7 +370,7 @@ version of the software.'''.strip(), filename, why.future_version,
     def on_last_step(self, widget=None, data=None):
         app = get_app()
         if (not app.running and
-               (widget is None or 
+               (widget is None or
                 contains_pointer(widget, data.get_coords()))):
             app.protocol.last_step()
             return True
@@ -625,8 +625,8 @@ version of the software.'''.strip(), filename, why.future_version,
             self.repeat_step = False
 
         if len(self.waiting_for):
-            logger.debug("[ProcolController].on_step_complete: still waiting "
-                         "for %s", ", ".join(self.waiting_for))
+            logger.info('[ProcolController].on_step_complete: still waiting '
+                        'for %s', ', '.join(self.waiting_for))
         # If all plugins have completed the current step, go to the next step.
         elif app.running:
             if self.repeat_step:
