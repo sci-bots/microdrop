@@ -604,7 +604,9 @@ version of the software.'''.strip(), filename, why.future_version,
             logger.info('[ProcolController.run_step]: step: %d, waiting for %s',
                         app.protocol.current_step_number,
                         ', '.join(self.waiting_for))
-            emit_signal("on_step_run")
+            def _threadsafe_emit_signal(*args):
+                emit_signal("on_step_run")
+            gobject.idle_add(_threadsafe_emit_signal)
 
     def on_step_complete(self, plugin_name, return_value=None):
         app = get_app()
@@ -638,7 +640,9 @@ version of the software.'''.strip(), filename, why.future_version,
                     app.protocol.next_repetition()
                 else: # we're on the last step
                     self.pause_protocol()
-                    emit_signal('on_protocol_finished')
+                    def _threadsafe_protocol_finished(*args):
+                        emit_signal('on_protocol_finished')
+                    gobject.idle_add(_threadsafe_protocol_finished)
 
     def _get_dmf_control_fields(self, step_number):
         step = get_app().protocol.get_step(step_number)
