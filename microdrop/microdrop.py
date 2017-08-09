@@ -76,11 +76,9 @@ def main():
 
     gtk.threads_init()
     gtk.gdk.threads_init()
-    gtk.gdk.threads_enter()
     my_app = get_app()
     sys.excepthook = except_handler
     my_app.run()
-    gtk.gdk.threads_leave()
 
 
 if __name__ == "__main__":

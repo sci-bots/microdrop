@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with device_info_plugin.  If not, see <http://www.gnu.org/licenses/>.
 """
 import cPickle as pickle
+import threading
 
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
@@ -83,7 +84,7 @@ class DeviceInfoPlugin(SingletonPlugin):
     def __init__(self):
         self.name = self.plugin_name
         self.plugin = None
-        self.command_timeout_id = None
+        self.stopped = threading.Event()
 
     def on_plugin_enable(self):
         """
@@ -103,21 +104,25 @@ class DeviceInfoPlugin(SingletonPlugin):
         # Initialize sockets.
         self.plugin.reset()
 
-        def check_command_socket():
-            try:
-                msg_frames = (self.plugin.command_socket
-                              .recv_multipart(zmq.NOBLOCK))
-            except zmq.Again:
-                pass
-            else:
-                self.plugin.on_command_recv(msg_frames)
-            return True
+        def _check_command_socket(wait_duration_s):
+            self.stopped.clear()
+            while not self.stopped.wait(wait_duration_s):
+                try:
+                    msg_frames = (self.plugin.command_socket
+                                  .recv_multipart(zmq.NOBLOCK))
+                except zmq.Again:
+                    pass
+                else:
+                    self.plugin.on_command_recv(msg_frames)
+        def _threadsafe_schedule(*args):
+            thread = threading.Thread(target=_check_command_socket, args=(0.01, ))
+            thread.daemon = True
+            thread.start()
 
-        self.command_timeout_id = gobject.timeout_add(10, check_command_socket)
+        gobject.idle_add(_threadsafe_schedule)
 
     def cleanup(self):
-        if self.command_timeout_id is not None:
-            gobject.source_remove(self.command_timeout_id)
+        self.stopped.set()
         if self.plugin is not None:
             self.plugin = None
 

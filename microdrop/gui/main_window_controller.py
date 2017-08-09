@@ -19,6 +19,7 @@ along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 from datetime import datetime
 import pdb
 import pkg_resources
+import threading
 import webbrowser
 
 from pygtkhelpers.proxy import proxy_for
@@ -53,7 +54,7 @@ class MainWindowController(SingletonPlugin):
     builder_path = glade_path().joinpath("main_window.glade")
 
     def __init__(self):
-        self._shutting_down_latch = False
+        self._shutting_down = threading.Event()
         self.name = "microdrop.gui.main_window_controller"
         self.builder = None
         self.view = None
@@ -184,27 +185,40 @@ class MainWindowController(SingletonPlugin):
             name = self.text_input_dialog.textentry.get_text()
         return name
 
-    def on_delete_event(self, widget, data=None):
-        if not self._shutting_down_latch:
-            self._shutting_down_latch = True
-
+    def shutdown(self, return_code):
+        def _threadsafe_shut_down(*args):
+            logger.info('[_threadsafe_shut_down] Shut down')
             app = get_app()
             data = app.get_app_values()
             allocation = self.view.get_allocation()
             data['width'] = allocation.width
             data['height'] = allocation.height
             data['x'], data['y'] = self.view.get_position()
-            app.set_app_values(data)
+            logger.info('Save window size position to config.')
+            # app.set_app_values(data)
 
+            logger.info('Execute `on_app_exit` handlers.')
             emit_signal("on_app_exit")
+
+            logger.info('Shut down ZeroMQ hub plugin.')
             hub = get_service_instance_by_name('microdrop.zmq_hub_plugin',
                                                env='microdrop')
             hub.on_plugin_disable()
 
+            logger.info('Quit GTK main loop')
+            gtk.main_quit()
+            raise SystemExit(return_code)
+
+        if not self._shutting_down.is_set():
+            logger.info('Shutting down')
+            self._shutting_down.set()
+            gobject.idle_add(_threadsafe_shut_down)
+
+    def on_delete_event(self, widget, data=None):
+        self.shutdown(0)
+
     def on_destroy(self, widget, data=None, return_code=0):
-        self.on_delete_event(None)
-        gtk.main_quit()
-        raise SystemExit(return_code)
+        self.shutdown(return_code)
 
     def on_about(self, widget, data=None):
         app = get_app()
