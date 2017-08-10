@@ -140,13 +140,8 @@ class PluginController(object):
         An error is reported if the plugin is a Conda MicroDrop plugin
         (uninstall for Conda plugins is not currently supported).
         '''
-        # TODO
-        # ----
-        #
-        #  - [t] Implement Conda MicroDrop plugin uninstall behaviour using
-        #    `mpm.api` API.
-        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
-        #    Conda MicroDrop plugins)
+        # TODO Deprecate MicroDrop 2.0 plugins support (i.e., only support
+        # Conda MicroDrop plugins).
         package_name = self.get_plugin_info().package_name
         # Prompt user to confirm uninstall.
         response = yesno('Uninstall plugin %s?' % package_name)

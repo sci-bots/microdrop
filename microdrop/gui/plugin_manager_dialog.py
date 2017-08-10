@@ -107,7 +107,8 @@ class PluginManagerDialog(object):
             if response == gtk.RESPONSE_OK:
                 installed_plugins = []
                 for plugin_i in dialog.selected_items():
-                    result_i = self.controller.download_and_install_plugin(plugin_i)
+                    result_i = (self.controller
+                                .download_and_install_plugin(plugin_i))
                     if result_i.get('success'):
                         logger.info('Installed: %s', plugin_i)
                         package_links_i = (result_i.get('actions', {})
