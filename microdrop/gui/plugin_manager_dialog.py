@@ -115,6 +115,9 @@ class PluginManagerDialog(object):
                         if package_links_i:
                             installed_plugins.append(package_links_i[0])
 
+                if installed_plugins:
+                    self.controller.restart_required = True
+
                 try:
                     # Display dialog notifying which plugins were installed.
                     dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
