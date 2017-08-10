@@ -154,7 +154,7 @@ class PluginController(object):
             return
 
         if self.is_conda_plugin:
-            # Plugin in a Conda MicroDrop plugin.
+            # Plugin is a Conda MicroDrop plugin.
             try:
                 uninstall_json_log = mpm.api.uninstall(package_name)
             except RuntimeError, exception:
@@ -168,6 +168,16 @@ class PluginController(object):
                             uninstall_json_log)
                 if not uninstall_json_log.get('success'):
                     logger.error('Error uninstalling %s', package_name)
+                else:
+                    self.controller.restart_required = True
+                    # Display dialog notifying user that plugin was
+                    # successfully uninstalled.
+                    dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
+                    dialog.set_title('Plugin uninstalled')
+                    dialog.props.text = ('The `{}` plugin was uninstalled '
+                                         'successfully.'.format(package_name))
+                    dialog.run()
+                    dialog.destroy()
         else:
             # Assume MicroDrop 2.0 plugin
 
