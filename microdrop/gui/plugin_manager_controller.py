@@ -51,9 +51,13 @@ class PluginController(object):
     def __init__(self, controller, name):
         self.controller = controller
         self.name = name
-        self.e = PluginGlobals.env('microdrop.managed')
-        self.plugin_class = self.e.plugin_registry[name]
-        self.service = get_service_instance(self.plugin_class)
+        self.plugin_env = PluginGlobals.env('microdrop.managed')
+        # Look up running instance of plugin (i.e., service) based on name of
+        # plugin class.
+        services_by_class_name = {s.__class__.__name__: s
+                                  for s in self.plugin_env.services}
+        self.service = services_by_class_name[name]
+        self.plugin_class = self.service.__class__
         self.box = gtk.HBox()
         self.label = gtk.Label('%s' % self.service.name)
         self.label.set_alignment(0, 0.5)
@@ -196,22 +200,16 @@ class PluginController(object):
         '''
         Handler for ``"Update"`` button.
 
-        Notes
-        -----
-        An error is reported if the plugin is a Conda MicroDrop plugin (update
-        for Conda plugins is not currently supported).
-        '''
-        # TODO
-        # ----
-        #
-        #  - [t] Implement Conda MicroDrop plugin update behaviour using
-        #    `mpm.api` API.
-        #  - [ ] Deprecate MicroDrop 2.0 plugins support (i.e., only support
-        #    Conda MicroDrop plugins)
+        .. versionchanged:: 2.10.3
+            Use `plugin_helpers.get_plugin_info` function to retrieve package
+            name.
 
+            Prior to version ``2.10.3``, package name was inferred from name of
+            plugin Python module.
+        '''
         if self.is_conda_plugin:
             # Plugin in a Conda MicroDrop plugin.  Update Conda package.
-            package_name = self.get_plugin_package_name()
+            package_name = self.get_plugin_info().package_name
 
             # XXX Disable default logging handlers to prevent `logging.error`
             # calls from popping up error dialogs while attempting to update.
@@ -256,30 +254,13 @@ class PluginController(object):
         '''
         return get_plugin_info(self.get_plugin_path())
 
-    def get_plugin_package_name(self):
+    def get_plugin_path(self):
         '''
-        Returns
-        -------
-        str
-            Relative module name (e.g., ``'dmf_control_board_plugin'``)
-        '''
-        return get_plugin_package_name(self.plugin_class.__module__)
-
-    def get_plugin_path(self, package_name=None):
-        '''
-        Parameters
-        ----------
-        package_name : str, optional
-            Relative module name (e.g., ``'dmf_control_board_plugin'``)
-
         Returns
         -------
         path_helpers.path
             Path to plugin directory.
         '''
-        if package_name is None:
-            package_name = self.get_plugin_package_name()
-
         # Find path to file where plugin/service class is defined.
         class_def_file = ph.path(inspect.getfile(self.service.__class__))
 
@@ -314,7 +295,7 @@ class PluginManagerController(SingletonPlugin):
         self.requested_deletions = []
         self.rename_queue = []
         self.restart_required = False
-        self.e = PluginGlobals.env('microdrop.managed')
+        self.plugin_env = PluginGlobals.env('microdrop.managed')
         self.dialog = PluginManagerDialog()
 
     def download_and_install_plugin(self, package_name, force=False):
@@ -353,7 +334,7 @@ class PluginManagerController(SingletonPlugin):
         list(str)
             List of plugin class names (e.g., ``['StepLabelPlugin', ...]``).
         '''
-        return list(self.e.plugin_registry.keys())
+        return list(self.plugin_env.plugin_registry.keys())
 
     def update(self):
         '''

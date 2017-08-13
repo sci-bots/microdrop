@@ -78,7 +78,7 @@ class PluginManagerDialog(object):
         response = self.window.run()
         self.window.hide()
         for p in self.controller.plugins:
-            package_name = p.get_plugin_package_name()
+            package_name = p.get_plugin_info().package_name
             if p.enabled():
                 if package_name not in app.config["plugins"]["enabled"]:
                     app.config["plugins"]["enabled"].append(package_name)
