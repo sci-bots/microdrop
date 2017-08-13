@@ -207,62 +207,17 @@ class PluginController(object):
 
             Prior to version ``2.10.3``, package name was inferred from name of
             plugin Python module.
+
+            Use :func:`_update_plugin_ui` to update plugin.
+
+        See also
+        --------
+        :func:`_update_plugin_ui`, :func:`_update_plugin`
         '''
         if self.is_conda_plugin:
             # Plugin in a Conda MicroDrop plugin.  Update Conda package.
             package_name = self.get_plugin_info().package_name
-
-            logging.info('Attempt to update plugin: %s', package_name)
-            # XXX Disable default logging handlers to prevent `logging.error`
-            # calls from popping up error dialogs while attempting to update.
-            # TODO Avoid `conda_helpers` error log messages using [logging
-            # filters][filter] instead.
-            #
-            # [filter]: https://docs.python.org/2/library/logging.html#filter-objects
-            try:
-                with lh.logging_restore(clear_handlers=True):
-                    update_response = _update_plugin(package_name)
-            except Exception, exception:
-                # Failure updating plugin.
-                print 'Error updating plugin `%s`.\n%s' % (package_name,
-                                                           exception)
-                logger.error('Error updating plugin `%s`.', package_name,
-                             exc_info=True)
-                return False
-
-            # Display prompt indicating update status.
-            if 'new_versions' in update_response:
-                #  1. Success (with previous version and new version).
-                dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
-                dialog.set_title('Plugin updated')
-                dialog.props.text = ('The <b>`{}`</b> plugin was updated '
-                                     'successfully.'.format(package_name))
-                old_versions = update_response.get('old_versions', [])
-                new_versions = update_response.get('new_versions', [])
-                version_message = '<b>From:</b>\n{}\n<b>To:</b>\n{}'
-                def _version_message(versions):
-                    return ('<span font_family="monospace">{}</span>'
-                            .format('\n'.join(' - {}'.format(package_i)
-                                              for package_i in versions)))
-                dialog.props.secondary_text =\
-                    version_message.format(_version_message(old_versions),
-                                           _version_message(new_versions))
-                dialog.props.use_markup = True
-                dialog.props.secondary_use_markup = True
-                response = dialog.run()
-                dialog.destroy()
-            else:
-                #  2. No update available.
-                dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
-                dialog.set_title('Plugin is up to date')
-                dialog.props.text = ('The latest version of the <span '
-                                     'font_family="monospace"><b>`{}` (v{})</b> '
-                                     '</span> plugin is already installed.'
-                                     .format(package_name,
-                                             update_response['version']))
-                dialog.props.use_markup = True
-                response = dialog.run()
-                dialog.destroy()
+            _update_plugin_ui(package_name)
         else:
             # Assume MicroDrop 2.0 plugin
             logger.warning('Plugin appears to be a MicroDrop 2.0 plugin. Only '
@@ -646,6 +601,8 @@ class PluginManagerController(SingletonPlugin):
 
 def _update_plugin(package_name):
     '''
+    Update plugin (no user interface).
+
     Parameters
     ----------
     package_name : str, optional
@@ -666,6 +623,10 @@ def _update_plugin(package_name):
     IOError
         If Conda update server cannot be reached, e.g., if there is no network
         connection available.
+
+    See also
+    --------
+    _update_plugin_ui
     '''
     try:
         update_json_log = mpm.api.install(package_name)
@@ -688,6 +649,87 @@ def _update_plugin(package_name):
             version_dict = ch.package_version(package_name)
             update_json_log.update(version_dict)
         return update_json_log
+
+
+def _update_plugin_ui(package_name):
+    '''
+    Update plugin and show update result dialog to user.
+
+    Parameters
+    ----------
+    package_name : str, optional
+        Conda MicroDrop plugin package name, e.g., `microdrop.mr-box-plugin`.
+
+    Returns
+    -------
+    dict
+        If plugin was updated successfully, output will *at least* contain
+        items with the keys ``old_versions`` and ``new_versions``.
+
+        If no update was available, output will *at least* contain an item with
+        the key ``version`` and will **not** contain the keys ``old_versions``
+        and ``new_versions``.
+
+    Raises
+    ------
+    IOError
+        If Conda update server cannot be reached, e.g., if there is no network
+        connection available.
+
+    See also
+    --------
+    _update_plugin
+    '''
+    logging.info('Attempt to update plugin: %s', package_name)
+    # XXX Disable default logging handlers to prevent `logging.error`
+    # calls from popping up error dialogs while attempting to update.
+    # TODO Avoid `conda_helpers` error log messages using [logging
+    # filters][filter] instead.
+    #
+    # [filter]: https://docs.python.org/2/library/logging.html#filter-objects
+    try:
+        with lh.logging_restore(clear_handlers=True):
+            update_response = _update_plugin(package_name)
+    except Exception, exception:
+        # Failure updating plugin.
+        logger.error('Error updating plugin `%s`.', package_name,
+                     exc_info=True)
+        return False
+
+    # Display prompt indicating update status.
+    if 'new_versions' in update_response:
+        #  1. Success (with previous version and new version).
+        dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
+        dialog.set_title('Plugin updated')
+        dialog.props.text = ('The <b>`{}`</b> plugin was updated '
+                             'successfully.'.format(package_name))
+        old_versions = update_response.get('old_versions', [])
+        new_versions = update_response.get('new_versions', [])
+        version_message = '<b>From:</b>\n{}\n<b>To:</b>\n{}'
+        def _version_message(versions):
+            return ('<span font_family="monospace">{}</span>'
+                    .format('\n'.join(' - {}'.format(package_i)
+                                      for package_i in versions)))
+        dialog.props.secondary_text =\
+            version_message.format(_version_message(old_versions),
+                                   _version_message(new_versions))
+        dialog.props.use_markup = True
+        dialog.props.secondary_use_markup = True
+        response = dialog.run()
+        dialog.destroy()
+    else:
+        #  2. No update available.
+        dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
+        dialog.set_title('Plugin is up to date')
+        dialog.props.text = ('The latest version of the <span '
+                             'font_family="monospace"><b>`{}` (v{})</b> '
+                             '</span> plugin is already installed.'
+                             .format(package_name,
+                                     update_response['version']))
+        dialog.props.use_markup = True
+        response = dialog.run()
+        dialog.destroy()
+    return update_response
 
 
 PluginGlobals.pop_env()
