@@ -18,9 +18,12 @@ along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import logging
+import threading
 
-import gtk
 from pygtkhelpers.ui.dialogs import open_filechooser
+import conda_helpers as ch
+import gtk
+import gobject
 
 from .. import glade_path
 from ..app_context import get_app
@@ -87,10 +90,10 @@ class PluginManagerDialog(object):
                     app.config["plugins"]["enabled"].remove(package_name)
         app.config.save()
         if self.controller.restart_required:
-            logging.warning('Plugins were installed/uninstalled.\n'
-                            'Program needs to be closed.\n'
-                            'Please start program again for changes to take '
-                            'effect.')
+            logger.warning('\n'.join(['Plugins and/or dependencies were '
+                                      'installed/uninstalled.',
+                                      'Program needs to be restarted for '
+                                      'changes to take effect.']))
             # Use return code of `5` to signal program should be restarted.
             app.main_window_controller.on_destroy(None, return_code=5)
             return response
@@ -105,36 +108,42 @@ class PluginManagerDialog(object):
             response = dialog.run()
 
             if response == gtk.RESPONSE_OK:
-                installed_plugins = []
-                for plugin_i in dialog.selected_items():
-                    result_i = (self.controller
-                                .download_and_install_plugin(plugin_i))
-                    if result_i.get('success'):
-                        logger.info('Installed: %s', plugin_i)
-                        package_links_i = (result_i.get('actions', {})
-                                           .get('LINK', [None]))
-                        if package_links_i:
-                            installed_plugins.append(package_links_i[0])
+                selected_plugins = dialog.selected_items()
+                if not selected_plugins:
+                    return
 
-                if installed_plugins:
+                try:
+                    # Attempt install of all selected plugins, where result is
+                    # a list of unlinked packages and a list of linked packages
+                    # as tuples of the form `(<package name>, <version>,
+                    # <channel>)`.
+                    unlinked, linked =\
+                        (self.controller
+                         .download_and_install_plugin(selected_plugins))
+                    install_message = ch.format_install_info(unlinked, linked)
+                    logger.info('Installed plugins\n%s', install_message)
+                except:
+                    logger.info('Error installing plugins.', exc_info=True)
+                    return
+
+                if linked:
                     self.controller.restart_required = True
 
                 try:
                     # Display dialog notifying which plugins were installed.
                     dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
                     dialog.set_title('Plugins installed')
-                    dialog.props.text = 'The following plugins were installed:'
+                    dialog.props.text = ('Plugin packages installed '
+                                         'successfully.')
                     dialog.props.secondary_use_markup = True
-                    # Form list of plugins (along with version).
-                    dialog.props.secondary_text = \
-                        '\n'.join([' - <b>{}</b>'.format(plugin_label_i)
-                                for plugin_label_i in installed_plugins])
+                    dialog.props.secondary_text = ('<tt>{}</tt>'
+                                                   .format(install_message))
                     dialog.run()
                     dialog.destroy()
                 except:
                     logger.info('Error generating plugins install summary.',
                                 exc_info=True)
-        gtk.idle_add(_plugin_download_dialog)
+        gobject.idle_add(_plugin_download_dialog)
 
     def on_button_install_clicked(self, *args, **kwargs):
         archive_path = open_filechooser('Select plugin file',
@@ -146,16 +155,25 @@ class PluginManagerDialog(object):
         return self.controller.install_from_archive(archive_path)
 
     def on_button_update_all_clicked(self, *args, **kwargs):
-        if self.controller.update_all_plugins():
-            app = get_app()
-            logging.warning('Plugins were installed/uninstalled.\n'
-                            'Program needs to be closed.\n'
-                            'Please start program again for changes to take '
-                            'effect.')
-            # Use return code of `5` to signal program should be restarted.
-            app.main_window_controller.on_destroy(None, return_code=5)
+        def _update_all_plugins():
+            plugins_updated = self.controller.update_all_plugins()
+            self.controller.update_dialog_running.clear()
+            if plugins_updated:
+                app = get_app()
+                logger.warning('\n'.join(['Plugins and/or dependencies were '
+                                          'installed/uninstalled.',
+                                          'Program needs to be restarted for '
+                                          'changes to take effect.']))
+                # Use return code of `5` to signal program should be restarted.
+                app.main_window_controller.on_destroy(None, return_code=5)
+        if not self.controller.update_dialog_running.is_set():
+            # Indicate that the update dialog is running to prevent a
+            # second update dialog from running at the same time.
+            self.controller.update_dialog_running.set()
+            gobject.idle_add(_update_all_plugins)
         else:
-            logging.warning('No updates available.')
+            gobject.idle_add(logger.error, 'Still busy processing previous '
+                             'update request.  Please wait.')
 
 
 if __name__ == '__main__':

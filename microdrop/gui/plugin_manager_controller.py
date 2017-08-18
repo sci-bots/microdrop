@@ -23,13 +23,17 @@ import os
 import platform
 import subprocess
 import sys
+import threading
+import types
 import warnings
 
 from microdrop_utility.gui import yesno
 import conda_helpers as ch
+import gobject
 import gtk
 import logging_helpers as lh
 import mpm.api
+import mpm.ui.gtk
 import path_helpers as ph
 import yaml
 
@@ -209,15 +213,30 @@ class PluginController(object):
             plugin Python module.
 
             Use :func:`mpm.ui.gtk.update_plugin_dialog` to update plugin.
-
-        See also
-        --------
-        :func:`mpm.update._update_plugin`
         '''
         if self.is_conda_plugin:
-            # Plugin in a Conda MicroDrop plugin.  Update Conda package.
-            package_name = self.get_plugin_info().package_name
-            mpm.ui.gtk.update_plugin_dialog(package_name)
+            def _update_plugin():
+                # Plugin in a Conda MicroDrop plugin.  Update Conda package.
+                package_name = self.get_plugin_info().package_name
+                logger.info('Update `%s`', package_name)
+                install_response = \
+                    mpm.ui.gtk.update_plugin_dialog(package_name,
+                                                    update_args=
+                                                    ['--no-update'
+                                                     '-dependencies'])
+                self.controller.update_dialog_running.clear()
+                if install_response:
+                    unlinked, linked = ch.install_info(install_response)
+                    if linked:
+                        self.controller.restart_required = True
+            if not self.controller.update_dialog_running.is_set():
+                # Indicate that the update dialog is running to prevent a
+                # second update dialog from running at the same time.
+                self.controller.update_dialog_running.set()
+                gobject.idle_add(_update_plugin)
+            else:
+                gobject.idle_add(logger.error, 'Still busy processing previous'
+                                 ' update request.  Please wait.')
         else:
             # Assume MicroDrop 2.0 plugin
             logger.warning('Plugin appears to be a MicroDrop 2.0 plugin. Only '
@@ -278,35 +297,56 @@ class PluginManagerController(SingletonPlugin):
         self.restart_required = False
         self.plugin_env = PluginGlobals.env('microdrop.managed')
         self.dialog = PluginManagerDialog()
+        # Event to indicate when update dialog is running to prevent another
+        # dialog from being launched.
+        self.update_dialog_running = threading.Event()
 
-    def download_and_install_plugin(self, package_name, force=False):
+    def download_and_install_plugin(self, package_name, *args):
         '''
+        .. versionchanged:: 2.10.3
+            Remove deprecated :data:`force` keyword argument.
+
+            Pass additional args to :func:`mpm.api.install`.
+
         Parameters
         ----------
         package_name : str
-            Plugin Python module name (e.g., ``dmf_control_board_plugin``).
+            Plugin Python module name (e.g., ``microdrop.step-label-plugin``).
 
             Corresponds to ``package_name`` key in plugin ``properties.yml`` file.
-        force : bool, deprecated
-            Ignored.
 
         Returns
         -------
         bool
             ``True`` if plugin was installed or upgraded, otherwise, ``False``.
         '''
-        # Install Conda plugin package.
-        result = mpm.api.install(package_name, '--no-update-dependencies')
-        if result.get('success'):
-            # Extract importable Python module name from Conda package name.
-            #
-            # XXX Plugins are currently Python modules, which means that the
-            # installed plugin directory must be a valid module name. However,
-            # Conda package name conventions may include `.` and `-`
-            # characters.
-            module_name = package_name.split('.')[-1].replace('-', '_')
-            mpm.api.enable_plugin(module_name)
-        return result
+        if isinstance(package_name, types.StringTypes):
+            # Coerce singleton package name to list.
+            package_name = [package_name]
+        # Install Conda plugin package(s).
+        install_response = mpm.api.install(package_name,
+                                           '--no-update-dependencies', *args)
+        # Get list of unlinked packages and list of linked packages as tuples
+        # of the form `(<package name>, <version>, <channel>)`.
+        unlinked, linked = ch.install_info(install_response,
+                                           split_version=True)
+        if linked:
+            # Find installed (i.e., linked) packages that correspond to
+            # installed plugin packages.
+            linked_plugin_packages = set(name_i for name_i, version_i,
+                                         channel_i in
+                                         linked).intersection(package_name)
+
+            for plugin_package_i in linked_plugin_packages:
+                # Extract importable Python module name from Conda package name.
+                #
+                # XXX Plugins are currently Python modules, which means that the
+                # installed plugin directory must be a valid module name. However,
+                # Conda package name conventions may include `.` and `-`
+                # characters.
+                module_name = plugin_package_i.split('.')[-1].replace('-', '_')
+                mpm.api.enable_plugin(module_name)
+        return unlinked, linked
 
     def get_plugin_names(self):
         '''
@@ -368,16 +408,19 @@ class PluginManagerController(SingletonPlugin):
                           '`force` keyword', DeprecationWarning)
         self.update()
         # Update all plugins to latest versions.
-        try:
-            with lh.logging_restore(clear_handlers=True):
-                try:
-                    install_log = mpm.api.update()
-                    return 'actions' in install_log
-                except:
-                    logger.debug('Error updating plugins.', exc_info=True)
-        except RuntimeError, exception:
-            if "CondaHTTPError" in str(exception):
-                logger.debug(str(exception))
+        # XXX Disable logging handlers to prevent `conda-helpers` error/warning
+        # log messages from popping up a dialog.
+        # Only update dependencies if it is necessary to meet package
+        # requirements.
+        install_response = \
+            mpm.ui.gtk.update_plugin_dialog(update_args=
+                                            ['--no-update-dependencies'])
+        if install_response is None:
+            linked = []
+        else:
+            unlinked, linked = ch.install_info(install_response)
+        # Return `True` if at least one package was updated.
+        return (linked and True)
 
     def install_from_archive(self, archive_path, **kwargs):
         '''
