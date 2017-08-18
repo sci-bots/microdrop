@@ -79,9 +79,16 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
     initial_plugins = set(e.plugin_registry.values())
     imported_plugins = set()
 
-    for package in plugins_dir.dirs():
+    for package_i in plugins_dir.dirs():
+        if package_i.isjunction() and not package_i.readlink().isdir():
+            # Plugin directory is a junction/link to a non-existent target
+            # path.
+            logging.info('Skip import of `%s` (broken link to `%s`).',
+                         package_i.name, package_i.readlink())
+            continue
+
         try:
-            plugin_module = package.name
+            plugin_module = package_i.name
             if import_from_parent:
                 plugin_module = '.'.join([plugins_dir.name, plugin_module])
             import_statement = 'import {}'.format(plugin_module)
@@ -91,11 +98,11 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
             current_plugin = list(all_plugins - initial_plugins -
                                   imported_plugins)[0]
             logging.info('\t Imported: %s (%s)', current_plugin.__name__,
-                         package)
+                         package_i)
             imported_plugins.add(current_plugin)
         except Exception:
             logging.info(''.join(traceback.format_exc()))
-            logging.error('Error loading %s plugin.', package.name,
+            logging.error('Error loading %s plugin.', package_i.name,
                           exc_info=True)
 
     # For each newly imported plugin class, create a service instance
