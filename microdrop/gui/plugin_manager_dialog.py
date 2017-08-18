@@ -104,14 +104,20 @@ class PluginManagerDialog(object):
         Launch download dialog and install selected plugins.
         '''
         def _plugin_download_dialog():
-            dialog = PluginDownloadDialog()
-            response = dialog.run()
+            download_dialog = PluginDownloadDialog()
+            response = download_dialog.run()
 
-            if response == gtk.RESPONSE_OK:
-                selected_plugins = dialog.selected_items()
-                if not selected_plugins:
-                    return
+            if response != gtk.RESPONSE_OK:
+                return
 
+            selected_plugins = download_dialog.selected_items()
+            if not selected_plugins:
+                return
+
+            # Create event to signify download has completed.
+            download_complete = threading.Event()
+
+            def _threadsafe_download(download_complete, selected_plugins):
                 try:
                     # Attempt install of all selected plugins, where result is
                     # a list of unlinked packages and a list of linked packages
@@ -125,24 +131,67 @@ class PluginManagerDialog(object):
                 except:
                     logger.info('Error installing plugins.', exc_info=True)
                     return
+                finally:
+                    download_complete.set()
 
                 if linked:
                     self.controller.restart_required = True
 
-                try:
-                    # Display dialog notifying which plugins were installed.
-                    dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
-                    dialog.set_title('Plugins installed')
+                def _update_dialog():
                     dialog.props.text = ('Plugin packages installed '
                                          'successfully.')
                     dialog.props.secondary_use_markup = True
                     dialog.props.secondary_text = ('<tt>{}</tt>'
                                                    .format(install_message))
-                    dialog.run()
-                    dialog.destroy()
-                except:
-                    logger.info('Error generating plugins install summary.',
-                                exc_info=True)
+
+                gobject.idle_add(_update_dialog)
+
+            def _pulse(download_complete, progress_bar):
+                '''
+                Show pulsing progress bar to indicate activity.
+                '''
+                while not download_complete.wait(1. / 16):
+                    gobject.idle_add(progress_bar.pulse)
+                def _on_complete():
+                    progress_bar.set_fraction(1.)
+                    progress_bar.hide()
+                    # Enable "OK" button and focus it.
+                    dialog.action_area.get_children()[1].props.sensitive = True
+                    dialog.action_area.get_children()[1].grab_focus()
+                gobject.idle_add(_on_complete)
+
+            dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK_CANCEL)
+            dialog.set_position(gtk.WIN_POS_MOUSE)
+            dialog.props.resizable = True
+            progress_bar = gtk.ProgressBar()
+            content_area = dialog.get_content_area()
+            content_area.pack_start(progress_bar, True, True, 5)
+            content_area.show_all()
+            # Disable "OK" button until update has completed.
+            dialog.action_area.get_children()[1].props.sensitive = False
+
+            # Launch thread to download the selected plugins.
+            download_thread = threading.Thread(target=_threadsafe_download,
+                                               args=(download_complete,
+                                                     selected_plugins))
+            download_thread.daemon = True
+            download_thread.start()
+
+            # Launch thread to periodically pulse progress bar.
+            progress_thread = threading.Thread(target=_pulse,
+                                               args=(download_complete,
+                                                     progress_bar))
+            progress_thread.daemon = True
+            progress_thread.start()
+
+            dialog.props.text = ('Installing the following plugins:\n'
+                                 '<tt>{}</tt>'
+                                 .format('\n'.join([' - {}'.format(name_i)
+                                                    for name_i in
+                                                    selected_plugins])))
+            dialog.props.use_markup = True
+            dialog.run()
+            dialog.destroy()
         gobject.idle_add(_plugin_download_dialog)
 
     def on_button_update_all_clicked(self, *args, **kwargs):
