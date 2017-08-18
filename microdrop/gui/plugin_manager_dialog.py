@@ -70,6 +70,11 @@ class PluginManagerDialog(object):
             self.vbox_plugins.pack_start(p.get_widget())
 
     def run(self):
+        '''
+        .. versionchanged:: 2.10.3
+            Use :func:`plugin_helpers.get_plugin_info` function to retrieve
+            package name.
+        '''
         # TODO
         # ----
         #
@@ -102,6 +107,10 @@ class PluginManagerDialog(object):
     def on_button_download_clicked(self, *args, **kwargs):
         '''
         Launch download dialog and install selected plugins.
+
+        .. versionchanged:: 2.10.3
+            Show dialog with pulsing progress bar while waiting for plugins to
+            finish downloading and installing.
         '''
         def _plugin_download_dialog():
             download_dialog = PluginDownloadDialog()
@@ -195,6 +204,11 @@ class PluginManagerDialog(object):
         gobject.idle_add(_plugin_download_dialog)
 
     def on_button_update_all_clicked(self, *args, **kwargs):
+        '''
+        .. versionchanged:: 2.10.3
+            Show dialog with pulsing progress bar while waiting for plugins to
+            update.
+        '''
         def _update_all_plugins():
             plugins_updated = self.controller.update_all_plugins()
             self.controller.update_dialog_running.clear()

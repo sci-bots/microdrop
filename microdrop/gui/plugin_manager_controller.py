@@ -144,13 +144,11 @@ class PluginController(object):
 
         Prompt user to confirm before uninstalling plugin.
 
-        Notes
-        -----
-        An error is reported if the plugin is a Conda MicroDrop plugin
-        (uninstall for Conda plugins is not currently supported).
+        .. versionchanged:: 2.10.3
+            Fix handling of Conda HTTP error.
+
+            Notify after uninstall is completed and restart MicroDrop.
         '''
-        # TODO Deprecate MicroDrop 2.0 plugins support (i.e., only support
-        # Conda MicroDrop plugins).
         package_name = self.get_plugin_info().package_name
         # Prompt user to confirm uninstall.
         response = yesno('Uninstall plugin %s?' % package_name)
@@ -182,22 +180,6 @@ class PluginController(object):
                                          'successfully.'.format(package_name))
                     dialog.run()
                     dialog.destroy()
-        else:
-            # Assume MicroDrop 2.0 plugin
-
-            # remove the plugin from he enabled list
-            app = get_app()
-            if package_name in app.config["plugins"]["enabled"]:
-                app.config["plugins"]["enabled"].remove(package_name)
-
-            plugin_path = self.get_plugin_path()
-            if plugin_path.isdir():
-                self.controller.uninstall_plugin(plugin_path)
-                self.controller.restart_required = True
-                self.controller.update()
-                app.main_window_controller.info('%s plugin successfully '
-                                                'removed.' % package_name,
-                                                'Uninstall plugin')
         # Update dialog.
         self.controller.dialog.update()
 
@@ -206,13 +188,16 @@ class PluginController(object):
         Handler for ``"Update"`` button.
 
         .. versionchanged:: 2.10.3
-            Use `plugin_helpers.get_plugin_info` function to retrieve package
-            name.
+            Use :func:`plugin_helpers.get_plugin_info` function to retrieve
+            package name.
 
             Prior to version ``2.10.3``, package name was inferred from name of
             plugin Python module.
 
             Use :func:`mpm.ui.gtk.update_plugin_dialog` to update plugin.
+
+            Launch update plugin dialog using :func:`gobject.idle_add` to
+            ensure it is executed in the main GTK thread.
         '''
         if self.is_conda_plugin:
             def _update_plugin():
@@ -307,6 +292,9 @@ class PluginManagerController(SingletonPlugin):
 
             Pass additional args to :func:`mpm.api.install`.
 
+            Display (and return) list of removed and list of installed Conda
+            packages.
+
         Parameters
         ----------
         package_name : str
@@ -316,8 +304,21 @@ class PluginManagerController(SingletonPlugin):
 
         Returns
         -------
-        bool
-            ``True`` if plugin was installed or upgraded, otherwise, ``False``.
+        unlinked_packages, linked_packages : list, list
+            If no packages were installed or removed:
+             - :data:`unlinked_packages` is set to ``None``.
+             - :data:`linked_packages` is set to ``None``.
+
+            If any packages are installed or removed:
+             - :data:`unlinked_packages` is a list of tuples corresponding to the packages that
+               were uninstalled/replaced.
+             - :data:`linked_packages` is a list of ``(<package name and version>,
+               <channel>)`` tuples corresponding to the packages that were
+               installed/upgraded.
+
+            Each package tuple in :data:`unlinked_packages`` and
+            :data:`link_packages` is of the form ``(<package name>, <version>,
+            <channel>)``
         '''
         if isinstance(package_name, types.StringTypes):
             # Coerce singleton package name to list.
@@ -396,6 +397,9 @@ class PluginManagerController(SingletonPlugin):
         '''
         Upgrade each plugin to the latest version available (if not already
         installed).
+
+        .. versionchanged:: 2.10.3
+            Use :func:`mpm.ui.gtk.update_plugin_dialog`.
 
         Returns
         -------
