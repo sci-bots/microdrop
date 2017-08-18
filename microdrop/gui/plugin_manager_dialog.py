@@ -18,9 +18,12 @@ along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import logging
+import threading
 
-import gtk
 from pygtkhelpers.ui.dialogs import open_filechooser
+import conda_helpers as ch
+import gtk
+import gobject
 
 from .. import glade_path
 from ..app_context import get_app
@@ -67,6 +70,11 @@ class PluginManagerDialog(object):
             self.vbox_plugins.pack_start(p.get_widget())
 
     def run(self):
+        '''
+        .. versionchanged:: 2.10.3
+            Use :func:`plugin_helpers.get_plugin_info` function to retrieve
+            package name.
+        '''
         # TODO
         # ----
         #
@@ -78,7 +86,7 @@ class PluginManagerDialog(object):
         response = self.window.run()
         self.window.hide()
         for p in self.controller.plugins:
-            package_name = p.get_plugin_package_name()
+            package_name = p.get_plugin_info().package_name
             if p.enabled():
                 if package_name not in app.config["plugins"]["enabled"]:
                     app.config["plugins"]["enabled"].append(package_name)
@@ -87,10 +95,10 @@ class PluginManagerDialog(object):
                     app.config["plugins"]["enabled"].remove(package_name)
         app.config.save()
         if self.controller.restart_required:
-            logging.warning('Plugins were installed/uninstalled.\n'
-                            'Program needs to be closed.\n'
-                            'Please start program again for changes to take '
-                            'effect.')
+            logger.warning('\n'.join(['Plugins and/or dependencies were '
+                                      'installed/uninstalled.',
+                                      'Program needs to be restarted for '
+                                      'changes to take effect.']))
             # Use return code of `5` to signal program should be restarted.
             app.main_window_controller.on_destroy(None, return_code=5)
             return response
@@ -99,59 +107,127 @@ class PluginManagerDialog(object):
     def on_button_download_clicked(self, *args, **kwargs):
         '''
         Launch download dialog and install selected plugins.
+
+        .. versionchanged:: 2.10.3
+            Show dialog with pulsing progress bar while waiting for plugins to
+            finish downloading and installing.
         '''
         def _plugin_download_dialog():
-            dialog = PluginDownloadDialog()
-            response = dialog.run()
+            download_dialog = PluginDownloadDialog()
+            response = download_dialog.run()
 
-            if response == gtk.RESPONSE_OK:
-                installed_plugins = []
-                for plugin_i in dialog.selected_items():
-                    result_i = self.controller.download_and_install_plugin(plugin_i)
-                    if result_i.get('success'):
-                        logger.info('Installed: %s', plugin_i)
-                        package_links_i = (result_i.get('actions', {})
-                                           .get('LINK', [None]))
-                        if package_links_i:
-                            installed_plugins.append(package_links_i[0])
+            if response != gtk.RESPONSE_OK:
+                return
 
+            selected_plugins = download_dialog.selected_items()
+            if not selected_plugins:
+                return
+
+            # Create event to signify download has completed.
+            download_complete = threading.Event()
+
+            def _threadsafe_download(download_complete, selected_plugins):
                 try:
-                    # Display dialog notifying which plugins were installed.
-                    dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
-                    dialog.set_title('Plugins installed')
-                    dialog.props.text = 'The following plugins were installed:'
-                    dialog.props.secondary_use_markup = True
-                    # Form list of plugins (along with version).
-                    dialog.props.secondary_text = \
-                        '\n'.join([' - <b>{}</b>'.format(plugin_label_i)
-                                for plugin_label_i in installed_plugins])
-                    dialog.run()
-                    dialog.destroy()
+                    # Attempt install of all selected plugins, where result is
+                    # a list of unlinked packages and a list of linked packages
+                    # as tuples of the form `(<package name>, <version>,
+                    # <channel>)`.
+                    unlinked, linked =\
+                        (self.controller
+                         .download_and_install_plugin(selected_plugins))
+                    install_message = ch.format_install_info(unlinked, linked)
+                    logger.info('Installed plugins\n%s', install_message)
                 except:
-                    logger.info('Error generating plugins install summary.',
-                                exc_info=True)
-        gtk.idle_add(_plugin_download_dialog)
+                    logger.info('Error installing plugins.', exc_info=True)
+                    return
+                finally:
+                    download_complete.set()
 
-    def on_button_install_clicked(self, *args, **kwargs):
-        archive_path = open_filechooser('Select plugin file',
-                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                                        patterns=['*.tar.bz2'])
-        if archive_path is None:
-            return True
+                if linked:
+                    self.controller.restart_required = True
 
-        return self.controller.install_from_archive(archive_path)
+                def _update_dialog():
+                    dialog.props.text = ('Plugin packages installed '
+                                         'successfully.')
+                    dialog.props.secondary_use_markup = True
+                    dialog.props.secondary_text = ('<tt>{}</tt>'
+                                                   .format(install_message))
+
+                gobject.idle_add(_update_dialog)
+
+            def _pulse(download_complete, progress_bar):
+                '''
+                Show pulsing progress bar to indicate activity.
+                '''
+                while not download_complete.wait(1. / 16):
+                    gobject.idle_add(progress_bar.pulse)
+                def _on_complete():
+                    progress_bar.set_fraction(1.)
+                    progress_bar.hide()
+                    # Enable "OK" button and focus it.
+                    dialog.action_area.get_children()[1].props.sensitive = True
+                    dialog.action_area.get_children()[1].grab_focus()
+                gobject.idle_add(_on_complete)
+
+            dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK_CANCEL)
+            dialog.set_position(gtk.WIN_POS_MOUSE)
+            dialog.props.resizable = True
+            progress_bar = gtk.ProgressBar()
+            content_area = dialog.get_content_area()
+            content_area.pack_start(progress_bar, True, True, 5)
+            content_area.show_all()
+            # Disable "OK" button until update has completed.
+            dialog.action_area.get_children()[1].props.sensitive = False
+
+            # Launch thread to download the selected plugins.
+            download_thread = threading.Thread(target=_threadsafe_download,
+                                               args=(download_complete,
+                                                     selected_plugins))
+            download_thread.daemon = True
+            download_thread.start()
+
+            # Launch thread to periodically pulse progress bar.
+            progress_thread = threading.Thread(target=_pulse,
+                                               args=(download_complete,
+                                                     progress_bar))
+            progress_thread.daemon = True
+            progress_thread.start()
+
+            dialog.props.text = ('Installing the following plugins:\n'
+                                 '<tt>{}</tt>'
+                                 .format('\n'.join([' - {}'.format(name_i)
+                                                    for name_i in
+                                                    selected_plugins])))
+            dialog.props.use_markup = True
+            dialog.run()
+            dialog.destroy()
+        gobject.idle_add(_plugin_download_dialog)
 
     def on_button_update_all_clicked(self, *args, **kwargs):
-        if self.controller.update_all_plugins():
-            app = get_app()
-            logging.warning('Plugins were installed/uninstalled.\n'
-                            'Program needs to be closed.\n'
-                            'Please start program again for changes to take '
-                            'effect.')
-            # Use return code of `5` to signal program should be restarted.
-            app.main_window_controller.on_destroy(None, return_code=5)
+        '''
+        .. versionchanged:: 2.10.3
+            Show dialog with pulsing progress bar while waiting for plugins to
+            update.
+        '''
+        def _update_all_plugins():
+            plugins_updated = self.controller.update_all_plugins()
+            self.controller.update_dialog_running.clear()
+            if plugins_updated:
+                app = get_app()
+                logger.warning('\n'.join(['Plugins and/or dependencies were '
+                                          'installed/uninstalled.',
+                                          'Program needs to be restarted for '
+                                          'changes to take effect.']))
+                # Use return code of `5` to signal program should be restarted.
+                app.main_window_controller.on_destroy(None, return_code=5)
+        if not self.controller.update_dialog_running.is_set():
+            # Indicate that the update dialog is running to prevent a
+            # second update dialog from running at the same time.
+            self.controller.update_dialog_running.set()
+            gobject.idle_add(_update_all_plugins)
         else:
-            logging.warning('No updates available.')
+            gobject.idle_add(logger.error, 'Still busy processing previous '
+                             'update request.  Please wait.')
 
 
 if __name__ == '__main__':

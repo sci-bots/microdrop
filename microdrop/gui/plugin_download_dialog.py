@@ -66,7 +66,7 @@ class PluginDownloadDialog(object):
             return
 
         # Only plugins with the same *major* version will be returned.
-        installed_packages = set([p.get_plugin_package_name()
+        installed_packages = set([p.get_plugin_info().package_name
                                   for p in self.controller.plugins])
         to_install = set(available_packages).difference(installed_packages)
         if not to_install:
