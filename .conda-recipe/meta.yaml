@@ -34,7 +34,7 @@ requirements:
     - lxml
     - matplotlib
     - microdrop-device-converter >=0.1.post5
-    - microdrop-plugin-manager >=0.19
+    - microdrop-plugin-manager >=0.23
     - microdrop-plugin-template
     - networkx
     - openpyxl
@@ -84,7 +84,7 @@ requirements:
     - lxml
     - matplotlib
     - microdrop-device-converter >=0.1.post5
-    - microdrop-plugin-manager >=0.19
+    - microdrop-plugin-manager >=0.23
     - microdrop-plugin-template
     - networkx
     - openpyxl
