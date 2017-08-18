@@ -158,7 +158,7 @@ class PluginController(object):
             try:
                 uninstall_json_log = mpm.api.uninstall(package_name)
             except RuntimeError, exception:
-                if 'CondaHTTPError' in exception:
+                if 'CondaHTTPError' in str(exception):
                     # Error accessing Conda server.
                     logger.warning('Could not connect to server.')
                 else:
