@@ -282,7 +282,6 @@ class PluginManagerController(SingletonPlugin):
      - :meth:`uninstall_plugin`
      - :meth:`install_plugin`
      - :meth:`download_and_install_plugin`
-     - :meth:`install_from_archive`
      - :meth:`update_plugin`
      - :meth:`uninstall_plugin`
     '''
@@ -421,46 +420,6 @@ class PluginManagerController(SingletonPlugin):
             unlinked, linked = ch.install_info(install_response)
         # Return `True` if at least one package was updated.
         return (linked and True)
-
-    def install_from_archive(self, archive_path, **kwargs):
-        '''
-        Install a plugin from an archive (i.e., `.tar.bz2`).
-
-        ..note::
-
-            Installing a plugin from an archive **does not install
-            dependencies**.
-
-        Parameters
-        ----------
-        archive_path : str
-            Path to plugin archive file.
-
-        Returns
-        -------
-        bool
-            ``True`` if plugin was installed or upgraded, otherwise, ``False``.
-        '''
-        if kwargs:
-            warnings.warn('The `install_from_archive` method no longer accepts'
-                          ' `force` keyword', DeprecationWarning)
-        try:
-            mpm.api.install('--offline', '--file', archive_path)
-        except ValueError, exception:
-            # XXX Note that `--json` flag is erroneously ignored when executing
-            # `conda install` with `tar.bz2` archive (see [here][conda-4879]).
-            #
-            # As a workaround, if command fails with a JSON decoding error,
-            # assume that the install completed successfully.
-            #
-            # TODO Check status of [related Conda issue][conda-4879] and remove
-            # workaround once the bug is fixed.
-            #
-            # [conda-4879]: https://github.com/conda/conda/issues/4879
-            if 'No JSON object could be decoded' in str(exception):
-                return True
-            else:
-                raise
 
     def uninstall_plugin(self, plugin_path):
         '''

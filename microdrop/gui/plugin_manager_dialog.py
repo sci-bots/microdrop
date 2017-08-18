@@ -145,15 +145,6 @@ class PluginManagerDialog(object):
                                 exc_info=True)
         gobject.idle_add(_plugin_download_dialog)
 
-    def on_button_install_clicked(self, *args, **kwargs):
-        archive_path = open_filechooser('Select plugin file',
-                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                                        patterns=['*.tar.bz2'])
-        if archive_path is None:
-            return True
-
-        return self.controller.install_from_archive(archive_path)
-
     def on_button_update_all_clicked(self, *args, **kwargs):
         def _update_all_plugins():
             plugins_updated = self.controller.update_all_plugins()
