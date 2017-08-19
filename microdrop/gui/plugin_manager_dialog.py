@@ -74,6 +74,10 @@ class PluginManagerDialog(object):
         .. versionchanged:: 2.10.3
             Use :func:`plugin_helpers.get_plugin_info` function to retrieve
             package name.
+
+        .. versionchanged:: 2.10.5
+            Save Python module names of enabled plugins (**not** Conda package
+            names) to ``microdrop.ini`` configuration file.
         '''
         # TODO
         # ----
