@@ -1,27 +1,22 @@
 name: MicroDrop
 version: {{ GIT_DESCRIBE_TAG[1:] }}
 
-channels: 
+channels:
   - http://repo.continuum.io/pkgs/free/
   - https://conda.anaconda.org/conda-forge/
   - https://conda.anaconda.org/wheeler-microfluidics/
   - https://conda.anaconda.org/sci-bots
-  - https://conda.anaconda.org/sci-bots-unstable
   - https://conda.anaconda.org/microdrop-plugins
 
 specs:
   - conda
-  - dmf-device-ui >=0.5
+  - dmf-device-ui >=0.6
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
-  - microdrop-launcher >=0.4
+  - microdrop-launcher >=0.7.10
   - pip
   - python 2.7*
   - pywin32
-  # Install requirements for "featured" plugins
-  #- device-quality-control-plugin-requirements >=2.1
-  #- dmf-control-board-plugin-requirements >=2.3
-  #- dropbot-dx-plugin-requirements >=2.3.post1
-  #- metadata-plugin-requirements
+  # Install MicroDrop plugins
   - microdrop.droplet-planning-plugin
   - microdrop.dmf-device-ui-plugin
   - microdrop.dropbot-plugin
@@ -37,7 +32,6 @@ conda_default_channels:
   - https://conda.anaconda.org/conda-forge/
   - https://conda.anaconda.org/wheeler-microfluidics/
   - https://conda.anaconda.org/sci-bots
-  - https://conda.anaconda.org/sci-bots-unstable
 
 # Welcome image for Windows installer
 welcome_image: logo.png                  [win]
