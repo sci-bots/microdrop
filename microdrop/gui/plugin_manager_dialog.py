@@ -87,12 +87,19 @@ class PluginManagerDialog(object):
         self.window.hide()
         for p in self.controller.plugins:
             package_name = p.get_plugin_info().package_name
+            # Extract importable Python module name from Conda package name.
+            #
+            # XXX Plugins are currently Python modules, which means that the
+            # installed plugin directory must be a valid module name. However,
+            # Conda package name conventions may include `.` and `-`
+            # characters.
+            module_name = package_name.split('.')[-1].replace('-', '_')
             if p.enabled():
-                if package_name not in app.config["plugins"]["enabled"]:
-                    app.config["plugins"]["enabled"].append(package_name)
+                if module_name not in app.config["plugins"]["enabled"]:
+                    app.config["plugins"]["enabled"].append(module_name)
             else:
-                if package_name in app.config["plugins"]["enabled"]:
-                    app.config["plugins"]["enabled"].remove(package_name)
+                if module_name in app.config["plugins"]["enabled"]:
+                    app.config["plugins"]["enabled"].remove(module_name)
         app.config.save()
         if self.controller.restart_required:
             logger.warning('\n'.join(['Plugins and/or dependencies were '
