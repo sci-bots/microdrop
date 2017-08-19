@@ -10,7 +10,7 @@ channels:
 
 specs:
   - conda
-  - dmf-device-ui >=0.5
+  - dmf-device-ui >=0.6
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
   - microdrop-launcher >=0.7.10
   - pip
