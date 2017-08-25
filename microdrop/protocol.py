@@ -57,10 +57,10 @@ MESSAGE_SCHEMA = {
       'properties':
       {'name': {'type': 'string', 'description': 'Protocol name'},
        'uuid': {'$ref': '#/definitions/unique_id'},
-       'version' : {'type': 'string',
-                    'default': '0.2.0',
-                    'enum': ['0.2.0'],
-                    'description': 'The MicroDrop protocol version'},
+       'version': {'type': 'string',
+                   'default': '0.2.0',
+                   'enum': ['0.2.0'],
+                   'description': 'The MicroDrop protocol version'},
        'steps': {"type": "array",
                  "items": {'$ref': '#/definitions/step'}}},
       'required': ['name', 'version']},
@@ -69,11 +69,11 @@ MESSAGE_SCHEMA = {
       'type': 'object',
       'properties':
       {'plugin_data': {'$ref': '#/definitions/plugin_data'},
-       'version' : {'type': 'string',
-                    'default': '0.2.0',
-                    'enum': ['0.2.0'],
-                    'description': 'The MicroDrop step version'},
-      'additionalProperties': False}}},
+       'version': {'type': 'string',
+                   'default': '0.2.0',
+                   'enum': ['0.2.0'],
+                   'description': 'The MicroDrop step version'},
+       'additionalProperties': False}}},
 }
 
 PROTOCOL_SCHEMA = copy.deepcopy(MESSAGE_SCHEMA)
@@ -655,7 +655,7 @@ def protocol_dict_transform_plugin_data(protocol_dict, transform_func,
 
 
 class Protocol():
-    class_version = str(Version(0,2))
+    class_version = str(Version(0, 2))
 
     def __init__(self, name=None):
         self.version = self.class_version
@@ -705,14 +705,14 @@ class Protocol():
                 logger.debug("Loaded object from pickle.")
             except Exception, e:
                 logger.debug("Not a valid pickle file. %s." % e)
-        if out==None:
+        if out is None:
             with open(filename, 'rb') as f:
                 try:
                     out = yaml.load(f)
                     logger.debug("Loaded object from YAML file.")
                 except Exception, e:
                     logger.debug("Not a valid YAML file. %s." % e)
-        if out==None:
+        if out is None:
             raise TypeError
         out.filename = filename
 
@@ -723,35 +723,68 @@ class Protocol():
 
         # check type
         if out.__class__ != cls:
-            raise TypeError, "File is wrong type: %s" % out.__class__
+            raise TypeError("File is wrong type: %s" % out.__class__)
         if not hasattr(out, 'version'):
             out.version = str(Version(0))
         out._upgrade()
 
+        def _decode(value):
+            '''
+            .. versionadded:: 2.11.1
+                Fixes #241.
+
+            Parameters
+            ----------
+            value : str
+                Pickled or YAML-encoded object.
+
+            Returns
+            -------
+            object
+                Decoded object.
+            '''
+            try:
+                return pickle.loads(value)
+            except Exception, e:
+                logger.debug('Error decoding: `%s`', value, exc_info=True)
+                if 'No module named indexes.base' in str(e):
+                    if 'pandas.core.indexes' in value:
+                        value_ = value.replace('pandas.core.indexes',
+                                               'pandas.indexes')
+                    elif 'pandas.indexes' in value:
+                        value_ = value.replace('pandas.indexes',
+                                               'pandas.core.indexes')
+                    else:
+                        value_ = None
+
+                    if value_:
+                        try:
+                            return pickle.loads(value_)
+                        except:
+                            pass
+                # enable loading of old protocols where the
+                # dmf_device_controller was imported as a relative package
+                value = value.replace('!!python/object:gui'
+                                      '.dmf_device_controller.',
+                                      '!!python/object:microdrop.gui.'
+                                      'dmf_device_controller.')
+                return yaml.load(value)
+
         for k, v in out.plugin_data.items():
             try:
-                out.plugin_data[k] = pickle.loads(v)
+                out.plugin_data[k] = _decode(v)
             except Exception, e:
-                try:
-                    out.plugin_data[k] = yaml.load(v)
-                except Exception, e:
-                    logger.error('[Protocol].load() Error unpickling plugin '
-                                 'data for %s', k, exc_info=True)
+                logger.error('Error decoding plugin data for `%s`: `%s`', k, v,
+                             exc_info=True)
+
         for i in range(len(out)):
             for k, v in out[i].plugin_data.items():
                 try:
-                    out[i].plugin_data[k] = pickle.loads(v)
+                    out[i].plugin_data[k] = _decode(v)
                 except Exception, e:
-                    try:
-                        # enable loading of old protocols where the
-                        # dmf_device_controller was imported as a relative package
-                        v = v.replace('!!python/object:gui.dmf_device_controller.',
-                                      '!!python/object:microdrop.gui.'
-                                      'dmf_device_controller.')
-                        out[i].plugin_data[k] = yaml.load(v)
-                    except Exception, e:
-                        logger.error('[Protocol].load() Error unpickling '
-                                     'plugin data for %s', k, exc_info=True)
+                        logger.error('Error decoding plugin data for step %d, '
+                                     '`%s`: `%s`', i, k, v, exc_info=True)
+
         logger.debug("[Protocol].load() loaded in %f s." % \
                      (time.time()-start_time))
         return out
