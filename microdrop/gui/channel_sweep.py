@@ -13,21 +13,23 @@ def get_channel_sweep_parameters(voltage=100, frequency=10e3, channels=None,
     Show dialog to select parameters for a sweep across a selected set of
     channels.
 
-    Args
-    ----
-
-        voltage (int) : Default actuation voltage.
-        frequency (int) : Default actuation frequency.
-        channels (pandas.Series) : Default channels selection, encoded as
-            boolean array indexed by channel number, where `True` values
-            indicate selected channel(s).
-        parent (gtk.Window) : If not `None`, parent window for dialog.  For
-            example, display dialog at position relative to the parent window.
+    Parameters
+    ----------
+    voltage : int
+        Default actuation voltage.
+    frequency : int
+        Default actuation frequency.
+    channels : pandas.Series
+        Default channels selection, encoded as boolean array indexed by channel
+        number, where `True` values indicate selected channel(s).
+    parent : gtk.Window
+        If not ``None``, parent window for dialog.  For example, display dialog
+        at position relative to the parent window.
 
     Returns
     -------
-
-        (dict) : Values collected from widgets with the following keys:
+    dict
+        Values collected from widgets with the following keys:
             `'frequency'`, `voltage'`, and (optionally) `'channels'`.
     '''
     # Create a form view containing widgets to set the waveform attributes
