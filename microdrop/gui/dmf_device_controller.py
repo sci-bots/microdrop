@@ -25,6 +25,7 @@ from lxml import etree
 from microdrop_device_converter import convert_device_to_svg
 from microdrop_utility import copytree
 from microdrop_utility.gui import yesno
+from pygtkhelpers.gthreads import gtk_threadsafe
 from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import add_filters
@@ -73,6 +74,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             self.menu_rename_dmf_device.set_sensitive(not value)
             self.menu_save_dmf_device.set_sensitive(value)
 
+    @gtk_threadsafe
     def on_app_options_changed(self, plugin_name):
         try:
             if plugin_name == self.name:
@@ -123,21 +125,12 @@ directory)?''' % (device_directory, self.previous_device_dir))
         return True
 
     def on_plugin_enable(self):
+        '''
+        .. versionchanged:: 2.11.2
+            Use :func:`gtk_threadsafe` decorator to wrap GTK code blocks,
+            ensuring the code runs in the main GTK thread.
+        '''
         app = get_app()
-
-        self.menu_detect_connections = app.builder.get_object('menu_detect_connections')
-        self.menu_import_dmf_device = app.builder.get_object('menu_import_dmf_device')
-        self.menu_load_dmf_device = app.builder.get_object('menu_load_dmf_device')
-        self.menu_rename_dmf_device = app.builder.get_object('menu_rename_dmf_device')
-        self.menu_save_dmf_device = app.builder.get_object('menu_save_dmf_device')
-        self.menu_save_dmf_device_as = app.builder.get_object('menu_save_dmf_device_as')
-
-        app.signals["on_menu_detect_connections_activate"] = self.on_detect_connections
-        app.signals["on_menu_import_dmf_device_activate"] = self.on_import_dmf_device
-        app.signals["on_menu_load_dmf_device_activate"] = self.on_load_dmf_device
-        app.signals["on_menu_rename_dmf_device_activate"] = self.on_rename_dmf_device
-        app.signals["on_menu_save_dmf_device_activate"] = self.on_save_dmf_device
-        app.signals["on_menu_save_dmf_device_as_activate"] = self.on_save_dmf_device_as
 
         app.dmf_device_controller = self
         defaults = self.get_default_app_options()
@@ -148,11 +141,41 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app.set_data(self.name, data)
         emit_signal('on_app_options_changed', [self.name])
 
-        # disable menu items until a device is loaded
-        self.menu_detect_connections.set_sensitive(False)
-        self.menu_rename_dmf_device.set_sensitive(False)
-        self.menu_save_dmf_device.set_sensitive(False)
-        self.menu_save_dmf_device_as.set_sensitive(False)
+        self.menu_detect_connections = \
+            app.builder.get_object('menu_detect_connections')
+        self.menu_import_dmf_device = \
+            app.builder.get_object('menu_import_dmf_device')
+        self.menu_load_dmf_device = \
+            app.builder.get_object('menu_load_dmf_device')
+        self.menu_rename_dmf_device = \
+            app.builder.get_object('menu_rename_dmf_device')
+        self.menu_save_dmf_device = \
+            app.builder.get_object('menu_save_dmf_device')
+        self.menu_save_dmf_device_as = \
+            app.builder.get_object('menu_save_dmf_device_as')
+
+        app.signals["on_menu_detect_connections_activate"] = \
+            self.on_detect_connections
+        app.signals["on_menu_import_dmf_device_activate"] = \
+            self.on_import_dmf_device
+        app.signals["on_menu_load_dmf_device_activate"] = \
+            self.on_load_dmf_device
+        app.signals["on_menu_rename_dmf_device_activate"] = \
+            self.on_rename_dmf_device
+        app.signals["on_menu_save_dmf_device_activate"] = \
+            self.on_save_dmf_device
+        app.signals["on_menu_save_dmf_device_as_activate"] = \
+            self.on_save_dmf_device_as
+
+        @gtk_threadsafe
+        def _init_ui():
+            # disable menu items until a device is loaded
+            self.menu_detect_connections.set_sensitive(False)
+            self.menu_rename_dmf_device.set_sensitive(False)
+            self.menu_save_dmf_device.set_sensitive(False)
+            self.menu_save_dmf_device_as.set_sensitive(False)
+
+        _init_ui()
 
     def on_protocol_pause(self):
         pass
@@ -345,6 +368,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             self.load_device(filename)
         dialog.destroy()
 
+    @gtk_threadsafe
     def on_import_dmf_device(self, widget, data=None):
         self.save_check()
         dialog = gtk.FileChooserDialog(title="Import device",
@@ -423,20 +447,51 @@ directory)?''' % (device_directory, self.previous_device_dir))
         with svg_source.open('w') as output:
             output.write(output_svg.getvalue())
 
+    @gtk_threadsafe
     def on_rename_dmf_device(self, widget, data=None):
+        '''
+        .. versionchanged:: 2.11.2
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.save_dmf_device(rename=True)
 
+    @gtk_threadsafe
     def on_save_dmf_device(self, widget, data=None):
+        '''
+        .. versionchanged:: 2.11.2
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.save_dmf_device()
 
+    @gtk_threadsafe
     def on_save_dmf_device_as(self, widget, data=None):
+        '''
+        .. versionchanged:: 2.11.2
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.save_dmf_device(save_as=True)
 
+    @gtk_threadsafe
     def on_dmf_device_changed(self, dmf_device):
+        '''
+        .. versionchanged:: 2.11.2
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.modified = True
 
+    @gtk_threadsafe
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        '''
+        .. versionchanged:: 2.11.2
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.menu_detect_connections.set_sensitive(True)
         self.menu_save_dmf_device_as.set_sensitive(True)
+
 
 PluginGlobals.pop_env()
