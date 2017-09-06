@@ -17,11 +17,13 @@ You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 from datetime import datetime
+import logging
 import pdb
 import pkg_resources
 import threading
 import webbrowser
 
+from pygtkhelpers.gthreads import gtk_threadsafe
 from pygtkhelpers.proxy import proxy_for
 from microdrop_utility import wrap_string
 from microdrop_utility.gui import DEFAULTS
@@ -37,12 +39,9 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, ILoggingPlugin,
                               emit_signal, get_service_instance_by_name)
 from ..app_context import get_app
-import logging
-
-logger = logging.getLogger(__name__)
 from .. import glade_path
 
-
+logger = logging.getLogger(__name__)
 
 PluginGlobals.push_env('microdrop')
 
@@ -89,6 +88,7 @@ class MainWindowController(SingletonPlugin):
         self.view = app.builder.get_object("window")
 
         self.view._add_accel_group = self.view.add_accel_group
+
         def add_accel_group(accel_group):
             self.view._add_accel_group(accel_group)
             if not hasattr(self, 'accel_groups'):
@@ -97,6 +97,7 @@ class MainWindowController(SingletonPlugin):
         self.view.add_accel_group = add_accel_group
 
         self.view._remove_accel_group = self.view.remove_accel_group
+
         def remove_accel_group(accel_group, cached=True):
             self.view._remove_accel_group(accel_group)
             if not cached and hasattr(self, 'accel_groups'):
@@ -113,24 +114,28 @@ class MainWindowController(SingletonPlugin):
                             'label_experiment_id', 'label_protocol_name',
                             'label_protocol_name', 'label_step_time',
                             'menu_experiment_logs', 'menu_tools', 'menu_view',
-                            'button_open_log_directory', 'button_open_log_notes'):
+                            'button_open_log_directory',
+                            'button_open_log_notes'):
             setattr(self, widget_name, app.builder.get_object(widget_name))
 
         app.signals["on_menu_quit_activate"] = self.on_destroy
         app.signals["on_menu_about_activate"] = self.on_about
-        app.signals["on_menu_online_help_activate"] = self.on_menu_online_help_activate
+        app.signals["on_menu_online_help_activate"] = \
+            self.on_menu_online_help_activate
         app.signals["on_menu_experiment_logs_activate"] = \
             self.on_menu_experiment_logs_activate
         app.signals["on_window_destroy"] = self.on_destroy
         app.signals["on_window_delete_event"] = self.on_delete_event
         app.signals["on_checkbutton_realtime_mode_button_press_event"] = \
-                self.on_realtime_mode_toggled
+            self.on_realtime_mode_toggled
         app.signals["on_button_open_log_directory_clicked"] = \
-                self.on_button_open_log_directory
+            self.on_button_open_log_directory
         app.signals["on_button_open_log_notes_clicked"] = \
-                self.on_button_open_log_notes
-        app.signals["on_menu_app_options_activate"] = self.on_menu_app_options_activate
-        app.signals["on_menu_manage_plugins_activate"] = self.on_menu_manage_plugins_activate
+            self.on_button_open_log_notes
+        app.signals["on_menu_app_options_activate"] = \
+            self.on_menu_app_options_activate
+        app.signals["on_menu_manage_plugins_activate"] = \
+            self.on_menu_manage_plugins_activate
 
         self.builder = gtk.Builder()
         self.builder.add_from_file(glade_path().joinpath('about_dialog.glade'))
@@ -265,6 +270,7 @@ class MainWindowController(SingletonPlugin):
         app.set_app_values({'realtime_mode': realtime_mode})
         return True
 
+    @gtk_threadsafe
     def on_menu_app_options_activate(self, widget, data=None):
         from app_options_controller import AppOptionsController
 
@@ -342,7 +348,6 @@ class MainWindowController(SingletonPlugin):
         message = get_string(obj)
         if modified:
             message += ' <b>[modified]</b>'
-        #label.set_text(wrap_string(message, 30, "\n\t"))
         label.set_markup(wrap_string(message, 60, "\n\t"))
 
     def update_protocol_name_label(self, obj=None, **kwargs):
@@ -355,16 +360,18 @@ class MainWindowController(SingletonPlugin):
 
     def on_protocol_changed(self):
         app = get_app()
-        self.update_protocol_name_label(modified= \
-                                        app.protocol_controller.modified)
+        self.update_protocol_name_label(modified=app.protocol_controller
+                                        .modified)
 
+    @gtk_threadsafe
     def on_experiment_log_changed(self, experiment_log):
         self.button_open_log_directory.set_sensitive(True)
         self.button_open_log_notes.set_sensitive(True)
         if experiment_log:
             self.label_experiment_id.set_text("Experiment: %s (%s)" %
-                                              (str(experiment_log.experiment_id),
-                                              experiment_log.uuid))
+                                              (str(experiment_log
+                                                   .experiment_id),
+                                               experiment_log.uuid))
 
     def get_device_string(self, device=None):
         if device is None:
@@ -378,11 +385,13 @@ class MainWindowController(SingletonPlugin):
         _kwargs['get_string'] = self.get_device_string
         self.update_label(self.label_device_name, obj=obj, **_kwargs)
 
+    @gtk_threadsafe
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
         self.checkbutton_realtime_mode.set_sensitive(True)
         self.menu_experiment_logs.set_sensitive(True)
-        self.update_device_name_label(dmf_device, modified=
-                                      get_app().dmf_device_controller.modified)
+        self.update_device_name_label(dmf_device,
+                                      modified=get_app().dmf_device_controller
+                                      .modified)
 
     def on_dmf_device_changed(self, dmf_device):
         self.update_device_name_label(modified=True)

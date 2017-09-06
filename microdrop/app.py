@@ -26,7 +26,6 @@ except ImportError:
 import re
 import subprocess
 import sys
-import traceback
 
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
@@ -34,19 +33,17 @@ from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 import gtk
 import mpm.api
 import path_helpers as ph
-import yaml
 
 from . import plugin_manager
 from .protocol import Step
 from .config import Config
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                              implements, PluginGlobals)
-from .plugin_helpers import AppDataController, get_plugin_info
+from .plugin_helpers import AppDataController
 from .logger import CustomHandler
 from . import base_path
 
 logger = logging.getLogger(__name__)
-
 
 PluginGlobals.push_env('microdrop')
 
@@ -108,8 +105,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         String.named('server_url')
         .using(default='http://microfluidics.utoronto.ca/update',
                optional=True, properties=dict(show_in_gui=False)),
-        Boolean.named('realtime_mode').using(default=False, optional=True,
-                                             properties=dict(show_in_gui=False)),
+        Boolean.named('realtime_mode')
+        .using(default=False, optional=True,
+               properties=dict(show_in_gui=False)),
         Filepath.named('log_file')
         .using(default='', optional=True,
                properties={'action': gtk.FILE_CHOOSER_ACTION_SAVE}),
@@ -127,19 +125,21 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.version = ""
         try:
             raise Exception
-            version = subprocess.Popen(['git','describe'],
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE,
-                                       stdin=subprocess.PIPE).communicate()[0].rstrip()
+            version = (subprocess.Popen(['git', 'describe'],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        stdin=subprocess.PIPE)
+                       .communicate()[0].rstrip())
             m = re.match('v(\d+)\.(\d+)-(\d+)', version)
             self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
-            branch = subprocess.Popen(['git','rev-parse', '--abbrev-ref', 'HEAD'],
-                                       stdout=subprocess.PIPE,
+            branch = (subprocess.Popen(['git', 'rev-parse', '--abbrev-ref',
+                                        'HEAD'], stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE,
-                                       stdin=subprocess.PIPE).communicate()[0].rstrip()
+                                       stdin=subprocess.PIPE)
+                      .communicate()[0].rstrip())
             if branch.strip() != 'master':
                 self.version += "-%s" % branch
-        except:
+        except Exception:
             import pkg_resources
 
             version = pkg_resources.get_distribution('microdrop').version
@@ -291,7 +291,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         # set realtime mode to false on startup
         if self.name in self.config.data and \
-        'realtime_mode' in self.config.data[self.name]:
+                'realtime_mode' in self.config.data[self.name]:
             self.config.data[self.name]['realtime_mode'] = False
 
         plugin_manager.emit_signal('on_plugin_enable')
@@ -373,7 +373,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             try:
                 self.config['dmf_device']['name'] = \
                     device_directory.dirs()[0].name
-            except:
+            except Exception:
                 pass
 
         # load the device from the config file
@@ -394,9 +394,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 directory = self.get_device_directory()
                 if directory:
                     filename = os.path.join(directory,
-                        self.config['dmf_device']['name'],
-                        "protocols",
-                        self.config['protocol']['name'])
+                                            self.config['dmf_device']['name'],
+                                            "protocols",
+                                            self.config['protocol']['name'])
                     self.protocol_controller.load_protocol(filename)
 
         data = self.get_data("microdrop.app")
@@ -418,10 +418,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             self._destroy_log_file_handler()
 
         try:
-            self.log_file_handler = (logging
-                                     .FileHandler(log_file,
-                                                  disable_existing_loggers
-                                                  =False))
+            self.log_file_handler = \
+                logging.FileHandler(log_file, disable_existing_loggers=False)
         except TypeError:
             # Assume old version of `logging` module without support for
             # `disable_existing_loggers` keyword argument.

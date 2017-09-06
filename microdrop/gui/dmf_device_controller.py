@@ -189,7 +189,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
                                    'verify scale and adjacent electrode '
                                    'connections.')
                 except Exception, e:
-                    logger.error('Error importing device. %s' % e, exc_info=True)
+                    logger.error('Error importing device. %s', e,
+                                 exc_info=True)
                 return
             else:
                 logger.error('Error opening device.  Please ensure file '
@@ -230,7 +231,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 logger.info('[DmfDeviceController].load_device: Copied new '
                             'device to: %s', file_path)
             emit_signal("on_dmf_device_swapped", [app.dmf_device, device])
-        except:
+        except Exception:
             logger.error('Error loading device.', exc_info=True)
 
     def save_check(self):
@@ -323,7 +324,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         return []
 
     # GUI callbacks
-
     def on_load_dmf_device(self, widget, data=None):
         self.save_check()
         app = get_app()
@@ -401,17 +401,17 @@ directory)?''' % (device_directory, self.previous_device_dir))
             response = pgh.ui.dialogs.yesno('"Connections" layer already '
                                             'exists in device file.\n\n'
                                             'Overwrite?',
-                                            parent=
-                                            app.main_window_controller.view)
+                                            parent=app.main_window_controller
+                                            .view)
             if response == gtk.RESPONSE_NO:
                 return
 
         # Auto-detect adjacent electrodes from SVG paths and polygons from
         # `Device` layer.
-        connections_svg = (sm.detect_connections
-                           .auto_detect_adjacent_shapes(svg_source,
-                                                        shapes_xpath=
-                                                        ELECTRODES_XPATH))
+        connections_svg = \
+            sm.detect_connections\
+            .auto_detect_adjacent_shapes(svg_source,
+                                         shapes_xpath=ELECTRODES_XPATH)
 
         # Remove existing "Connections" layer and merge new "Connections" layer
         # with original SVG.

@@ -18,11 +18,11 @@ along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
 import logging
 
-logger = logging.getLogger(__name__)
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ExtensionPoint, ScheduleRequest)
 from ..app_context import get_app
 
+logger = logging.getLogger(__name__)
 
 PluginGlobals.push_env('microdrop')
 
@@ -84,7 +84,7 @@ class ConfigController(SingletonPlugin):
                 return
             app_options = service.get_app_values()
             if app_options:
-                if not plugin_name in self.app.config.data:
+                if plugin_name not in self.app.config.data:
                     self.app.config.data[plugin_name] = {}
                 self.app.config.data[plugin_name].update(app_options)
                 self.app.config.save()
@@ -99,12 +99,10 @@ class ConfigController(SingletonPlugin):
                                     self.name)]
         elif function_name == 'on_protocol_swapped':
             # make sure that the app's protocol reference is valid
-            return [ScheduleRequest("microdrop.app",
-                                    self.name)]
+            return [ScheduleRequest("microdrop.app", self.name)]
         elif function_name == 'on_dmf_device_swapped':
             # make sure that the app's dmf device reference is valid
-            return [ScheduleRequest("microdrop.app",
-                                    self.name)]
+            return [ScheduleRequest("microdrop.app", self.name)]
         return []
 
 
