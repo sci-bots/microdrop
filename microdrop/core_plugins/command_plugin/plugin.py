@@ -90,7 +90,6 @@ class CommandZmqPlugin(ZmqPlugin):
         return self._commands.copy()
 
 
-
 def parse_args(args=None):
     """Parses arguments, returns (options, args)."""
     from argparse import ArgumentParser

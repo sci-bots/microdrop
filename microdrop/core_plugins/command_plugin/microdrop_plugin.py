@@ -18,7 +18,8 @@ along with command_plugin.  If not, see <http://www.gnu.org/licenses/>.
 """
 import logging
 
-import gobject
+from pygtkhelpers.gthreads import gtk_threadsafe
+import threading
 import zmq
 
 from .plugin import CommandZmqPlugin
@@ -42,7 +43,7 @@ class CommandPlugin(SingletonPlugin):
     def __init__(self):
         self.name = self.plugin_name
         self.plugin = None
-        self.command_timeout_id = None
+        self.stopped = threading.Event()
 
     def on_plugin_enable(self):
         """
@@ -56,27 +57,49 @@ class CommandPlugin(SingletonPlugin):
             AppDataController.on_plugin_enable(self)
 
         to retain this functionality.
+
+        .. versionchanged:: 2.11.2
+            Launch background thread to monitor plugin ZeroMQ command socket.
+
+            Use :func:`gtk_threadsafe` decorator to wrap thread-related code
+            to ensure GTK/GDK are initialized properly for a threaded
+            application.
         """
         self.cleanup()
         self.plugin = CommandZmqPlugin(self, self.name, get_hub_uri())
         # Initialize sockets.
         self.plugin.reset()
 
-        def check_command_socket():
-            try:
-                msg_frames = (self.plugin.command_socket
-                              .recv_multipart(zmq.NOBLOCK))
-            except zmq.Again:
-                pass
-            else:
-                self.plugin.on_command_recv(msg_frames)
-            return True
+        def _check_command_socket(wait_duration_s):
+            '''
+            Process each incoming message on the ZeroMQ plugin command socket.
 
-        self.command_timeout_id = gobject.timeout_add(10, check_command_socket)
+            Stop listening if :attr:`stopped` event is set.
+            '''
+            self.stopped.clear()
+            while not self.stopped.wait(wait_duration_s):
+                try:
+                    msg_frames = (self.plugin.command_socket
+                                  .recv_multipart(zmq.NOBLOCK))
+                except zmq.Again:
+                    pass
+                else:
+                    self.plugin.on_command_recv(msg_frames)
+
+        @gtk_threadsafe
+        def _launch_socket_monitor_thread():
+            '''
+            Launch background thread to monitor plugin ZeroMQ command socket.
+            '''
+            thread = threading.Thread(target=_check_command_socket,
+                                      args=(0.01, ))
+            thread.daemon = True
+            thread.start()
+
+        _launch_socket_monitor_thread()
 
     def cleanup(self):
-        if self.command_timeout_id is not None:
-            gobject.source_remove(self.command_timeout_id)
+        self.stopped.set()
         if self.plugin is not None:
             self.plugin = None
 
