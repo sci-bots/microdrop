@@ -272,6 +272,11 @@ class MainWindowController(SingletonPlugin):
 
     @gtk_threadsafe
     def on_menu_app_options_activate(self, widget, data=None):
+        '''
+        .. versionchanged:: 2.11.2
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         from app_options_controller import AppOptionsController
 
         AppOptionsController().run()
@@ -286,52 +291,96 @@ class MainWindowController(SingletonPlugin):
         self.error(record.message)
 
     def error(self, message, title="Error"):
-        dialog = gtk.MessageDialog(self.view,
-                                   gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   gtk.MESSAGE_ERROR,
-                                   gtk.BUTTONS_CLOSE, message)
-        dialog.set_title(title)
-        result = dialog.run()
-        dialog.destroy()
-        return result
+        '''
+        .. versionchanged:: 2.11.2
+            If not called from within main GTK thread, schedule label update to
+            run asynchronously in the main GTK loop.
+        '''
+        def _error():
+            dialog = gtk.MessageDialog(self.view,
+                                       gtk.DIALOG_DESTROY_WITH_PARENT,
+                                       gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE,
+                                       message)
+            dialog.set_title(title)
+            dialog.run()
+            dialog.destroy()
+
+        if not get_app().gtk_thread_active():
+            gobject.idle_add(_error)
+        else:
+            _error()
 
     def warning(self, message, title="Warning"):
-        dialog = gtk.MessageDialog(self.view,
-                                   gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   gtk.MESSAGE_WARNING,
-                                   gtk.BUTTONS_CLOSE, message)
-        dialog.set_title(title)
-        result = dialog.run()
-        dialog.destroy()
-        return result
+        '''
+        .. versionchanged:: 2.11.2
+            If not called from within main GTK thread, schedule label update to
+            run asynchronously in the main GTK loop.
+        '''
+        def _warning():
+            dialog = gtk.MessageDialog(self.view,
+                                       gtk.DIALOG_DESTROY_WITH_PARENT,
+                                       gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+                                       message)
+            dialog.set_title(title)
+            dialog.run()
+            dialog.destroy()
+
+        if not get_app().gtk_thread_active():
+            gobject.idle_add(_warning)
+        else:
+            _warning()
 
     def question(self, message, title=""):
-        dialog = gtk.MessageDialog(self.view,
-                                   gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   gtk.MESSAGE_QUESTION,
-                                   gtk.BUTTONS_YES_NO, message)
-        dialog.set_title(title)
-        result = dialog.run()
-        dialog.destroy()
-        return result
+        '''
+        .. versionchanged:: 2.11.2
+            If not called from within main GTK thread, schedule label update to
+            run asynchronously in the main GTK loop.
+        '''
+        def _question():
+            dialog = gtk.MessageDialog(self.view,
+                                       gtk.DIALOG_DESTROY_WITH_PARENT,
+                                       gtk.MESSAGE_QUESTION,
+                                       gtk.BUTTONS_YES_NO, message)
+            dialog.set_title(title)
+            dialog.run()
+            dialog.destroy()
+
+        if not get_app().gtk_thread_active():
+            gobject.idle_add(_question)
+        else:
+            _question()
 
     def info(self, message, title=""):
-        dialog = gtk.MessageDialog(self.view,
-                                   gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   gtk.MESSAGE_INFO,
-                                   gtk.BUTTONS_CLOSE, message)
-        dialog.set_title(title)
-        result = dialog.run()
-        dialog.destroy()
-        return result
+        '''
+        .. versionchanged:: 2.11.2
+            If not called from within main GTK thread, schedule label update to
+            run asynchronously in the main GTK loop.
+        '''
+        def _info():
+            dialog = gtk.MessageDialog(self.view,
+                                       gtk.DIALOG_DESTROY_WITH_PARENT,
+                                       gtk.MESSAGE_INFO, gtk.BUTTONS_CLOSE,
+                                       message)
+            dialog.set_title(title)
+            dialog.run()
+            dialog.destroy()
+
+        if not get_app().gtk_thread_active():
+            gobject.idle_add(_info)
+        else:
+            _info()
 
     def on_app_options_changed(self, plugin_name):
+        '''
+        .. versionchanged:: 2.11.2
+            Schedule label update asynchronously to occur in the main GTK loop.
+        '''
         app = get_app()
         if plugin_name == app.name:
             data = app.get_data(app.name)
             if 'realtime_mode' in data:
                 proxy = proxy_for(self.checkbutton_realtime_mode)
-                proxy.set_widget_value(data['realtime_mode'])
+                gobject.idle_add(proxy.set_widget_value, data['realtime_mode'])
 
     def on_url_clicked(self, widget, data):
         logger.debug("URL clicked: %s" % data)
@@ -345,10 +394,14 @@ class MainWindowController(SingletonPlugin):
         return 'Protocol: %s' % protocol.name
 
     def update_label(self, label, obj=None, modified=False, get_string=str):
+        '''
+        .. versionchanged:: 2.11.2
+            Schedule label update asynchronously to occur in the main GTK loop.
+        '''
         message = get_string(obj)
         if modified:
             message += ' <b>[modified]</b>'
-        label.set_markup(wrap_string(message, 60, "\n\t"))
+        gobject.idle_add(label.set_markup, wrap_string(message, 60, "\n\t"))
 
     def update_protocol_name_label(self, obj=None, **kwargs):
         _kwargs = kwargs.copy()
@@ -365,6 +418,11 @@ class MainWindowController(SingletonPlugin):
 
     @gtk_threadsafe
     def on_experiment_log_changed(self, experiment_log):
+        '''
+        .. versionchanged:: 2.11.2
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.button_open_log_directory.set_sensitive(True)
         self.button_open_log_notes.set_sensitive(True)
         if experiment_log:
@@ -387,6 +445,11 @@ class MainWindowController(SingletonPlugin):
 
     @gtk_threadsafe
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        '''
+        .. versionchanged:: 2.11.2
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.checkbutton_realtime_mode.set_sensitive(True)
         self.menu_experiment_logs.set_sensitive(True)
         self.update_device_name_label(dmf_device,
@@ -421,6 +484,9 @@ class MainWindowController(SingletonPlugin):
         '''
          - Store start time of step.
          - Start periodic timer to update the step time label.
+
+        .. versionchanged:: 2.11.2
+            Schedule label update asynchronously to occur in the main GTK loop.
         '''
         self.step_start_time = datetime.utcnow()
 
@@ -431,7 +497,8 @@ class MainWindowController(SingletonPlugin):
                 self.reset_step_timeout()
                 return False
             elapsed_time = datetime.utcnow() - self.step_start_time
-            self.label_step_time.set_text(str(elapsed_time).split('.')[0])
+            gobject.idle_add(self.label_step_time.set_text,
+                             str(elapsed_time).split('.')[0])
             return True
 
         # A new step is starting to run.  Reset step timer.
@@ -444,9 +511,13 @@ class MainWindowController(SingletonPlugin):
         '''
          - Stop periodic callback.
          - Clear step time label.
+
+        .. versionchanged:: 2.11.2
+            Schedule label update asynchronously to occur in the main GTK loop.
         '''
         if self.step_timeout_id is not None:
             gobject.source_remove(self.step_timeout_id)
-        self.label_step_time.set_text('-')
+        gobject.idle_add(self.label_step_time.set_text, '-')
+
 
 PluginGlobals.pop_env()
