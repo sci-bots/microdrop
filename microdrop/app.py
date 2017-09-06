@@ -35,14 +35,16 @@ import gtk
 import mpm.api
 import path_helpers as ph
 
+from . import base_path
 from . import plugin_manager
-from .protocol import Step
 from .config import Config
+from .gui.dmf_device_controller import DEVICE_FILENAME
+from .logger import CustomHandler
+from .plugin_helpers import AppDataController
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                              implements, PluginGlobals)
-from .plugin_helpers import AppDataController
-from .logger import CustomHandler
-from . import base_path
+from .protocol import Step
+
 
 logger = logging.getLogger(__name__)
 
@@ -316,8 +318,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             Set :attr:`gtk_thread` attribute, holding a reference to the thread
             that the GTK main loop is executing in.
         '''
-        from .gui.dmf_device_controller import DEVICE_FILENAME
-
         self.gtk_thread = threading.current_thread()
 
         # set realtime mode to false on startup
@@ -331,8 +331,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             self.set_app_values({'log_file':
                                  ph.path(self.config['data_dir'])
                                  .joinpath('microdrop.log')})
-
-        import sys
 
         pwd = ph.path(os.getcwd()).realpath()
         if '' in sys.path and pwd.joinpath('plugins').isdir():
