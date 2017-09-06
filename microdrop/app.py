@@ -26,6 +26,7 @@ except ImportError:
 import re
 import subprocess
 import sys
+import threading
 
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
@@ -116,6 +117,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         .valued('debug', 'info', 'warning', 'error', 'critical'))
 
     def __init__(self):
+        '''
+        .. versionchanged:: 2.11.2
+            Add :attr:`gtk_thread` attribute, holding a reference to the thread
+            that the GTK main loop is executing in.
+        '''
         args = parse_args()
 
         print 'Arguments: %s' % args
@@ -150,6 +156,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                   re.sub('post', '', version))
             if dev:
                 self.version += "-dev"
+
+        # .. versionadded:: 2.11.2
+        self.gtk_thread = None
 
         self.realtime_mode = False
         self.running = False
@@ -286,8 +295,30 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             else:
                 logger.info('No plugins have been updated')
 
+    def gtk_thread_active(self):
+        '''
+        Returns
+        -------
+        bool
+            ``True`` if the currently active thread is the GTK thread.
+
+        .. versionadded:: 2.11.2
+        '''
+        if self.gtk_thread is not None and (threading.current_thread().ident ==
+                                            self.gtk_thread.ident):
+            return True
+        else:
+            return False
+
     def run(self):
+        '''
+        .. versionchanged:: 2.11.2
+            Set :attr:`gtk_thread` attribute, holding a reference to the thread
+            that the GTK main loop is executing in.
+        '''
         from .gui.dmf_device_controller import DEVICE_FILENAME
+
+        self.gtk_thread = threading.current_thread()
 
         # set realtime mode to false on startup
         if self.name in self.config.data and \
