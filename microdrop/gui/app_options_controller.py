@@ -68,12 +68,16 @@ class AppOptionsController:
         else:
             return values
 
-    def remove_plugin_form(self, x):
-        if x != self.frame_core_plugins:
-            self.plugin_form_vbox.remove(x)
-
     def clear_form(self):
-        self.plugin_form_vbox.foreach(lambda x: self.remove_plugin_form(x))
+        '''
+        .. versionchanged:: 2.11.2
+            Make :func:`_remove_plugin_form` private local function.
+        '''
+        def _remove_plugin_form(x):
+            if x != self.frame_core_plugins:
+                self.plugin_form_vbox.remove(x)
+
+        self.plugin_form_vbox.foreach(lambda x: _remove_plugin_form(x))
 
     def run(self):
         # Empty plugin form vbox
@@ -133,7 +137,13 @@ class AppOptionsController:
         self.dialog.hide()
         return response
 
+    @gtk_threadsafe
     def on_btn_apply_clicked(self, widget, data=None):
+        '''
+        .. versionchanged:: 2.3.3
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.apply()
 
     def apply(self):
