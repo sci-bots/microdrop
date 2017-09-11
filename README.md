@@ -15,7 +15,9 @@ Check out the **[Quick Start Guide](https://github.com/wheeler-microfluidics/mic
 
 ## Contributing
 
-All source-code code is open-source and released under the [GPL](https://github.com/wheeler-microfluidics/microdrop/blob/master/COPYING). If you would like to contribute to this software, please check out the **[Developer Guide](https://github.com/wheeler-microfluidics/microdrop/wiki/Developer-Guide)**.
+All source-code code is open-source and released under the [3-clause BSD License](LICENSE.md).
+
+If you would like to contribute to this software, please check out the **[Developer Guide](https://github.com/wheeler-microfluidics/microdrop/wiki/Developer-Guide)**.
 
 ## Troubleshooting
 
@@ -27,5 +29,5 @@ Sign up for the [DropBot ​development mailing list](https://groups.google.com/
 
 ## Credits ##
 
-Ryan Fobel <ryan@fobel.net><br>
+Ryan Fobel <ryan@fobel.net>..
 Christian Fobel <christian@fobel.net>
