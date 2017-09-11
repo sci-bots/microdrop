@@ -28,6 +28,7 @@ from microdrop_utility.user_paths import home_dir, app_data_dir
 
 logger = logging.getLogger(__name__)
 
+
 class ValidationError(Exception):
     pass
 
@@ -87,7 +88,7 @@ class Config(object):
         self._validate()
 
     def save(self, filename=None):
-        if filename == None:
+        if filename is None:
             filename = self.filename
         # make sure that the parent directory exists
         path(filename).realpath().parent.makedirs_p()
@@ -98,15 +99,15 @@ class Config(object):
         # set all str values that are 'None' to None
         def set_str_to_none(d):
             for k, v in d.items():
-                if type(v)==Section:
+                if type(v) == Section:
                     set_str_to_none(v)
                 else:
-                    if type(v)==str and v=='None':
-                        d[k]=None
+                    if type(v) == str and v == 'None':
+                        d[k] = None
         set_str_to_none(self.data)
         validator = Validator()
         results = self.data.validate(validator, copy=True)
-        if results != True:
+        if results is not True:
             logger.error('Config file validation failed!')
             for (section_list, key, _) in flatten_errors(self.data, results):
                 if key is not None:

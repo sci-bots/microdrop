@@ -66,15 +66,13 @@ def log_data_to_frame(log_data_i):
 
         start_time = arrow.get(experiment_info['start time']).naive
         experiment_info['utc_start_time'] = start_time.isoformat()
-        for k in ('step', 'start time', 'time', 'attempt',
-                'utc_timestamp'):
+        for k in ('step', 'start time', 'time', 'attempt', 'utc_timestamp'):
             if k in experiment_info.index:
                 del experiment_info[k]
         return experiment_info.dropna()
 
-    plugin_names_i = sorted(reduce(lambda a, b:
-                                a.union(b.keys()),
-                                log_data_i.data, set()))
+    plugin_names_i = sorted(reduce(lambda a, b: a.union(b.keys()),
+                                   log_data_i.data, set()))
     frames_i = OrderedDict()
 
     for plugin_name_ij in plugin_names_i:
@@ -89,11 +87,10 @@ def log_data_to_frame(log_data_i):
             frames_i[plugin_name_ij] = frame_ij
     df_log_i = pd.concat(frames_i.values(), axis=1, keys=frames_i.keys())
 
-    start_time_i = arrow.get(df_log_i
-                            .iloc[0][('core', 'start time')]).naive
+    start_time_i = arrow.get(df_log_i.iloc[0][('core', 'start time')]).naive
     df_log_i[('core', 'utc_timestamp')] = \
         (start_time_i + df_log_i[('core', 'time')]
-        .map(lambda s: dt.timedelta(seconds=s) if s == s else None))
+         .map(lambda s: dt.timedelta(seconds=s) if s == s else None))
     df_log_i.sort_index(axis=1, inplace=True)
     experiment_info = log_frame_experiment_info(df_log_i)
     experiment_info['uuid'] = log_data_i.uuid
@@ -103,7 +100,7 @@ def log_data_to_frame(log_data_i):
 
 
 class ExperimentLog():
-    class_version = str(Version(0,3,0))
+    class_version = str(Version(0, 3, 0))
 
     def __init__(self, directory=None):
         self.directory = directory
@@ -112,13 +109,14 @@ class ExperimentLog():
         self.uuid = str(uuid.uuid4())
         self._get_next_id()
         self.metadata = {}  # Meta data, keyed by plugin name.
-        logger.info('[ExperimentLog] new log with id=%s and uuid=%s' % (self.experiment_id, self.uuid))
+        logger.info('[ExperimentLog] new log with id=%s and uuid=%s',
+                    self.experiment_id, self.uuid)
 
     def _get_next_id(self):
         if self.directory is None:
             self.experiment_id = None
             return
-        if(os.path.isdir(self.directory)==False):
+        if os.path.isdir(self.directory) is False:
             os.makedirs(self.directory)
         logs = path(self.directory).listdir()
         self.experiment_id = 0
@@ -127,7 +125,8 @@ class ExperimentLog():
                 i = int(d.name)
                 if i >= self.experiment_id:
                     self.experiment_id = i
-                    # increment the experiment_id if the current directory is not empty
+                    # increment the experiment_id if the current directory is
+                    # not empty
                     if len(d.listdir()):
                         self.experiment_id += 1
         log_path = self.get_log_path()
@@ -144,11 +143,12 @@ class ExperimentLog():
         """
         logger.debug("[ExperimentLog]._upgrade()")
         version = Version.fromstring(self.version)
-        logger.debug('[ExperimentLog] version=%s, class_version=%s' % (str(version), self.class_version))
+        logger.debug('[ExperimentLog] version=%s, class_version=%s',
+                     str(version), self.class_version)
         if version > Version.fromstring(self.class_version):
             logger.debug('[ExperimentLog] version>class_version')
             raise FutureVersionError
-        if version < Version(0,1,0):
+        if version < Version(0, 1, 0):
             new_data = []
             plugin_name = None
             for step_data in self.data:
@@ -158,17 +158,16 @@ class ExperimentLog():
             for i in range(len(self.data)):
                 new_data.append({})
                 for k, v in self.data[i].items():
-                    if plugin_name and (k=="FeedbackResults" or \
-                    k=="SweepFrequencyResults" or k=="SweepVoltageResults"):
+                    if plugin_name and k in ("FeedbackResults",
+                                             "SweepFrequencyResults",
+                                             "SweepVoltageResults"):
                         try:
-                            new_data[i][plugin_name] = \
-                                {k:pickle.loads(v)}
+                            new_data[i][plugin_name] = {k: pickle.loads(v)}
                         except Exception, e:
                             logger.error("Couldn't load experiment log data "
-                                         "for plugin: %s. %s." % \
-                                         (plugin_name, e))
+                                         "for plugin: %s. %s.", plugin_name, e)
                     else:
-                        if not "core" in new_data[i]:
+                        if "core" not in new_data[i]:
                             new_data[i]["core"] = {}
                         new_data[i]["core"][k] = v
 
@@ -177,13 +176,13 @@ class ExperimentLog():
                 for plugin_name, plugin_data in new_data[i].items():
                     new_data[i][plugin_name] = yaml.dump(plugin_data)
             self.data = new_data
-            self.version = str(Version(0,1,0))
-        if version < Version(0,2,0):
+            self.version = str(Version(0, 1, 0))
+        if version < Version(0, 2, 0):
             self.uuid = str(uuid.uuid4())
-            self.version = str(Version(0,2,0))
-        if version < Version(0,3,0):
+            self.version = str(Version(0, 2, 0))
+        if version < Version(0, 3, 0):
             self.metadata = {}
-            self.version = str(Version(0,3,0))
+            self.version = str(Version(0, 3, 0))
         # else the versions are equal and don't need to be upgraded
 
     @classmethod
@@ -208,18 +207,18 @@ class ExperimentLog():
                 logger.debug("Loaded object from pickle.")
             except Exception, e:
                 logger.debug("Not a valid pickle file. %s." % e)
-        if out==None:
+        if out is None:
             with open(filename, 'rb') as f:
                 try:
                     out = yaml.load(f)
                     logger.debug("Loaded object from YAML file.")
                 except Exception, e:
                     logger.debug("Not a valid YAML file. %s." % e)
-        if out==None:
+        if out is None:
             raise TypeError
         out.filename = filename
         # check type
-        if out.__class__!=cls:
+        if out.__class__ != cls:
             raise TypeError
         if not hasattr(out, 'version'):
             out.version = str(Version(0))
@@ -237,14 +236,14 @@ class ExperimentLog():
                     except Exception, e:
                         logger.error("Couldn't load experiment log data for "
                                      "plugin: %s. %s." % (plugin_name, e))
-        logger.debug("[ExperimentLog].load() loaded in %f s." % \
-                     (time.time()-start_time))
+        logger.debug("[ExperimentLog].load() loaded in %f s.", time.time() -
+                     start_time)
         return out
 
     def save(self, filename=None, format='pickle'):
-        if filename==None:
+        if filename is None:
             log_path = self.get_log_path()
-            filename = os.path.join(log_path,"data")
+            filename = os.path.join(log_path, "data")
         else:
             log_path = path(filename).parent
 
@@ -253,16 +252,16 @@ class ExperimentLog():
             # serialize plugin dictionaries to strings
             for i in range(len(out.data)):
                 for plugin_name, plugin_data in out.data[i].items():
-                    if format=='pickle':
+                    if format == 'pickle':
                         out.data[i][plugin_name] = pickle.dumps(plugin_data)
-                    elif format=='yaml':
+                    elif format == 'yaml':
                         out.data[i][plugin_name] = yaml.dump(plugin_data)
                     else:
                         raise TypeError
             with open(filename, 'wb') as f:
-                if format=='pickle':
+                if format == 'pickle':
                     pickle.dump(out, f, -1)
-                elif format=='yaml':
+                elif format == 'yaml':
                     yaml.dump(out, f)
                 else:
                     raise TypeError
@@ -274,7 +273,7 @@ class ExperimentLog():
             if val:
                 return val
         start_time = time.time()
-        self.add_data({"start time":start_time})
+        self.add_data({"start time": start_time})
         return start_time
 
     def get_log_path(self):
@@ -288,7 +287,7 @@ class ExperimentLog():
     def add_data(self, data, plugin_name='core'):
         if not self.data:
             self.data.append({})
-        if not plugin_name in self.data[-1]:
+        if plugin_name not in self.data[-1]:
             self.data[-1][plugin_name] = {}
         for k, v in data.items():
             self.data[-1][plugin_name][k] = v

@@ -20,7 +20,6 @@ along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 import logging
 import threading
 
-from pygtkhelpers.ui.dialogs import open_filechooser
 import conda_helpers as ch
 import gtk
 import gobject
@@ -148,7 +147,7 @@ class PluginManagerDialog(object):
                          .download_and_install_plugin(selected_plugins))
                     install_message = ch.format_install_info(unlinked, linked)
                     logger.info('Installed plugins\n%s', install_message)
-                except:
+                except Exception:
                     logger.info('Error installing plugins.', exc_info=True)
                     return
                 finally:
@@ -172,6 +171,7 @@ class PluginManagerDialog(object):
                 '''
                 while not download_complete.wait(1. / 16):
                     gobject.idle_add(progress_bar.pulse)
+
                 def _on_complete():
                     progress_bar.set_fraction(1.)
                     progress_bar.hide()

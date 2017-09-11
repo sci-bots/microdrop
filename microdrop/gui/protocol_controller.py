@@ -66,42 +66,42 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
         data = decode_content_data(request)
         try:
             return self.parent.on_first_step()
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
     def on_execute__last_step(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.on_last_step()
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
     def on_execute__prev_step(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.on_prev_step()
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
     def on_execute__next_step(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.on_next_step()
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
     def on_execute__run_protocol(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.on_run_protocol()
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
     def on_execute__save_protocol(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.save_protocol()
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
     def on_execute__delete_step(self, request):
@@ -112,14 +112,14 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
                                              '.protocol_grid_controller',
                                              env='microdrop')
             return protocol_grid_controller.widget.delete_rows()
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
     def on_execute__goto_step(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.goto_step(request['step_number'])
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
 
@@ -146,7 +146,6 @@ class ProtocolController(SingletonPlugin):
         self.plugin = None
         self.plugin_timeout_id = None
 
-
     ###########################################################################
     # # Properties #
     @property
@@ -164,7 +163,8 @@ class ProtocolController(SingletonPlugin):
 
         shortcuts = {'<Control>r': self.on_run_protocol,
                      '<Control>s': lambda *args: self.save_protocol(),
-                     '<Control>n': lambda *args: app.experiment_log_controller.on_new_experiment(),
+                     '<Control>n': lambda *args:
+                     app.experiment_log_controller.on_new_experiment(),
                      'A': self.on_first_step,
                      'S': self.on_prev_step,
                      'D': self.on_next_step,
@@ -272,35 +272,37 @@ version of the software.'''.strip(), filename, why.future_version,
         self.textentry_protocol_repeats = self.builder.get_object(
             "textentry_protocol_repeats")
 
-        self.button_first_step = app.builder.get_object('button_first_step')
-        self.button_prev_step = app.builder.get_object('button_prev_step')
-        self.button_run_protocol = self.builder.get_object("button_run_protocol")
-        self.button_next_step = app.builder.get_object('button_next_step')
-        self.button_last_step = app.builder.get_object('button_last_step')
+        for name_i in ('button_first_step', 'button_prev_step',
+                       "button_run_protocol", 'button_next_step',
+                       'button_last_step', 'menu_protocol',
+                       'menu_new_protocol', 'menu_load_protocol',
+                       'menu_rename_protocol', 'menu_save_protocol',
+                       'menu_save_protocol_as'):
+            setattr(self, name_i, app.builder.get_object(name_i))
 
-        self.menu_protocol = app.builder.get_object('menu_protocol')
-        self.menu_new_protocol = app.builder.get_object('menu_new_protocol')
-        self.menu_load_protocol = app.builder.get_object('menu_load_protocol')
-        self.menu_rename_protocol = app.builder.get_object('menu_rename_protocol')
-        self.menu_save_protocol = app.builder.get_object('menu_save_protocol')
-        self.menu_save_protocol_as = app.builder.get_object('menu_save_protocol_as')
-
-        app.signals["on_button_first_step_button_release_event"] = self.on_first_step
-        app.signals["on_button_prev_step_button_release_event"] = self.on_prev_step
-        app.signals["on_button_next_step_button_release_event"] = self.on_next_step
-        app.signals["on_button_last_step_button_release_event"] = self.on_last_step
-        app.signals["on_button_run_protocol_button_release_event"] = self.on_run_protocol
+        app.signals["on_button_first_step_button_release_event"] =\
+            self.on_first_step
+        app.signals["on_button_prev_step_button_release_event"] =\
+            self.on_prev_step
+        app.signals["on_button_next_step_button_release_event"] =\
+            self.on_next_step
+        app.signals["on_button_last_step_button_release_event"] =\
+            self.on_last_step
+        app.signals["on_button_run_protocol_button_release_event"] =\
+            self.on_run_protocol
         app.signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         app.signals["on_menu_load_protocol_activate"] = self.on_load_protocol
-        app.signals["on_menu_rename_protocol_activate"] = self.on_rename_protocol
+        app.signals["on_menu_rename_protocol_activate"] =\
+            self.on_rename_protocol
         app.signals["on_menu_save_protocol_activate"] = self.on_save_protocol
-        app.signals["on_menu_save_protocol_as_activate"] = self.on_save_protocol_as
+        app.signals["on_menu_save_protocol_as_activate"] =\
+            self.on_save_protocol_as
         app.signals["on_protocol_import_activate"] = self.on_import_protocol
         app.signals["on_protocol_export_activate"] = self.on_export_protocol
         app.signals["on_textentry_protocol_repeats_focus_out_event"] = \
-                self.on_textentry_protocol_repeats_focus_out
+            self.on_textentry_protocol_repeats_focus_out
         app.signals["on_textentry_protocol_repeats_key_press_event"] = \
-                self.on_textentry_protocol_repeats_key_press
+            self.on_textentry_protocol_repeats_key_press
         app.protocol_controller = self
         self._register_shortcuts()
 
@@ -342,36 +344,32 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_first_step(self, widget=None, data=None):
         app = get_app()
-        if (not app.running and
-               (widget is None or
-                contains_pointer(widget, data.get_coords()))):
+        if not app.running and (widget is None or
+                                contains_pointer(widget, data.get_coords())):
             app.protocol.first_step()
             return True
         return False
 
     def on_prev_step(self, widget=None, data=None):
         app = get_app()
-        if (not app.running and
-               (widget is None or
-                contains_pointer(widget, data.get_coords()))):
+        if not app.running and (widget is None or
+                                contains_pointer(widget, data.get_coords())):
             app.protocol.prev_step()
             return True
         return False
 
     def on_next_step(self, widget=None, data=None):
         app = get_app()
-        if (not app.running and
-               (widget is None or
-                contains_pointer(widget, data.get_coords()))):
+        if not app.running and (widget is None or
+                                contains_pointer(widget, data.get_coords())):
             app.protocol.next_step()
             return True
         return False
 
     def on_last_step(self, widget=None, data=None):
         app = get_app()
-        if (not app.running and
-               (widget is None or
-                contains_pointer(widget, data.get_coords()))):
+        if not app.running and (widget is None or
+                                contains_pointer(widget, data.get_coords())):
             app.protocol.last_step()
             return True
         return False
@@ -448,14 +446,14 @@ version of the software.'''.strip(), filename, why.future_version,
                     with open(filename, 'w') as output:
                         app.protocol.to_json(output, indent=2)
                 except SerializationError, exception:
-                    plugin_exception_counts = Counter([e['plugin']
-                                                    for e in exception.exceptions])
+                    plugin_exception_counts = Counter([e['plugin'] for e in
+                                                       exception.exceptions])
                     logger.info('%s: `%s`', exception, exception.exceptions)
                     result = yesno('Error exporting data for the following '
-                                    'plugins: `%s`\n\n'
-                                    'Would you like to exclude this data and '
-                                    'export anyway?' %
-                                    ', '.join(sorted(plugin_exception_counts
+                                   'plugins: `%s`\n\n'
+                                   'Would you like to exclude this data and '
+                                   'export anyway?' %
+                                   ', '.join(sorted(plugin_exception_counts
                                                     .keys())))
                     if result == gtk.RESPONSE_YES:
                         # Delete plugin data that is causing serialization
@@ -520,14 +518,13 @@ version of the software.'''.strip(), filename, why.future_version,
         if app.protocol:
             app.protocol.n_repeats = \
                 textentry_validate(self.textentry_protocol_repeats,
-                    app.protocol.n_repeats,
-                    int)
+                                   app.protocol.n_repeats, int)
 
     def save_check(self):
         app = get_app()
         if self.modified:
-            result = yesno('Protocol %s has unsaved changes.  Save now?'\
-                    % app.protocol.name)
+            result = yesno('Protocol %s has unsaved changes.  Save now?' %
+                           app.protocol.name)
             if result == gtk.RESPONSE_YES:
                 self.save_protocol()
 
@@ -538,16 +535,16 @@ version of the software.'''.strip(), filename, why.future_version,
             if save_as or rename or app.protocol.name is None:
                 # if the dialog is cancelled, name = ""
                 if name is None:
-                    name=''
+                    name = ''
                 name = text_entry_dialog('Protocol name', name, 'Save protocol')
                 if name is None:
-                    name=''
+                    name = ''
 
             if name:
                 path = os.path.join(app.get_device_directory(),
                                     app.dmf_device.name,
                                     "protocols")
-                if os.path.isdir(path) == False:
+                if not os.path.isdir(path):
                     os.mkdir(path)
 
                 # current file name
@@ -562,7 +559,7 @@ version of the software.'''.strip(), filename, why.future_version,
                 # if we're renaming
                 if rename and os.path.isfile(src):
                     shutil.move(src, dest)
-                else: # save the file
+                else:  # save the file
                     app.protocol.save(dest)
                 self.modified = False
                 emit_signal("on_protocol_changed")
@@ -604,8 +601,10 @@ version of the software.'''.strip(), filename, why.future_version,
             logger.info('[ProcolController.run_step]: step: %d, waiting for %s',
                         app.protocol.current_step_number,
                         ', '.join(self.waiting_for))
+
             def _threadsafe_emit_signal(*args):
                 emit_signal("on_step_run")
+
             gobject.idle_add(_threadsafe_emit_signal)
 
     def on_step_complete(self, plugin_name, return_value=None):
@@ -616,10 +615,10 @@ version of the software.'''.strip(), filename, why.future_version,
             self.waiting_for.remove(plugin_name)
 
         # check return value
-        if return_value=='Fail':
+        if return_value == 'Fail':
             self.pause_protocol()
             logger.error("Protocol failed.")
-        elif return_value=='Repeat':
+        elif return_value == 'Repeat':
             self.repeat_step = True
         else:
             self.repeat_step = False
@@ -638,10 +637,12 @@ version of the software.'''.strip(), filename, why.future_version,
                     app.protocol.next_step()
                 elif app.protocol.current_repetition < app.protocol.n_repeats-1:
                     app.protocol.next_repetition()
-                else: # we're on the last step
+                else:  # we're on the last step
                     self.pause_protocol()
+
                     def _threadsafe_protocol_finished(*args):
                         emit_signal('on_protocol_finished')
+
                     gobject.idle_add(_threadsafe_protocol_finished)
 
     def _get_dmf_control_fields(self, step_number):
@@ -680,10 +681,10 @@ version of the software.'''.strip(), filename, why.future_version,
     def _update_labels(self):
         app = get_app()
         self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" %
-            (app.protocol.current_step_number + 1,
-            len(app.protocol.steps),
-            app.protocol.current_repetition + 1,
-            app.protocol.n_repeats))
+                                        (app.protocol.current_step_number + 1,
+                                         len(app.protocol.steps),
+                                         app.protocol.current_repetition + 1,
+                                         app.protocol.n_repeats))
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
 
     def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
@@ -702,8 +703,8 @@ version of the software.'''.strip(), filename, why.future_version,
         self.cleanup_plugin()
         app = get_app()
         if self.modified:
-            result = yesno('Protocol %s has unsaved changes.  Save now?'\
-                    % app.protocol.name)
+            result = yesno('Protocol %s has unsaved changes.  Save now?' %
+                           app.protocol.name)
             if result == gtk.RESPONSE_YES:
                 self.save_protocol()
 
@@ -730,5 +731,6 @@ version of the software.'''.strip(), filename, why.future_version,
             # process the on_protocol_swapped signal
             return [ScheduleRequest('microdrop.app', self.name)]
         return []
+
 
 PluginGlobals.pop_env()

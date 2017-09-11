@@ -31,7 +31,6 @@ from microdrop_utility.gui import yesno
 import conda_helpers as ch
 import gobject
 import gtk
-import logging_helpers as lh
 import mpm.api
 import mpm.ui.gtk
 import path_helpers as ph
@@ -42,12 +41,13 @@ from ..gui.plugin_manager_dialog import PluginManagerDialog
 from ..plugin_helpers import get_plugin_info
 from ..plugin_manager import (IPlugin, implements, SingletonPlugin,
                               PluginGlobals, get_service_instance,
-                              get_plugin_package_name, enable as
-                              enable_service, disable as disable_service)
+                              enable as enable_service,
+                              disable as disable_service)
 
 logger = logging.getLogger(__name__)
 
 PluginGlobals.push_env('microdrop')
+
 
 class PluginController(object):
     '''
@@ -78,7 +78,8 @@ class PluginController(object):
         self.button_enable.connect('clicked', self.on_button_enable_clicked,
                                    None)
         self.box.pack_start(self.label, expand=True, fill=True)
-        self.box.pack_end(self.button_enable, expand=False, fill=False, padding=5)
+        self.box.pack_end(self.button_enable, expand=False, fill=False,
+                          padding=5)
         self.box.pack_end(self.button_update, expand=False, fill=False,
                           padding=5)
         self.box.pack_end(self.button_uninstall, expand=False, fill=False,
@@ -204,11 +205,10 @@ class PluginController(object):
                 # Plugin in a Conda MicroDrop plugin.  Update Conda package.
                 package_name = self.get_plugin_info().package_name
                 logger.info('Update `%s`', package_name)
+                update_args = ['--no-update' '-dependencies']
                 install_response = \
                     mpm.ui.gtk.update_plugin_dialog(package_name,
-                                                    update_args=
-                                                    ['--no-update'
-                                                     '-dependencies'])
+                                                    update_args=update_args)
                 self.controller.update_dialog_running.clear()
                 if install_response:
                     unlinked, linked = ch.install_info(install_response)
@@ -300,7 +300,8 @@ class PluginManagerController(SingletonPlugin):
         package_name : str
             Plugin Python module name (e.g., ``microdrop.step-label-plugin``).
 
-            Corresponds to ``package_name`` key in plugin ``properties.yml`` file.
+            Corresponds to ``package_name`` key in plugin ``properties.yml``
+            file.
 
         Returns
         -------
@@ -310,11 +311,11 @@ class PluginManagerController(SingletonPlugin):
              - :data:`linked_packages` is set to ``None``.
 
             If any packages are installed or removed:
-             - :data:`unlinked_packages` is a list of tuples corresponding to the packages that
-               were uninstalled/replaced.
-             - :data:`linked_packages` is a list of ``(<package name and version>,
-               <channel>)`` tuples corresponding to the packages that were
-               installed/upgraded.
+             - :data:`unlinked_packages` is a list of tuples corresponding to
+               the packages that were uninstalled/replaced.
+             - :data:`linked_packages` is a list of ``(<package name and
+               version>, <channel>)`` tuples corresponding to the packages that
+               were installed/upgraded.
 
             Each package tuple in :data:`unlinked_packages`` and
             :data:`link_packages` is of the form ``(<package name>, <version>,
@@ -341,9 +342,9 @@ class PluginManagerController(SingletonPlugin):
                 # Extract importable Python module name from Conda package name.
                 #
                 # XXX Plugins are currently Python modules, which means that the
-                # installed plugin directory must be a valid module name. However,
-                # Conda package name conventions may include `.` and `-`
-                # characters.
+                # installed plugin directory must be a valid module name.
+                # However, Conda package name conventions may include `.` and
+                # `-` characters.
                 module_name = plugin_package_i.split('.')[-1].replace('-', '_')
                 mpm.api.enable_plugin(module_name)
         return unlinked, linked
@@ -416,8 +417,8 @@ class PluginManagerController(SingletonPlugin):
         # Only update dependencies if it is necessary to meet package
         # requirements.
         install_response = \
-            mpm.ui.gtk.update_plugin_dialog(update_args=
-                                            ['--no-update-dependencies'])
+            mpm.ui.gtk\
+            .update_plugin_dialog(update_args=['--no-update-dependencies'])
         if install_response is None:
             linked = []
         else:
@@ -582,9 +583,8 @@ class PluginManagerController(SingletonPlugin):
                         if target_path != installed_plugin_path:
                             self.rename_queue.append((installed_plugin_path,
                                                       target_path))
-                    except:
+                    except Exception:
                         raise
-                        return False
         else:
             # There is no valid version of this plugin currently installed.
             logger.info('%s is not currently installed',

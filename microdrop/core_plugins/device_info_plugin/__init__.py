@@ -131,7 +131,8 @@ class DeviceInfoPlugin(SingletonPlugin):
             '''
             Launch background thread to monitor plugin ZeroMQ command socket.
             '''
-            thread = threading.Thread(target=_check_command_socket, args=(0.01, ))
+            thread = threading.Thread(target=_check_command_socket,
+                                      args=(0.01, ))
             thread.daemon = True
             thread.start()
 

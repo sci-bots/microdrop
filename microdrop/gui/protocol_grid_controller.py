@@ -33,6 +33,23 @@ from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
 import gtk
 
 
+def _get_title(column):
+    '''
+    Shortcut function to lookup column title from each
+    :class:`gtk.TreeViewColumn`.
+
+    Parameters
+    ----------
+    column : gtk.TreeViewColumn
+
+    Returns
+    -------
+    str
+        Title of specified :class:`gtk.TreeViewColumn`.
+    '''
+    return column.get_data('pygtkhelpers::column').title
+
+
 class ProtocolGridView(CombinedFields):
     def __init__(self, forms, enabled_attrs, *args, **kwargs):
         super(ProtocolGridView, self).__init__(forms, enabled_attrs, *args,
@@ -82,11 +99,6 @@ class ProtocolGridView(CombinedFields):
         menu_items += [('Paste after', self.paste_rows_after)]
         # Add seperator
         menu_items += [(None, None)]
-
-        # Uncomment lines below to add menu item for running pudb
-        #def run_pudb(*args, **kwargs):
-            #import pudb; pudb.set_trace()
-        #menu_items += [('Run pudb...', run_pudb)]
 
         return super(ProtocolGridView, self)._get_popup_menu(item,
                                                              column_title,
@@ -168,8 +180,6 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
         self.builder = None
         self.widget = None
         self._enabled_fields = None
-        # e.g., 'microdrop.dmf_control_board_1.2':\
-                #set(['duration', 'voltage'])}
 
     @property
     def enabled_fields(self):
@@ -256,21 +266,16 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
             attributes = dict()
             for form_name, form in combined_fields.forms.iteritems():
                 attr_values = values[form_name]
-                #logging.debug('[CombinedRow] attr_values=%s', attr_values)
                 attributes[form_name] = RowFields(**attr_values)
             combined_row = CombinedRow(combined_fields, attributes=attributes)
             combined_fields.append(combined_row)
-
-        # Create a shortcut wrapper to lookup column title from each
-        # `TreeViewColumn`.  Just makes following code more concise.
-        get_title = lambda c: c.get_data('pygtkhelpers::column').title
 
         if self.widget:
             # Replacing a previously rendered widget.  Maintain original column
             # order.
 
             # Store the position of each column, keyed by column title.
-            column_positions = dict([(get_title(c), i)
+            column_positions = dict([(_get_title(c), i)
                                      for i, c in enumerate(self.widget
                                                            .get_columns())])
             # Remove existing widget to replace with new widget.
@@ -293,11 +298,12 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
                 combined_fields.remove_column(c)
 
             # Sort columns according to original order.
-            ordered_column_info = sorted([(column_positions.get(get_title(c),
+            ordered_column_info = sorted([(column_positions.get(_get_title(c),
                                                                 len(columns)),
-                                           get_title(c), c) for c in columns])
+                                           _get_title(c), c) for c in columns])
 
-            # Re-add columns in order (sorted according to existing column order).
+            # Re-add columns in order (sorted according to existing column
+            # order).
             for i, title_i, column_i in ordered_column_info:
                 combined_fields.append_column(column_i)
 
@@ -388,16 +394,13 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
         self.update_grid()
 
     def on_app_exit(self):
-        # Create a shortcut wrapper to lookup column title from each
-        # `TreeViewColumn`.  Just makes following code more concise.
-        get_title = lambda c: c.get_data('pygtkhelpers::column').title
-
         if self.widget:
             # Save column positions on exit.
-            column_positions = dict([(get_title(c), i)
-                                    for i, c in enumerate(self.widget
-                                                          .get_columns())])
-            self.set_app_values({'column_positions': json.dumps(column_positions)})
+            column_positions = dict([(_get_title(c), i)
+                                     for i, c in enumerate(self.widget
+                                                           .get_columns())])
+            self.set_app_values({'column_positions':
+                                 json.dumps(column_positions)})
 
 
 PluginGlobals.pop_env()

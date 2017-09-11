@@ -574,11 +574,13 @@ def protocol_dict_remove_exceptions(protocol_dict, exceptions, inplace=False):
     --------
     :func:`protocol_dict_remove_exceptions`
     '''
-    step_getter = lambda protocol_i, step_i: protocol_i['steps'][step_i]
-    plugin_data_getter = lambda step_i: step_i
-
-    return _protocol_remove_exceptions(protocol_dict, exceptions, step_getter,
-                                       plugin_data_getter, inplace=inplace)
+    return _protocol_remove_exceptions(protocol_dict, exceptions,
+                                       # Get step object from protocol.
+                                       lambda protocol_i, step_i:
+                                       protocol_i['steps'][step_i],
+                                       # Get plugin data dict from step.
+                                       lambda step_i: step_i,
+                                       inplace=inplace)
 
 
 def protocol_remove_exceptions(protocol, exceptions, inplace=False):
@@ -606,11 +608,13 @@ def protocol_remove_exceptions(protocol, exceptions, inplace=False):
     --------
     :func:`protocol_dict_remove_exceptions`
     '''
-    step_getter = lambda protocol_i, step_i: protocol_i.steps[step_i]
-    plugin_data_getter = lambda step_i: step_i.plugin_data
-
-    return _protocol_remove_exceptions(protocol, exceptions, step_getter,
-                                       plugin_data_getter, inplace=inplace)
+    return _protocol_remove_exceptions(protocol, exceptions,
+                                       # Get step object from protocol.
+                                       lambda protocol_i, step_i:
+                                       protocol_i.steps[step_i],
+                                       # Get plugin data dict from step.
+                                       lambda step_i: step_i.plugin_data,
+                                       inplace=inplace)
 
 
 def protocol_dict_transform_plugin_data(protocol_dict, transform_func,
@@ -760,7 +764,7 @@ class Protocol():
                     if value_:
                         try:
                             return pickle.loads(value_)
-                        except:
+                        except Exception:
                             pass
                 # enable loading of old protocols where the
                 # dmf_device_controller was imported as a relative package
@@ -785,8 +789,8 @@ class Protocol():
                         logger.error('Error decoding plugin data for step %d, '
                                      '`%s`: `%s`', i, k, v, exc_info=True)
 
-        logger.debug("[Protocol].load() loaded in %f s." % \
-                     (time.time()-start_time))
+        logger.debug("[Protocol].load() loaded in %f s.",
+                     time.time() - start_time)
         return out
 
     def remove_exceptions(self, exceptions, inplace=False):
@@ -806,9 +810,9 @@ class Protocol():
                 step.plugin_data[k] = pickle.dumps(v, -1)
 
         with open(filename, 'wb') as f:
-            if format=='pickle':
+            if format == 'pickle':
                 pickle.dump(out, f, -1)
-            elif format=='yaml':
+            elif format == 'yaml':
                 yaml.dump(out, f)
             else:
                 raise TypeError
@@ -836,8 +840,8 @@ class Protocol():
             Dictionary object with the following top-level keys:
              - ``name``: Protocol name.
              - ``version``: Protocol version.
-             - ``steps``: List of dictionaries, each containing data for a single
-               protocol step.
+             - ``steps``: List of dictionaries, each containing data for a
+               single protocol step.
              - ``uuid, optional``: Universally unique identifier.
 
         Returns
@@ -914,8 +918,8 @@ class Protocol():
         else:
             # Read from `istream` as an input stream.
             load_func = json.load
-        protocol_dict = load_func(istream, object_hook=
-                                  zp.schema.pandas_object_hook)
+        protocol_dict = load_func(istream, object_hook=zp.schema
+                                  .pandas_object_hook)
         return protocol_from_dict(protocol_dict)
 
     def to_ndjson(self, ostream=None, ignore_errors=False):
@@ -960,7 +964,7 @@ class Protocol():
                 raise
             else:
                 logging.warn('Skipping plugin data in steps where exceptions '
-                            'encountered during serialization.')
+                             'encountered during serialization.')
                 protocol_clean = self.remove_exceptions(exception.exceptions)
                 return protocol_to_ndjson(protocol_clean, ostream=ostream)
 
@@ -997,10 +1001,12 @@ class Protocol():
             # Assume input is new-line delimited JSON serialized protocol
             # string.
             istream = StringIO.StringIO(istream)
-        load_f = lambda x: json.loads(x, object_hook=
-                                      zp.schema.pandas_object_hook)
-        protocol_dict = load_f(istream.readline())
-        protocol_dict['steps'] = [load_f(line_i)
+
+        def _loads(x):
+            return json.loads(x, object_hook=zp.schema.pandas_object_hook)
+
+        protocol_dict = _loads(istream.readline())
+        protocol_dict['steps'] = [_loads(line_i)
                                   for line_i in istream.readlines()]
         return protocol_from_dict(protocol_dict)
 
@@ -1014,23 +1020,25 @@ class Protocol():
         """
         logger.debug("[Protocol]._upgrade()")
         version = Version.fromstring(self.version)
-        logger.debug('[Protocol] version=%s, class_version=%s' % (str(version), self.class_version))
+        logger.debug('[Protocol] version=%s, class_version=%s', str(version),
+                     self.class_version)
         if version > Version.fromstring(self.class_version):
             logger.debug('[Protocol] version>class_version')
-            raise FutureVersionError(Version.fromstring(self.class_version), version)
+            raise FutureVersionError(Version.fromstring(self.class_version),
+                                     version)
         elif version < Version.fromstring(self.class_version):
-            if version < Version(0,1):
+            if version < Version(0, 1):
                 for k, v in self.plugin_data.items():
                     self.plugin_data[k] = yaml.dump(v)
                 for step in self.steps:
                     for k, v in step.plugin_data.items():
                         step.plugin_data[k] = yaml.dump(v)
-                self.version = str(Version(0,1))
-                logger.debug('[Protocol] upgrade to version %s' % self.version)
-            if version < Version(0,2):
+                self.version = str(Version(0, 1))
+                logger.debug('[Protocol] upgrade to version %s', self.version)
+            if version < Version(0, 2):
                 self.current_step_attempt = 0
-                self.version = str(Version(0,2))
-                logger.debug('[Protocol] upgrade to version %s' % self.version)
+                self.version = str(Version(0, 2))
+                logger.debug('[Protocol] upgrade to version %s', self.version)
         # else the versions are equal and don't need to be upgraded
 
     ###########################################################################
@@ -1082,7 +1090,7 @@ class Protocol():
 
     def insert_steps(self, step_number=None, count=None, values=None):
         if values is None and count is None:
-            raise ValueError, 'Either count or values must be specified'
+            raise ValueError('Either count or values must be specified')
         elif values is None:
             values = [Step()] * count
         for value in values[::-1]:

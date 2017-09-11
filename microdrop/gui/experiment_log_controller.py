@@ -26,7 +26,7 @@ import pandas as pd
 from flatland import Form
 from microdrop_utility import copytree
 from microdrop_utility.gui import (combobox_set_model_from_list,
-                                   combobox_get_active_text, textview_get_text)
+                                   combobox_get_active_text)
 from path_helpers import path
 from pygtkhelpers.delegates import SlaveView
 from pygtkhelpers.ui.extra_dialogs import yesno
@@ -34,18 +34,18 @@ from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import NotebookManagerView
 import gtk
 
+from .. import glade_path
+from ..app_context import get_app
+from ..dmf_device import DmfDevice
 from ..experiment_log import ExperimentLog
+from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, emit_signal, ScheduleRequest,
                               get_service_names, get_service_instance_by_name)
-from ..plugin_helpers import AppDataController
 from ..protocol import Protocol
-from ..app_context import get_app
-from ..dmf_device import DmfDevice
 from .dmf_device_controller import DEVICE_FILENAME
 
 logger = logging.getLogger(__name__)
-from .. import glade_path
 
 
 class ExperimentLogColumn():
@@ -72,6 +72,7 @@ class ExperimentLogContextMenu(SlaveView):
         self.menu_popup.append(menu_item)
         menu_item.show()
 
+
 PluginGlobals.push_env('microdrop')
 
 
@@ -83,9 +84,8 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
 
     @property
     def AppFields(self):
-        return Form.of(
-            Directory.named('notebook_directory').using(default='', optional=True),
-        )
+        return Form.of(Directory.named('notebook_directory')
+                       .using(default='', optional=True))
 
     def __init__(self):
         self.name = "microdrop.gui.experiment_log_controller"
@@ -122,7 +122,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                                      DEVICE_FILENAME))
         try:
             app.dmf_device_controller.load_device(filename)
-        except:
+        except Exception:
             logger.error("Could not open %s" % filename)
 
     def on_button_load_protocol_clicked(self, widget, data=None):
@@ -136,14 +136,12 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         '''
         Open selected experiment log directory in system file browser.
         '''
-        app = get_app()
         self.results.log.get_log_path().launch()
 
     def on_button_notes_clicked(self, widget, data=None):
         '''
         Open selected experiment log notes using the default text editor.
         '''
-        app = get_app()
         notes_path = self.results.log.get_log_path() / 'notes.txt'
         notes_path.launch()
 
@@ -231,15 +229,17 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
 
             if export_data:
                 writer = pd.ExcelWriter(export_path, engine='openpyxl')
-                for i, (plugin_name, plugin_data) in enumerate(export_data.iteritems()):
+                for i, (plugin_name, plugin_data) in enumerate(export_data
+                                                               .iteritems()):
                     for name, df in plugin_data.iteritems():
-                         # Excel sheet names have a 31 character max
-                         sheet_name = ('%03d-%s' % (i, name))[:31]
-                         df.to_excel(writer, sheet_name)
+                        # Excel sheet names have a 31 character max
+                        sheet_name = ('%03d-%s' % (i, name))[:31]
+                        df.to_excel(writer, sheet_name)
                 try:
                     writer.save()
                 except IOError:
-                    logger.warning("Error writing to file (maybe it is already open?).")
+                    logger.warning('Error writing to file (maybe it is already'
+                                   ' open?).')
             else:
                 logger.warning("No data to export.")
 
@@ -247,11 +247,9 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         if export_path.exists():
             export_path.startfile()
 
-    def on_protocol_pause(self):
-        app = get_app()
-
     def on_protocol_finished(self):
-        result = yesno('Experiment complete. Would you like to start a new experiment?')
+        result = yesno('Experiment complete. Would you like to start a new '
+                       'experiment?')
         if result == gtk.RESPONSE_YES:
             self.save()
 
@@ -302,7 +300,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             # The notebook directory is not set (i.e., empty or `None`), so set
             # a default.
             data_directory = path(app.config.data['data_dir'])
-            notebook_directory = data_directory.joinpath( 'notebooks')
+            notebook_directory = data_directory.joinpath('notebooks')
             print '[{new notebook_directory = "%s"}]' % notebook_directory
             app_values = self.get_app_values().copy()
             app_values['notebook_directory'] = notebook_directory
@@ -517,15 +515,15 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                         if not options:
                             continue
                         for i, c in enumerate(self.columns):
-                            if c.name=="Time (s)":
+                            if c.name == "Time (s)":
                                 vals.append(d['core']['time'])
-                            elif c.name=="Step #":
+                            elif c.name == "Step #":
                                 vals.append(d['core']['step'] + 1)
-                            elif c.name=="Duration (s)":
+                            elif c.name == "Duration (s)":
                                 vals.append(options.duration / 1000.0)
-                            elif c.name=="Voltage (VRMS)":
+                            elif c.name == "Voltage (VRMS)":
                                 vals.append(options.voltage)
-                            elif c.name=="Frequency (kHz)":
+                            elif c.name == "Frequency (kHz)":
                                 vals.append(options.frequency / 1000.0)
                             else:
                                 vals.append(None)
@@ -565,7 +563,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         for row in selection[1]:
             for d in self.results.log.data:
                 if 'time' in d['core'].keys():
-                    if d['core']['time']==selection[0][row][0]:
+                    if d['core']['time'] == selection[0][row][0]:
                         selected_data.append(d)
         return selected_data
 

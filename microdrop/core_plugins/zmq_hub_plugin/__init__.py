@@ -37,7 +37,7 @@ class MicroDropHub(Hub):
     def on_command_recv(self, msg_frames):
         try:
             super(MicroDropHub, self).on_command_recv(msg_frames)
-        except:
+        except Exception:
             logger.error('Command socket message error.', exc_info=True)
 
 
@@ -66,8 +66,7 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
     AppFields = Form.of(
         String.named('hub_uri').using(optional=True, default='tcp://*:31000'),
         Enum.named('log_level').using(default='info', optional=True)
-        .valued('debug', 'info', 'warning', 'error', 'critical'),
-    )
+        .valued('debug', 'info', 'warning', 'error', 'critical'))
 
     def __init__(self):
         self.name = self.plugin_name

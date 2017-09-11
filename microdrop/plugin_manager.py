@@ -20,9 +20,6 @@ from StringIO import StringIO
 from collections import namedtuple
 from contextlib import closing
 import logging
-import os
-import platform
-import subprocess
 import sys
 import traceback
 
@@ -30,14 +27,12 @@ from pyutilib.component.core import ExtensionPoint, PluginGlobals
 # TODO Update plugins to import from `pyutilib.component.core` directly
 # instead of importing from here.
 from pyutilib.component.core import Plugin, SingletonPlugin, implements
-from run_exe import run_exe
 import path_helpers as ph
 import task_scheduler
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
 
 logger = logging.getLogger(__name__)
-
 
 
 ScheduleRequest = namedtuple('ScheduleRequest', 'before after')
@@ -175,7 +170,7 @@ def get_service_class(name, env='microdrop.managed'):
     '''
     e = PluginGlobals.env(env)
     if name not in e.plugin_registry:
-        raise KeyError, 'No plugin registered with name: %s' % name
+        raise KeyError('No plugin registered with name: %s' % name)
     return e.plugin_registry[name]
 
 
@@ -206,7 +201,7 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
     if plugins:
         return plugins[0]
     else:
-        raise KeyError, 'No plugin registered with name: %s' % name
+        raise KeyError('No plugin registered with name: %s' % name)
 
 
 def get_service_instance_by_package_name(name, env='microdrop.managed'):
@@ -232,7 +227,7 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
     if plugins:
         return plugins[0]
     else:
-        raise KeyError, 'No plugin registered with package name: %s' % name
+        raise KeyError('No plugin registered with package name: %s' % name)
 
 
 def get_plugin_package_name(module_name):

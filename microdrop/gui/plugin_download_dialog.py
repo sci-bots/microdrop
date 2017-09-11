@@ -20,11 +20,10 @@ import json
 import logging
 
 from pygtkhelpers.ui.list_select import ListSelectView
-from application_repository.plugins.proxy import PluginRepository
 import gtk
 import mpm.api
 
-from ..app_context import get_app, APP_VERSION
+from ..app_context import get_app
 from ..plugin_manager import get_service_instance_by_name
 from .. import glade_path
 
@@ -53,7 +52,6 @@ class PluginDownloadDialog(object):
         '''
         Update widgets.
         '''
-        app = get_app()
         self.clear_plugin_list()
         self.controller.update()
 
