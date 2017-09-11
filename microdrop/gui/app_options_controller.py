@@ -16,29 +16,29 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-import os
-from copy import deepcopy
+import logging
 import re
 
-import gtk
-from path_helpers import path
-from pygtkhelpers.proxy import proxy_for
-from pygtkhelpers.forms import FormView
 from flatland.schema import Form
+from pygtkhelpers.forms import FormView
+from pygtkhelpers.gthreads import gtk_threadsafe
+from pygtkhelpers.proxy import proxy_for
+import gtk
 
+from .. import glade_path
 from ..app_context import get_app
-import logging
+from ..plugin_manager import IPlugin, ExtensionPoint, emit_signal
 
 logger = logging.getLogger(__name__)
-from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
-                              ExtensionPoint, emit_signal)
-from .. import glade_path
 
 
 class AppOptionsController:
     def __init__(self):
         app = get_app()
+
+        self.form_views = {}
+        self.no_gui_names = set()
+
         builder = gtk.Builder()
         builder.add_from_file(glade_path()
                               .joinpath("app_options_dialog.glade"))
@@ -51,8 +51,6 @@ class AppOptionsController:
         self.btn_ok = builder.get_object('btn_ok')
         self.btn_apply = builder.get_object('btn_apply')
         self.btn_cancel = builder.get_object('btn_cancel')
-        self.form_views = {}
-        self.no_gui_names = set()
 
         builder.connect_signals(self)
         self.builder = builder
@@ -61,7 +59,8 @@ class AppOptionsController:
         observers = ExtensionPoint(IPlugin)
         service = observers.service(plugin_name)
         if not hasattr(service, 'get_app_values'):
-            values = dict([(k, v.value) for k,v in self.forms[plugin_name].from_defaults().iteritems()])
+            values = dict([(k, v.value) for k, v in self.forms[plugin_name]
+                           .from_defaults().iteritems()])
         else:
             values = service.get_app_values()
         if not values:
@@ -69,12 +68,16 @@ class AppOptionsController:
         else:
             return values
 
-    def remove_plugin_form(self, x):
-        if x != self.frame_core_plugins:
-            self.plugin_form_vbox.remove(x)
-
     def clear_form(self):
-        self.plugin_form_vbox.foreach(lambda x: self.remove_plugin_form(x))
+        '''
+        .. versionchanged:: 2.11.2
+            Make :func:`_remove_plugin_form` private local function.
+        '''
+        def _remove_plugin_form(x):
+            if x != self.frame_core_plugins:
+                self.plugin_form_vbox.remove(x)
+
+        self.plugin_form_vbox.foreach(lambda x: _remove_plugin_form(x))
 
     def run(self):
         # Empty plugin form vbox
@@ -85,16 +88,16 @@ class AppOptionsController:
         app = get_app()
         self.no_gui_names = set()
         for name, form in self.forms.iteritems():
-            # For each form, generate a pygtkhelpers formview and append the view
-            # onto the end of the plugin vbox
+            # For each form, generate a pygtkhelpers formview and append the
+            # view onto the end of the plugin vbox
 
             if form is None:
                 schema_entries = []
             else:
-                # Only include fields that do not have show_in_gui set to False in
-                # 'properties' dictionary
-                schema_entries = [f for f in form.field_schema\
-                        if f.properties.get('show_in_gui', True)]
+                # Only include fields that do not have show_in_gui set to False
+                # in 'properties' dictionary
+                schema_entries = [f for f in form.field_schema
+                                  if f.properties.get('show_in_gui', True)]
             if not schema_entries:
                 self.no_gui_names.add(name)
                 continue
@@ -134,7 +137,13 @@ class AppOptionsController:
         self.dialog.hide()
         return response
 
+    @gtk_threadsafe
     def on_btn_apply_clicked(self, widget, data=None):
+        '''
+        .. versionchanged:: 2.3.3
+            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
+            in the main GTK thread.
+        '''
         self.apply()
 
     def apply(self):
@@ -145,7 +154,7 @@ class AppOptionsController:
                 if form_view.form.fields[field].element.validate():
                     attrs[field] = form_view.form.fields[field].element.value
                 else:
-                    logger.error('Failed to set %s value for %s' % (field, name))
+                    logger.error('Failed to set %s value for %s', field, name)
             if attrs:
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)

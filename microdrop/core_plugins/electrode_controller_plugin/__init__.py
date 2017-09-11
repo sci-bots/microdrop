@@ -1,26 +1,9 @@
-"""
-Copyright 2015 Christian Fobel
-
-This file is part of electrode_controller_plugin.
-
-electrode_controller_plugin is free software: you can redistribute it and/or
-modify it under the terms of the GNU General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your option)
-any later version.
-
-electrode_controller_plugin is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-more details.
-
-You should have received a copy of the GNU General Public License
-along with electrode_controller_plugin.  If not, see <http://www.gnu.org/licenses/>.
-"""
 import logging
+import threading
 
+from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
-import gobject
 import gtk
 import pandas as pd
 import zmq
@@ -31,6 +14,7 @@ from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements, emit_signal)
 
 logger = logging.getLogger(__name__)
+
 
 def drop_duplicates_by_index(series):
     '''
@@ -174,11 +158,12 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
         try:
             return self.set_electrode_states(data['electrode_states'],
                                              save=data.get('save', True))
-        except:
+        except Exception:
             logger.error(str(data), exc_info=True)
 
     def on_execute__get_channel_states(self, request):
         return self.get_channel_states()
+
 
 PluginGlobals.push_env('microdrop')
 
@@ -193,7 +178,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
     def __init__(self):
         self.name = self.plugin_name
         self.plugin = None
-        self.command_timeout_id = None
+        self.stopped = threading.Event()
 
     def on_plugin_enable(self):
         """
@@ -207,6 +192,13 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
             AppDataController.on_plugin_enable(self)
 
         to retain this functionality.
+
+        .. versionchanged:: 2.11.2
+            Launch background thread to monitor plugin ZeroMQ command socket.
+
+            Use :func:`gtk_threadsafe` decorator to wrap thread-related code
+            to ensure GTK/GDK are initialized properly for a threaded
+            application.
         """
         self.cleanup()
         self.plugin = ElectrodeControllerZmqPlugin(self, self.name,
@@ -214,21 +206,36 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
         # Initialize sockets.
         self.plugin.reset()
 
-        def check_command_socket():
-            try:
-                msg_frames = (self.plugin.command_socket
-                              .recv_multipart(zmq.NOBLOCK))
-            except zmq.Again:
-                pass
-            else:
-                self.plugin.on_command_recv(msg_frames)
-            return True
+        def _check_command_socket(wait_duration_s):
+            '''
+            Process each incoming message on the ZeroMQ plugin command socket.
 
-        self.command_timeout_id = gobject.timeout_add(10, check_command_socket)
+            Stop listening if :attr:`stopped` event is set.
+            '''
+            self.stopped.clear()
+            while not self.stopped.wait(wait_duration_s):
+                try:
+                    msg_frames = (self.plugin.command_socket
+                                  .recv_multipart(zmq.NOBLOCK))
+                except zmq.Again:
+                    pass
+                else:
+                    self.plugin.on_command_recv(msg_frames)
+
+        @gtk_threadsafe
+        def _launch_socket_monitor_thread():
+            '''
+            Launch background thread to monitor plugin ZeroMQ command socket.
+            '''
+            thread = threading.Thread(target=_check_command_socket,
+                                      args=(0.01, ))
+            thread.daemon = True
+            thread.start()
+
+        _launch_socket_monitor_thread()
 
     def cleanup(self):
-        if self.command_timeout_id is not None:
-            gobject.source_remove(self.command_timeout_id)
+        self.stopped.set()
         if self.plugin is not None:
             self.plugin = None
 

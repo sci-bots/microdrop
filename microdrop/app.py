@@ -26,7 +26,7 @@ except ImportError:
 import re
 import subprocess
 import sys
-import traceback
+import threading
 
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
@@ -34,19 +34,19 @@ from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 import gtk
 import mpm.api
 import path_helpers as ph
-import yaml
 
+from . import base_path
 from . import plugin_manager
-from .protocol import Step
 from .config import Config
+from .gui.dmf_device_controller import DEVICE_FILENAME
+from .logger import CustomHandler
+from .plugin_helpers import AppDataController
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
                              implements, PluginGlobals)
-from .plugin_helpers import AppDataController, get_plugin_info
-from .logger import CustomHandler
-from . import base_path
+from .protocol import Step
+
 
 logger = logging.getLogger(__name__)
-
 
 PluginGlobals.push_env('microdrop')
 
@@ -108,8 +108,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         String.named('server_url')
         .using(default='http://microfluidics.utoronto.ca/update',
                optional=True, properties=dict(show_in_gui=False)),
-        Boolean.named('realtime_mode').using(default=False, optional=True,
-                                             properties=dict(show_in_gui=False)),
+        Boolean.named('realtime_mode')
+        .using(default=False, optional=True,
+               properties=dict(show_in_gui=False)),
         Filepath.named('log_file')
         .using(default='', optional=True,
                properties={'action': gtk.FILE_CHOOSER_ACTION_SAVE}),
@@ -118,6 +119,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         .valued('debug', 'info', 'warning', 'error', 'critical'))
 
     def __init__(self):
+        '''
+        .. versionchanged:: 2.11.2
+            Add :attr:`gtk_thread` attribute, holding a reference to the thread
+            that the GTK main loop is executing in.
+        '''
         args = parse_args()
 
         print 'Arguments: %s' % args
@@ -127,19 +133,21 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.version = ""
         try:
             raise Exception
-            version = subprocess.Popen(['git','describe'],
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE,
-                                       stdin=subprocess.PIPE).communicate()[0].rstrip()
+            version = (subprocess.Popen(['git', 'describe'],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        stdin=subprocess.PIPE)
+                       .communicate()[0].rstrip())
             m = re.match('v(\d+)\.(\d+)-(\d+)', version)
             self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
-            branch = subprocess.Popen(['git','rev-parse', '--abbrev-ref', 'HEAD'],
-                                       stdout=subprocess.PIPE,
+            branch = (subprocess.Popen(['git', 'rev-parse', '--abbrev-ref',
+                                        'HEAD'], stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE,
-                                       stdin=subprocess.PIPE).communicate()[0].rstrip()
+                                       stdin=subprocess.PIPE)
+                      .communicate()[0].rstrip())
             if branch.strip() != 'master':
                 self.version += "-%s" % branch
-        except:
+        except Exception:
             import pkg_resources
 
             version = pkg_resources.get_distribution('microdrop').version
@@ -150,6 +158,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                   re.sub('post', '', version))
             if dev:
                 self.version += "-dev"
+
+        # .. versionadded:: 2.11.2
+        self.gtk_thread = None
 
         self.realtime_mode = False
         self.running = False
@@ -286,12 +297,32 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             else:
                 logger.info('No plugins have been updated')
 
+    def gtk_thread_active(self):
+        '''
+        Returns
+        -------
+        bool
+            ``True`` if the currently active thread is the GTK thread.
+
+        .. versionadded:: 2.11.2
+        '''
+        if self.gtk_thread is not None and (threading.current_thread().ident ==
+                                            self.gtk_thread.ident):
+            return True
+        else:
+            return False
+
     def run(self):
-        from .gui.dmf_device_controller import DEVICE_FILENAME
+        '''
+        .. versionchanged:: 2.11.2
+            Set :attr:`gtk_thread` attribute, holding a reference to the thread
+            that the GTK main loop is executing in.
+        '''
+        self.gtk_thread = threading.current_thread()
 
         # set realtime mode to false on startup
         if self.name in self.config.data and \
-        'realtime_mode' in self.config.data[self.name]:
+                'realtime_mode' in self.config.data[self.name]:
             self.config.data[self.name]['realtime_mode'] = False
 
         plugin_manager.emit_signal('on_plugin_enable')
@@ -300,8 +331,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             self.set_app_values({'log_file':
                                  ph.path(self.config['data_dir'])
                                  .joinpath('microdrop.log')})
-
-        import sys
 
         pwd = ph.path(os.getcwd()).realpath()
         if '' in sys.path and pwd.joinpath('plugins').isdir():
@@ -373,7 +402,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             try:
                 self.config['dmf_device']['name'] = \
                     device_directory.dirs()[0].name
-            except:
+            except Exception:
                 pass
 
         # load the device from the config file
@@ -394,9 +423,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 directory = self.get_device_directory()
                 if directory:
                     filename = os.path.join(directory,
-                        self.config['dmf_device']['name'],
-                        "protocols",
-                        self.config['protocol']['name'])
+                                            self.config['dmf_device']['name'],
+                                            "protocols",
+                                            self.config['protocol']['name'])
                     self.protocol_controller.load_protocol(filename)
 
         data = self.get_data("microdrop.app")
@@ -418,10 +447,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             self._destroy_log_file_handler()
 
         try:
-            self.log_file_handler = (logging
-                                     .FileHandler(log_file,
-                                                  disable_existing_loggers
-                                                  =False))
+            self.log_file_handler = \
+                logging.FileHandler(log_file, disable_existing_loggers=False)
         except TypeError:
             # Assume old version of `logging` module without support for
             # `disable_existing_loggers` keyword argument.

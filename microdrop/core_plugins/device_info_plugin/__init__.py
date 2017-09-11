@@ -19,9 +19,9 @@ along with device_info_plugin.  If not, see <http://www.gnu.org/licenses/>.
 import cPickle as pickle
 import threading
 
+from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
-import gobject
 import zmq
 
 from ...app_context import get_app, get_hub_uri
@@ -98,6 +98,11 @@ class DeviceInfoPlugin(SingletonPlugin):
             AppDataController.on_plugin_enable(self)
 
         to retain this functionality.
+
+        .. versionchanged:: 2.11.2
+            Use :func:`gtk_threadsafe` decorator to wrap thread-related code
+            to ensure GTK/GDK are initialized properly for a threaded
+            application.
         """
         self.cleanup()
         self.plugin = DeviceInfoZmqPlugin(self.name, get_hub_uri())
@@ -105,6 +110,12 @@ class DeviceInfoPlugin(SingletonPlugin):
         self.plugin.reset()
 
         def _check_command_socket(wait_duration_s):
+            '''
+            Process each incoming message on the ZeroMQ plugin command socket.
+
+            Stop listening if :attr:`stopped` event is set.
+            '''
+            self.stopped.clear()
             self.stopped.clear()
             while not self.stopped.wait(wait_duration_s):
                 try:
@@ -114,12 +125,17 @@ class DeviceInfoPlugin(SingletonPlugin):
                     pass
                 else:
                     self.plugin.on_command_recv(msg_frames)
-        def _threadsafe_schedule(*args):
+
+        @gtk_threadsafe
+        def _launch_socket_monitor_thread():
+            '''
+            Launch background thread to monitor plugin ZeroMQ command socket.
+            '''
             thread = threading.Thread(target=_check_command_socket, args=(0.01, ))
             thread.daemon = True
             thread.start()
 
-        gobject.idle_add(_threadsafe_schedule)
+        _launch_socket_monitor_thread()
 
     def cleanup(self):
         self.stopped.set()
