@@ -1,22 +1,3 @@
-"""
-Copyright 2011 Ryan Fobel
-
-This file is part of MicroDrop.
-
-MicroDrop is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MicroDrop is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
 import os
 import warnings
 import logging
@@ -27,6 +8,7 @@ from validate import Validator
 from microdrop_utility.user_paths import home_dir, app_data_dir
 
 logger = logging.getLogger(__name__)
+
 
 class ValidationError(Exception):
     pass
@@ -87,7 +69,7 @@ class Config(object):
         self._validate()
 
     def save(self, filename=None):
-        if filename == None:
+        if filename is None:
             filename = self.filename
         # make sure that the parent directory exists
         path(filename).realpath().parent.makedirs_p()
@@ -98,15 +80,15 @@ class Config(object):
         # set all str values that are 'None' to None
         def set_str_to_none(d):
             for k, v in d.items():
-                if type(v)==Section:
+                if type(v) == Section:
                     set_str_to_none(v)
                 else:
-                    if type(v)==str and v=='None':
-                        d[k]=None
+                    if type(v) == str and v == 'None':
+                        d[k] = None
         set_str_to_none(self.data)
         validator = Validator()
         results = self.data.validate(validator, copy=True)
-        if results != True:
+        if results is not True:
             logger.error('Config file validation failed!')
             for (section_list, key, _) in flatten_errors(self.data, results):
                 if key is not None:

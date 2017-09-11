@@ -1,21 +1,3 @@
-"""
-Copyright 2011-2015 Ryan Fobel and Christian Fobel
-
-This file is part of MicroDrop.
-
-MicroDrop is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MicroDrop is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
-"""
 import logging
 
 from droplet_planning.connections import get_adjacency_matrix
@@ -393,7 +375,7 @@ class DmfDevice(object):
                 orig_i = []
             else:
                 orig_i = (original_channels.channel
-                        .values[original_groups[electrode_id]].tolist())
+                          .values[original_groups[electrode_id]].tolist())
             new_i = new_channels.channel.values[new_channel_indexes].tolist()
             if not (orig_i == new_i):
                 rows.append((electrode_id, orig_i, new_i))

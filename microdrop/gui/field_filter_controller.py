@@ -1,35 +1,17 @@
-"""
-Copyright 2011-12 Ryan Fobel and Christian Fobel
-
-This file is part of MicroDrop.
-
-MicroDrop is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MicroDrop is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
+import logging
 import re
 
-import gtk
-from pygtkhelpers.proxy import proxy_for
-from pygtkhelpers.forms import FormView
 from flatland import Form, Boolean
+from pygtkhelpers.forms import FormView
+from pygtkhelpers.proxy import proxy_for
+import gtk
 
 from ..app_context import get_app
-import logging
-
-logger = logging.getLogger(__name__)
 from ..plugin_manager import IPlugin, ExtensionPoint
 from .. import glade_path
+
+
+logger = logging.getLogger(__name__)
 
 
 class FieldFilterController(object):
@@ -57,7 +39,9 @@ class FieldFilterController(object):
         observers = ExtensionPoint(IPlugin)
         service = observers.service(plugin_name)
         if not hasattr(service, 'get_app_values'):
-            values = dict([(k, v.value) for k,v in self.forms[plugin_name].from_defaults().iteritems()])
+            values = dict([(k, v.value) for k, v in
+                           self.forms[plugin_name].from_defaults()
+                           .iteritems()])
         else:
             values = service.get_app_values()
         if not values:
@@ -81,18 +65,19 @@ class FieldFilterController(object):
         app = get_app()
         core_plugins_count = 0
         for name, form in self.forms.iteritems():
-            # For each form, generate a pygtkhelpers formview and append the view
-            # onto the end of the plugin vbox
+            # For each form, generate a pygtkhelpers formview and append the
+            # view onto the end of the plugin vbox
 
             if len(form.field_schema) == 0:
                 continue
 
             # Only include fields that do not have show_in_gui set to False in
             # 'properties' dictionary
-            schema_entries = [f for f in form.field_schema\
-                    if f.properties.get('show_in_gui', True)]
+            schema_entries = [f for f in form.field_schema
+                              if f.properties.get('show_in_gui', True)]
             gui_form = Form.of(*[Boolean.named(s.name).using(default=True,
-                    optional=True) for s in schema_entries])
+                                                             optional=True)
+                                 for s in schema_entries])
             FormView.schema_type = gui_form
             if not schema_entries:
                 continue
@@ -110,7 +95,7 @@ class FieldFilterController(object):
             self.frame_core_plugins.hide()
             self.plugin_form_vbox.remove(self.frame_core_plugins)
         else:
-            if not self.frame_core_plugins in self.plugin_form_vbox.children():
+            if self.frame_core_plugins not in self.plugin_form_vbox.children():
                 self.plugin_form_vbox.pack_start(self.frame_core_plugins)
             self.frame_core_plugins.show()
 
@@ -150,7 +135,7 @@ class FieldFilterController(object):
         enabled_fields_by_plugin = {}
         for name, form_view in self.form_views.iteritems():
             enabled_fields = set([f for f, v in form_view.form.fields.items()
-                    if v.element.value])
+                                  if v.element.value])
             if enabled_fields:
                 enabled_fields_by_plugin[name] = enabled_fields
         self.enabled_fields_by_plugin = enabled_fields_by_plugin

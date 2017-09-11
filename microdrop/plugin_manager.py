@@ -1,28 +1,7 @@
-"""
-Copyright 2011 Ryan Fobel
-
-This file is part of dmf_control_board.
-
-MicroDrop is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MicroDrop is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MicroDrop.  If not, see <http://www.gnu.org/licenses/>.
-"""
 from StringIO import StringIO
 from collections import namedtuple
 from contextlib import closing
 import logging
-import os
-import platform
-import subprocess
 import sys
 import traceback
 
@@ -30,14 +9,12 @@ from pyutilib.component.core import ExtensionPoint, PluginGlobals
 # TODO Update plugins to import from `pyutilib.component.core` directly
 # instead of importing from here.
 from pyutilib.component.core import Plugin, SingletonPlugin, implements
-from run_exe import run_exe
 import path_helpers as ph
 import task_scheduler
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
 
 logger = logging.getLogger(__name__)
-
 
 
 ScheduleRequest = namedtuple('ScheduleRequest', 'before after')
@@ -175,7 +152,7 @@ def get_service_class(name, env='microdrop.managed'):
     '''
     e = PluginGlobals.env(env)
     if name not in e.plugin_registry:
-        raise KeyError, 'No plugin registered with name: %s' % name
+        raise KeyError('No plugin registered with name: %s' % name)
     return e.plugin_registry[name]
 
 
@@ -206,7 +183,7 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
     if plugins:
         return plugins[0]
     else:
-        raise KeyError, 'No plugin registered with name: %s' % name
+        raise KeyError('No plugin registered with name: %s' % name)
 
 
 def get_service_instance_by_package_name(name, env='microdrop.managed'):
@@ -232,7 +209,7 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
     if plugins:
         return plugins[0]
     else:
-        raise KeyError, 'No plugin registered with package name: %s' % name
+        raise KeyError('No plugin registered with package name: %s' % name)
 
 
 def get_plugin_package_name(module_name):
