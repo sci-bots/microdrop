@@ -47,18 +47,18 @@ else:
 setup(name='microdrop',
       version=version.getVersion(),
       description='MicroDrop is a graphical user interface for the DropBot '
-                  'Digital Microfluidics control system',
+      'Digital Microfluidics control system',
       keywords='digital microfluidics dmf automation dropbot microdrop',
       author='Ryan Fobel and Christian Fobel',
       author_email='ryan@fobel.net and christian@fobel.net',
-      url='http://microfluidics.utoronto.ca/microdrop',
-      license='GPL',
+      url='https://github.com/wheeler-microfluidics/microdrop',
+      license='BSD',
       long_description='\n%s\n' % open('README.md', 'rt').read(),
       packages=['microdrop'],
       include_package_data=True,
       install_requires=install_requires,
-      entry_points = {'console_scripts':
-                      ['microdrop = microdrop.microdrop:main']})
+      entry_points={'console_scripts':
+                    ['microdrop = microdrop.microdrop:main']})
 
 
 @task
@@ -69,6 +69,7 @@ def create_requirements():
         output.write('\n'.join(['%s==%s' %
                                 (p, pkg_resources.get_distribution(p).version)
                                 for p in package_list]))
+
 
 @task
 def build_installer():

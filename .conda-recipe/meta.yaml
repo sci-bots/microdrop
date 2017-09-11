@@ -117,4 +117,4 @@ requirements:
 
 about:
   home: http://github.com/wheeler-microfluidics/microdrop
-  license: GPL
+  license: BSD
