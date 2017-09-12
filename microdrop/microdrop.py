@@ -53,6 +53,9 @@ def main():
                         level=logging.INFO)
 
     initialize_core_plugins()
+
+    # XXX Import from `app` module automatically instantiates instance of `App`
+    # class.
     from app import App
     from app_context import get_app
 
