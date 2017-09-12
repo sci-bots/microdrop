@@ -10,6 +10,8 @@ package:
 build:
   entry_points:
     - microdrop = microdrop.microdrop:main
+    # .. versionadded:: 2.13
+    - microdrop-config = microdrop.bin.config:main
 
   # If this is a new build for the same version, increment the build
   # number. If you do not include this key, it defaults to 0.
@@ -44,6 +46,8 @@ requirements:
     - pint
     - pip-helpers
     - pycairo-gtk2
+    # .. versionadded:: 2.13
+    - pydash
     - pygtk-textbuffer-with-undo
     - pymunk >=4.0,<5.0
     - pyparsing
@@ -94,6 +98,8 @@ requirements:
     - pint
     - pip-helpers
     - pycairo-gtk2
+    # .. versionadded:: 2.13
+    - pydash
     - pygtk-textbuffer-with-undo
     - pymunk >=4.0,<5.0
     - pyparsing
