@@ -64,6 +64,39 @@ def parse_args(args=None):
 
 
 def main(args=None):
+    '''
+    Wrap :func:`config` with integer return code.
+
+    Parameters
+    ----------
+    args : argparse.Namespace, optional
+        Arguments as parsed by :func:`parse_args`.
+
+    See also
+    --------
+    :func:`parse_args`
+    '''
+    config(args)
+    # Return
+    return 0
+
+
+def config(args=None):
+    '''
+    Parameters
+    ----------
+    args : argparse.Namespace, optional
+        Arguments as parsed by :func:`parse_args`.
+
+    See also
+    --------
+    :func:`parse_args`
+
+    Returns
+    -------
+    configobj.ConfigObj
+        Parsed (and potentially modified) configuration.
+    '''
     if args is None:
         args = parse_args()
 
@@ -157,4 +190,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    config = main()
+    config_ = config(parse_args())
