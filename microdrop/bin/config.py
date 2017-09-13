@@ -136,7 +136,15 @@ def config(args=None):
             # Look up existing value.
             config_value = pydash.get(config.data, key)
 
-            if action in ('append', 'prepend', 'remove'):
+            if action == 'set':
+                # Set a key to a string value.
+
+                # Create dictionary structure containing only the specified key
+                # and value.
+                nested_value = pydash.set_({}, key, new_value)
+                # Merge nested value into existing configuration structure.
+                pydash.merge(config.data, nested_value)
+            else:
                 # Action is a list action.
 
                 if config_value is None:
