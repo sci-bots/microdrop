@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import logging
 import os
 try:
@@ -16,7 +17,7 @@ import gtk
 import mpm.api
 import path_helpers as ph
 
-from . import base_path
+from . import base_path, MICRODROP_PARSER
 from . import plugin_manager
 from .config import Config
 from .gui.dmf_device_controller import DEVICE_FILENAME
@@ -34,17 +35,11 @@ PluginGlobals.push_env('microdrop')
 
 def parse_args(args=None):
     """Parses arguments, returns (options, args)."""
-    from argparse import ArgumentParser
-
     if args is None:
-        args = sys.argv
+        args = sys.argv[1:]
 
-    parser = ArgumentParser(description='MicroDrop: graphical user interface '
-                            'for the DropBot Digital Microfluidics control '
-                            'system.')
-    parser.add_argument('-c', '--config', type=ph.path, default=None)
-
-    args = parser.parse_args()
+    parser = ArgumentParser(parents=[MICRODROP_PARSER])
+    args = parser.parse_args(args)
     return args
 
 
