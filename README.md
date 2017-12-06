@@ -3,7 +3,7 @@
 [![Documentation Status](https://readthedocs.org/projects/microdrop/badge/?version=dev)][doc-status]
 [![Join the chat at https://gitter.im/wheeler-microfluidics/microdrop](https://badges.gitter.im/wheeler-microfluidics/microdrop.svg)][gitter]
 
-<a href="https://www.youtube.com/playlist?list=PLIt-zp-hJBUE_vrqJAru6HLWtXAPULHTL"><img src="https://github.com/wheeler-microfluidics/microdrop/wiki/images/main window.png" width="800"></a>
+<a href="https://www.youtube.com/playlist?list=PLIt-zp-hJBUE_vrqJAru6HLWtXAPULHTL"><img src="https://github.com/sci-bots/microdrop/wiki/images/main-window.png" width="800"></a>
 
 MicroDrop is a graphical user interface for the [DropBot][0] Digital
 Microfluidics control system (described in detail in ["Fobel et al., Appl.
@@ -50,15 +50,15 @@ Christian Fobel <christian@fobel.net>
 [doc-status]: http://microdrop.readthedocs.io/en/dev/?badge=dev
 [gitter]: https://gitter.im/wheeler-microfluidics/microdrop?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 [dropbot-doi]: http://dx.doi.org/10.1063/1.4807118
-[screenshots]: https://github.com/wheeler-microfluidics/microdrop/wiki/screenshots
+[screenshots]: https://github.com/sci-bots/microdrop/wiki/screenshots
 [videos]: https://www.youtube.com/playlist?list=PLIt-zp-hJBUE_vrqJAru6HLWtXAPULHTL
-[quick-start]: https://github.com/wheeler-microfluidics/microdrop/wiki/Quick-Start-Guide
-[user-guide]: https://github.com/wheeler-microfluidics/microdrop/wiki/User-Guide
-[troubleshooting]: https://github.com/wheeler-microfluidics/microdrop/wiki/Troubleshooting-Guide
-[issues]: https://github.com/wheeler-microfluidics/microdrop/issues
+[quick-start]: https://github.com/sci-bots/microdrop/wiki/Quick-Start-Guide
+[user-guide]: https://github.com/sci-bots/microdrop/wiki/User-Guide
+[troubleshooting]: https://github.com/sci-bots/microdrop/wiki/Troubleshooting-Guide
+[issues]: https://github.com/sci-bots/microdrop/issues
 [mailing-list]: https://groups.google.com/forum/#!forum/dropbot-dev
 [announcements]: https://groups.google.com/forum/#!forum/dropbot-announce
 [0]: http://microfluidics.utoronto.ca/dropbot
-[1]: https://github.com/wheeler-microfluidics/microdrop/blob/master/LICENSE.md
-[2]: https://github.com/wheeler-microfluidics/microdrop/wiki/Developer-Guide
-[3]: https://github.com/wheeler-microfluidics/microdrop/wiki/Development-roadmap
+[1]: https://github.com/sci-bots/microdrop/blob/master/LICENSE.md
+[2]: https://github.com/sci-bots/microdrop/wiki/Developer-Guide
+[3]: https://github.com/sci-bots/microdrop/wiki/Development-roadmap
