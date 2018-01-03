@@ -24,7 +24,8 @@ requirements:
     - blinker
     - configobj
     - droplet-planning
-    - flatland-fork
+    # .. versionadded:: v2.15.2
+    - flatland-fork >=0.5
     - functools32
     - geo_util
     - git_helpers
@@ -77,7 +78,8 @@ requirements:
     - blinker
     - configobj
     - droplet-planning
-    - flatland-fork
+    # .. versionadded:: v2.15.2
+    - flatland-fork >=0.5
     - functools32
     - geo_util
     - git_helpers
