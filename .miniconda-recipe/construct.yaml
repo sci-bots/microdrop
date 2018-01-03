@@ -36,3 +36,6 @@ conda_default_channels:
 
 # Welcome image for Windows installer
 welcome_image: logo.png                  [win]
+# Write `.condarc` including default channels
+# .. versionadded:: v2.15
+write_condarc: True
