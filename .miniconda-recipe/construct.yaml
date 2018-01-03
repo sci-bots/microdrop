@@ -12,7 +12,8 @@ specs:
   - conda
   - dmf-device-ui >=0.6
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
-  - microdrop-launcher >=0.7.10
+  # .. versionchanged:: v2.15
+  - microdrop-launcher >=0.7.11
   # .. versionadded:: v2.15
   - microdrop-plugin-manager >=0.25
   - pip
@@ -21,8 +22,8 @@ specs:
   # Install MicroDrop plugins
   - microdrop.droplet-planning-plugin
   - microdrop.dmf-device-ui-plugin
-  # .. versionchanged:: v2.14
-  - microdrop.dropbot-plugin >=0.16.1
+  # .. versionchanged:: v2.15
+  - microdrop.dropbot-plugin >=0.21.1
   - microdrop.user-prompt-plugin
   - microdrop.step-label-plugin
 
@@ -45,3 +46,12 @@ write_condarc: True
 install_in_dependency_order: True
 # .. versionadded:: v2.15.3
 ignore_duplicate_files: True
+# .. versionadded:: v2.15
+#     By default, do not add the installation to the PATH environment variable.
+#     The user is still able to change this during interactive installation.
+add_to_path_default: False
+# .. versionadded:: v2.15
+#     By default, do not register the installed Python instance as the system's
+#     default Python.
+#     The user is still able to change this during interactive installation.
+register_python_default: False [win]
