@@ -13,6 +13,8 @@ specs:
   - dmf-device-ui >=0.6
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
   - microdrop-launcher >=0.7.10
+  # .. versionadded:: v2.15
+  - microdrop-plugin-manager >=0.25
   - pip
   - python 2.7*
   - pywin32
@@ -39,3 +41,5 @@ welcome_image: logo.png                  [win]
 # Write `.condarc` including default channels
 # .. versionadded:: v2.15
 write_condarc: True
+# .. versionadded:: v2.15
+install_in_dependency_order: True
