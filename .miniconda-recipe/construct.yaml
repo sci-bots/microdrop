@@ -46,3 +46,12 @@ write_condarc: True
 install_in_dependency_order: True
 # .. versionadded:: v2.15.3
 ignore_duplicate_files: True
+# .. versionadded:: v2.15
+#     By default, do not add the installation to the PATH environment variable.
+#     The user is still able to change this during interactive installation.
+add_to_path_default: False
+# .. versionadded:: v2.15
+#     By default, do not register the installed Python instance as the system's
+#     default Python.
+#     The user is still able to change this during interactive installation.
+register_python_default: False [win]
