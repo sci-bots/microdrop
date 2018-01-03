@@ -21,8 +21,8 @@ specs:
   # Install MicroDrop plugins
   - microdrop.droplet-planning-plugin
   - microdrop.dmf-device-ui-plugin
-  # .. versionchanged:: v2.14
-  - microdrop.dropbot-plugin >=0.16.1
+  # .. versionchanged:: v2.15
+  - microdrop.dropbot-plugin >=0.21
   - microdrop.user-prompt-plugin
   - microdrop.step-label-plugin
 
