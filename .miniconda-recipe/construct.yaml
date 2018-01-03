@@ -43,3 +43,5 @@ welcome_image: logo.png                  [win]
 write_condarc: True
 # .. versionadded:: v2.15
 install_in_dependency_order: True
+# .. versionadded:: v2.15.3
+ignore_duplicate_files: True
