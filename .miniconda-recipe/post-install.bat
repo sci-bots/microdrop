@@ -7,7 +7,3 @@ call Scripts\activate.bat & microdrop-config edit --append plugins.enabled dmf_d
 call Scripts\activate.bat & microdrop-config edit --append plugins.enabled dropbot_plugin
 call Scripts\activate.bat & microdrop-config edit --append plugins.enabled user_prompt_plugin
 call Scripts\activate.bat & microdrop-config edit --append plugins.enabled step_label_plugin
-
-REM Add default channels to MicroDrop Conda environment
-call Scripts\activate.bat & python -c "import yaml; output = open('.condarc', 'w'); output.write(yaml.dump({'channels': ['sci-bots', 'microdrop-plugins', 'wheeler-microfluidics', 'conda-forge', 'defaults']}))"
-if errorlevel 1 exit 1
