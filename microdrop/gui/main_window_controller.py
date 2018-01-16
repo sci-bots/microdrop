@@ -176,6 +176,13 @@ class MainWindowController(SingletonPlugin):
         return name
 
     def shutdown(self, return_code):
+        '''
+        .. versionchanged:: X.X.X
+            Process shut down directly (instead of using
+            :func:`gobject.idle_add`) if executing in main thread to maintain
+            expected behaviour in cases where the GTK main loop is no longer
+            running.
+        '''
         def _threadsafe_shut_down(*args):
             logger.info('[_threadsafe_shut_down] Shut down')
             app = get_app()
@@ -202,7 +209,12 @@ class MainWindowController(SingletonPlugin):
         if not self._shutting_down.is_set():
             logger.info('Shutting down')
             self._shutting_down.set()
-            gobject.idle_add(_threadsafe_shut_down)
+            if get_app().gtk_thread_active():
+                # Process shut down directly if executing in main thread.
+                _threadsafe_shut_down()
+            else:
+                # Try to schedule shut down to run in main thread.
+                gobject.idle_add(_threadsafe_shut_down)
 
     def on_delete_event(self, widget, data=None):
         self.shutdown(0)
