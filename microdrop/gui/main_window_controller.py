@@ -108,7 +108,7 @@ class MainWindowController(SingletonPlugin):
             self.on_menu_experiment_logs_activate
         app.signals["on_window_destroy"] = self.on_destroy
         app.signals["on_window_delete_event"] = self.on_delete_event
-        app.signals["on_checkbutton_realtime_mode_button_press_event"] = \
+        app.signals["on_checkbutton_realtime_mode_toggled"] = \
             self.on_realtime_mode_toggled
         app.signals["on_button_open_log_directory_clicked"] = \
             self.on_button_open_log_directory
@@ -246,9 +246,8 @@ class MainWindowController(SingletonPlugin):
         notes_path.launch()
 
     def on_realtime_mode_toggled(self, widget, data=None):
-        realtime_mode = not self.checkbutton_realtime_mode.get_active()
-        self.checkbutton_realtime_mode.set_active(realtime_mode)
         app = get_app()
+        realtime_mode = self.checkbutton_realtime_mode.get_active()
         app.set_app_values({'realtime_mode': realtime_mode})
         return True
 
