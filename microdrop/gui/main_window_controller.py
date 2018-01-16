@@ -177,13 +177,13 @@ class MainWindowController(SingletonPlugin):
 
     def shutdown(self, return_code):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.15.2
             Process shut down directly (instead of using
             :func:`gobject.idle_add`) if executing in main thread to maintain
             expected behaviour in cases where the GTK main loop is no longer
             running.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.15.2
             Do not explicitly disable ZeroMQ hub.  Since the hub process is
             configured as daemonic, it will automatically exit when the main
             MicroDrop process exits.

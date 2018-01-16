@@ -13,7 +13,7 @@ import traceback
 #     forrtl: error (200): program aborting due to control-C event
 #
 # [i905]: https://github.com/ContinuumIO/anaconda-issues/issues/905#issuecomment-330678890
-#: ..versionadded:: X.X.X
+#: ..versionadded:: 2.15.2
 os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
 
 

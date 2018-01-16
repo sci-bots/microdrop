@@ -19,7 +19,7 @@ PluginGlobals.push_env('microdrop')
 
 def _safe_run_hub(*args, **kwargs):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.15.2
 
     Wrap :func:`run_hub` to catch ``SIGINT`` signal (i.e., when `control-C` is
     pressed).
