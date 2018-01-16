@@ -1,7 +1,20 @@
 #!/usr/bin/env python
+import os
+import platform
 import sys
 import traceback
-import platform
+
+
+# Disable Intel Fortran default console event handler.
+#
+# Without doing this, [`Control-C` causes abrupt termination with the following
+# message][i905]:
+#
+#     forrtl: error (200): program aborting due to control-C event
+#
+# [i905]: https://github.com/ContinuumIO/anaconda-issues/issues/905#issuecomment-330678890
+#: ..versionadded:: X.X.X
+os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
 
 
 if platform.system() == 'Windows':

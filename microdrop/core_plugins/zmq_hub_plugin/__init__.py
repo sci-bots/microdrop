@@ -15,6 +15,17 @@ logger = logging.getLogger(__name__)
 PluginGlobals.push_env('microdrop')
 
 
+def _safe_run_hub(*args, **kwargs):
+    '''
+    Wrap :func:`run_hub` to catch :class:`KeyboardInterrupt` (i.e., when
+    `control-c` is pressed).
+    '''
+    try:
+        return run_hub(*args, **kwargs)
+    except KeyboardInterrupt:
+        pass
+
+
 class MicroDropHub(Hub):
     def on_command_recv(self, msg_frames):
         try:
@@ -69,13 +80,18 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
         """
         super(ZmqHubPlugin, self).on_plugin_enable()
         app_values = self.get_app_values()
-        self.hub_process = Process(target=run_hub,
+
+        self.hub_process = Process(target=_safe_run_hub,
                                    args=(MicroDropHub(app_values['hub_uri'],
                                                       self.name),
                                          getattr(logging,
                                                  app_values['log_level']
                                                  .upper())))
+        # Set process as daemonic so it terminate when main process terminates.
+        self.hub_process.daemon = True
         self.hub_process.start()
+        logger.info('ZeroMQ hub process (pid=%s, daemon=%s)',
+                    self.hub_process.pid, self.hub_process.daemon)
 
     def on_plugin_disable(self):
         """

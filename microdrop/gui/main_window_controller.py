@@ -158,7 +158,10 @@ class MainWindowController(SingletonPlugin):
             self.menu_tools.append(self.ipython_menu_item)
 
     def main(self):
-        gtk.main()
+        try:
+            gtk.main()
+        except KeyboardInterrupt:
+            self.shutdown(0)
 
     def get_text_input(self, title, label, default_value=""):
         self.text_input_dialog.set_title(title)
