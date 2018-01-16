@@ -85,6 +85,13 @@ class DeviceInfoPlugin(SingletonPlugin):
             Use :func:`gtk_threadsafe` decorator to wrap thread-related code
             to ensure GTK/GDK are initialized properly for a threaded
             application.
+        .. versionchanged:: X.X.X
+            Once enabled, do not stop socket listening thread.  Re-enabling the
+            plugin will cause the listening thread to be restarted.
+
+            This ensures that calls to
+            :func:`microdrop.plugin_manager.hub_execute` continue to work as
+            expected even after ``on_app_exit`` signal is emitted.
         """
         if self.plugin is not None:
             self.cleanup()
