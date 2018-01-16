@@ -158,7 +158,10 @@ class MainWindowController(SingletonPlugin):
             self.menu_tools.append(self.ipython_menu_item)
 
     def main(self):
-        gtk.main()
+        try:
+            gtk.main()
+        except KeyboardInterrupt:
+            self.shutdown(0)
 
     def get_text_input(self, title, label, default_value=""):
         self.text_input_dialog.set_title(title)
@@ -173,6 +176,18 @@ class MainWindowController(SingletonPlugin):
         return name
 
     def shutdown(self, return_code):
+        '''
+        .. versionchanged:: 2.15.2
+            Process shut down directly (instead of using
+            :func:`gobject.idle_add`) if executing in main thread to maintain
+            expected behaviour in cases where the GTK main loop is no longer
+            running.
+
+        .. versionchanged:: 2.15.2
+            Do not explicitly disable ZeroMQ hub.  Since the hub process is
+            configured as daemonic, it will automatically exit when the main
+            MicroDrop process exits.
+        '''
         def _threadsafe_shut_down(*args):
             logger.info('[_threadsafe_shut_down] Shut down')
             app = get_app()
@@ -187,11 +202,6 @@ class MainWindowController(SingletonPlugin):
             logger.info('Execute `on_app_exit` handlers.')
             emit_signal("on_app_exit")
 
-            logger.info('Shut down ZeroMQ hub plugin.')
-            hub = get_service_instance_by_name('microdrop.zmq_hub_plugin',
-                                               env='microdrop')
-            hub.on_plugin_disable()
-
             logger.info('Quit GTK main loop')
             gtk.main_quit()
             raise SystemExit(return_code)
@@ -199,7 +209,12 @@ class MainWindowController(SingletonPlugin):
         if not self._shutting_down.is_set():
             logger.info('Shutting down')
             self._shutting_down.set()
-            gobject.idle_add(_threadsafe_shut_down)
+            if get_app().gtk_thread_active():
+                # Process shut down directly if executing in main thread.
+                _threadsafe_shut_down()
+            else:
+                # Try to schedule shut down to run in main thread.
+                gobject.idle_add(_threadsafe_shut_down)
 
     def on_delete_event(self, widget, data=None):
         self.shutdown(0)

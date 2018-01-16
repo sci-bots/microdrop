@@ -1,5 +1,7 @@
+# coding: utf-8
 from multiprocessing import Process
 import logging
+import signal
 
 from flatland import Form, String, Enum
 from zmq_plugin.bin.hub import run_hub
@@ -13,6 +15,17 @@ logger = logging.getLogger(__name__)
 
 
 PluginGlobals.push_env('microdrop')
+
+
+def _safe_run_hub(*args, **kwargs):
+    '''
+    .. versionadded:: 2.15.2
+
+    Wrap :func:`run_hub` to catch ``SIGINT`` signal (i.e., when `control-C` is
+    pressed).
+    '''
+    signal.signal(signal.SIGINT, lambda *args: None)
+    return run_hub(*args, **kwargs)
 
 
 class MicroDropHub(Hub):
@@ -69,18 +82,21 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
         """
         super(ZmqHubPlugin, self).on_plugin_enable()
         app_values = self.get_app_values()
-        self.hub_process = Process(target=run_hub,
+
+        self.cleanup()
+        self.hub_process = Process(target=_safe_run_hub,
                                    args=(MicroDropHub(app_values['hub_uri'],
                                                       self.name),
                                          getattr(logging,
                                                  app_values['log_level']
                                                  .upper())))
+        # Set process as daemonic so it terminate when main process terminates.
+        self.hub_process.daemon = True
         self.hub_process.start()
+        logger.info('ZeroMQ hub process (pid=%s, daemon=%s)',
+                    self.hub_process.pid, self.hub_process.daemon)
 
-    def on_plugin_disable(self):
-        """
-        Handler called once the plugin instance is disabled.
-        """
+    def cleanup(self):
         if self.hub_process is not None:
             self.hub_process.terminate()
             self.hub_process = None

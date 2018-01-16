@@ -44,6 +44,10 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
             msg_frames = self.command_socket.recv_multipart(zmq.NOBLOCK)
         except zmq.Again:
             pass
+        except KeyboardInterrupt:
+            # Control-C was pressed.  Shutdown MicroDrop.
+            app = get_app()
+            app.main_window_controller.shutdown(0)
         else:
             self.on_command_recv(msg_frames)
         return True
