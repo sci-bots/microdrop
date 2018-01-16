@@ -36,6 +36,10 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
         super(ProtocolControllerZmqPlugin, self).__init__(*args, **kwargs)
 
     def check_sockets(self):
+        '''
+        .. versionchanged:: 2.15.1
+            Shutdown MicroDrop if ``Control-c`` is pressed.
+        '''
         try:
             msg_frames = self.command_socket.recv_multipart(zmq.NOBLOCK)
         except zmq.Again:

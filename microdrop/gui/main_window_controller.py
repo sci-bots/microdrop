@@ -246,6 +246,10 @@ class MainWindowController(SingletonPlugin):
         notes_path.launch()
 
     def on_realtime_mode_toggled(self, widget, data=None):
+        '''
+        .. versionchanged:: 2.15.1
+            Prevent toggling from resizing window.
+        '''
         app = get_app()
         realtime_mode = self.checkbutton_realtime_mode.get_active()
         app.set_app_values({'realtime_mode': realtime_mode})
