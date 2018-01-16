@@ -641,7 +641,7 @@
                 <property name="receives_default">False</property>
                 <property name="use_underline">True</property>
                 <property name="draw_indicator">True</property>
-                <signal name="button-press-event" handler="on_checkbutton_realtime_mode_button_press_event" swapped="no"/>
+                <signal name="toggled" handler="on_checkbutton_realtime_mode_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

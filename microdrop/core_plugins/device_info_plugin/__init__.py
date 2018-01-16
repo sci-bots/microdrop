@@ -103,10 +103,13 @@ class DeviceInfoPlugin(SingletonPlugin):
                 try:
                     msg_frames = (self.plugin.command_socket
                                   .recv_multipart(zmq.NOBLOCK))
-                except zmq.Again:
-                    pass
-                else:
                     self.plugin.on_command_recv(msg_frames)
+                except zmq.Again:
+                    # No message ready.
+                    pass
+                except ValueError:
+                    # Message was empty or not valid JSON.
+                    pass
 
         @gtk_threadsafe
         def _launch_socket_monitor_thread():

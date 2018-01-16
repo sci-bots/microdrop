@@ -2,6 +2,7 @@ from StringIO import StringIO
 from collections import namedtuple
 from contextlib import closing
 import logging
+import pprint
 import sys
 import traceback
 
@@ -311,8 +312,11 @@ def get_schedule(observers, function):
             try:
                 scheduler.request_order(*request)
             except AssertionError:
-                logging.info('[PluginManager] emit_signal(%s) could not add '
-                             'schedule request %s', function, request)
+                logger.debug('Schedule requests for `%s`', function)
+                map(logger.debug,
+                    pprint.pformat(schedule_requests).splitlines())
+                logger.info('emit_signal(%s) could not add schedule request '
+                            '%s', function, request)
                 continue
         return scheduler.get_schedule()
     else:
