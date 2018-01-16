@@ -86,7 +86,8 @@ class DeviceInfoPlugin(SingletonPlugin):
             to ensure GTK/GDK are initialized properly for a threaded
             application.
         """
-        self.cleanup()
+        if self.plugin is not None:
+            self.cleanup()
         self.plugin = DeviceInfoZmqPlugin(self.name, get_hub_uri())
         # Initialize sockets.
         self.plugin.reset()
@@ -97,7 +98,6 @@ class DeviceInfoPlugin(SingletonPlugin):
 
             Stop listening if :attr:`stopped` event is set.
             '''
-            self.stopped.clear()
             self.stopped.clear()
             while not self.stopped.wait(wait_duration_s):
                 try:
@@ -127,18 +127,6 @@ class DeviceInfoPlugin(SingletonPlugin):
         self.stopped.set()
         if self.plugin is not None:
             self.plugin = None
-
-    def on_plugin_disable(self):
-        """
-        Handler called once the plugin instance is disabled.
-        """
-        self.cleanup()
-
-    def on_app_exit(self):
-        """
-        Handler called just before the MicroDrop application exits.
-        """
-        self.cleanup()
 
     def on_dmf_device_swapped(self, old_device, new_device):
         if self.plugin is not None:
