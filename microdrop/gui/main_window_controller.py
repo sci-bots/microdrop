@@ -23,6 +23,7 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               emit_signal, get_service_instance_by_name)
 from ..app_context import get_app
 from .. import glade_path
+from .. import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -256,10 +257,14 @@ class MainWindowController(SingletonPlugin):
         self.shutdown(return_code)
 
     def on_about(self, widget, data=None):
+        '''
+        .. versionchanged:: X.X.X
+            Use :attr:`microdrop.__version__` for MicroDrop version.
+        '''
         app = get_app()
         dialog = self.builder.get_object("about_dialog")
         dialog.set_transient_for(app.main_window_controller.view)
-        dialog.set_version(app.version)
+        dialog.set_version(__version__)
         dialog.run()
         dialog.hide()
 

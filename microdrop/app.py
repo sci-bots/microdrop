@@ -6,7 +6,6 @@ try:
 except ImportError:
     import pickle
 import re
-import subprocess
 import sys
 import threading
 
@@ -18,7 +17,7 @@ import mpm.api
 import path_helpers as ph
 
 from . import base_path, MICRODROP_PARSER
-from . import plugin_manager
+from . import plugin_manager, __version__
 from .config import Config
 from .gui.dmf_device_controller import DEVICE_FILENAME
 from .logger import CustomHandler
@@ -96,42 +95,16 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         .. versionchanged:: 2.11.2
             Add :attr:`gtk_thread` attribute, holding a reference to the thread
             that the GTK main loop is executing in.
+
+        .. versionchanged:: X.X.X
+            Remove :attr:`version` attribute.  Use
+            :attr:`microdrop.__version__` instead.
         '''
         args = parse_args()
 
         print 'Arguments: %s' % args
 
         self.name = "microdrop.app"
-        # get the version number
-        self.version = ""
-        try:
-            raise Exception
-            version = (subprocess.Popen(['git', 'describe'],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        stdin=subprocess.PIPE)
-                       .communicate()[0].rstrip())
-            m = re.match('v(\d+)\.(\d+)-(\d+)', version)
-            self.version = "%s.%s.%s" % (m.group(1), m.group(2), m.group(3))
-            branch = (subprocess.Popen(['git', 'rev-parse', '--abbrev-ref',
-                                        'HEAD'], stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE,
-                                       stdin=subprocess.PIPE)
-                      .communicate()[0].rstrip())
-            if branch.strip() != 'master':
-                self.version += "-%s" % branch
-        except Exception:
-            import pkg_resources
-
-            version = pkg_resources.get_distribution('microdrop').version
-
-            dev = ('dev' in version)
-
-            self.version = re.sub('\.dev.*', '',
-                                  re.sub('post', '', version))
-            if dev:
-                self.version += "-dev"
-
         # .. versionadded:: 2.11.2
         self.gtk_thread = None
 
@@ -164,7 +137,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if self.name in self.config.data and ('log_level' in
                                               self.config.data[self.name]):
             self._set_log_level(self.config.data[self.name]['log_level'])
-        logger.info('MicroDrop version: %s', self.version)
+        logger.info('MicroDrop version: %s', __version__)
         logger.info('Running in working directory: %s', os.getcwd())
 
         # dmf device

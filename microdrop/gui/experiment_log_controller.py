@@ -16,7 +16,7 @@ from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import NotebookManagerView
 import gtk
 
-from .. import glade_path
+from .. import glade_path, __version__
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
 from ..experiment_log import ExperimentLog
@@ -331,7 +331,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         # least one step).
         if (hasattr(app, 'experiment_log') and app.experiment_log and
                 [x for x in app.experiment_log.get('step') if x is not None]):
-            data = {'software version': app.version}
+            data = {'software version': __version__}
             data['device name'] = app.dmf_device.name
             data['protocol name'] = app.protocol.name
             plugin_versions = {}
