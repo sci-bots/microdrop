@@ -231,11 +231,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
     def update_plugins(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.16.2
             Method was deprecated.
         '''
         raise DeprecationWarning('The `update_plugins` method was deprecated '
-                                 'in version X.X.X.')
+                                 'in version 2.16.2.')
 
     def gtk_thread_active(self):
         '''
@@ -258,7 +258,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             Set :attr:`gtk_thread` attribute, holding a reference to the thread
             that the GTK main loop is executing in.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.16.2
             Do not attempt to update plugins.
         '''
         self.gtk_thread = threading.current_thread()
