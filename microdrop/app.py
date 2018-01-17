@@ -78,9 +78,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                      properties={'show_in_gui': False}),
         Integer.named('height').using(default=500, optional=True,
                                       properties={'show_in_gui': False}),
-        Enum.named('update_automatically').using(default=1, optional=True)
-        .valued('auto-update', 'check for updates, but ask before installing',
-                "don't check for updates"),
         String.named('server_url')
         .using(default='http://microfluidics.utoronto.ca/update',
                optional=True, properties=dict(show_in_gui=False)),
@@ -232,46 +229,13 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                 return plugin_name
         return None
 
-    def _update_setting(self):
-        if not self.config['microdrop.app'].get('update_automatically', None):
-            self.config['microdrop.app']['update_automatically'] = \
-                'check for updates, but ask before installing'
-        return self.config['microdrop.app']['update_automatically']
-
     def update_plugins(self):
-        update_setting = self._update_setting()
-
-        if update_setting == 'auto-update':
-            # Auto-update
-            update = True
-            force = True
-            logger.info('Auto-update')
-        elif update_setting == 'check for updates, but ask before installing':
-            # Check for updates, but ask before installing
-            update = True
-            force = False
-            logger.info('Check for updates, but ask before installing')
-        else:
-            logger.info('Updates disabled')
-            update = False
-
-        if update:
-            service = \
-                (plugin_manager
-                 .get_service_instance_by_name('microdrop.gui'
-                                               '.plugin_manager_controller',
-                                               env='microdrop'))
-            if service.update_all_plugins(force=force):
-                logger.warning('Plugins have been updated.  The application '
-                               'must be restarted.')
-                if self.main_window_controller is not None:
-                    logger.info('Closing app after plugins auto-upgrade')
-                    # Use return code of `5` to signal program should be
-                    # restarted.
-                    gtk.idle_add(self.main_window_controller.on_destroy, None,
-                                 None, 5)
-            else:
-                logger.info('No plugins have been updated')
+        '''
+        .. versionchanged:: 2.16.2
+            Method was deprecated.
+        '''
+        raise DeprecationWarning('The `update_plugins` method was deprecated '
+                                 'in version 2.16.2.')
 
     def gtk_thread_active(self):
         '''
@@ -293,6 +257,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         .. versionchanged:: 2.11.2
             Set :attr:`gtk_thread` attribute, holding a reference to the thread
             that the GTK main loop is executing in.
+
+        .. versionchanged:: 2.16.2
+            Do not attempt to update plugins.
         '''
         self.gtk_thread = threading.current_thread()
 
@@ -328,7 +295,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         FormViewDialog.default_parent = self.main_window_controller.view
         self.builder.connect_signals(self.signals)
-        self.update_plugins()
 
         observers = {}
         plugins_to_disable_by_default = []
