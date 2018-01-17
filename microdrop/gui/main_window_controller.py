@@ -5,6 +5,7 @@ import pkg_resources
 import threading
 import webbrowser
 
+from debounce import Debounce
 from pygtkhelpers.gthreads import gtk_threadsafe
 from pygtkhelpers.proxy import proxy_for
 from microdrop_utility import wrap_string
@@ -22,7 +23,6 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               emit_signal, get_service_instance_by_name)
 from ..app_context import get_app
 from .. import glade_path
-from .debounce import Debounce
 
 logger = logging.getLogger(__name__)
 
