@@ -9,7 +9,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 
-# .. versionadded:: 2.13
+#: .. versionadded:: 2.13
 MICRODROP_PARSER = ArgumentParser(description='MicroDrop: graphical user '
                                   'interface for the DropBot Digital '
                                   'Microfluidics control system.',

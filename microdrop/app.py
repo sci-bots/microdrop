@@ -105,7 +105,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         print 'Arguments: %s' % args
 
         self.name = "microdrop.app"
-        # .. versionadded:: 2.11.2
+        #: .. versionadded:: 2.11.2
         self.gtk_thread = None
 
         self.realtime_mode = False
