@@ -40,7 +40,7 @@ requirements:
     - matplotlib
     - microdrop-device-converter >=0.1.post5
     # .. versionadded:: v2.15.1
-    #: .. versionchanged:: X.X.X
+    #: .. versionchanged:: 2.16.1
     - microdrop-plugin-manager >=0.25.1
     # .. versionadded:: v2.15.1
     - microdrop-plugin-template >=1.3
@@ -97,7 +97,7 @@ requirements:
     - lxml
     - matplotlib
     - microdrop-device-converter >=0.1.post5
-    #: .. versionchanged:: X.X.X
+    #: .. versionchanged:: 2.16.1
     - microdrop-plugin-manager >=0.25.1
     # .. versionadded:: v2.15.1
     - microdrop-plugin-template >=1.3
