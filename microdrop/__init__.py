@@ -4,7 +4,7 @@ from path_helpers import path
 
 from ._version import get_versions
 
-#: ..versionadded:: X.X.X
+#: ..versionadded:: 2.17
 __version__ = get_versions()['version']
 del get_versions
 

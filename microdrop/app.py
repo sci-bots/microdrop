@@ -96,7 +96,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             Add :attr:`gtk_thread` attribute, holding a reference to the thread
             that the GTK main loop is executing in.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.17
             Remove :attr:`version` attribute.  Use
             :attr:`microdrop.__version__` instead.
         '''

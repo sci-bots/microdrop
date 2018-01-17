@@ -258,7 +258,7 @@ class MainWindowController(SingletonPlugin):
 
     def on_about(self, widget, data=None):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.17
             Use :attr:`microdrop.__version__` for MicroDrop version.
         '''
         app = get_app()
