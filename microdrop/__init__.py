@@ -2,8 +2,14 @@ from argparse import ArgumentParser
 
 from path_helpers import path
 
+from ._version import get_versions
 
-# .. versionadded:: 2.13
+#: ..versionadded:: 2.17
+__version__ = get_versions()['version']
+del get_versions
+
+
+#: .. versionadded:: 2.13
 MICRODROP_PARSER = ArgumentParser(description='MicroDrop: graphical user '
                                   'interface for the DropBot Digital '
                                   'Microfluidics control system.',
