@@ -5,6 +5,7 @@ import pkg_resources
 import threading
 import webbrowser
 
+from debounce import Debounce
 from pygtkhelpers.gthreads import gtk_threadsafe
 from pygtkhelpers.proxy import proxy_for
 from microdrop_utility import wrap_string
@@ -65,6 +66,10 @@ class MainWindowController(SingletonPlugin):
             self.view.remove_accel_group(group_i, cached=True)
 
     def on_plugin_enable(self):
+        '''
+        .. versionchanged:: 2.16
+            Save window layout whenever window is resized or moved.
+        '''
         app = get_app()
         app.builder.add_from_file(self.builder_path)
         self.view = app.builder.get_object("window")
@@ -106,6 +111,13 @@ class MainWindowController(SingletonPlugin):
             self.on_menu_online_help_activate
         app.signals["on_menu_experiment_logs_activate"] = \
             self.on_menu_experiment_logs_activate
+
+        debounced_save_layout = Debounce(self._save_layout, wait=500)
+
+        logger.info('Resize mode: %s', self.view.get_resize_mode())
+        app.signals["on_window_check_resize"] = \
+            lambda *args: debounced_save_layout()
+
         app.signals["on_window_destroy"] = self.on_destroy
         app.signals["on_window_delete_event"] = self.on_delete_event
         app.signals["on_checkbutton_realtime_mode_toggled"] = \
@@ -118,6 +130,8 @@ class MainWindowController(SingletonPlugin):
             self.on_menu_app_options_activate
         app.signals["on_menu_manage_plugins_activate"] = \
             self.on_menu_manage_plugins_activate
+        app.signals["on_window_configure_event"] = \
+            lambda *args: debounced_save_layout()
 
         self.builder = gtk.Builder()
         self.builder.add_from_file(glade_path().joinpath('about_dialog.glade'))
@@ -175,6 +189,33 @@ class MainWindowController(SingletonPlugin):
             name = self.text_input_dialog.textentry.get_text()
         return name
 
+    @gtk_threadsafe
+    def _save_layout(self):
+        '''
+        .. versionadded:: 2.16
+
+        Save MicroDrop main window size and position.
+        '''
+        app = get_app()
+        data = app.get_app_values()
+        allocation = self.view.get_allocation()
+
+        update_required = False
+        for key in ('width', 'height'):
+            new_value = getattr(allocation, key)
+            if data[key] != new_value:
+                update_required = True
+                data[key] = new_value
+        position = dict(zip('xy', self.view.get_position()))
+        for key in 'xy':
+            if data[key] != position[key]:
+                update_required = True
+                data[key] = position[key]
+
+        if update_required:
+            logger.info('Save window size position to config.')
+            app.set_app_values(data)
+
     def shutdown(self, return_code):
         '''
         .. versionchanged:: 2.15.2
@@ -190,14 +231,6 @@ class MainWindowController(SingletonPlugin):
         '''
         def _threadsafe_shut_down(*args):
             logger.info('[_threadsafe_shut_down] Shut down')
-            app = get_app()
-            data = app.get_app_values()
-            allocation = self.view.get_allocation()
-            data['width'] = allocation.width
-            data['height'] = allocation.height
-            data['x'], data['y'] = self.view.get_position()
-            logger.info('Save window size position to config.')
-            # app.set_app_values(data)
 
             logger.info('Execute `on_app_exit` handlers.')
             emit_signal("on_app_exit")

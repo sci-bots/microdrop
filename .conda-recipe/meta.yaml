@@ -23,6 +23,8 @@ requirements:
     - arrow
     - blinker
     - configobj
+    #: ..versionadded:: 2.16
+    - debounce
     - droplet-planning
     # .. versionadded:: v2.15.2
     - flatland-fork >=0.5
@@ -77,6 +79,8 @@ requirements:
     - arrow
     - blinker
     - configobj
+    #: ..versionadded:: 2.16
+    - debounce
     - droplet-planning
     # .. versionadded:: v2.15.2
     - flatland-fork >=0.5
