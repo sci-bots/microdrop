@@ -67,7 +67,7 @@ class MainWindowController(SingletonPlugin):
 
     def on_plugin_enable(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.16
             Save window layout whenever window is resized or moved.
         '''
         app = get_app()
@@ -192,7 +192,7 @@ class MainWindowController(SingletonPlugin):
     @gtk_threadsafe
     def _save_layout(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.16
 
         Save MicroDrop main window size and position.
         '''

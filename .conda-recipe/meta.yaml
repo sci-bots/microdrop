@@ -23,7 +23,7 @@ requirements:
     - arrow
     - blinker
     - configobj
-    #: ..versionadded:: X.X.X
+    #: ..versionadded:: 2.16
     - debounce
     - droplet-planning
     # .. versionadded:: v2.15.2
@@ -79,7 +79,7 @@ requirements:
     - arrow
     - blinker
     - configobj
-    #: ..versionadded:: X.X.X
+    #: ..versionadded:: 2.16
     - debounce
     - droplet-planning
     # .. versionadded:: v2.15.2
