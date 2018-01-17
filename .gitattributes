@@ -1,0 +1,2 @@
+src/docket/_version.py export-subst
+microdrop/_version.py export-subst
