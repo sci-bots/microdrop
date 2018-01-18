@@ -1,3 +1,11 @@
+REM Use `git archive` to export with versioneer version.
+set ARCHIVE_NAME=%PKG_NAME%-%PKG_VERSION%
+git archive master -o %ARCHIVE_NAME%.tar --format tar
+mkdir %ARCHIVE_NAME%
+tar xvf %ARCHIVE_NAME%.tar -C %ARCHIVE_NAME%
+
+cd %ARCHIVE_NAME%
+
 REM Generate `setup.py` from `pavement.py` definition.
 "%PYTHON%" -m paver generate_setup
 
