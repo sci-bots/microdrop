@@ -121,14 +121,19 @@ class AppDataController(object):
     ###########################################################################
     # Mutator methods
     def set_app_values(self, values_dict):
+        '''
+        .. versionchanged:: 2.17.1
+            Log invalid keys using **info** level (not **error**) to prevent a
+            pop-up dialog from being displayed.
+        '''
         if not values_dict:
             return
         if not hasattr(self, 'name'):
             raise NotImplementedError
         for k in values_dict.keys():
             if k not in self.AppFields.field_schema_mapping.keys():
-                logger.error("Invalid key (%s) in configuration file section: "
-                             "[%s]." % (k, self.name))
+                logger.info("Invalid key (%s) in configuration file section: "
+                            "[%s].", k, self.name)
                 # remove invalid key from config file
                 values_dict.pop(k)
         elements = self.AppFields(value=values_dict)
