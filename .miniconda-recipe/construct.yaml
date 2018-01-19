@@ -23,16 +23,16 @@ specs:
   - pywin32
   # Install MicroDrop plugins
   #: .. versionchanged:: X.X.X
-  - microdrop.droplet-planning-plugin >=2.3
+  - microdrop.droplet-planning-plugin >=2.3.1
   #: .. versionchanged:: X.X.X
-  - microdrop.dmf-device-ui-plugin >=2.4
-  # .. versionchanged:: 2.15
+  - microdrop.dmf-device-ui-plugin >=2.6
+  #: .. versionchanged:: 2.15
   #: .. versionchanged:: X.X.X
-  - microdrop.dropbot-plugin >=0.22.2
+  - microdrop.dropbot-plugin >=2.22.3
   #: .. versionchanged:: X.X.X
-  - microdrop.user-prompt-plugin >=2.3
+  - microdrop.user-prompt-plugin >=2.3.1
   #: .. versionchanged:: X.X.X
-  - microdrop.step-label-plugin >=2.2.1
+  - microdrop.step-label-plugin >=2.2.2
 
 license_file: EULA.txt
 
