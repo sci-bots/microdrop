@@ -13,9 +13,9 @@ specs:
   #: .. versionchanged:: X.X.X
   - dmf-device-ui >=0.7.1
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
-  # .. versionchanged:: v2.15
+  #: .. versionchanged:: 2.15
   - microdrop-launcher >=0.7.11
-  # .. versionadded:: v2.15
+  #: .. versionadded:: 2.15
   #: .. versionchanged:: X.X.X
   - microdrop-plugin-manager >=0.25.1
   - pip
@@ -41,17 +41,17 @@ post_install: post-install.bat           [win]
 # Welcome image for Windows installer
 welcome_image: logo.png                  [win]
 # Write `.condarc` including default channels
-# .. versionadded:: v2.15
+#: .. versionadded:: 2.15
 write_condarc: True
-# .. versionadded:: v2.15
+#: .. versionadded:: 2.15
 install_in_dependency_order: True
-# .. versionadded:: v2.15.3
+#: .. versionadded:: 2.15.3
 ignore_duplicate_files: True
-# .. versionadded:: v2.15
+#: .. versionadded:: 2.15
 #     By default, do not add the installation to the PATH environment variable.
 #     The user is still able to change this during interactive installation.
 add_to_path_default: False
-# .. versionadded:: v2.15
+#: .. versionadded:: 2.15
 #     By default, do not register the installed Python instance as the system's
 #     default Python.
 #     The user is still able to change this during interactive installation.
