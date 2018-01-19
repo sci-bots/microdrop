@@ -2,55 +2,56 @@ name: MicroDrop
 version: {{ GIT_DESCRIBE_TAG[1:] }}
 
 channels:
-  - http://repo.continuum.io/pkgs/free/
-  - https://conda.anaconda.org/conda-forge/
-  - https://conda.anaconda.org/wheeler-microfluidics/
-  - https://conda.anaconda.org/sci-bots
   - https://conda.anaconda.org/microdrop-plugins
+  - https://conda.anaconda.org/sci-bots
+  - https://conda.anaconda.org/wheeler-microfluidics/
+  - https://conda.anaconda.org/conda-forge/
+  - http://repo.continuum.io/pkgs/free/
 
 specs:
   - conda
-  - dmf-device-ui >=0.6
+  #: .. versionchanged:: 2.18
+  - dmf-device-ui >=0.7.1
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
-  # .. versionchanged:: v2.15
+  #: .. versionchanged:: 2.15
   - microdrop-launcher >=0.7.11
-  # .. versionadded:: v2.15
-  - microdrop-plugin-manager >=0.25
+  #: .. versionadded:: 2.15
+  #: .. versionchanged:: 2.18
+  - microdrop-plugin-manager >=0.25.1
   - pip
   - python 2.7*
   - pywin32
   # Install MicroDrop plugins
-  - microdrop.droplet-planning-plugin
-  - microdrop.dmf-device-ui-plugin
-  # .. versionchanged:: v2.15
-  - microdrop.dropbot-plugin >=0.21.1
-  - microdrop.user-prompt-plugin
-  - microdrop.step-label-plugin
+  #: .. versionchanged:: 2.18
+  - microdrop.droplet-planning-plugin >=2.3.1
+  #: .. versionchanged:: 2.18
+  - microdrop.dmf-device-ui-plugin >=2.6
+  #: .. versionchanged:: 2.15
+  #: .. versionchanged:: 2.18
+  - microdrop.dropbot-plugin >=2.22.4
+  #: .. versionchanged:: 2.18
+  - microdrop.user-prompt-plugin >=2.3.1
+  #: .. versionchanged:: 2.18
+  - microdrop.step-label-plugin >=2.2.2
 
 license_file: EULA.txt
 
 post_install: post-install.bat           [win]
 
-conda_default_channels:
-  - http://repo.continuum.io/pkgs/free/
-  - https://conda.anaconda.org/conda-forge/
-  - https://conda.anaconda.org/wheeler-microfluidics/
-  - https://conda.anaconda.org/sci-bots
-
 # Welcome image for Windows installer
 welcome_image: logo.png                  [win]
 # Write `.condarc` including default channels
-# .. versionadded:: v2.15
+#: .. versionadded:: 2.15
 write_condarc: True
-# .. versionadded:: v2.15
+#: .. versionadded:: 2.15
 install_in_dependency_order: True
-# .. versionadded:: v2.15.3
+#: .. versionadded:: 2.15.3
 ignore_duplicate_files: True
-# .. versionadded:: v2.15
+#: .. versionadded:: 2.15
 #     By default, do not add the installation to the PATH environment variable.
 #     The user is still able to change this during interactive installation.
 add_to_path_default: False
-# .. versionadded:: v2.15
+#: .. versionadded:: 2.15
 #     By default, do not register the installed Python instance as the system's
 #     default Python.
 #     The user is still able to change this during interactive installation.
