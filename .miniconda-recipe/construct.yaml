@@ -31,12 +31,6 @@ license_file: EULA.txt
 
 post_install: post-install.bat           [win]
 
-conda_default_channels:
-  - http://repo.continuum.io/pkgs/free/
-  - https://conda.anaconda.org/conda-forge/
-  - https://conda.anaconda.org/wheeler-microfluidics/
-  - https://conda.anaconda.org/sci-bots
-
 # Welcome image for Windows installer
 welcome_image: logo.png                  [win]
 # Write `.condarc` including default channels
