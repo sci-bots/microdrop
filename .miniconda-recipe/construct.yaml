@@ -11,7 +11,8 @@ channels:
 specs:
   - conda
   #: .. versionchanged:: 2.18
-  - dmf-device-ui >=0.7.1
+  #: .. versionchanged:: 2.19
+  - dmf-device-ui >=0.10
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
   #: .. versionchanged:: 2.15
   #: .. versionchanged:: 2.18.1
