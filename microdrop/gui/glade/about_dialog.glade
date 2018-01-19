@@ -7,8 +7,7 @@
     <property name="border_width">5</property>
     <property name="type_hint">dialog</property>
     <property name="program_name">μDrop</property>
-    <property name="copyright" translatable="yes">Copyright 2011-2016 Ryan Fobel and Christian Fobel
-Wheeler Microfluidics Lab</property>
+    <property name="copyright" translatable="yes">Copyright 2018 Sci-Bots Inc.</property>
     <child internal-child="vbox">
       <object class="GtkVBox" id="dialog-vbox1">
         <property name="visible">True</property>
@@ -28,8 +27,8 @@ Wheeler Microfluidics Lab</property>
           </packing>
         </child>
         <child>
-          <object class="GtkLinkButton" id="linkbutton1">
-            <property name="label" translatable="yes">http://microfluidics.utoronto.ca/microdrop</property>
+	<object class="GtkLinkButton" id="linkbutton1">
+	  <property name="label" translatable="yes">http://github.com/sci-bots/microdrop</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
@@ -37,7 +36,7 @@ Wheeler Microfluidics Lab</property>
             <property name="use_action_appearance">False</property>
             <property name="relief">none</property>
             <property name="yalign">0.50999999046325684</property>
-            <property name="uri">http://microfluidics.utoronto.ca/microdrop</property>
+	    <property name="uri">http://github.com/sci-bots/microdrop</property>
           </object>
           <packing>
             <property name="expand">True</property>
