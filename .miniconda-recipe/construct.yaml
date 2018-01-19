@@ -14,7 +14,8 @@ specs:
   - dmf-device-ui >=0.7.1
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
   #: .. versionchanged:: 2.15
-  - microdrop-launcher >=0.7.11
+  #: .. versionchanged:: 2.18.1
+  - microdrop-launcher >=0.7.12
   #: .. versionadded:: 2.15
   #: .. versionchanged:: 2.18
   - microdrop-plugin-manager >=0.25.1
