@@ -2,11 +2,11 @@ name: MicroDrop
 version: {{ GIT_DESCRIBE_TAG[1:] }}
 
 channels:
-  - http://repo.continuum.io/pkgs/free/
-  - https://conda.anaconda.org/conda-forge/
-  - https://conda.anaconda.org/wheeler-microfluidics/
-  - https://conda.anaconda.org/sci-bots
   - https://conda.anaconda.org/microdrop-plugins
+  - https://conda.anaconda.org/sci-bots
+  - https://conda.anaconda.org/wheeler-microfluidics/
+  - https://conda.anaconda.org/conda-forge/
+  - http://repo.continuum.io/pkgs/free/
 
 specs:
   - conda
