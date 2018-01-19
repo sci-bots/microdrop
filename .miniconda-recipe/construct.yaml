@@ -10,28 +10,28 @@ channels:
 
 specs:
   - conda
-  #: .. versionchanged:: X.X.X
+  #: .. versionchanged:: 2.18
   - dmf-device-ui >=0.7.1
   - microdrop =={{ GIT_DESCRIBE_TAG[1:] }}
   #: .. versionchanged:: 2.15
   - microdrop-launcher >=0.7.11
   #: .. versionadded:: 2.15
-  #: .. versionchanged:: X.X.X
+  #: .. versionchanged:: 2.18
   - microdrop-plugin-manager >=0.25.1
   - pip
   - python 2.7*
   - pywin32
   # Install MicroDrop plugins
-  #: .. versionchanged:: X.X.X
+  #: .. versionchanged:: 2.18
   - microdrop.droplet-planning-plugin >=2.3.1
-  #: .. versionchanged:: X.X.X
+  #: .. versionchanged:: 2.18
   - microdrop.dmf-device-ui-plugin >=2.6
   #: .. versionchanged:: 2.15
-  #: .. versionchanged:: X.X.X
+  #: .. versionchanged:: 2.18
   - microdrop.dropbot-plugin >=2.22.4
-  #: .. versionchanged:: X.X.X
+  #: .. versionchanged:: 2.18
   - microdrop.user-prompt-plugin >=2.3.1
-  #: .. versionchanged:: X.X.X
+  #: .. versionchanged:: 2.18
   - microdrop.step-label-plugin >=2.2.2
 
 license_file: EULA.txt
