@@ -9,6 +9,7 @@ import pandas as pd
 import zmq
 
 from ...app_context import get_app, get_hub_uri
+from ...logging_helpers import _L  #: .. versionadded:: X.X.X
 from ...plugin_helpers import StepOptionsController
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements, emit_signal)

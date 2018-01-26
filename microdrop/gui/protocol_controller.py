@@ -14,6 +14,7 @@ import path_helpers as ph
 import zmq
 
 from ..app_context import get_app, get_hub_uri
+from ..logging_helpers import _L  #: .. versionadded:: X.X.X
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_observers,
@@ -57,42 +58,42 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
         try:
             return self.parent.on_first_step()
         except Exception:
-            logger.error(str(data), exc_info=True)
+            _L().error(str(data), exc_info=True)
 
     def on_execute__last_step(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.on_last_step()
         except Exception:
-            logger.error(str(data), exc_info=True)
+            _L().error(str(data), exc_info=True)
 
     def on_execute__prev_step(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.on_prev_step()
         except Exception:
-            logger.error(str(data), exc_info=True)
+            _L().error(str(data), exc_info=True)
 
     def on_execute__next_step(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.on_next_step()
         except Exception:
-            logger.error(str(data), exc_info=True)
+            _L().error(str(data), exc_info=True)
 
     def on_execute__run_protocol(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.on_run_protocol()
         except Exception:
-            logger.error(str(data), exc_info=True)
+            _L().error(str(data), exc_info=True)
 
     def on_execute__save_protocol(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.save_protocol()
         except Exception:
-            logger.error(str(data), exc_info=True)
+            _L().error(str(data), exc_info=True)
 
     def on_execute__delete_step(self, request):
         data = decode_content_data(request)
@@ -103,14 +104,14 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
                                              env='microdrop')
             return protocol_grid_controller.widget.delete_rows()
         except Exception:
-            logger.error(str(data), exc_info=True)
+            _L().error(str(data), exc_info=True)
 
     def on_execute__goto_step(self, request):
         data = decode_content_data(request)
         try:
             return self.parent.goto_step(request['step_number'])
         except Exception:
-            logger.error(str(data), exc_info=True)
+            _L().error(str(data), exc_info=True)
 
 
 PluginGlobals.push_env('microdrop')
@@ -186,7 +187,7 @@ class ProtocolController(SingletonPlugin):
         try:
             protocol = Protocol.load(filename)
         except FutureVersionError, why:
-            logger.error('''
+            _L().error('''
 Could not open protocol: %s
 
 It was created with a newer version of the software.
@@ -194,7 +195,7 @@ Protocol is version %s, but only up to version %s is supported with this
 version of the software.'''.strip(), filename, why.future_version,
                          why.current_version)
         except Exception, why:
-            logger.error("Could not open %s. %s", filename, why)
+            _L().error("Could not open %s. %s", filename, why)
         else:
             self.activate_protocol(protocol)
 
@@ -219,6 +220,7 @@ version of the software.'''.strip(), filename, why.future_version,
                     missing_plugins.append(k)
         self.modified = False
         if missing_plugins:
+            logger = _L()  # use logger with method context
             logger.info('protocol missing plugins: %s',
                         ', '.join(missing_plugins))
             result = yesno('Some data in the protocol "%s" requires '
@@ -249,8 +251,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_protocol_swapped(self, old_protocol, protocol):
         protocol.plugin_fields = emit_signal('get_step_fields')
-        logger.debug('[ProtocolController] on_protocol_swapped(): '
-                     'plugin_fields=%s', protocol.plugin_fields)
+        _L().debug('plugin_fields=%s', protocol.plugin_fields)
         protocol.first_step()
         self.run_step()
 
@@ -432,6 +433,7 @@ version of the software.'''.strip(), filename, why.future_version,
                 filename = ph.path(dialog.get_filename())
                 if filename.ext.lower() != '.json':
                     filename = filename + '.json'
+                logger = _L()  # use logger with method context
                 try:
                     with open(filename, 'w') as output:
                         app.protocol.to_json(output, indent=2)
@@ -462,8 +464,7 @@ version of the software.'''.strip(), filename, why.future_version,
                         # Abort export.
                         logger.warn('Export cancelled.')
                         return
-                logger.info('[ProcolController.on_export_protocol]: '
-                            'exported protocol to %s', filename)
+                logger.info('exported protocol to %s', filename)
         finally:
             dialog.destroy()
 
@@ -588,9 +589,9 @@ version of the software.'''.strip(), filename, why.future_version,
                                             app.protocol.current_step_attempt)
 
             self.waiting_for = get_observers("on_step_run", IPlugin).keys()
-            logger.info('[ProcolController.run_step]: step: %d, waiting for %s',
-                        app.protocol.current_step_number,
-                        ', '.join(self.waiting_for))
+            _L().info('step: %d, waiting for %s',
+                      app.protocol.current_step_number,
+                      ', '.join(self.waiting_for))
 
             def _threadsafe_emit_signal(*args):
                 emit_signal("on_step_run")
@@ -599,23 +600,22 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_step_complete(self, plugin_name, return_value=None):
         app = get_app()
-        logger.info("[ProcolController].on_step_complete: %s finished",
-                    plugin_name)
+        logger = _L()  # use logger with method context
+        logger.info("%s finished", plugin_name)
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
 
         # check return value
         if return_value == 'Fail':
             self.pause_protocol()
-            logger.error("Protocol failed.")
+            logger.error("Protocol failed due to `%s`.", plugin_name)
         elif return_value == 'Repeat':
             self.repeat_step = True
         else:
             self.repeat_step = False
 
         if len(self.waiting_for):
-            logger.info('[ProcolController].on_step_complete: still waiting '
-                        'for %s', ', '.join(self.waiting_for))
+            logger.info('still waiting for %s', ', '.join(self.waiting_for))
         # If all plugins have completed the current step, go to the next step.
         elif app.running:
             if self.repeat_step:
@@ -662,9 +662,7 @@ version of the software.'''.strip(), filename, why.future_version,
         emit_signal('on_protocol_changed')
 
     def on_step_swapped(self, original_step_number, step_number):
-        logger.debug('[ProtocolController.on_step_swapped] '
-                     'original_step_number=%s, step_number=%s',
-                     original_step_number, step_number)
+        _L().debug('%s -> %s', original_step_number, step_number)
         self._update_labels()
         self.run_step()
 

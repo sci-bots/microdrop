@@ -5,6 +5,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import pprint
 import re
 import sys
 import threading
@@ -20,6 +21,7 @@ from . import base_path, MICRODROP_PARSER
 from . import plugin_manager, __version__
 from .config import Config
 from .gui.dmf_device_controller import DEVICE_FILENAME
+from .logging_helpers import _L, caller_name  #: .. versionadded:: X.X.X
 from .logger import CustomHandler
 from .plugin_helpers import AppDataController
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
@@ -137,8 +139,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if self.name in self.config.data and ('log_level' in
                                               self.config.data[self.name]):
             self._set_log_level(self.config.data[self.name]['log_level'])
-        logger.info('MicroDrop version: %s', __version__)
-        logger.info('Running in working directory: %s', os.getcwd())
+        _L().info('MicroDrop version: %s', __version__)
+        _L().info('Running in working directory: %s', os.getcwd())
 
         # dmf device
         self.dmf_device = None
@@ -184,7 +186,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
     def apply_log_file_config(self, log_file, enabled):
         if enabled and not log_file:
-            logger.error('Log file can only be enabled if a path is selected.')
+            _L().error('Log file can only be enabled if a path is selected.')
             return False
         self.update_log_file()
         return True
@@ -234,6 +236,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         .. versionchanged:: 2.16.2
             Do not attempt to update plugins.
         '''
+        logger = _L()  # use logger with method context
         self.gtk_thread = threading.current_thread()
 
         # set realtime mode to false on startup
@@ -386,12 +389,13 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                       datefmt=r'%Y-%m-%d %H:%M:%S')
         self.log_file_handler.setFormatter(formatter)
         logging.root.addHandler(self.log_file_handler)
-        logger.info('[App] added log_file_handler: %s' % log_file)
+        _L().info('added FileHandler: %s (level=%s)', log_file,
+                  logging.getLevelName(self.log_file_handler.level))
 
     def _destroy_log_file_handler(self):
         if self.log_file_handler is None:
             return
-        logger.info('[App] closing log_file_handler')
+        _L().info('closing log_file_handler')
         self.log_file_handler.close()
         del self.log_file_handler
         self.log_file_handler = None
@@ -399,7 +403,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     def update_log_file(self):
         plugin_name = 'microdrop.app'
         values = AppDataController.get_plugin_app_values(plugin_name)
-        logger.debug('[App] update_log_file %s' % values)
+        _L().debug('update_log_file %s', values)
         required = set(['log_enabled', 'log_file'])
         if values is None or required.intersection(values.keys()) != required:
             return
@@ -409,7 +413,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         if self.log_file_handler is None:
             if log_enabled:
                 self._set_log_file_handler(log_file)
-                logger.info('[App] logging enabled')
+                _L().info('[App] logging enabled')
         else:
             # Log file handler already exists
             if log_enabled:
@@ -451,7 +455,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     # Invalid object type
                     return
         except (Exception,), why:
-            logger.info('[paste_steps] invalid data: %s', why)
+            _L().info('invalid data: %s', why)
             return
         self.protocol.insert_steps(step_number, values=new_steps)
 

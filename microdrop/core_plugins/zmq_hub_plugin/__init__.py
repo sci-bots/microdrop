@@ -7,6 +7,7 @@ from flatland import Form, String, Enum
 from zmq_plugin.bin.hub import run_hub
 from zmq_plugin.hub import Hub
 
+from ...logging_helpers import _L  #: .. versionadded:: X.X.X
 from ...plugin_helpers import AppDataController
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements)
@@ -33,7 +34,7 @@ class MicroDropHub(Hub):
         try:
             super(MicroDropHub, self).on_command_recv(msg_frames)
         except Exception:
-            logger.error('Command socket message error.', exc_info=True)
+            _L().error('Command socket message error.', exc_info=True)
 
 
 class ZmqHubPlugin(SingletonPlugin, AppDataController):
@@ -93,8 +94,8 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
         # Set process as daemonic so it terminate when main process terminates.
         self.hub_process.daemon = True
         self.hub_process.start()
-        logger.info('ZeroMQ hub process (pid=%s, daemon=%s)',
-                    self.hub_process.pid, self.hub_process.daemon)
+        _L().info('ZeroMQ hub process (pid=%s, daemon=%s)',
+                  self.hub_process.pid, self.hub_process.daemon)
 
     def cleanup(self):
         if self.hub_process is not None:

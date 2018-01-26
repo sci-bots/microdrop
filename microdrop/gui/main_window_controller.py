@@ -22,6 +22,7 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, ILoggingPlugin,
                               emit_signal, get_service_instance_by_name)
 from ..app_context import get_app
+from ..logging_helpers import _L  #: .. versionadded:: X.X.X
 from .. import glade_path
 from .. import __version__
 
@@ -115,7 +116,7 @@ class MainWindowController(SingletonPlugin):
 
         debounced_save_layout = Debounce(self._save_layout, wait=500)
 
-        logger.info('Resize mode: %s', self.view.get_resize_mode())
+        _L().info('Resize mode: %s', self.view.get_resize_mode())
         app.signals["on_window_check_resize"] = \
             lambda *args: debounced_save_layout()
 
@@ -214,7 +215,7 @@ class MainWindowController(SingletonPlugin):
                 data[key] = position[key]
 
         if update_required:
-            logger.info('Save window size position to config.')
+            _L().info('Save window size position to config.')
             app.set_app_values(data)
 
     def shutdown(self, return_code):
@@ -230,12 +231,11 @@ class MainWindowController(SingletonPlugin):
             configured as daemonic, it will automatically exit when the main
             MicroDrop process exits.
         '''
-        def _threadsafe_shut_down(*args):
-            logger.info('[_threadsafe_shut_down] Shut down')
+        logger = _L()  # use logger with method context
 
+        def _threadsafe_shut_down(*args):
             logger.info('Execute `on_app_exit` handlers.')
             emit_signal("on_app_exit")
-
             logger.info('Quit GTK main loop')
             gtk.main_quit()
             raise SystemExit(return_code)
@@ -421,7 +421,7 @@ class MainWindowController(SingletonPlugin):
                 gobject.idle_add(proxy.set_widget_value, data['realtime_mode'])
 
     def on_url_clicked(self, widget, data):
-        logger.debug("URL clicked: %s" % data)
+        _L().debug("URL clicked: %s" % data)
         webbrowser.open_new_tab(data)
 
     def get_protocol_string(self, protocol=None):

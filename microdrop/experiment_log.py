@@ -16,6 +16,9 @@ import arrow
 import pandas as pd
 import yaml
 
+from .logging_helpers import _L  #: .. versionadded:: X.X.X
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -91,8 +94,8 @@ class ExperimentLog():
         self.uuid = str(uuid.uuid4())
         self._get_next_id()
         self.metadata = {}  # Meta data, keyed by plugin name.
-        logger.info('[ExperimentLog] new log with id=%s and uuid=%s',
-                    self.experiment_id, self.uuid)
+        _L().info('new log with id=%s and uuid=%s', self.experiment_id,
+                  self.uuid)
 
     def _get_next_id(self):
         if self.directory is None:
@@ -123,12 +126,12 @@ class ExperimentLog():
             FutureVersionError: file was written by a future version of the
                 software.
         """
-        logger.debug("[ExperimentLog]._upgrade()")
+        logger = _L()  # use logger with method context
         version = Version.fromstring(self.version)
-        logger.debug('[ExperimentLog] version=%s, class_version=%s',
+        logger.debug('version=%s, class_version=%s',
                      str(version), self.class_version)
         if version > Version.fromstring(self.class_version):
-            logger.debug('[ExperimentLog] version>class_version')
+            logger.debug('version > class_version')
             raise FutureVersionError
         if version < Version(0, 1, 0):
             new_data = []
@@ -179,8 +182,8 @@ class ExperimentLog():
             FutureVersionError: file was written by a future version of the
                 software.
         """
-        logger.debug("[ExperimentLog].load(\"%s\")" % filename)
-        logger.info("Loading Experiment log from %s" % filename)
+        logger = _L()  # use logger with method context
+        logger.info("Loading Experiment log from %s", filename)
         out = None
         start_time = time.time()
         with open(filename, 'rb') as f:
@@ -218,8 +221,7 @@ class ExperimentLog():
                     except Exception, e:
                         logger.error("Couldn't load experiment log data for "
                                      "plugin: %s. %s." % (plugin_name, e))
-        logger.debug("[ExperimentLog].load() loaded in %f s.", time.time() -
-                     start_time)
+        logger.debug("loaded in %f s.", time.time() - start_time)
         return out
 
     def save(self, filename=None, format='pickle'):

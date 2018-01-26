@@ -1,6 +1,5 @@
 from copy import deepcopy
 import json
-import logging
 
 from flatland import Form, String
 from microdrop.app_context import get_app
@@ -13,6 +12,8 @@ from microdrop_utility.gui import get_accel_group
 from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
                                                         CombinedRow, RowFields)
 import gtk
+
+from ..logging_helpers import _L  #: .. versionadded:: X.X.X
 
 
 def _get_title(column):
@@ -48,9 +49,8 @@ class ProtocolGridView(CombinedFields):
             # Get the step option values from the plugin instance
             attrs = service.get_step_values(step_number=step_number)
             self._update_row_fields(form_name, step_number, attrs)
-            logging.debug('[ProtocolGridView] _on_step_options_changed(): '
-                          'plugin_name=%s step_number=%s attrs=%s' %
-                          (form_name, step_number, attrs))
+            _L().debug('plugin_name=%s step_number=%s attrs=%s', form_name,
+                           step_number, attrs)
 
     def _get_popup_menu(self, item, column_title, value, row_ids,
                         menu_items=None):
@@ -122,7 +122,7 @@ class ProtocolGridView(CombinedFields):
                     service.set_step_values(form_step.attrs,
                                             step_number=row_id)
                 except ValueError:
-                    logging.error('Invalid value. %s', value)
+                    _L().error('Invalid value. %s', value)
                     self._on_step_options_changed(form_name, row_id)
 
     def on_rows_changed(self, list_, row_ids, rows, attr):
@@ -138,11 +138,10 @@ class ProtocolGridView(CombinedFields):
 
     def on_selection_changed(self, grid_view):
         if self.selected_ids:
-            logging.debug('[ProtocolGridView].on_selection_changed: '
-                          'selected_ids=%s', self.selected_ids)
+            _L().debug('selected_ids=%s', self.selected_ids)
             app = get_app()
-            logging.debug('\tcurrent_step_number=%d',
-                          app.protocol.current_step_number)
+            _L().debug('current_step_number=%d',
+                           app.protocol.current_step_number)
             if app.protocol.current_step_number not in self.selected_ids:
                 app.protocol.goto_step(self.selected_ids[0])
 
@@ -208,8 +207,7 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
         app = get_app()
         self.enabled_fields = enabled_fields_by_plugin
         self.widget.select_row(app.protocol.current_step_number)
-        logging.debug('[ProtocolGridController] set_fields_filter: %s',
-                      self.enabled_fields)
+        _L().debug('%s', self.enabled_fields)
 
     def update_grid(self, protocol=None):
         app = get_app()
@@ -217,16 +215,13 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
             protocol = app.protocol
         if protocol is None:
             return
-        logging.debug('[ProtocolGridController].update_grid:')
-        logging.debug('[ProtocolGridController]   plugin_fields=%s',
-                      protocol.plugin_fields)
+        _L().debug('plugin_fields=%s', protocol.plugin_fields)
         forms = dict([(k, f) for k, f in
                       emit_signal('get_step_form_class').iteritems()
                       if f is not None])
 
         steps = protocol.steps
-        logging.debug('[ProtocolGridController]   forms=%s steps=%s', forms,
-                      steps)
+        _L().debug('forms=%s steps=%s', forms, steps)
 
         if self.enabled_fields is None:
             # Assign directly to _enabled_fields to avoid recursive call into
@@ -365,14 +360,12 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
         self.update_grid()
 
     def on_step_swapped(self, original_step_number, step_number):
-        logging.debug('[ProtocolGridController] on_step_swapped[%d->%d]',
-                      original_step_number, step_number)
+        _L().debug('%d -> %d', original_step_number, step_number)
         if self.widget:
             self.widget.select_row(get_app().protocol.current_step_number)
 
     def on_step_removed(self, step_number, step):
-        logging.debug('[ProtocolGridController] on_step_removed[%d]',
-                      step_number)
+        _L().debug('%d', step_number)
         self.update_grid()
 
     def on_app_exit(self):
