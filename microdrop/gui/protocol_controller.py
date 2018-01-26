@@ -619,15 +619,20 @@ version of the software.'''.strip(), filename, why.future_version,
         # If all plugins have completed the current step, go to the next step.
         elif app.running:
             if self.repeat_step:
+                logger.info('repeating step %s',
+                            app.protocol.current_step_number)
                 app.protocol.current_step_attempt += 1
                 self.run_step()
             else:
                 app.protocol.current_step_attempt = 0
                 if app.protocol.current_step_number < len(app.protocol)-1:
+                    logger.info('Execute next step.')
                     app.protocol.next_step()
                 elif app.protocol.current_repetition < app.protocol.n_repeats-1:
+                    logger.info('Repeat entire protocol again.')
                     app.protocol.next_repetition()
                 else:  # we're on the last step
+                    logger.info('Protocol completed.  Stop execution.')
                     self.pause_protocol()
 
                     def _threadsafe_protocol_finished(*args):
