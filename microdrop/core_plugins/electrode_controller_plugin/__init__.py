@@ -145,6 +145,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
                 emit_signal('on_step_options_changed', [self.name,
                                                         step_number],
                             interface=IPlugin)
+            _L().info("emit_signal('on_step_options_changed')")
             gtk.idle_add(notify, app.protocol.current_step_number)
 
         result['actuated_area'] = self.get_actuated_area(self.electrode_states)
