@@ -134,6 +134,8 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
         '''
         app = get_app()
 
+        # Resolve list of electrodes _and respective **channels**_ from channel
+        # mapping in DMF device definition.
         result = self.get_state(electrode_states)
 
         # Set the state of DMF device channels.
@@ -148,6 +150,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
             _L().info("emit_signal('on_step_options_changed')")
             gtk.idle_add(notify, app.protocol.current_step_number)
 
+        # Compute actuated area based on geometries in DMF device definition.
         result['actuated_area'] = self.get_actuated_area(self.electrode_states)
         return result
 
