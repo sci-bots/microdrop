@@ -157,6 +157,15 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             return {}
 
     def set_data(self, plugin_name, data):
+        '''
+        .. versionchanged:: X.X.X
+            Log data and plugin name to debug level.
+        '''
+        logger = _L()  # use logger with method context
+        if logger.getEffectiveLevel() >= logging.DEBUG:
+            caller = caller_name(skip=2)
+            logger.debug('%s -> plugin_data:', caller)
+            map(logger.debug, pprint.pformat(data).splitlines())
         self.plugin_data[plugin_name] = data
 
     def on_app_options_changed(self, plugin_name):
