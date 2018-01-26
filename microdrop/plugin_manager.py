@@ -367,20 +367,39 @@ def emit_signal(function, args=None, interface=IPlugin):
     -------
     dict
         Mapping from each service name to the respective function return value.
+
+
+    .. versionchanged:: X.X.X
+        Log caller at info level, and log args and observers at debug level.
     '''
+    logger = _L()  # use logger with function context
+    i = 0
+    caller = caller_name(skip=i)
+
+    while not caller or caller == 'microdrop.plugin_manager.emit_signal':
+        i += 1
+        caller = caller_name(skip=i)
+
     try:
         observers = get_observers(function, interface)
         schedule = get_schedule(observers, function)
+
         return_codes = {}
+
+        if args is None:
+            args = []
+        elif not isinstance(args, list):
+            args = [args]
+
+        if 'logger' not in caller:
+            logger.info('caller: %s -> %s', caller, function)
+            if logger.getEffectiveLevel() <= logging.DEBUG:
+                logger.debug('args: (%s)', ', '.join(map(repr, args)))
         for observer_name in schedule:
             observer = observers[observer_name]
-            logging.debug('emit_signal: %s.%s()' % (observer.name, function))
             try:
-                if args is None:
-                    args = []
-                elif type(args) is not list:
-                    args = [args]
                 f = getattr(observer, function)
+                logger.debug('  call: %s.%s(...)', observer.name, function)
                 return_codes[observer.name] = f(*args)
             except Exception, why:
                 with closing(StringIO()) as message:
@@ -394,11 +413,11 @@ def emit_signal(function, args=None, interface=IPlugin):
                             '%s plugin crashed processing %s signal.' % \
                             (observer.name, function)
                     print >> message, 'Reason:', str(why)
-                    logging.error(message.getvalue().strip())
-                logging.info(''.join(traceback.format_exc()))
+                    logger.error(message.getvalue().strip())
+                logger.info(''.join(traceback.format_exc()))
         return return_codes
     except Exception, why:
-        logging.error(why, exc_info=True)
+        logger.error(why, exc_info=True)
         return {}
 
 

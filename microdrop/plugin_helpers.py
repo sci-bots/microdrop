@@ -6,6 +6,7 @@ import path_helpers as ph
 import yaml
 
 from .app_context import get_app
+from .logging_helpers import _L  #: .. versionadded:: X.X.X
 from .plugin_manager import (IPlugin, ExtensionPoint, emit_signal,
                              get_service_instance_by_name)
 
@@ -132,8 +133,8 @@ class AppDataController(object):
             raise NotImplementedError
         for k in values_dict.keys():
             if k not in self.AppFields.field_schema_mapping.keys():
-                logger.info("Invalid key (%s) in configuration file section: "
-                            "[%s].", k, self.name)
+                _L().info("Invalid key (%s) in configuration file section: "
+                          "[%s].", k, self.name)
                 # remove invalid key from config file
                 values_dict.pop(k)
         elements = self.AppFields(value=values_dict)
@@ -203,8 +204,7 @@ class StepOptionsController(object):
         addition of arbitrary Python data types as step options.
         '''
         step_number = self.get_step_number(step_number)
-        logger.debug('[StepOptionsController] set_step[%d]_values(): '
-                     'values_dict=%s' % (step_number, values_dict))
+        _L().debug('set_step[%d]: values_dict=%s', step_number, values_dict)
         validate_dict = dict([(k, v) for k, v in values_dict.iteritems()
                               if k in self.StepFields.field_schema_mapping])
         validation_result = self.StepFields(value=validate_dict)
@@ -260,6 +260,5 @@ def hub_execute(*args, **kwargs):
             service.plugin.reset()
             return service.plugin.execute(*args, **kwargs)
     except:
-        logger.info('[hub_execute] plugin registry: %s',
-                    service.plugin.plugin_registry.keys())
+        _L().info('plugin registry: %s', service.plugin.plugin_registry.keys())
         raise
