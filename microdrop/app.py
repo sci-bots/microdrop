@@ -149,7 +149,6 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.protocol = None
 
     def get_data(self, plugin_name):
-        logger.debug('[App] plugin_data=%s' % self.plugin_data)
         data = self.plugin_data.get(plugin_name)
         if data:
             return data
