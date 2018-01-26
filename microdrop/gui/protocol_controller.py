@@ -625,10 +625,11 @@ version of the software.'''.strip(), filename, why.future_version,
                 self.run_step()
             else:
                 app.protocol.current_step_attempt = 0
-                if app.protocol.current_step_number < len(app.protocol)-1:
+                if app.protocol.current_step_number < len(app.protocol) - 1:
                     logger.info('Execute next step.')
                     app.protocol.next_step()
-                elif app.protocol.current_repetition < app.protocol.n_repeats-1:
+                elif app.protocol.current_repetition < (app.protocol.n_repeats
+                                                        - 1):
                     logger.info('Repeat entire protocol again.')
                     app.protocol.next_repetition()
                 else:  # we're on the last step
