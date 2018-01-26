@@ -363,6 +363,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         logging.root.level = getattr(logging, level.upper())
 
     def _set_log_file_handler(self, log_file):
+        '''
+        .. versionchanged:: X.X.X
+            Add file handler to *root logger* (not *module logger*).  This
+            ensures that all logging messages are handled by the file handler.
+        '''
         if self.log_file_handler:
             self._destroy_log_file_handler()
 
@@ -376,7 +381,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         self.log_file_handler.setFormatter(formatter)
-        logger.addHandler(self.log_file_handler)
+        logging.root.addHandler(self.log_file_handler)
         logger.info('[App] added log_file_handler: %s' % log_file)
 
     def _destroy_log_file_handler(self):
