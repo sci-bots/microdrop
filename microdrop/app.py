@@ -355,7 +355,12 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.main_window_controller.main()
 
     def _set_log_level(self, level):
-        logger.setLevel(getattr(logging, level.upper()))
+        '''
+        .. versionchanged:: X.X.X
+            Set log level on root logger.
+        '''
+        logging.info('set log level %s', logging.getLevelName(level))
+        logging.root.level = getattr(logging, level.upper())
 
     def _set_log_file_handler(self, log_file):
         if self.log_file_handler:
