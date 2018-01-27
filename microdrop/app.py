@@ -367,6 +367,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         .. versionchanged:: X.X.X
             Add file handler to *root logger* (not *module logger*).  This
             ensures that all logging messages are handled by the file handler.
+
+            Include logger name in message format.
         '''
         if self.log_file_handler:
             self._destroy_log_file_handler()
@@ -379,7 +381,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
             # `disable_existing_loggers` keyword argument.
             self.log_file_handler = logging.FileHandler(log_file)
 
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s:%(name)s]: '
+                                      '%(message)s',
+                                      datefmt=r'%Y-%m-%d %H:%M:%S')
         self.log_file_handler.setFormatter(formatter)
         logging.root.addHandler(self.log_file_handler)
         logger.info('[App] added log_file_handler: %s' % log_file)
