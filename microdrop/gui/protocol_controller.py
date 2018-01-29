@@ -14,7 +14,7 @@ import path_helpers as ph
 import zmq
 
 from ..app_context import get_app, get_hub_uri
-from ..logging_helpers import _L  #: .. versionadded:: X.X.X
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_observers,

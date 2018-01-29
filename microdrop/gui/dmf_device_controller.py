@@ -19,7 +19,7 @@ import svg_model as sm
 
 from ..app_context import get_app
 from ..dmf_device import DmfDevice, ELECTRODES_XPATH
-from ..logging_helpers import _L  #: .. versionadded:: X.X.X
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)

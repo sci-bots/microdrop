@@ -8,7 +8,7 @@ import gobject
 from .. import glade_path
 from ..app_context import get_app
 from ..gui.plugin_download_dialog import PluginDownloadDialog
-from ..logging_helpers import _L  #: .. versionadded:: X.X.X
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import get_service_instance_by_name
 
 

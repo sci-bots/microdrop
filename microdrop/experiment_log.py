@@ -16,7 +16,7 @@ import arrow
 import pandas as pd
 import yaml
 
-from .logging_helpers import _L  #: .. versionadded:: X.X.X
+from .logging_helpers import _L  #: .. versionadded:: 2.20
 
 
 logger = logging.getLogger(__name__)

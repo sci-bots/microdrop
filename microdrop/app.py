@@ -21,7 +21,7 @@ from . import base_path, MICRODROP_PARSER
 from . import plugin_manager, __version__
 from .config import Config
 from .gui.dmf_device_controller import DEVICE_FILENAME
-from .logging_helpers import _L, caller_name  #: .. versionadded:: X.X.X
+from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
 from .logger import CustomHandler
 from .plugin_helpers import AppDataController
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
@@ -157,7 +157,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
     def set_data(self, plugin_name, data):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.20
             Log data and plugin name to debug level.
         '''
         logger = _L()  # use logger with method context
@@ -367,7 +367,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
     def _set_log_level(self, level):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.20
             Set log level on root logger.
         '''
         logging.info('set log level %s', logging.getLevelName(level))
@@ -375,7 +375,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
     def _set_log_file_handler(self, log_file):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.20
             Add file handler to *root logger* (not *module logger*).  This
             ensures that all logging messages are handled by the file handler.
 

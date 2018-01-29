@@ -7,7 +7,7 @@ from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
 from microdrop_utility.user_paths import home_dir, app_data_dir
 
-from .logging_helpers import _L  #: .. versionadded:: X.X.X
+from .logging_helpers import _L  #: .. versionadded:: 2.20
 
 
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@ from flatland import Form, String, Enum
 from zmq_plugin.bin.hub import run_hub
 from zmq_plugin.hub import Hub
 
-from ...logging_helpers import _L  #: .. versionadded:: X.X.X
+from ...logging_helpers import _L  #: .. versionadded:: 2.20
 from ...plugin_helpers import AppDataController
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements)
