@@ -1,4 +1,5 @@
 import logging
+import pprint
 import threading
 
 from logging_helpers import _L
@@ -116,6 +117,40 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
         '''
         return self.set_electrode_states(pd.Series([state],
                                                    index=[electrode_id]))
+
+    def set_channel_states(self, channel_states, save=True):
+        '''
+        .. versionadded:: X.X.X
+
+        Set the state of multiple channels.
+
+        Args:
+
+            channel_states (pandas.Series) : State of channels, indexed by
+                channel identifier (e.g., `37`).
+            save (bool) : Trigger save request for protocol step.
+
+        Returns:
+
+            (dict) : States of modified channels and electrodes, as well as the
+                total area of all actuated electrodes.
+        '''
+        app = get_app()
+
+        # Resolve list of electrodes _and respective **channels**_ from channel
+        # mapping in DMF device definition.
+        channel_electrodes = (app.dmf_device.electrodes_by_channel
+                              .ix[channel_states.index])
+        electrode_states = pd.Series(channel_states
+                                     .ix[channel_electrodes.index].values,
+                                     index=channel_electrodes.values)
+        logger = _L()  # use logger with method context
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            map(logger.debug, 'Translate channel states:\n%sto electrode '
+                'states:\n%s' % (pprint.pformat(channel_electrodes),
+                                 pprint.pformat(electrode_states))
+                .splitlines())
+        return self.set_electrode_states(electrode_states, save=save)
 
     def set_electrode_states(self, electrode_states, save=True):
         '''
