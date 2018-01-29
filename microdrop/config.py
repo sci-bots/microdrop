@@ -7,6 +7,9 @@ from configobj import ConfigObj, Section, flatten_errors
 from validate import Validator
 from microdrop_utility.user_paths import home_dir, app_data_dir
 
+from .logging_helpers import _L  #: .. versionadded:: 2.20
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +60,7 @@ class Config(object):
             ConfigObjError: There was a problem parsing the config file.
             ValidationError: There was a problem validating one or more fields.
         """
+        logger = _L()  # use logger with method context
         if filename is None:
             logger.info("Using default configuration.")
             self.filename = self.default_config_path
@@ -77,6 +81,7 @@ class Config(object):
             self.data.write(outfile=f)
 
     def _validate(self):
+        logger = _L()  # use logger with method context
         # set all str values that are 'None' to None
         def set_str_to_none(d):
             for k, v in d.items():

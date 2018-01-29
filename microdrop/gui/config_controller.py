@@ -1,8 +1,9 @@
 import logging
 
+from ..app_context import get_app
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ExtensionPoint, ScheduleRequest)
-from ..app_context import get_app
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,8 @@ class ConfigController(SingletonPlugin):
                 if hasattr(service, 'set_app_values'):
                     service.set_app_values(values_dict)
                 else:
-                    logger.error('Invalid section in config file: [%s].' %
-                                 section_name)
+                    _L().error('Invalid section in config file: [%s].',
+                               section_name)
                     self.app.config.data.pop(section_name)
 
     def on_app_exit(self):
@@ -57,8 +58,7 @@ class ConfigController(SingletonPlugin):
     def on_app_options_changed(self, plugin_name):
         if self.app is None:
             return
-        logger.debug('[ConfigController] on_app_options_changed: %s' %
-                     plugin_name)
+        _L().debug('on_app_options_changed: %s' % plugin_name)
         observers = ExtensionPoint(IPlugin)
         service = observers.service(plugin_name)
         if service:

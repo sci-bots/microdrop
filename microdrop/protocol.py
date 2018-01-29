@@ -8,6 +8,7 @@ import cStringIO as StringIO
 import importlib
 import json
 import logging
+import pprint
 import re
 import sys
 import time
@@ -22,6 +23,7 @@ import zmq_plugin as zp
 import zmq_plugin.schema
 
 from .plugin_manager import emit_signal
+from .logging_helpers import _L, caller_name  #: .. versionadded:: X.X.X
 
 
 logger = logging.getLogger(__name__)
@@ -114,8 +116,9 @@ def serialize_protocol(protocol_dict, serialize_func):
         return serialize_func(protocol_dict)
     except Exception, exception:
         # Exception occurred.  Try to identify where exception occurred.
-        logger.debug('Error serializing protocol.')
-        logger.debug('Search for steps causing exception')
+        logger = _L()  # use logger with function context
+        map(logger.debug, ['Error serializing protocol.',
+                           'Search for steps causing exception'])
         # Try to serialize each step, and record which steps cause exceptions.
         exception_steps = []
         for i, step_i in enumerate(protocol_dict['steps']):
@@ -200,8 +203,8 @@ def safe_pickle_loads(data):
     try:
         return pickle.loads(data)
     except Exception, exception:
-        logger.error('Error deserializing pickle data: `%s`\n%s', data,
-                     exception)
+        _L().error('Error deserializing pickle data: `%s`\n%s', data,
+                   exception)
 
 
 def _plugin_data_to_dict(plugin_data, loaded=True):
@@ -459,10 +462,10 @@ def protocol_to_ndjson(protocol, ostream=None):
             print >> ostream, serialize_func(step_i)
         except Exception, exception:
             # Exception occurred while serializing step.
-            logger.debug('Error serializing step.')
+            _L().debug('Error serializing step.')
             # Try to independently serialize data for each plugin,
             # recording which plugins cause exceptions.
-            logger.debug('Search for plugin(s) causing exception')
+            _L().debug('Search for plugin(s) causing exception')
             for plugin_name_ij, plugin_data_ij in step_i.iteritems():
                 try:
                     serialize_func(plugin_data_ij)
@@ -518,8 +521,8 @@ def _protocol_remove_exceptions(protocol, exceptions, step_getter,
         step_i = step_getter(protocol, exception_i['step'])
         plugin_data_i = plugin_data_getter(step_i)
         del plugin_data_i[exception_i['plugin']]
-        logger.info('Deleted `%s` for step %s', exception_i['plugin'],
-                    exception_i['step'])
+        _L().info('Deleted `%s` for step %s', exception_i['plugin'],
+                  exception_i['step'])
 
     if not inplace:
         return protocol
@@ -675,7 +678,7 @@ class Protocol():
         FutureVersionError
             If file was written by a future version of the software.
         """
-        logger.debug("[Protocol].load(\"%s\")" % filename)
+        logger = _L()  # use logger with method context
         logger.info("Loading Protocol from %s" % filename)
         filename = ph.path(filename)
         if filename.ext.lower() == '.json':
@@ -999,12 +1002,12 @@ class Protocol():
             FutureVersionError: file was written by a future version of the
                 software.
         """
-        logger.debug("[Protocol]._upgrade()")
+        logger = _L()  # use logger with method context
         version = Version.fromstring(self.version)
-        logger.debug('[Protocol] version=%s, class_version=%s', str(version),
+        logger.debug('version=%s, class_version=%s', str(version),
                      self.class_version)
         if version > Version.fromstring(self.class_version):
-            logger.debug('[Protocol] version>class_version')
+            logger.debug('version > class_version')
             raise FutureVersionError(Version.fromstring(self.class_version),
                                      version)
         elif version < Version.fromstring(self.class_version):
@@ -1015,11 +1018,11 @@ class Protocol():
                     for k, v in step.plugin_data.items():
                         step.plugin_data[k] = yaml.dump(v)
                 self.version = str(Version(0, 1))
-                logger.debug('[Protocol] upgrade to version %s', self.version)
+                logger.debug('upgrade to version %s', self.version)
             if version < Version(0, 2):
                 self.current_step_attempt = 0
                 self.version = str(Version(0, 2))
-                logger.debug('[Protocol] upgrade to version %s', self.version)
+                logger.debug('upgrade to version %s', self.version)
         # else the versions are equal and don't need to be upgraded
 
     ###########################################################################
@@ -1138,7 +1141,8 @@ class Protocol():
         self.goto_step(len(self.steps) - 1)
 
     def goto_step(self, step_number):
-        logging.debug('[Protocol].goto_step(%s)' % step_number)
+        caller = caller_name()
+        _L().debug('caller: %s -> step: %s', caller, step_number)
         original_step_number = self.current_step_number
         self.current_step_number = step_number
         emit_signal('on_step_swapped', [original_step_number, step_number])
@@ -1168,8 +1172,15 @@ class Step(object):
         return None
 
     def get_data(self, plugin_name):
-        logging.debug('[Step] plugin_data=%s' % self.plugin_data)
         return self.plugin_data.get(plugin_name)
 
     def set_data(self, plugin_name, data):
+        logger = _L()  # use logger with method context
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            caller = caller_name(skip=2)
+            logger.debug('caller: %s', caller)
+            map(logger.debug, ('plugin: `%s`, data:\n%s' %
+                               (plugin_name,
+                                pprint.pformat(data)))
+                .splitlines())
         self.plugin_data[plugin_name] = data

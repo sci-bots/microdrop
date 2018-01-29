@@ -20,6 +20,7 @@ from .. import glade_path, __version__
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
 from ..experiment_log import ExperimentLog
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, emit_signal, ScheduleRequest,
@@ -93,7 +94,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
     # Callback methods
     def on_app_exit(self):
         self.save()
-        logger.info('[ExperimentLogController] Killing Jupyter notebooks')
+        _L().info('Killing Jupyter notebooks')
         if self.notebook_manager_view is not None:
             self.notebook_manager_view.stop()
 
@@ -105,7 +106,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         try:
             app.dmf_device_controller.load_device(filename)
         except Exception:
-            logger.error("Could not open %s" % filename)
+            _L().error("Could not open %s", filename)
 
     def on_button_load_protocol_clicked(self, widget, data=None):
         app = get_app()
@@ -167,7 +168,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             self.notebook_manager_view.notebook_dir = log_root
 
     def on_new_experiment(self, widget=None, data=None):
-        logger.info('New experiment clicked')
+        _L().debug('New experiment clicked')
         self.save()
 
     def on_plugin_enable(self):
@@ -220,10 +221,10 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                 try:
                     writer.save()
                 except IOError:
-                    logger.warning('Error writing to file (maybe it is already'
-                                   ' open?).')
+                    _L().warning('Error writing to file (maybe it is already '
+                                 'open?).')
             else:
-                logger.warning("No data to export.")
+                _L().warning("No data to export.")
 
         # launch the file in excel
         if export_path.exists():
@@ -382,7 +383,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                 data = self.results.log.get("notes")
                 for i, val in enumerate(data):
                     if val is not None:
-                        logger.info('Write out experiment notes to notes.txt')
+                        _L().info('Write out experiment notes to notes.txt')
                         notes_path.write_text(val)
                         # delete the notes from the experiment log
                         del self.results.log.data[i]['core']['notes']
@@ -511,7 +512,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
                                 vals.append(None)
                         protocol_list.append(vals)
         except Exception, why:
-            logger.info("[ExperimentLogController].update(): %s" % why)
+            _L().info('%s', why)
             self._disable_gui_elements()
 
     ###########################################################################

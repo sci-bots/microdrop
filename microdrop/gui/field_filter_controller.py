@@ -7,6 +7,7 @@ from pygtkhelpers.proxy import proxy_for
 import gtk
 
 from ..app_context import get_app
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import IPlugin, ExtensionPoint
 from .. import glade_path
 
@@ -112,7 +113,7 @@ class FieldFilterController(object):
                     value = True
                 else:
                     value = False
-                logger.debug('set %s to %s' % (name, value))
+                _L().debug('set %s to %s', name, value)
                 proxy = proxy_for(getattr(form_view, name))
                 proxy.set_widget_value(value)
                 field.label_widget.set_text(

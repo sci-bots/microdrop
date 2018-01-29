@@ -14,6 +14,8 @@ import path_helpers as ph
 import task_scheduler
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
+from .logging_helpers import _L, caller_name  #: .. versionadded:: X.X.X
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +47,10 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
         Newly created plugins (plugins are not recreated if they were
         previously loaded.)
     '''
-    logger.info('[load_plugins] plugins_dir=`%s`', plugins_dir)
+    logger = _L()  # use logger with function context
+    logger.info('plugins_dir=`%s`', plugins_dir)
     plugins_dir = ph.path(plugins_dir).realpath()
-    logging.info('Loading plugins:')
+    logger.info('Loading plugins:')
     plugins_root = plugins_dir.parent if import_from_parent else plugins_dir
     if plugins_root not in sys.path:
         sys.path.insert(0, plugins_root)
@@ -61,8 +64,8 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
         if package_i.isjunction() and not package_i.readlink().isdir():
             # Plugin directory is a junction/link to a non-existent target
             # path.
-            logging.info('Skip import of `%s` (broken link to `%s`).',
-                         package_i.name, package_i.readlink())
+            logger.info('Skip import of `%s` (broken link to `%s`).',
+                        package_i.name, package_i.readlink())
             continue
 
         try:
@@ -70,18 +73,18 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
             if import_from_parent:
                 plugin_module = '.'.join([plugins_dir.name, plugin_module])
             import_statement = 'import {}'.format(plugin_module)
-            logging.debug(import_statement)
+            logger.debug(import_statement)
             exec(import_statement)
             all_plugins = set(e.plugin_registry.values())
             current_plugin = list(all_plugins - initial_plugins -
                                   imported_plugins)[0]
-            logging.info('\t Imported: %s (%s)', current_plugin.__name__,
-                         package_i)
+            logger.info('\t Imported: %s (%s)', current_plugin.__name__,
+                        package_i)
             imported_plugins.add(current_plugin)
         except Exception:
-            logging.info(''.join(traceback.format_exc()))
-            logging.error('Error loading %s plugin.', package_i.name,
-                          exc_info=True)
+            logger.info(''.join(traceback.format_exc()))
+            logger.error('Error loading %s plugin.', package_i.name,
+                         exc_info=True)
 
     # For each newly imported plugin class, create a service instance
     # initialized to the disabled state.
@@ -90,8 +93,8 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
         service = class_()
         service.disable()
         new_plugins.append(service)
-    logging.debug('\t Created new plugin services: %s',
-                  ','.join([p.__class__.__name__ for p in new_plugins]))
+    logger.debug('\t Created new plugin services: %s',
+                 ','.join([p.__class__.__name__ for p in new_plugins]))
     return new_plugins
 
 
@@ -274,8 +277,8 @@ def get_service_names(env='microdrop.managed'):
         plugin_class = e.plugin_registry[name]
         service = get_service_instance(plugin_class, env=env)
         if service is None:
-            logger.warn('Plugin `%s` exists in registry, but instance cannot '
-                        'be found.', name)
+            _L().warn('Plugin `%s` exists in registry, but instance cannot '
+                      'be found.', name)
         else:
             service_names.append(service.name)
     return service_names
@@ -298,6 +301,8 @@ def get_schedule(observers, function):
     list
         List of observer service names in scheduled order.
     '''
+    logger = _L()  # use logger with function context
+
     # Query plugins for schedule requests for 'function'
     schedule_requests = {}
     for observer in observers.values():
@@ -362,20 +367,39 @@ def emit_signal(function, args=None, interface=IPlugin):
     -------
     dict
         Mapping from each service name to the respective function return value.
+
+
+    .. versionchanged:: X.X.X
+        Log caller at info level, and log args and observers at debug level.
     '''
+    logger = _L()  # use logger with function context
+    i = 0
+    caller = caller_name(skip=i)
+
+    while not caller or caller == 'microdrop.plugin_manager.emit_signal':
+        i += 1
+        caller = caller_name(skip=i)
+
     try:
         observers = get_observers(function, interface)
         schedule = get_schedule(observers, function)
+
         return_codes = {}
+
+        if args is None:
+            args = []
+        elif not isinstance(args, list):
+            args = [args]
+
+        if 'logger' not in caller:
+            logger.info('caller: %s -> %s', caller, function)
+            if logger.getEffectiveLevel() <= logging.DEBUG:
+                logger.debug('args: (%s)', ', '.join(map(repr, args)))
         for observer_name in schedule:
             observer = observers[observer_name]
-            logging.debug('emit_signal: %s.%s()' % (observer.name, function))
             try:
-                if args is None:
-                    args = []
-                elif type(args) is not list:
-                    args = [args]
                 f = getattr(observer, function)
+                logger.debug('  call: %s.%s(...)', observer.name, function)
                 return_codes[observer.name] = f(*args)
             except Exception, why:
                 with closing(StringIO()) as message:
@@ -389,11 +413,11 @@ def emit_signal(function, args=None, interface=IPlugin):
                             '%s plugin crashed processing %s signal.' % \
                             (observer.name, function)
                     print >> message, 'Reason:', str(why)
-                    logging.error(message.getvalue().strip())
-                logging.info(''.join(traceback.format_exc()))
+                    logger.error(message.getvalue().strip())
+                logger.info(''.join(traceback.format_exc()))
         return return_codes
     except Exception, why:
-        logging.error(why, exc_info=True)
+        logger.error(why, exc_info=True)
         return {}
 
 
@@ -414,7 +438,7 @@ def enable(name, env='microdrop.managed'):
     service = get_service_instance_by_name(name, env)
     if not service.enabled():
         service.enable()
-        logging.info('[PluginManager] Enabled plugin: %s' % name)
+        _L().info('[PluginManager] Enabled plugin: %s', name)
     if hasattr(service, "on_plugin_enable"):
         service.on_plugin_enable()
     emit_signal('on_plugin_enabled', [env, service])

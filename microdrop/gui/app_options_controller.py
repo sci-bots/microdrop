@@ -9,6 +9,7 @@ import gtk
 
 from .. import glade_path
 from ..app_context import get_app
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import IPlugin, ExtensionPoint, emit_signal
 
 logger = logging.getLogger(__name__)
@@ -136,7 +137,7 @@ class AppOptionsController:
                 if form_view.form.fields[field].element.validate():
                     attrs[field] = form_view.form.fields[field].element.value
                 else:
-                    logger.error('Failed to set %s value for %s', field, name)
+                    _L().error('Failed to set %s value for %s', field, name)
             if attrs:
                 observers = ExtensionPoint(IPlugin)
                 service = observers.service(name)

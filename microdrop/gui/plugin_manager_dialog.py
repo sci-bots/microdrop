@@ -8,6 +8,7 @@ import gobject
 from .. import glade_path
 from ..app_context import get_app
 from ..gui.plugin_download_dialog import PluginDownloadDialog
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import get_service_instance_by_name
 
 
@@ -86,10 +87,10 @@ class PluginManagerDialog(object):
                     app.config["plugins"]["enabled"].remove(module_name)
         app.config.save()
         if self.controller.restart_required:
-            logger.warning('\n'.join(['Plugins and/or dependencies were '
-                                      'installed/uninstalled.',
-                                      'Program needs to be restarted for '
-                                      'changes to take effect.']))
+            _L().warning('\n'.join(['Plugins and/or dependencies were '
+                                    'installed/uninstalled.',
+                                    'Program needs to be restarted for '
+                                    'changes to take effect.']))
             # Use return code of `5` to signal program should be restarted.
             app.main_window_controller.on_destroy(None, return_code=5)
             return response
@@ -103,6 +104,8 @@ class PluginManagerDialog(object):
             Show dialog with pulsing progress bar while waiting for plugins to
             finish downloading and installing.
         '''
+        logger = _L()  # use logger with method context
+
         def _plugin_download_dialog():
             download_dialog = PluginDownloadDialog()
             response = download_dialog.run()
@@ -201,6 +204,8 @@ class PluginManagerDialog(object):
             Show dialog with pulsing progress bar while waiting for plugins to
             update.
         '''
+        logger = _L()  # use logger with method context
+
         def _update_all_plugins():
             plugins_updated = self.controller.update_all_plugins()
             self.controller.update_dialog_running.clear()

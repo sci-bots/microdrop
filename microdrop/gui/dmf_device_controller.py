@@ -19,6 +19,7 @@ import svg_model as sm
 
 from ..app_context import get_app
 from ..dmf_device import DmfDevice, ELECTRODES_XPATH
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
@@ -64,7 +65,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 if 'device_directory' in values:
                     self.apply_device_dir(values['device_directory'])
         except (Exception,):
-            logger.info(''.join(traceback.format_exc()))
+            _L().info(''.join(traceback.format_exc()))
             raise
 
     def apply_device_dir(self, device_directory):
@@ -175,6 +176,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             A MicroDrop device `.svg` file or a (deprecated) MicroDrop 1.0
             device.
         '''
+        logger = _L()  # use logger with method context
         app = get_app()
         self.modified = False
         device = app.dmf_device
@@ -282,7 +284,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 if src == dest:
                     return
                 if dest.isdir():
-                    logger.error("A device with that name already exists.")
+                    _L().error("A device with that name already exists.")
                     return
                 shutil.move(src, dest)
 
@@ -370,7 +372,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             try:
                 self.import_device(filename)
             except Exception, e:
-                logger.error('Error importing device. %s' % e, exc_info=True)
+                _L().error('Error importing device. %s', e, exc_info=True)
 
     def import_device(self, input_device_path):
         input_device_path = ph.path(input_device_path).realpath()
