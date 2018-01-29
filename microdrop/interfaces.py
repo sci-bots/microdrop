@@ -372,3 +372,10 @@ else:
                 New metadata matching :data:`schema`
             '''
             pass
+
+
+if 'IElectrodeActuator' in PluginGlobals.interface_registry:
+    IElectrodeActuator = PluginGlobals.interface_registry['IElectrodeActuator']
+else:
+    class IElectrodeActuator(Interface):
+        pass

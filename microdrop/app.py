@@ -13,6 +13,7 @@ import threading
 from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
+import blinker
 import gtk
 import path_helpers as ph
 
