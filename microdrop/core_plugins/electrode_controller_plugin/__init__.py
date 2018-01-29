@@ -167,6 +167,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
             (dict) : States of modified channels and electrodes, as well as the
                 total area of all actuated electrodes.
         '''
+        logger = _L()  # use logger with method context
         app = get_app()
 
         # Resolve list of electrodes _and respective **channels**_ from channel
@@ -182,11 +183,13 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
                 emit_signal('on_step_options_changed', [self.name,
                                                         step_number],
                             interface=IPlugin)
-            _L().info("emit_signal('on_step_options_changed')")
+            logger.info("emit_signal('on_step_options_changed')")
             gtk.idle_add(notify, app.protocol.current_step_number)
 
         # Compute actuated area based on geometries in DMF device definition.
         result['actuated_area'] = self.get_actuated_area(self.electrode_states)
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            map(logger.debug, pprint.pformat(result).splitlines())
         return result
 
     def on_execute__set_electrode_state(self, request):
