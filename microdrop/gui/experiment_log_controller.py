@@ -1,7 +1,6 @@
 from collections import namedtuple
 import logging
 import os
-import pkg_resources
 import time
 
 import pandas as pd
@@ -9,7 +8,7 @@ from flatland import Form
 from microdrop_utility import copytree
 from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text)
-from path_helpers import path
+from path_helpers import path, resource_copytree
 from pygtkhelpers.delegates import SlaveView
 from pygtkhelpers.ui.extra_dialogs import yesno
 from pygtkhelpers.ui.extra_widgets import Directory
@@ -291,6 +290,11 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         If a directory was previously set, copy the contents of the previous
         directory to the new directory (prompting the user to overwrite if the
         new directory already exists).
+
+
+        .. versionchanged:: X.X.X
+            Use :func:`path_helpers.resource_copytree` to support when copying
+            from a module stored in a ``.zip`` archive or ``.egg`` file.
         '''
         app = get_app()
 
@@ -333,9 +337,10 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             # if the notebook directory doesn't exist, copy the skeleton dir
             if notebook_directory.parent:
                 notebook_directory.parent.makedirs_p()
-            skeleton_dir = path(pkg_resources.resource_filename('microdrop',
-                                                                'static'))
-            skeleton_dir.joinpath('notebooks').copytree(notebook_directory)
+            # XXX Use `path_helpers.resource_copytree` to support when copying
+            # from a module stored in a `.zip` archive or `.egg` file.
+            resource_copytree('microdrop', 'static/notebooks',
+                              notebook_directory)
         self.previous_notebook_dir = notebook_directory
         # Set the default template directory of the Jupyter notebook manager
         # widget to the notebooks directory.
