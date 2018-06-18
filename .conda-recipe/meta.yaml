@@ -1,3 +1,8 @@
+{% if GIT_DESCRIBE_NUMBER > '0' %}
+{% set GIT_VERSION = GIT_DESCRIBE_TAG[1:] + '.post' + GIT_DESCRIBE_NUMBER %}
+{% else %}
+{% set GIT_VERSION = GIT_DESCRIBE_TAG[1:] %}
+{% endif %}
 # source will be downloaded prior to filling in jinja templates
 # Example assumes that this folder has setup.py in it
 source:
@@ -5,7 +10,7 @@ source:
 
 package:
   name: microdrop
-  version: {{ GIT_DESCRIBE_TAG[1:] }}
+  version: {{ GIT_VERSION }}
 
 build:
   entry_points:
@@ -15,7 +20,11 @@ build:
 
   # If this is a new build for the same version, increment the build
   # number. If you do not include this key, it defaults to 0.
-  number: {{ GIT_DESCRIBE_NUMBER }}
+  number: 0
+  script:
+    # Generate `setup.py` from `pavement.py` definition.
+    - python -m paver generate_setup
+    - python -B setup.py install --single-version-externally-managed --record record.txt
 
 requirements:
   build:
