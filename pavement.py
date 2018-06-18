@@ -6,10 +6,7 @@ import sys
 from paver.easy import task, needs, path
 from paver.setuputils import setup
 
-root_dir = path(__file__).parent.abspath()
-if root_dir not in sys.path:
-    sys.path.insert(0, str(root_dir))
-import version
+import versioneer
 
 
 install_requires = ['application_repository>=0.5', 'blinker', 'configobj',
@@ -45,7 +42,8 @@ else:
 
 
 setup(name='microdrop',
-      version=version.getVersion(),
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       description='MicroDrop is a graphical user interface for the DropBot '
       'Digital Microfluidics control system',
       keywords='digital microfluidics dmf automation dropbot microdrop',
