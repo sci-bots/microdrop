@@ -15,8 +15,9 @@ from pygtkhelpers.ui.extra_dialogs import yesno
 from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import NotebookManagerView
 import gtk
+import pkgutil
 
-from .. import glade_path, __version__
+from .. import __version__
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
 from ..experiment_log import ExperimentLog
@@ -41,8 +42,13 @@ class ExperimentLogColumn():
 class ExperimentLogContextMenu(SlaveView):
     """
     Slave view for context-menu for a row in the experiment log step grid view.
+
+    .. versionchanged:: X.X.X
+        Specify :attr:`builder_file` instead of :attr:`builder_path` to support
+        loading ``.glade`` file from ``.zip`` files (e.g., in app packaged with
+        Py2Exe).
     """
-    builder_path = glade_path().joinpath('experiment_log_context_menu.glade')
+    builder_file = 'experiment_log_context_menu.glade'
 
     def popup(self, event):
         for child in self.menu_popup.get_children():
@@ -60,10 +66,14 @@ PluginGlobals.push_env('microdrop')
 
 
 class ExperimentLogController(SingletonPlugin, AppDataController):
+    '''
+    .. versionchanged:: X.X.X
+        Read glade file using ``pkgutil`` to also support loading from ``.zip``
+        files (e.g., in app packaged with Py2Exe).
+    '''
     implements(IPlugin)
 
     Results = namedtuple('Results', ['log', 'protocol', 'dmf_device'])
-    builder_path = glade_path().joinpath('experiment_log_window.glade')
 
     @property
     def AppFields(self):
@@ -73,7 +83,13 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
     def __init__(self):
         self.name = "microdrop.gui.experiment_log_controller"
         self.builder = gtk.Builder()
-        self.builder.add_from_file(self.builder_path)
+
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__,
+                                     'glade/experiment_log_window.glade')
+        self.builder.add_from_string(glade_str)
+
         self.window = self.builder.get_object("window")
         self.combobox_log_files = self.builder.get_object("combobox_log_files")
         self.results = self.Results(None, None, None)

@@ -6,8 +6,8 @@ from pygtkhelpers.forms import FormView
 from pygtkhelpers.gthreads import gtk_threadsafe
 from pygtkhelpers.proxy import proxy_for
 import gtk
+import pkgutil
 
-from .. import glade_path
 from ..app_context import get_app
 from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import IPlugin, ExtensionPoint, emit_signal
@@ -17,14 +17,23 @@ logger = logging.getLogger(__name__)
 
 class AppOptionsController:
     def __init__(self):
+        '''
+        .. versionchanged:: X.X.X
+            Read glade file using ``pkgutil`` to also support loading from
+            ``.zip`` files (e.g., in app packaged with Py2Exe).
+        '''
         app = get_app()
 
         self.form_views = {}
         self.no_gui_names = set()
 
         builder = gtk.Builder()
-        builder.add_from_file(glade_path()
-                              .joinpath("app_options_dialog.glade"))
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__,
+                                     'glade/app_options_dialog.glade')
+        builder.add_from_string(glade_str)
+
         self.dialog = builder.get_object("app_options_dialog")
         self.frame_core_plugins = builder.get_object("frame_core_plugins")
         self.core_plugins_vbox = builder.get_object("core_plugins_vbox")

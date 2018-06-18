@@ -1,7 +1,7 @@
+from contextlib import closing
 from datetime import datetime
 import logging
 import pdb
-import pkg_resources
 import threading
 import webbrowser
 
@@ -12,6 +12,7 @@ from microdrop_utility import wrap_string
 from microdrop_utility.gui import DEFAULTS
 import gobject
 import gtk
+import pkgutil
 try:
     import pudb
     PUDB_AVAILABLE = True
@@ -23,7 +24,6 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               emit_signal, get_service_instance_by_name)
 from ..app_context import get_app
 from ..logging_helpers import _L  #: .. versionadded:: 2.20
-from .. import glade_path
 from .. import __version__
 
 logger = logging.getLogger(__name__)
@@ -35,9 +35,12 @@ class MainWindowController(SingletonPlugin):
     implements(IPlugin)
     implements(ILoggingPlugin)
 
-    builder_path = glade_path().joinpath("main_window.glade")
-
     def __init__(self):
+        '''
+        .. versionchanged:: X.X.X
+            Read glade file using ``pkgutil`` to also support loading from
+            ``.zip`` files (e.g., in app packaged with Py2Exe).
+        '''
         self._shutting_down = threading.Event()
         self.name = "microdrop.gui.main_window_controller"
         self.builder = None
@@ -54,7 +57,12 @@ class MainWindowController(SingletonPlugin):
         gtk.link_button_set_uri_hook(self.on_url_clicked)
 
         builder = gtk.Builder()
-        builder.add_from_file(glade_path().joinpath("text_input_dialog.glade"))
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__,
+                                     'glade/text_input_dialog.glade')
+        builder.add_from_string(glade_str)
+
         self.text_input_dialog = builder.get_object("window")
         self.text_input_dialog.textentry = builder.get_object("textentry")
         self.text_input_dialog.label = builder.get_object("label")
@@ -71,9 +79,17 @@ class MainWindowController(SingletonPlugin):
         '''
         .. versionchanged:: 2.16
             Save window layout whenever window is resized or moved.
+
+        .. versionchanged:: X.X.X
+            Read glade file using ``pkgutil`` to also support loading from
+            ``.zip`` files (e.g., in app packaged with Py2Exe).
         '''
         app = get_app()
-        app.builder.add_from_file(self.builder_path)
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__, 'glade/main_window.glade')
+        app.builder.add_from_string(glade_str)
+
         self.view = app.builder.get_object("window")
 
         self.view._add_accel_group = self.view.add_accel_group
@@ -136,7 +152,12 @@ class MainWindowController(SingletonPlugin):
             lambda *args: debounced_save_layout()
 
         self.builder = gtk.Builder()
-        self.builder.add_from_file(glade_path().joinpath('about_dialog.glade'))
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__,
+                                     'glade/about_dialog.glade')
+        self.builder.add_from_string(glade_str)
+
         app.main_window_controller = self
         self.protocol_list_view = None
 
