@@ -5,11 +5,11 @@ from flatland import Form, Boolean
 from pygtkhelpers.forms import FormView
 from pygtkhelpers.proxy import proxy_for
 import gtk
+import pkgutil
 
 from ..app_context import get_app
 from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import IPlugin, ExtensionPoint
-from .. import glade_path
 
 
 logger = logging.getLogger(__name__)
@@ -17,10 +17,18 @@ logger = logging.getLogger(__name__)
 
 class FieldFilterController(object):
     def __init__(self):
+        '''
+        .. versionchanged:: 2.21
+            Read glade file using ``pkgutil`` to also support loading from
+            ``.zip`` files (e.g., in app packaged with Py2Exe).
+        '''
         app = get_app()
         builder = gtk.Builder()
-        builder.add_from_file(glade_path()
-                              .joinpath("app_options_dialog.glade"))
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__,
+                                     'glade/app_options_dialog.glade')
+        builder.add_from_string(glade_str)
         self.dialog = builder.get_object("app_options_dialog")
         self.frame_core_plugins = builder.get_object("frame_core_plugins")
         self.core_plugins_vbox = builder.get_object("core_plugins_vbox")

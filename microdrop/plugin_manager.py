@@ -14,7 +14,7 @@ import path_helpers as ph
 import task_scheduler
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
-from .logging_helpers import _L, caller_name  #: .. versionadded:: X.X.X
+from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
 
 
 logger = logging.getLogger(__name__)
@@ -369,7 +369,7 @@ def emit_signal(function, args=None, interface=IPlugin):
         Mapping from each service name to the respective function return value.
 
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.20
         Log caller at info level, and log args and observers at debug level.
     '''
     logger = _L()  # use logger with function context
@@ -391,7 +391,7 @@ def emit_signal(function, args=None, interface=IPlugin):
         elif not isinstance(args, list):
             args = [args]
 
-        if 'logger' not in caller:
+        if not any((name in caller) for name in ('logger', 'emit_signal')):
             logger.info('caller: %s -> %s', caller, function)
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 logger.debug('args: (%s)', ', '.join(map(repr, args)))

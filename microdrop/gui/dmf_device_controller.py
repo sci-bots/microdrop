@@ -23,7 +23,6 @@ from ..logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
-from .. import base_path
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +68,11 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
             raise
 
     def apply_device_dir(self, device_directory):
+        '''
+        .. versionchanged:: 2.21
+            Use :func:`path_helpers.resource_copytree` to support when copying
+            from a module stored in a ``.zip`` archive or ``.egg`` file.
+        '''
         app = get_app()
 
         # if the device directory is empty or None, set a default
@@ -103,7 +107,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
             # if the device directory doesn't exist, copy the skeleton dir
             if device_directory.parent:
                 device_directory.parent.makedirs_p()
-            base_path().joinpath('devices').copytree(device_directory)
+            # XXX Use `path_helpers.resource_copytree` to support when copying
+            # from a module stored in a `.zip` archive or `.egg` file.
+            ph.resource_copytree('microdrop', 'devices', device_directory)
         self.previous_device_dir = device_directory
         return True
 

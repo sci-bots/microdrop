@@ -4,8 +4,8 @@ import threading
 import conda_helpers as ch
 import gtk
 import gobject
+import pkgutil
 
-from .. import glade_path
 from ..app_context import get_app
 from ..gui.plugin_download_dialog import PluginDownloadDialog
 from ..logging_helpers import _L  #: .. versionadded:: 2.20
@@ -25,9 +25,18 @@ class PluginManagerDialog(object):
      - **TODO** Uninstall
     '''
     def __init__(self):
+        '''
+        .. versionchanged:: 2.21
+            Read glade file using ``pkgutil`` to also support loading from
+            ``.zip`` files (e.g., in app packaged with Py2Exe).
+        '''
         builder = gtk.Builder()
-        builder.add_from_file(glade_path()
-                              .joinpath('plugin_manager_dialog.glade'))
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__,
+                                     'glade/plugin_manager_dialog.glade')
+        builder.add_from_string(glade_str)
+
         self.window = builder.get_object('plugin_manager')
         self.vbox_plugins = builder.get_object('vbox_plugins')
         builder.connect_signals(self)

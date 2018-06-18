@@ -80,7 +80,11 @@ def main():
 
 
 if __name__ == "__main__":
+    import multiprocessing
+
     import matplotlib
+
     matplotlib.use('Agg')
+    multiprocessing.freeze_support()
 
     main()

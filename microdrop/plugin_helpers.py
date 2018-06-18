@@ -6,7 +6,7 @@ import path_helpers as ph
 import yaml
 
 from .app_context import get_app
-from .logging_helpers import _L  #: .. versionadded:: X.X.X
+from .logging_helpers import _L  #: .. versionadded:: 2.20
 from .plugin_manager import (IPlugin, ExtensionPoint, emit_signal,
                              get_service_instance_by_name)
 

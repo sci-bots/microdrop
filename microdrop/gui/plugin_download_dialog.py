@@ -4,17 +4,26 @@ import logging
 from pygtkhelpers.ui.list_select import ListSelectView
 import gtk
 import mpm.api
+import pkgutil
 
 from ..app_context import get_app
 from ..plugin_manager import get_service_instance_by_name
-from .. import glade_path
 
 
 class PluginDownloadDialog(object):
     def __init__(self):
+        '''
+        .. versionchanged:: 2.21
+            Read glade file using ``pkgutil`` to also support loading from
+            ``.zip`` files (e.g., in app packaged with Py2Exe).
+        '''
         builder = gtk.Builder()
-        builder.add_from_file(glade_path()
-                              .joinpath('plugin_download_dialog.glade'))
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__,
+                                     'glade/plugin_download_dialog.glade')
+        builder.add_from_string(glade_str)
+
         self.window = builder.get_object('plugin_manager')
         self.vbox_plugins = builder.get_object('vbox_plugins')
         self.list_select_view = None

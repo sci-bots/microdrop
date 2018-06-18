@@ -1,7 +1,6 @@
 from collections import namedtuple
 import logging
 import os
-import pkg_resources
 import time
 
 import pandas as pd
@@ -9,14 +8,15 @@ from flatland import Form
 from microdrop_utility import copytree
 from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text)
-from path_helpers import path
+from path_helpers import path, resource_copytree
 from pygtkhelpers.delegates import SlaveView
 from pygtkhelpers.ui.extra_dialogs import yesno
 from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import NotebookManagerView
 import gtk
+import pkgutil
 
-from .. import glade_path, __version__
+from .. import __version__
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
 from ..experiment_log import ExperimentLog
@@ -41,8 +41,13 @@ class ExperimentLogColumn():
 class ExperimentLogContextMenu(SlaveView):
     """
     Slave view for context-menu for a row in the experiment log step grid view.
+
+    .. versionchanged:: 2.21
+        Specify :attr:`builder_file` instead of :attr:`builder_path` to support
+        loading ``.glade`` file from ``.zip`` files (e.g., in app packaged with
+        Py2Exe).
     """
-    builder_path = glade_path().joinpath('experiment_log_context_menu.glade')
+    builder_file = 'experiment_log_context_menu.glade'
 
     def popup(self, event):
         for child in self.menu_popup.get_children():
@@ -60,10 +65,14 @@ PluginGlobals.push_env('microdrop')
 
 
 class ExperimentLogController(SingletonPlugin, AppDataController):
+    '''
+    .. versionchanged:: 2.21
+        Read glade file using ``pkgutil`` to also support loading from ``.zip``
+        files (e.g., in app packaged with Py2Exe).
+    '''
     implements(IPlugin)
 
     Results = namedtuple('Results', ['log', 'protocol', 'dmf_device'])
-    builder_path = glade_path().joinpath('experiment_log_window.glade')
 
     @property
     def AppFields(self):
@@ -73,7 +82,13 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
     def __init__(self):
         self.name = "microdrop.gui.experiment_log_controller"
         self.builder = gtk.Builder()
-        self.builder.add_from_file(self.builder_path)
+
+        # Read glade file using `pkgutil` to also support loading from `.zip`
+        # files (e.g., in app packaged with Py2Exe).
+        glade_str = pkgutil.get_data(__name__,
+                                     'glade/experiment_log_window.glade')
+        self.builder.add_from_string(glade_str)
+
         self.window = self.builder.get_object("window")
         self.combobox_log_files = self.builder.get_object("combobox_log_files")
         self.results = self.Results(None, None, None)
@@ -275,6 +290,11 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         If a directory was previously set, copy the contents of the previous
         directory to the new directory (prompting the user to overwrite if the
         new directory already exists).
+
+
+        .. versionchanged:: 2.21
+            Use :func:`path_helpers.resource_copytree` to support when copying
+            from a module stored in a ``.zip`` archive or ``.egg`` file.
         '''
         app = get_app()
 
@@ -317,9 +337,10 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             # if the notebook directory doesn't exist, copy the skeleton dir
             if notebook_directory.parent:
                 notebook_directory.parent.makedirs_p()
-            skeleton_dir = path(pkg_resources.resource_filename('microdrop',
-                                                                'static'))
-            skeleton_dir.joinpath('notebooks').copytree(notebook_directory)
+            # XXX Use `path_helpers.resource_copytree` to support when copying
+            # from a module stored in a `.zip` archive or `.egg` file.
+            resource_copytree('microdrop', 'static/notebooks',
+                              notebook_directory)
         self.previous_notebook_dir = notebook_directory
         # Set the default template directory of the Jupyter notebook manager
         # widget to the notebooks directory.
