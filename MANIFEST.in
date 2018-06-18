@@ -2,11 +2,8 @@ include README.md
 include LICENSE.md
 include CHANGELOG
 include setup.py
-include version.py
-include RELEASE-VERSION
 include paver-minilib.zip
 recursive-include microdrop *
 prune *.pyc
 include versioneer.py
-include docket/_version.py
 include microdrop/_version.py

@@ -21,7 +21,6 @@ warnmicrodrop.txt
 *.wixobj
 *.wxs
 microdrop/plugins/*.yml
-RELEASE-VERSION
 .settings/
 src/
 setup.py
