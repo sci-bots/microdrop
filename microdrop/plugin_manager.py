@@ -391,7 +391,7 @@ def emit_signal(function, args=None, interface=IPlugin):
         elif not isinstance(args, list):
             args = [args]
 
-        if 'logger' not in caller:
+        if not any((name in caller) for name in ('logger', 'emit_signal')):
             logger.info('caller: %s -> %s', caller, function)
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 logger.debug('args: (%s)', ', '.join(map(repr, args)))
