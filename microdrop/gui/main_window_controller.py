@@ -110,8 +110,14 @@ class MainWindowController(SingletonPlugin):
         self.view.remove_accel_group = remove_accel_group
 
         self.vbox2 = app.builder.get_object('vbox2')
-        self.view.set_icon_from_file(
-            pkg_resources.resource_filename('microdrop', 'microdrop.ico'))
+        # [Load icon from string][1] to support loading from `.zip` file.
+        #
+        # [1]: https://bytes.com/topic/python/answers/29401-pygtk-creating-pixbuf-image-data#post109157
+        icon_str = pkgutil.get_data('microdrop', 'microdrop.ico')
+        with closing(gtk.gdk.PixbufLoader('ico')) as loader:
+            loader.write(icon_str)
+        icon_pixbuf = loader.get_pixbuf()
+        self.view.set_icon(icon_pixbuf)
         DEFAULTS.parent_widget = self.view
 
         for widget_name in ('box_step', 'checkbutton_realtime_mode',
