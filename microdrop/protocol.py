@@ -23,7 +23,7 @@ import zmq_plugin as zp
 import zmq_plugin.schema
 
 from .plugin_manager import emit_signal
-from .logging_helpers import _L, caller_name  #: .. versionadded:: X.X.X
+from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
 
 
 logger = logging.getLogger(__name__)

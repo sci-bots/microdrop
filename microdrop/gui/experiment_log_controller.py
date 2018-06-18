@@ -42,7 +42,7 @@ class ExperimentLogContextMenu(SlaveView):
     """
     Slave view for context-menu for a row in the experiment log step grid view.
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.21
         Specify :attr:`builder_file` instead of :attr:`builder_path` to support
         loading ``.glade`` file from ``.zip`` files (e.g., in app packaged with
         Py2Exe).
@@ -66,7 +66,7 @@ PluginGlobals.push_env('microdrop')
 
 class ExperimentLogController(SingletonPlugin, AppDataController):
     '''
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.21
         Read glade file using ``pkgutil`` to also support loading from ``.zip``
         files (e.g., in app packaged with Py2Exe).
     '''
@@ -292,7 +292,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         new directory already exists).
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.21
             Use :func:`path_helpers.resource_copytree` to support when copying
             from a module stored in a ``.zip`` archive or ``.egg`` file.
         '''

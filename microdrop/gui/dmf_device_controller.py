@@ -69,7 +69,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     def apply_device_dir(self, device_directory):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.21
             Use :func:`path_helpers.resource_copytree` to support when copying
             from a module stored in a ``.zip`` archive or ``.egg`` file.
         '''

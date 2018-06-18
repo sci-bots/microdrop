@@ -13,7 +13,7 @@ from pygtkhelpers.ui.objectlist.combined_fields import (CombinedFields,
                                                         CombinedRow, RowFields)
 import gtk
 
-from ..logging_helpers import _L  #: .. versionadded:: X.X.X
+from ..logging_helpers import _L  #: .. versionadded:: 2.20
 
 
 def _get_title(column):

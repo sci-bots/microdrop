@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class FieldFilterController(object):
     def __init__(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.21
             Read glade file using ``pkgutil`` to also support loading from
             ``.zip`` files (e.g., in app packaged with Py2Exe).
         '''

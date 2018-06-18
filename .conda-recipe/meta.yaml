@@ -47,7 +47,7 @@ requirements:
     - networkx
     - openpyxl
     - pandas
-    #: .. versionchanged:: X.X.X
+    #: .. versionchanged:: 2.21
     - path_helpers >=0.8
     - paver
     - pint
@@ -105,7 +105,7 @@ requirements:
     - networkx
     - openpyxl
     - pandas
-    #: .. versionchanged:: X.X.X
+    #: .. versionchanged:: 2.21
     - path_helpers >=0.8
     - paver
     - pint
