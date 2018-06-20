@@ -243,7 +243,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         .. versionchanged:: 2.16.2
             Do not attempt to update plugins.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.22
             Interpret ``MICRODROP_PLUGINS_PATH`` as a ``;``-separated list of
             extra directories to import plugins from (in addition to
             ``<prefix>/etc/microdrop/plugins/enabled``).
