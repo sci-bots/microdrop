@@ -67,6 +67,11 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
             logger.info('Skip import of `%s` (broken link to `%s`).',
                         package_i.name, package_i.readlink())
             continue
+        elif package_i.name in (p.__module__ for p in initial_plugins):
+            # Plugin with the same name has already been imported.
+            logger.info('Skip import of `%s` (plugin with same name has '
+                        'already been imported).', package_i.name)
+            continue
 
         try:
             plugin_module = package_i.name

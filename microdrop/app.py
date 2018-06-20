@@ -14,7 +14,6 @@ from flatland import Integer, Form, String, Enum, Boolean
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 import gtk
-import mpm.api
 import path_helpers as ph
 
 from . import base_path, MICRODROP_PARSER
@@ -243,6 +242,11 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         .. versionchanged:: 2.16.2
             Do not attempt to update plugins.
+
+        .. versionchanged:: X.X.X
+            Interpret ``MICRODROP_PLUGINS_PATH`` as a ``;``-separated list of
+            extra directories to import plugins from (in addition to
+            ``<prefix>/etc/microdrop/plugins/enabled``).
         '''
         logger = _L()  # use logger with method context
         self.gtk_thread = threading.current_thread()
@@ -265,16 +269,22 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                         ' import path.', pwd)
             sys.path.remove('')
 
-        # Import enabled plugins from Conda environment.
-        conda_plugins_dir = mpm.api.MICRODROP_CONDA_ETC.joinpath('plugins',
-                                                                 'enabled')
-        if conda_plugins_dir.isdir():
-            plugin_manager.load_plugins(conda_plugins_dir,
-                                        import_from_parent=False)
+        # Add custom plugins dirs to plugins search path.
+        plugins_dirs = [ph.path(p.strip())
+                         for p in os.environ.get('MICRODROP_PLUGINS_PATH',
+                                                 '').split(';')
+                         if p.strip()]
+        # Add site enabled plugins dir to plugins search path.
+        site_plugins_dir = ph.path(sys.prefix).joinpath('etc', 'microdrop',
+                                                        'plugins', 'enabled')
+        plugins_dirs += [site_plugins_dir]
+        for d in plugins_dirs:
+            if d.isdir():
+                plugin_manager.load_plugins(d, import_from_parent=False)
         self.update_log_file()
 
         logger.info('User data directory: %s', self.config['data_dir'])
-        logger.info('Plugins directory: %s', conda_plugins_dir)
+        logger.info('Plugins directories: %s', plugins_dirs)
         logger.info('Devices directory: %s', self.get_device_directory())
 
         FormViewDialog.default_parent = self.main_window_controller.view
