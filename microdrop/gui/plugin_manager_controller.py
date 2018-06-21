@@ -27,7 +27,7 @@ class PluginController(object):
     def __init__(self, controller, name):
         self.controller = controller
         self.name = name
-        self.plugin_env = PluginGlobals.env('microdrop.managed')
+        self.plugin_env = PluginGlobals.env['microdrop.managed']
         # Look up running instance of plugin (i.e., service) based on name of
         # plugin class.
         services_by_class_name = {s.__class__.__name__: s
@@ -143,7 +143,7 @@ class PluginManagerController(SingletonPlugin):
         self.requested_deletions = []
         self.rename_queue = []
         self.restart_required = False
-        self.plugin_env = PluginGlobals.env('microdrop.managed')
+        self.plugin_env = PluginGlobals.env['microdrop.managed']
         self.dialog = PluginManagerDialog()
         # Event to indicate when update dialog is running to prevent another
         # dialog from being launched.

@@ -91,7 +91,7 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
         sys.path.insert(0, plugins_root)
 
     # Create an instance of each of the plugins, but set it to disabled
-    e = PluginGlobals.env('microdrop.managed')
+    e = PluginGlobals.env['microdrop.managed']
     initial_plugins = set(e.plugin_registry.values())
     imported_plugins = set()
 
@@ -171,7 +171,7 @@ def get_plugin_names(env=None):
     '''
     if env is None:
         env = 'pca'
-    e = PluginGlobals.env(env)
+    e = PluginGlobals.env[env]
     return list(e.plugin_registry.keys())
 
 
@@ -194,7 +194,7 @@ def get_service_class(name, env='microdrop.managed'):
             Returns actual class type -- **not** an instance of the plugin
             service.
     '''
-    e = PluginGlobals.env(env)
+    e = PluginGlobals.env[env]
     if name not in e.plugin_registry:
         raise KeyError('No plugin registered with name: %s' % name)
     return e.plugin_registry[name]
@@ -222,7 +222,7 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
     KeyError
         If no plugin is found registered with the specified name.
     '''
-    e = PluginGlobals.env(env)
+    e = PluginGlobals.env[env]
     plugins = [p for i, p in enumerate(e.services) if name == p.name]
     if plugins:
         return plugins[0]
@@ -247,7 +247,7 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
     object
         Active service instance matching specified plugin module name.
     '''
-    e = PluginGlobals.env(env)
+    e = PluginGlobals.env[env]
     plugins = [p for i, p in enumerate(e.services)
                if name == get_plugin_package_name(p.__class__.__module__)]
     if plugins:
@@ -290,7 +290,7 @@ def get_service_instance(class_, env='microdrop.managed'):
         Returns ``None`` if no service is registered for the specified plugin
         class type.
     '''
-    e = PluginGlobals.env(env)
+    e = PluginGlobals.env[env]
     for service in e.services:
         if isinstance(service, class_):
             # A plugin of this type is registered
@@ -311,7 +311,7 @@ def get_service_names(env='microdrop.managed'):
     list
         List of plugin names (e.g., ``['microdrop.step_label_plugin', ...]``).
     '''
-    e = PluginGlobals.env(env)
+    e = PluginGlobals.env[env]
     service_names = []
     for name in get_plugin_names(env):
         plugin_class = e.plugin_registry[name]
