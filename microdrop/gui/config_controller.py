@@ -7,7 +7,7 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
 
 logger = logging.getLogger(__name__)
 
-PluginGlobals.add_env('microdrop')
+PluginGlobals.push_env('microdrop')
 
 
 class ConfigController(SingletonPlugin):

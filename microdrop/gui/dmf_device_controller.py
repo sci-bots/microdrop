@@ -26,7 +26,7 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
 
 logger = logging.getLogger(__name__)
 
-PluginGlobals.add_env('microdrop')
+PluginGlobals.push_env('microdrop')
 
 # Define name of device file.  Name of device is inferred from name of parent
 # directory when device is loaded.

@@ -5,7 +5,6 @@ import logging
 import pprint
 import sys
 import traceback
-import warnings
 
 from pyutilib.component.core import ExtensionPoint, PluginGlobals
 # TODO Update plugins to import from `pyutilib.component.core` directly
@@ -13,40 +12,6 @@ from pyutilib.component.core import ExtensionPoint, PluginGlobals
 from pyutilib.component.core import Plugin, SingletonPlugin, implements
 import path_helpers as ph
 import task_scheduler
-
-
-# Add shims where required to support backwards compatibility with
-# `pyutilib<5.0`.
-class ClassProperty(property):
-    '''
-    See https://stackoverflow.com/a/1383402/345236
-    '''
-    def __get__(self, cls, owner):
-        return self.fget.__get__(None, owner)()
-
-
-if not hasattr(PluginGlobals, 'interface_registry'):
-    def _interface_registry(*args, **kwargs):
-        warnings.warn('`interface_registry` attribute of '
-                      '`pyutilib.component.core.PluginGlobals` is deprecated.',
-                      DeprecationWarning)
-        return {i.__name__: i for i in PluginGlobals.interface_services.keys()}
-
-    PluginGlobals.interface_registry = \
-        ClassProperty(classmethod(_interface_registry))
-
-if all([not hasattr(PluginGlobals, 'push_env'),
-        hasattr(PluginGlobals, 'add_env')]):
-    def _push_env(*args, **kwargs):
-        warnings.warn('`push_env` method of '
-                      '`pyutilib.component.core.PluginGlobals` is deprecated. '
-                      'Use `add_env` method instead.', DeprecationWarning)
-        return PluginGlobals.add_env(*args, **kwargs)
-
-    PluginGlobals.push_env = staticmethod(PluginGlobals.add_env)
-elif all([not hasattr(PluginGlobals, 'add_env'),
-          hasattr(PluginGlobals, 'push_env')]):
-    PluginGlobals.add_env = staticmethod(PluginGlobals.push_env)
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
 from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
@@ -91,7 +56,7 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
         sys.path.insert(0, plugins_root)
 
     # Create an instance of each of the plugins, but set it to disabled
-    e = PluginGlobals.env['microdrop.managed']
+    e = PluginGlobals.env('microdrop.managed')
     initial_plugins = set(e.plugin_registry.values())
     imported_plugins = set()
 
@@ -171,7 +136,7 @@ def get_plugin_names(env=None):
     '''
     if env is None:
         env = 'pca'
-    e = PluginGlobals.env[env]
+    e = PluginGlobals.env(env)
     return list(e.plugin_registry.keys())
 
 
@@ -194,7 +159,7 @@ def get_service_class(name, env='microdrop.managed'):
             Returns actual class type -- **not** an instance of the plugin
             service.
     '''
-    e = PluginGlobals.env[env]
+    e = PluginGlobals.env(env)
     if name not in e.plugin_registry:
         raise KeyError('No plugin registered with name: %s' % name)
     return e.plugin_registry[name]
@@ -222,7 +187,7 @@ def get_service_instance_by_name(name, env='microdrop.managed'):
     KeyError
         If no plugin is found registered with the specified name.
     '''
-    e = PluginGlobals.env[env]
+    e = PluginGlobals.env(env)
     plugins = [p for i, p in enumerate(e.services) if name == p.name]
     if plugins:
         return plugins[0]
@@ -247,7 +212,7 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
     object
         Active service instance matching specified plugin module name.
     '''
-    e = PluginGlobals.env[env]
+    e = PluginGlobals.env(env)
     plugins = [p for i, p in enumerate(e.services)
                if name == get_plugin_package_name(p.__class__.__module__)]
     if plugins:
@@ -290,7 +255,7 @@ def get_service_instance(class_, env='microdrop.managed'):
         Returns ``None`` if no service is registered for the specified plugin
         class type.
     '''
-    e = PluginGlobals.env[env]
+    e = PluginGlobals.env(env)
     for service in e.services:
         if isinstance(service, class_):
             # A plugin of this type is registered
@@ -311,7 +276,7 @@ def get_service_names(env='microdrop.managed'):
     list
         List of plugin names (e.g., ``['microdrop.step_label_plugin', ...]``).
     '''
-    e = PluginGlobals.env[env]
+    e = PluginGlobals.env(env)
     service_names = []
     for name in get_plugin_names(env):
         plugin_class = e.plugin_registry[name]

@@ -30,7 +30,7 @@ from .protocol import Step
 
 logger = logging.getLogger(__name__)
 
-PluginGlobals.add_env('microdrop')
+PluginGlobals.push_env('microdrop')
 
 
 def parse_args(args=None):

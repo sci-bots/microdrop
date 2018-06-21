@@ -70,9 +70,7 @@ requirements:
     - pyserial
     - pytables
     - python
-    #: .. versionchanged:: 2.21.2
-    #: .. versionchanged:: 2.22.1
-    - pyutilib >=5.0
+    - pyutilib.component.loader
     - pywin32
     - pyyaml
     - pyzmq
@@ -129,10 +127,7 @@ requirements:
     - pyparsing
     - pyserial
     - pytables
-    #: .. versionchanged:: 2.21.2
-    #: .. versionchanged:: 2.22.1
-    - pyutilib >=5.0
-    - pyutilib
+    - pyutilib.component.loader
     - pywin32
     - pyyaml
     - pyzmq

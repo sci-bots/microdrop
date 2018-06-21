@@ -53,7 +53,7 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
         return pickle.dumps(app.dmf_device)
 
 
-PluginGlobals.add_env('microdrop')
+PluginGlobals.push_env('microdrop')
 
 
 class DeviceInfoPlugin(SingletonPlugin):

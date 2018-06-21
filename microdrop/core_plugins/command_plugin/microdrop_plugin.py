@@ -13,7 +13,7 @@ from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
 logger = logging.getLogger(__name__)
 
 
-PluginGlobals.add_env('microdrop')
+PluginGlobals.push_env('microdrop')
 
 
 class CommandPlugin(SingletonPlugin):
