@@ -5,6 +5,7 @@ import logging
 import pprint
 import sys
 import traceback
+import warnings
 
 from pyutilib.component.core import ExtensionPoint, PluginGlobals
 # TODO Update plugins to import from `pyutilib.component.core` directly
@@ -26,6 +27,9 @@ class ClassProperty(property):
 
 if not hasattr(PluginGlobals, 'interface_registry'):
     def _interface_registry(*args, **kwargs):
+        warnings.warn('`interface_registry` attribute of '
+                      '`pyutilib.component.core.PluginGlobals` is deprecated.',
+                      DeprecationWarning)
         return {i.__name__: i for i in PluginGlobals.interface_services.keys()}
 
     PluginGlobals.interface_registry = \
@@ -33,6 +37,12 @@ if not hasattr(PluginGlobals, 'interface_registry'):
 
 if all([not hasattr(PluginGlobals, 'push_env'),
         hasattr(PluginGlobals, 'add_env')]):
+    def _push_env(*args, **kwargs):
+        warnings.warn('`push_env` method of '
+                      '`pyutilib.component.core.PluginGlobals` is deprecated. '
+                      'Use `add_env` method instead.', DeprecationWarning)
+        return PluginGlobals.add_env(*args, **kwargs)
+
     PluginGlobals.push_env = staticmethod(PluginGlobals.add_env)
 elif all([not hasattr(PluginGlobals, 'add_env'),
           hasattr(PluginGlobals, 'push_env')]):
