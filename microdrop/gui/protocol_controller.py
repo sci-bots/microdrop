@@ -114,7 +114,7 @@ class ProtocolControllerZmqPlugin(ZmqPlugin):
             _L().error(str(data), exc_info=True)
 
 
-PluginGlobals.push_env('microdrop')
+PluginGlobals.add_env('microdrop')
 
 
 class ProtocolController(SingletonPlugin):

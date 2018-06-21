@@ -3,11 +3,11 @@ import threading
 
 print '[interfaces] %s' % threading.current_thread()
 
-PluginGlobals.push_env('microdrop.managed')
+PluginGlobals.add_env('microdrop.managed')
 PluginGlobals.pop_env()
 
 
-PluginGlobals.push_env('microdrop')
+PluginGlobals.add_env('microdrop')
 
 
 if 'IFoo' in PluginGlobals.interface_registry:

@@ -170,7 +170,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
         return self.get_channel_states()
 
 
-PluginGlobals.push_env('microdrop')
+PluginGlobals.add_env('microdrop')
 
 
 class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):

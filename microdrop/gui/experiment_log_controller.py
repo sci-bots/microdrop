@@ -61,7 +61,7 @@ class ExperimentLogContextMenu(SlaveView):
         menu_item.show()
 
 
-PluginGlobals.push_env('microdrop')
+PluginGlobals.add_env('microdrop')
 
 
 class ExperimentLogController(SingletonPlugin, AppDataController):

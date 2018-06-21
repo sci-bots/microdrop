@@ -13,6 +13,31 @@ from pyutilib.component.core import Plugin, SingletonPlugin, implements
 import path_helpers as ph
 import task_scheduler
 
+
+# Add shims where required to support backwards compatibility with
+# `pyutilib<5.0`.
+class ClassProperty(property):
+    '''
+    See https://stackoverflow.com/a/1383402/345236
+    '''
+    def __get__(self, cls, owner):
+        return self.fget.__get__(None, owner)()
+
+
+if not hasattr(PluginGlobals, 'interface_registry'):
+    def _interface_registry(*args, **kwargs):
+        return {i.__name__: i for i in PluginGlobals.interface_services.keys()}
+
+    PluginGlobals.interface_registry = \
+        ClassProperty(classmethod(_interface_registry))
+
+if all([not hasattr(PluginGlobals, 'push_env'),
+        hasattr(PluginGlobals, 'add_env')]):
+    PluginGlobals.push_env = staticmethod(PluginGlobals.add_env)
+elif all([not hasattr(PluginGlobals, 'add_env'),
+          hasattr(PluginGlobals, 'push_env')]):
+    PluginGlobals.add_env = staticmethod(PluginGlobals.push_env)
+
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
 from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
 

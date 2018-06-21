@@ -146,7 +146,7 @@ class ProtocolGridView(CombinedFields):
                 app.protocol.goto_step(self.selected_ids[0])
 
 
-PluginGlobals.push_env('microdrop')
+PluginGlobals.add_env('microdrop')
 
 
 class ProtocolGridController(SingletonPlugin, AppDataController):

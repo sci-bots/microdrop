@@ -71,7 +71,8 @@ requirements:
     - pytables
     - python
     #: .. versionchanged:: 2.21.2
-    - pyutilib
+    #: .. versionchanged:: 2.22.1
+    - pyutilib >=5.0
     - pywin32
     - pyyaml
     - pyzmq
@@ -129,6 +130,8 @@ requirements:
     - pyserial
     - pytables
     #: .. versionchanged:: 2.21.2
+    #: .. versionchanged:: 2.22.1
+    - pyutilib >=5.0
     - pyutilib
     - pywin32
     - pyyaml
