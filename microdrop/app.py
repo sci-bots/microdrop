@@ -167,13 +167,19 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         self.plugin_data[plugin_name] = data
 
     def on_app_options_changed(self, plugin_name):
+        '''
+        .. versionchanged:: X.X.X
+            When real-time mode is toggled, trigger execution of step with
+            :meth:`goto_step` instead of calling :meth:`run_step` directly.
+        '''
         if plugin_name == self.name:
             data = self.get_data(self.name)
             if 'realtime_mode' in data:
                 if self.realtime_mode != data['realtime_mode']:
                     self.realtime_mode = data['realtime_mode']
-                    if self.protocol_controller:
-                        self.protocol_controller.run_step()
+                    if self.protocol is not None:
+                        self.protocol.goto_step(self.protocol
+                                                .current_step_number)
             if 'log_file' in data and 'log_enabled' in data:
                 self.apply_log_file_config(data['log_file'],
                                            data['log_enabled'])
