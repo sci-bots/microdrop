@@ -226,7 +226,7 @@ version of the software.'''.strip(), filename, why.future_version,
             result = yesno('Some data in the protocol "%s" requires '
                            'plugins that are not currently installed:'
                            '\n\t%s\nThis data will be ignored unless you '
-                           'install and enable these plugins. Would you'
+                           'install and enable these plugins. Would you '
                            'like to permanently clear this data from the '
                            'protocol?' % (protocol.name,
                                           ",\n\t".join(missing_plugins)))
