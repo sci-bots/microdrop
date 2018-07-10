@@ -61,7 +61,7 @@ def main():
     print 'Use a button ordering more consistent with Windows'
     settings.set_property('gtk-alternative-button-order', True)
 
-    logging.basicConfig(format='%(asctime)s [%(levelname)s:%(name)s]: '
+    logging.basicConfig(format='%(asctime)s.%(msecs)03d [%(levelname)s:%(name)s]: '
                         '%(message)s', datefmt=r'%Y-%m-%d %H:%M:%S',
                         level=logging.INFO)
 
