@@ -226,7 +226,7 @@ version of the software.'''.strip(), filename, why.future_version,
             result = yesno('Some data in the protocol "%s" requires '
                            'plugins that are not currently installed:'
                            '\n\t%s\nThis data will be ignored unless you '
-                           'install and enable these plugins. Would you'
+                           'install and enable these plugins. Would you '
                            'like to permanently clear this data from the '
                            'protocol?' % (protocol.name,
                                           ",\n\t".join(missing_plugins)))
@@ -556,6 +556,13 @@ version of the software.'''.strip(), filename, why.future_version,
                 emit_signal("on_protocol_changed")
 
     def run_protocol(self):
+        '''
+        .. versionchanged:: 2.23
+            Trigger execution of first step in sequence with :meth:`goto_step`
+            instead of calling :meth:`run_step` directly.  This ensures
+            consistent behaviour across all steps since all subsequent steps
+            are executed by calling :meth:`goto_step`.
+        '''
         app = get_app()
         app.running = True
         self.button_run_protocol.set_image(self.builder.get_object(
@@ -563,7 +570,7 @@ version of the software.'''.strip(), filename, why.future_version,
         app.protocol.current_step_attempt = 0
         emit_signal("on_protocol_run")
         self.set_sensitivity_of_protocol_navigation_buttons(False)
-        self.run_step()
+        self.goto_step(app.protocol.current_step_number)
 
     def pause_protocol(self):
         app = get_app()
