@@ -557,7 +557,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def run_protocol(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.23
             Trigger execution of first step in sequence with :meth:`goto_step`
             instead of calling :meth:`run_step` directly.  This ensures
             consistent behaviour across all steps since all subsequent steps

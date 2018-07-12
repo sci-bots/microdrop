@@ -168,7 +168,7 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
     def on_app_options_changed(self, plugin_name):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.23
             When real-time mode is toggled, trigger execution of step with
             :meth:`goto_step` instead of calling :meth:`run_step` directly.
         '''
