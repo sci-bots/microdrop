@@ -1,6 +1,7 @@
 import logging
 import threading
 
+from logging_helpers import _L
 from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
@@ -9,7 +10,6 @@ import pandas as pd
 import zmq
 
 from ...app_context import get_app, get_hub_uri
-from ...logging_helpers import _L  #: .. versionadded:: 2.20
 from ...plugin_helpers import StepOptionsController
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements, emit_signal)

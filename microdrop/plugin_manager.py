@@ -14,7 +14,7 @@ import path_helpers as ph
 import task_scheduler
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
-from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
+from logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
 
 
 logger = logging.getLogger(__name__)

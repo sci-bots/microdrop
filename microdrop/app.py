@@ -20,7 +20,7 @@ from . import base_path, MICRODROP_PARSER
 from . import plugin_manager, __version__
 from .config import Config
 from .gui.dmf_device_controller import DEVICE_FILENAME
-from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
+from logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
 from .logger import CustomHandler
 from .plugin_helpers import AppDataController
 from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,

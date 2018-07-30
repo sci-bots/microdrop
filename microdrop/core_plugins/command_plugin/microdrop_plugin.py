@@ -6,7 +6,7 @@ import zmq
 
 from .plugin import CommandZmqPlugin
 from ...app_context import get_hub_uri
-from ...logging_helpers import _L  #: .. versionadded:: 2.20
+from logging_helpers import _L  #: .. versionadded:: 2.20
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements)
 
