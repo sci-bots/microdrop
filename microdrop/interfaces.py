@@ -379,3 +379,18 @@ if 'IElectrodeActuator' in PluginGlobals.interface_registry:
 else:
     class IElectrodeActuator(Interface):
         pass
+
+    class IApplicationMode(Interface):
+        '''
+        Interface for plugins for which behaviour depends on application mode.
+
+
+        .. versionadded:: X.X.X
+        '''
+        def on_mode_changed(self):
+            '''
+            Called when application mode has changed.
+
+            See `microdrop.app` for modes (e.g., ``MODE_PROGRAMMING``, etc.).
+            '''
+            pass

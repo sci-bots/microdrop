@@ -19,10 +19,11 @@ try:
 except ImportError:
     PUDB_AVAILABLE = False
 
+from ..interfaces import IApplicationMode
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, ILoggingPlugin,
                               emit_signal, get_service_instance_by_name)
-from ..app_context import get_app
+from ..app_context import get_app, MODE_RUNNING_MASK
 from logging_helpers import _L  #: .. versionadded:: 2.20
 from .. import __version__
 
@@ -34,6 +35,7 @@ PluginGlobals.push_env('microdrop')
 class MainWindowController(SingletonPlugin):
     implements(IPlugin)
     implements(ILoggingPlugin)
+    implements(IApplicationMode)
 
     def __init__(self):
         '''
@@ -568,11 +570,6 @@ class MainWindowController(SingletonPlugin):
         self.step_start_time = datetime.utcnow()
 
         def update_time_label():
-            app = get_app()
-            if not app.running:
-                # Protocol is no longer running.  Stop step timer.
-                self.reset_step_timeout()
-                return False
             elapsed_time = datetime.utcnow() - self.step_start_time
             gobject.idle_add(self.label_step_time.set_text,
                              str(elapsed_time).split('.')[0])
@@ -595,6 +592,14 @@ class MainWindowController(SingletonPlugin):
         if self.step_timeout_id is not None:
             gobject.source_remove(self.step_timeout_id)
         gobject.idle_add(self.label_step_time.set_text, '-')
+
+    def on_mode_changed(self, old_mode, new_mode):
+        '''
+        .. versionadded:: X.X.X
+        '''
+        if new_mode & ~MODE_RUNNING_MASK:
+            # Protocol is not running.  Clear step timer label.
+            self.reset_step_timeout()
 
 
 PluginGlobals.pop_env()

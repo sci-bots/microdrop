@@ -252,10 +252,8 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             self.save()
 
     def on_step_run(self):
-        app = get_app()
-        if app.running or app.realtime_mode:
-            emit_signal('on_step_complete', [self.name, None])
-            self.menu_new_experiment.set_sensitive(True)
+        emit_signal('on_step_complete', [self.name, None])
+        self.menu_new_experiment.set_sensitive(True)
 
     def on_treeview_protocol_button_press_event(self, widget, event):
         if event.button == 3:
