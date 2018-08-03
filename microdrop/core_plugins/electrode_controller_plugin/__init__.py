@@ -637,16 +637,36 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             voltage = step_options['Voltage (V)']
             frequency = step_options['Frequency (Hz)']
 
-            responses = emit_signal("set_frequency", frequency,
+            @gtk_sync
+            def set_waveform():
+                result = {}
+                try:
+                    result['frequency'] = \
+                        emit_signal("set_frequency", frequency,
                                     interface=IWaveformGenerator)
-            if not responses:
-                raise RuntimeError('No waveform generator available to set '
-                                   'frequency.')
-            responses = emit_signal("set_voltage", voltage,
+                except Exception as exception:
+                    result['frequency'] = exception
+
+                try:
+                    result['voltage'] = \
+                        emit_signal("set_voltage", voltage,
                                     interface=IWaveformGenerator)
-            if not responses:
-                raise RuntimeError('No waveform generator available to set '
-                                   'voltage.')
+                except Exception as exception:
+                    result['voltage'] = exception
+
+                for key in ('frequency', 'voltage'):
+                    if not result[key]:
+                        _L().warning('No waveform generator available to set '
+                                     '%s.', key)
+
+                return result
+
+            # Apply waveform in main (i.e., Gtk) thread.
+            waveform_result = yield asyncio.From(set_waveform())
+
+            for key in ('frequency', 'voltage'):
+                if isinstance(waveform_result[key], Exception):
+                    raise waveform_result[key]
 
             duration_s = step_options.get('Duration (s)', 0)
 
@@ -656,9 +676,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                               interface=IElectrodeActuator)
 
             if not electrode_actuators:
-                _L().info('No electrode actuators registered to actuate: '
-                          '%s', electrodes_to_actuate)
-                continue
+                task = gtk_sync(_L().warning)('No electrode actuators '
+                                              'registered to actuate: %s',
+                                              list(electrodes_to_actuate))
+                yield asyncio.From(task)
             else:
                 actuation_tasks = electrode_actuators.values()
 
