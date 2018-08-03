@@ -722,6 +722,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 result = future.result()
                 emit_signal('on_step_complete', [self.name, None])
                 _L().info('Step actuations completed: `%s`', result)
+            except asyncio.CancelledError:
+                _L().info('Step was cancelled.')
             except Exception as exception:
                 _L().error('Error executing step actuations: %s',
                             exception, exc_info=True)
