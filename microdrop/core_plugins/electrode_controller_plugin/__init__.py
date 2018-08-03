@@ -24,8 +24,9 @@ import zmq
 
 from ...app_context import (get_app, get_hub_uri, MODE_RUNNING_MASK,
                             MODE_REAL_TIME_MASK)
-from ...interfaces import (IElectrodeActuator, IElectrodeController,
-                           IElectrodeMutator, IWaveformGenerator)
+from ...interfaces import (IApplicationMode, IElectrodeActuator,
+                           IElectrodeController, IElectrodeMutator,
+                           IWaveformGenerator)
 from ...plugin_helpers import (StepOptionsController, AppDataController,
                                hub_execute)
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
@@ -317,6 +318,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
     """
     implements(IPlugin)
     implements(IElectrodeController)
+    implements(IApplicationMode)
     plugin_name = 'microdrop.electrode_controller_plugin'
 
     def __init__(self):
@@ -325,6 +327,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         self.stopped = threading.Event()
         self._active_actuation = None
         self.executor = ThreadPoolExecutor(max_workers=1)
+        self.warnings_ignoring = dict()
 
     @property
     def AppFields(self):
@@ -704,10 +707,26 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                     result['voltage'] = exception
 
                 for key in ('frequency', 'voltage'):
-                    if not result[key]:
-                        _L().warning('No waveform generator available to set '
-                                     '%s.', key)
+                    if result[key]:
+                        continue
 
+                    if not key in self.warnings_ignoring:
+                        response = ignorable_warning(title='Warning: failed to'
+                                                     ' set ' '%s' % key,
+                                                     text='No waveform '
+                                                     'generators available to '
+                                                     'set <b>%s</b>.' % key,
+                                                     use_markup=True)
+                        if response['always']:
+                            self.warnings_ignoring[key] = response['ignore']
+                        ignore = response['ignore']
+                    else:
+                        ignore = self.warnings_ignoring[key]
+
+                    if not ignore:
+                        result[key] = RuntimeError('No waveform generators '
+                                                   'available to set **%s**.' %
+                                                   key)
                 return result
 
             # Apply waveform in main (i.e., Gtk) thread.
@@ -725,10 +744,28 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                               interface=IElectrodeActuator)
 
             if not electrode_actuators:
-                task = gtk_sync(_L().warning)('No electrode actuators '
-                                              'registered to actuate: %s',
-                                              list(electrodes_to_actuate))
-                yield asyncio.From(task)
+                if not 'actuate' in self.warnings_ignoring:
+                    @gtk_sync
+                    def _warning():
+                        return ignorable_warning(title='Warning: failed to '
+                                                 'actuated all electrodes',
+                                                 text='No electrode actuators '
+                                                 'registered to '
+                                                 '<b>actuate</b>: <tt>%s</tt>'
+                                                 % list(electrodes_to_actuate),
+                                                 use_markup=True)
+
+                    response = yield asyncio.From(_warning())
+                    if response['always']:
+                        self.warnings_ignoring['actuate'] = response['ignore']
+                    ignore = response['ignore']
+                else:
+                    ignore = self.warnings_ignoring['actuate']
+
+                if not ignore:
+                    raise RuntimeError('No electrode actuators registered to '
+                                       'actuate: `%s`' %
+                                       list(electrodes_to_actuate))
             else:
                 actuation_tasks = electrode_actuators.values()
 
@@ -812,5 +849,20 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         '''
         # Protocol was paused.  Stop executing current step.
         self.cancel_actuation()
+
+    def on_mode_changed(self, old_mode, new_mode):
+        '''
+        .. versionadded:: X.X.X
+        '''
+        _L().info('Mode changed: `%s` -> `%s`', old_mode, new_mode)
+        if (all([(old_mode & ~MODE_REAL_TIME_MASK),
+                 (new_mode & MODE_REAL_TIME_MASK),
+                 (new_mode & ~MODE_RUNNING_MASK)]) or
+            all([(old_mode & ~MODE_RUNNING_MASK),
+                 (new_mode & MODE_RUNNING_MASK)])):
+            # Either real-time mode was enabled when it wasn't before or
+            # protocol just started running.
+            # Reset to not ignoring any warnings.
+            self.warnings_ignoring.clear()
 
 PluginGlobals.pop_env()
