@@ -565,8 +565,8 @@ version of the software.'''.strip(), filename, why.future_version,
         '''
         app = get_app()
         app.running = True
-        self.button_run_protocol.set_image(self.builder.get_object(
-            "image_pause"))
+        self.button_run_protocol.set_image(self.builder
+                                           .get_object("image_pause"))
         app.protocol.current_step_attempt = 0
         emit_signal("on_protocol_run")
         self.set_sensitivity_of_protocol_navigation_buttons(False)
