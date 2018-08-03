@@ -1,6 +1,9 @@
 from pyutilib.component.core import Interface, PluginGlobals
 import threading
 
+import trollius as asyncio
+
+
 print '[interfaces] %s' % threading.current_thread()
 
 PluginGlobals.push_env('microdrop.managed')
@@ -377,8 +380,70 @@ else:
 if 'IElectrodeActuator' in PluginGlobals.interface_registry:
     IElectrodeActuator = PluginGlobals.interface_registry['IElectrodeActuator']
 else:
+    class IElectrodeController(Interface):
+        '''
+        Interface to manage state of electrodes and issue actuation requests to
+        `IElectrodeActuator` plugins.
+        '''
+        @asyncio.coroutine
+        def request_electrode_states(self, electrode_states):
+            '''
+            XXX Coroutine XXX
+
+            Request static electrode states.
+
+            Parameters
+            ----------
+            electrode_states : pandas.Series
+            '''
+            pass
+
     class IElectrodeActuator(Interface):
-        pass
+        '''
+        Execute electrode actuations from an `IElectrodeController`.
+        '''
+        @asyncio.coroutine
+        def on_actuation_request(self, electrode_states, duration_s=0,
+                                 volume_threshold=None):
+            '''
+            XXX Coroutine XXX
+
+            Request actuation of electrodes according to specified states.
+
+            Parameters
+            ----------
+            electrode_states : pandas.Series
+            duration_s : float, optional
+                If :data:`volume_threshold` is specified, maximum duration
+                before timing out.  Otherwise, time to actuate before actuation
+                is considered completed.
+            volume_threshold : float, optional
+                Fraction of expected volume before actuation should be
+                considered completed.
+
+            Returns
+            -------
+            actuated_electrodes : list
+                List of actuated electrode IDs.
+            '''
+            pass
+
+    class IElectrodeMutator(Interface):
+        '''
+        Generate dynamic actuation state(s) for `IElectrodeController`.
+        '''
+        def get_electrode_states_request(self):
+            '''
+            Return electrode states request or ``None`` if no electrode states
+            are required.
+
+            **Note that this may be called multiple times per step.**
+
+            Returns
+            -------
+            electrode_states : pandas.Series
+            '''
+            pass
 
     class IApplicationMode(Interface):
         '''

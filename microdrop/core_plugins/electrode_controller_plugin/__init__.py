@@ -1,25 +1,70 @@
+from __future__ import division, print_function, unicode_literals
+from concurrent.futures import ThreadPoolExecutor
+import datetime as dt
+import functools as ft
+import itertools as it
 import logging
 import pprint
-import thread
 import threading
 
-from logging_helpers import _L
+from flatland import Float, Form
+from flatland.validation import ValueAtLeast
+from logging_helpers import _L, caller_name
 from pygtkhelpers.gthreads import gtk_threadsafe
-from pyutilib.component.core import ExtensionPoint
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
-import gtk
-import or_event
+import base_node_rpc as bnr
+import base_node_rpc.async
+import dropbot as db
+import dropbot.threading_helpers
 import pandas as pd
+import trollius as asyncio
 import zmq
 
-from ...app_context import get_app, get_hub_uri
-from ...interfaces import IElectrodeActuator
-from ...plugin_helpers import StepOptionsController
+from ...app_context import (get_app, get_hub_uri, MODE_RUNNING_MASK,
+                            MODE_REAL_TIME_MASK)
+from ...interfaces import (IElectrodeActuator, IElectrodeController,
+                           IElectrodeMutator, IWaveformGenerator)
+from ...plugin_helpers import (StepOptionsController, AppDataController,
+                               hub_execute)
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements, emit_signal)
 
 logger = logging.getLogger(__name__)
+
+
+def gtk_sync(f):
+    '''
+    Return coroutine which executes wrapped function in GTK thread.
+
+    Coroutine returns once wrapped function has finished executing.
+    This decorator is useful for synchronizing execution of GTK code while
+    ensuring the GTK code is run in the main GTK thread to maintain thread
+    safety.
+
+
+    .. versionadded:: X.X.X
+    '''
+    loop = bnr.async.ensure_event_loop()
+    done = asyncio.Event()
+
+    @gtk_threadsafe
+    def _wrapped(*args):
+        done.result = f(*args)
+        loop.call_soon_threadsafe(done.set)
+        return False
+
+    _wrapped.loop = loop
+    _wrapped.done = done
+
+    @asyncio.coroutine
+    def _synced(*args):
+        _wrapped(*args)
+        # Wait for waveform to be applied.
+        yield asyncio.From(_wrapped.done.wait())
+        raise asyncio.Return(_wrapped.done.result)
+
+    return _synced
 
 
 def drop_duplicates_by_index(series):
@@ -39,7 +84,7 @@ def drop_duplicates_by_index(series):
     return series[~series.index.duplicated()]
 
 
-class ElectrodeControllerZmqPlugin(ZmqPlugin):
+class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
     '''
     API for turning electrode(s) on/off.
 
@@ -184,12 +229,6 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
 
         if save:
             self.electrode_states = electrode_states
-            # def notify(step_number):
-                # emit_signal('on_step_options_changed', [self.name,
-                                                        # step_number],
-                            # interface=IPlugin)
-            # logger.info("emit_signal('on_step_options_changed')")
-            # gtk.idle_add(notify, app.protocol.current_step_number)
         logger.debug('save=%s, electrode_states=%s', save, electrode_states)
 
         # Compute actuated area based on geometries in DMF device definition.
@@ -197,6 +236,10 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
         if logger.isEnabledFor(logging.DEBUG):
             map(logger.debug, pprint.pformat(result).splitlines())
         return result
+
+    def on_execute__set_dynamic_electrode_states(self, request):
+        data = decode_content_data(request)
+        return data['electrode_states']
 
     def on_execute__set_electrode_state(self, request):
         data = decode_content_data(request)
@@ -208,7 +251,8 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
             return self.set_electrode_states(data['electrode_states'],
                                              save=data.get('save', True))
         except Exception:
-            logger.error(str(data), exc_info=True)
+            gtk_threadsafe(ft.partial(logger.error, str(data),
+                                      exc_info=True))()
 
     def on_execute__get_channel_states(self, request):
         return self.get_channel_states()
@@ -217,23 +261,57 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin):
 PluginGlobals.push_env('microdrop')
 
 
-class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
+class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
+                                AppDataController):
     """
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
+    implements(IElectrodeController)
     plugin_name = 'microdrop.electrode_controller_plugin'
 
     def __init__(self):
         self.name = self.plugin_name
         self.plugin = None
         self.stopped = threading.Event()
-        self.step_cancelled = threading.Event()
-        self._actuation_completed = threading.Event()
-        self._electrodes_to_actuate = set()   # or `pandas.Series`?
-        self._actuated_electrodes = set()   # or `pandas.Series`?
+        self._active_actuation = None
+        self.executor = ThreadPoolExecutor(max_workers=1)
 
-        self._watch_actuation_thread = None
+    @property
+    def AppFields(self):
+        '''
+        .. versionadded:: X.X.X
+        '''
+        return Form.of(
+            Float.named('default_duration').using(default=1., optional=True),
+            Float.named('default_voltage').using(default=100, optional=True),
+            Float.named('default_frequency').using(default=10e3,
+                                                   optional=True))
+
+    @property
+    def StepFields(self):
+        """
+        Dynamically generate step fields to support dynamic default values.
+
+
+        .. versionadded:: X.X.X
+        """
+        app_values = self.get_app_values()
+        if not app_values:
+            app_values = self.get_default_app_options()
+            self.set_app_values(app_values)
+        return Form.of(Float.named('Duration (s)')
+                       .using(default=app_values['default_duration'],
+                              optional=True,
+                              validators=[ValueAtLeast(minimum=0)]),
+                       Float.named('Voltage (V)')
+                       .using(default=app_values['default_voltage'],
+                              optional=True,
+                              validators=[ValueAtLeast(minimum=0)]),
+                       Float.named('Frequency (Hz)')
+                       .using(default=app_values['default_frequency'],
+                              optional=True,
+                              validators=[ValueAtLeast(minimum=0)]))
 
     def on_plugin_enable(self):
         """
@@ -317,172 +395,350 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
         else:
             _L().debug('ZeroMQ plugin not ready.')
 
+    @asyncio.coroutine
+    def execute_actuation(self, static_states, dynamic_states):
+        '''
+        .. versionadded:: X.X.X
+
+
+        XXX Coroutine XXX
+
+        Execute specified *static* and *dynamic* electrode actuations.
+
+        Parameters
+        ----------
+        static_states : pandas.Series
+            Static electrode actuation states, indexed by electrode ID, (e.g.,
+            `"electrode001"`).
+        dynamic_states : pandas.Series
+            Dynamic electrode actuation states, indexed by electrode ID.
+
+        Returns
+        -------
+        dict
+            Response with fields:
+
+            - ``start``: actuation start timestamp (`datetime.datetime`).
+            - ``end``: actuation start timestamp (`datetime.datetime`).
+            - ``actuated_electrodes``: actuated electrode IDs (`list`).
+
+        See Also
+        --------
+        execute_actuations
+        '''
+        # Notify other ZMQ plugins that `dynamic_electrodes_states` have
+        # changed.
+        @gtk_sync
+        def notify_dynamic_states(dynamic_electrode_states):
+            try:
+                return hub_execute(self.name, 'set_dynamic_electrode_states',
+                                   electrode_states=dynamic_electrode_states)
+            except Exception as exception:
+                _L().warning(str(exception), exc_info=True)
+                return None
+
+        response = yield asyncio.From(notify_dynamic_states(dynamic_states))
+
+        static_electrodes_to_actuate = set(static_states[static_states >
+                                                         0].index)
+        dynamic_electrodes_to_actuate = set(dynamic_states[dynamic_states >
+                                                           0].index)
+
+        electrodes_to_actuate = (dynamic_electrodes_to_actuate |
+                                 static_electrodes_to_actuate)
+
+        # Execute `set_electrode_states` command through ZeroMQ plugin
+        # API to notify electrode actuator plugins (i.e., plugins
+        # implementing the `IElectrodeActuator` interface) of the
+        # electrodes to actuate.
+        s_electrodes_to_actuate = \
+            pd.Series(True, index=sorted(electrodes_to_actuate))
+
+        step_options = self.get_step_options()
+        voltage = step_options['Voltage (V)']
+        frequency = step_options['Frequency (Hz)']
+
+        def set_waveform(key, value):
+            try:
+                result = emit_signal("set_%s" % key, value,
+                                     interface=IWaveformGenerator)
+                if result:
+                    return result
+            except Exception as exception:
+                result = exception
+
+            if not key in self.warnings_ignoring:
+                response = ignorable_warning(title='Warning: failed to  set '
+                                             '%s' % key, text='No waveform '
+                                             'generators available to set '
+                                             '<b>%s</b>.' % key,
+                                             use_markup=True)
+                if response['always']:
+                    self.warnings_ignoring[key] = response['ignore']
+                ignore = response['ignore']
+            else:
+                ignore = self.warnings_ignoring[key]
+
+            if not ignore:
+                return RuntimeError('No waveform generators available to set '
+                                    '%s to %s' % (key, value))
+
+        for key, value in (('frequency', frequency), ('voltage', voltage)):
+            # Apply waveform in main (i.e., Gtk) thread.
+            waveform_result = \
+                yield asyncio.From(gtk_sync(ft.partial(set_waveform, key,
+                                                       value))())
+
+            if isinstance(waveform_result, Exception):
+                raise waveform_result
+
+        app = get_app()
+        if all([(app.mode & MODE_REAL_TIME_MASK),
+                 (app.mode & ~MODE_RUNNING_MASK)]) or \
+                s_electrodes_to_actuate.shape[0] == 0:
+            duration_s = 0
+        else:
+            duration_s = step_options.get('Duration (s)', 0)
+
+        electrode_actuators = emit_signal('on_actuation_request',
+                                          args=[s_electrodes_to_actuate,
+                                                duration_s],
+                                          interface=IElectrodeActuator)
+
+        if not electrode_actuators:
+            if not 'actuate' in self.warnings_ignoring:
+                @gtk_sync
+                def _warning():
+                    return ignorable_warning(title='Warning: failed to '
+                                             'actuate all electrodes',
+                                             text='No electrode actuators '
+                                             'registered to '
+                                             '<b>actuate</b>: <tt>%s</tt>'
+                                             % list(electrodes_to_actuate),
+                                             use_markup=True)
+
+                response = yield asyncio.From(_warning())
+                if response['always']:
+                    self.warnings_ignoring['actuate'] = response['ignore']
+                ignore = response['ignore']
+            else:
+                ignore = self.warnings_ignoring['actuate']
+
+            if not ignore:
+                raise RuntimeError('No electrode actuators registered to '
+                                   'actuate: `%s`' %
+                                   list(electrodes_to_actuate))
+            else:
+                # Simulate actuation by waiting for specified duration.
+                yield asyncio.From(asyncio.sleep(duration_s))
+        else:
+            actuation_tasks = electrode_actuators.values()
+
+            # Wait for actuations to complete.
+            start = dt.datetime.now()
+            done, pending = yield asyncio.From(asyncio.wait(actuation_tasks))
+            end = dt.datetime.now()
+            actuated_electrodes = set(it.chain(*(d.result() for d in done)))
+
+            if electrodes_to_actuate - actuated_electrodes:
+                task = gtk_sync(_L().error)('failed to actuate the following '
+                                            'electrodes: %s',
+                                            electrodes_to_actuate -
+                                            actuated_electrodes)
+                yield asyncio.From(task)
+            else:
+                # Requested actuations were completed successfully.
+                _L().info('actuation completed (actuated '
+                          'electrodes:' '%s)', actuated_electrodes)
+
+            raise asyncio.Return({'start': start, 'end': end,
+                                  'actuated_electrodes':
+                                  sorted(actuated_electrodes)})
+
+    @asyncio.coroutine
+    def execute_actuations(self, dynamic=False):
+        '''
+        .. versionadded:: X.X.X
+
+
+        XXX Coroutine XXX
+
+        Execute *static* and *dynamic* electrode actuations for current
+        protocol step.
+
+        See `Issue #253`_ for more details.
+
+        .. _`Issue #253`: https://github.com/sci-bots/microdrop/issues/253#issuecomment-360967363
+        '''
+        actuations = []
+
+        while True:
+            # Start with electrodes specified by this plugin.
+            step_states = self.plugin.electrode_states.copy()
+            static_electrodes_to_actuate = set(step_states[step_states >
+                                                           0].index)
+
+            # Merge received actuation states from requests with
+            # explicit states stored by this plugin.
+            responses = emit_signal('get_electrode_states_request',
+                                    interface=IElectrodeMutator)
+            actuation_requests = {k: v for k, v in responses if v}
+
+            if not actuation_requests and (actuations or
+                                           step_states.shape[0] < 1):
+                # No more actuation requests and static electrode states have
+                # already been applied.
+                _L().debug('No actuation requests.')
+                break
+
+            if actuation_requests:
+                for plugin_name_i, actuation_request_i in (actuation_requests
+                                                           .iteritems()):
+                    _L().info('plugin: %s, actuation_request=%s',
+                              plugin_name_i, actuation_request_i)
+
+                dynamic_electrodes_states = \
+                    pd.concat([actuation_request_i[actuation_request_i > 0]
+                               for actuation_request_i in
+                               actuation_requests.itervalues()])
+
+                dynamic_electrodes_to_actuate = set(dynamic_electrodes_states
+                                                    .index)
+            else:
+                dynamic_electrodes_to_actuate = set()
+                dynamic_electrodes_states = pd.Series()
+
+            # Notify other ZMQ plugins that `dynamic_electrodes_states` have
+            # changed.
+            # XXX Need to wrap in `gtk_threadsafe` to ensure it is run from the
+            # thread owning the ZMQ context (i.e., the Gtk thread).
+            @gtk_threadsafe
+            def notify():
+                self.plugin.execute_async('microdrop.electrode_controller_plugin',
+                                          'set_dynamic_electrode_states',
+                                          electrode_states=
+                                          dynamic_electrodes_states)
+
+            notify()
+
+            electrodes_to_actuate = (dynamic_electrodes_to_actuate |
+                                     static_electrodes_to_actuate)
+
+            # Execute `set_electrode_states` command through ZeroMQ plugin
+            # API to notify electrode actuator plugins (i.e., plugins
+            # implementing the `IElectrodeActuator` interface) of the
+            # electrodes to actuate.
+            s_electrodes_to_actuate = \
+                pd.Series([True] * len(electrodes_to_actuate),
+                          index=sorted(electrodes_to_actuate))
+
+            step_options = self.get_step_options()
+            # volume_threshold = step_options.get('volume_threshold')
+            voltage = step_options['Voltage (V)']
+            frequency = step_options['Frequency (Hz)']
+
+            responses = emit_signal("set_frequency", frequency,
+                                    interface=IWaveformGenerator)
+            if not responses:
+                raise RuntimeError('No waveform generator available to set '
+                                   'frequency.')
+            responses = emit_signal("set_voltage", voltage,
+                                    interface=IWaveformGenerator)
+            if not responses:
+                raise RuntimeError('No waveform generator available to set '
+                                   'voltage.')
+
+            duration_s = step_options.get('Duration (s)', 0)
+
+            electrode_actuators = emit_signal('on_actuation_request',
+                                              args=[s_electrodes_to_actuate,
+                                                    duration_s],
+                                              interface=IElectrodeActuator)
+
+            if not electrode_actuators:
+                _L().info('No electrode actuators registered to actuate: '
+                          '%s', electrodes_to_actuate)
+                continue
+            else:
+                actuation_tasks = electrode_actuators.values()
+
+                # Wait for actuations to complete.
+                start = dt.datetime.now()
+                done, pending = yield asyncio.From(asyncio.wait(actuation_tasks))
+                end = dt.datetime.now()
+                actuated_electrodes = set(it.chain(*(d.result() for d in done)))
+
+                if electrodes_to_actuate - actuated_electrodes:
+                    _L().error('failed to actuate the following electrodes: %s',
+                               electrodes_to_actuate - actuated_electrodes)
+                else:
+                    # Requested actuations were completed successfully.
+                    _L().info('actuation completed (actuated '
+                              'electrodes:' '%s)', actuated_electrodes)
+                    actuations.append({'start': start, 'end': end,
+                                       'actuated_electrodes':
+                                       sorted(actuated_electrodes)})
+        raise asyncio.Return(actuations)
+
     def on_step_run(self):
         '''
         .. versionadded:: X.X.X
-
-            1. Repeatedly emit ``get_actuation_request`` until no requests
-               are received.
-            2. Merge actuation states received in each round of requests and
-               execute ZeroMQ ``set_electrode_states`` command accordingly.
-            3. If any other plugins implement ``actuation_completed``, wait
-               for ``actuation_completed`` signal before attempting next
-               round of actuation requests.
-
-        See `Issue #253`_ for more details.
-
-        .. _`Issue #253`: https://github.com/sci-bots/microdrop/issues/253#issuecomment-360967363
         '''
-        self.stop_step()
+        app = get_app()
+        # Wrap coroutine to provide `cancel()` method.
+        self._active_actuation = (db.threading_helpers
+                                  .co_cancellable(self.execute_actuations))
+        # Run asyncio loop in background thread.
+        future = self.executor.submit(self._active_actuation, app.running)
+        # Wait until asyncio loop has been initialized.
+        self._active_actuation.started.wait()
+        self._active_actuation.future = future
 
-        while self._watch_actuation_thread is not None and not self._watch_actuation_thread.is_alive():
-            pass
+        # Wait for coroutine to finish.
+        @gtk_threadsafe
+        def on_finished(future):
+            try:
+                result = future.result()
+                emit_signal('on_step_complete', [self.name, None])
+                _L().info('Step actuations completed: `%s`', result)
+            except Exception as exception:
+                _L().error('Error executing step actuations: %s',
+                            exception, exc_info=True)
+                emit_signal('on_step_complete', [self.name, 'Fail'])
+            finally:
+                self._active_actuation = None
 
-        def _wait_for_actuation_complete():
-            # Clear step cancelled signal.
-            self.step_cancelled.clear()
+        future.add_done_callback(on_finished)
 
-            _L().debug('thread started: %s', thread.get_ident())
-            self._actuation_completed.clear()
-
-            actuation_requests = None
-
-            while actuation_requests is None or any(value_i is not None
-                                                    for value_i in
-                                                    actuation_requests
-                                                    .itervalues()):
-                actuation_requests = emit_signal('get_actuation_request')
-
-                # Merge received actuation states from requests with
-                # explicit states stored by this plugin.
-                step_states = self.plugin.electrode_states.copy()
-
-                for plugin_name_i, actuation_request_i in (actuation_requests
-                                                           .iteritems()):
-                    if actuation_request_i is not None:
-                        _L().info('plugin: %s, actuation_request=%s',
-                                  plugin_name_i, actuation_request_i)
-
-                # Start with electrodes specified by this plugin.
-                self._electrodes_to_actuate = \
-                    set(pd.concat([step_states[step_states > 0]] +
-                                  [actuation_request_i[actuation_request_i > 0]
-                                   for actuation_request_i in
-                                   actuation_requests.itervalues()
-                                   if actuation_request_i is not None]).index
-                        .tolist())
-                self._actuated_electrodes = set()
-                self._actuation_completed.clear()
-
-                # Execute `set_electrode_states` command through ZeroMQ plugin
-                # API to notify electrode actuator plugins (i.e., plugins
-                # implementing the `IElectrodeActuator` interface) of the
-                # electrodes to actuate.
-                s_electrodes_to_actuate = \
-                    pd.Series([True] * len(self._electrodes_to_actuate),
-                              index=sorted(self._electrodes_to_actuate))
-
-                if self.step_cancelled.is_set():
-                    break
-
-                _L().debug('s_electrodes_to_actuate=%s',
-                           s_electrodes_to_actuate)
-                self.plugin.execute('microdrop.electrode_controller_plugin',
-                                    'set_electrode_states',
-                                    electrode_states=s_electrodes_to_actuate,
-                                    save=False)
-
-                electrode_actuators = ExtensionPoint(IElectrodeActuator)
-                if not electrode_actuators:
-                    _L().info('No electrode actuators registered to actuate: '
-                              '%s', self._electrodes_to_actuate)
-                    self._actuation_completed.set()
-                    continue
-                else:
-                    # Wait for `actuation_completed` signals indicating all
-                    # specified electrodes have been actuated.
-                    _L().info('waiting for the following electrodes to '
-                              'complete actuation: %s',
-                              self._electrodes_to_actuate -
-                              self._actuated_electrodes)
-
-                    # Wait/block until either:
-                    #
-                    #  1. `actuation_completed` signals have been received from
-                    #     `IElectrodeActuator` plugins indicating all specified
-                    #     electrodes have been actuated; OR
-                    #  2. step has been cancelled.
-                    event = or_event.OrEvent(self.step_cancelled,
-                                             self._actuation_completed)
-                    if event.wait():
-                        if self._actuation_completed.is_set():
-                            # Requested actuations were completed successfully.
-                            _L().info('actuation completed (actuated '
-                                      'channels:' '%s)',
-                                      self._actuated_electrodes)
-                        elif self.step_cancelled.is_set():
-                            # Step was cancelled.
-                            _L().info('Step was cancelled.')
-                            gtk_threadsafe(lambda *args: emit_signal(*args) and
-                                           False)('on_step_complete',
-                                                  [self.name, 'Fail'])
-                            break  # XXX Stop since step was cancelled.
-            if not self.step_cancelled.is_set():
-                gtk_threadsafe(lambda *args: emit_signal(*args) and
-                               False)('on_step_complete', [self.name, None])
-            _L().debug('thread finished: %s', thread.get_ident())
-            self._watch_actuation_thread = None
-
-        self._watch_actuation_thread = \
-            threading.Thread(target=_wait_for_actuation_complete,
-                             name='%s._wait_for_actuation_complete' %
-                             caller_name(0))
-        self._watch_actuation_thread.daemon = True  # Stop when app exits
-        # Start watching for completed actuations.
-        self._watch_actuation_thread.start()
-        _L().debug('threads: %s' % threading.enumerate())
-
-    def stop_step(self):
-        # Cancel step (if running).
-        self.step_cancelled.set()
-
-    def on_step_complete(self, plugin_name, return_value):
-        if return_value is not None:
-            # Step did not complete as expected.  Stop executing current step.
-            self.stop_step()
-
-    def on_protocol_pause(self):
-        """
-        Handler called when a protocol is paused.
-        """
-        # Protocol was paused.  Stop executing current step.
-        self.stop_step()
-
-    def actuation_completed(self, plugin_name, actuated_electrodes):
+    def cancel_actuation(self):
         '''
         .. versionadded:: X.X.X
-
-        Handle ``actuation_completed`` signal emitted by other plugins in
-        response to ``set_electrode_states`` ZeroMQ once electrode actuation
-        has completed.
-
-        The ``actuation_completed``
-
-        See `Issue #253`_ for more details.
-
-        .. _`Issue #253`: https://github.com/sci-bots/microdrop/issues/253#issuecomment-360967363
         '''
-        _L().debug('%s successfully actuated: %s', plugin_name,
-                   actuated_electrodes)
-        self._actuated_electrodes.update(actuated_electrodes)
-        outstanding_actuations = (self._electrodes_to_actuate -
-                                  self._actuated_electrodes)
-        if not outstanding_actuations:
-            _L().debug('all target electrodes successfully actuated')
-            self._actuation_completed.set()
-        else:
-            _L().debug('still waiting on the following electrodes to be '
-                       'actuated: %s', outstanding_actuations)
+        if self._active_actuation is not None and\
+                (not hasattr(self._active_actuation, 'future') or
+                 not self._active_actuation.future.done()):
+            _L().debug('Cancel previous actuation.')
+            self._active_actuation.started.wait()
+            # Cancel all asyncio tasks.
+            self._active_actuation.cancel()
+            self._active_actuation = None
 
+    def on_step_complete(self, plugin_name, return_value):
+        '''
+        .. versionchanged:: X.X.X
+        '''
+        if return_value is not None:
+            # Step did not complete as expected.  Cancel actuation.
+            self.cancel_actuation()
+
+    def on_protocol_pause(self):
+        '''
+        Handler called when a protocol is paused.
+
+
+        .. versionchanged:: X.X.X
+        '''
+        # Protocol was paused.  Stop executing current step.
+        self.cancel_actuation()
 
 PluginGlobals.pop_env()
