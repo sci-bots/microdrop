@@ -480,4 +480,51 @@ def disable(name, env='microdrop.managed'):
         logging.info('[PluginManager] Disabled plugin: %s' % name)
 
 
+def connect_pyutilib_signal(signals, signal, *args, **kwargs):
+    '''
+    Connect pyutilib callbacks to corresponding signal in blinker namespace.
+
+    Allows code to be written using blinker signals for easier testing outside
+    of MicroDrop, while maintaining compatibility with pyutilib.
+
+    Parameters
+    ----------
+    signals : blinker.Namespace
+    signal : str
+        Pyutilib signal name.
+    *args, **kwargs
+        Arguments passed to `pyutilib.component.core.ExtensionPoint()`
+
+    Example
+    -------
+
+    >>> from microdrop.interfaces import IPlugin
+    >>> import microdrop.app
+    >>>
+    >>> signals = blinker.Namespace()
+    >>> signal = 'get_schedule_requests'
+    >>> args = ('on_plugin_enable', )
+    >>> connect_pyutilib_signal(signals, signal, IPlugin)
+    >>> signals.signal(signal).send(*args)
+    [(<bound method DmfDeviceController.get_schedule_requests of <Plugin DmfDeviceController 'microdrop.gui.dmf_device_controller'>>, [ScheduleRequest(before='microdrop.gui.config_controller', after='microdrop.gui.dmf_device_controller'), ScheduleRequest(before='microdrop.gui.main_window_controller', after='microdrop.gui.dmf_device_controller')])]
+    '''
+    import functools as ft
+    import inspect
+
+    from microdrop.plugin_manager import ExtensionPoint
+
+    callbacks = [getattr(p, signal) for p in ExtensionPoint(*args, **kwargs) if hasattr(p, signal)]
+
+    for callback_i in callbacks:
+        if len(inspect.getargspec(callback_i)[0]) < 2:
+            # Blinker signals require _at least_ one argument (assumed to be sender).
+            # Wrap pyutilib signals without any arguments to make them work with blinker.
+            @ft.wraps(callback_i)
+            def _callback(*args, **kwargs):
+                return callback_i()
+        else:
+            _callback = callback_i
+        signals.signal(signal).connect(_callback, weak=False)
+
+
 PluginGlobals.pop_env()
