@@ -30,6 +30,10 @@ from .protocol import Step
 
 logger = logging.getLogger(__name__)
 
+# Suppress ZMQ plugin error logging messages.
+logging.getLogger('zmq_plugin.plugin.DeviceInfoZmqPlugin.on_command_recv->'
+                  '"microdrop.device_info_plugin"').setLevel(logging.CRITICAL)
+
 PluginGlobals.push_env('microdrop')
 
 

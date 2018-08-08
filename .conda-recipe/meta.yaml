@@ -84,7 +84,8 @@ requirements:
     - task-scheduler
     - tornado
     - wheeler.pygtkhelpers >=0.16
-    - zmq-plugin >=0.2.post2
+    #: .. versionchanged:: X.X.X
+    - zmq-plugin >=0.3.3
 
   run:
     - application-repository
@@ -141,7 +142,8 @@ requirements:
     - task-scheduler
     - tornado
     - wheeler.pygtkhelpers >=0.16
-    - zmq-plugin >=0.2.post2
+    #: .. versionchanged:: X.X.X
+    - zmq-plugin >=0.3.3
 
 about:
   home: https://github.com/sci-bots/microdrop
