@@ -732,6 +732,21 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             self._active_actuation.cancel()
             self._active_actuation = None
 
+        # Disable dynamic states.
+        def _disable_dynamic(result):
+            app = get_app()
+            self._active_actuation = (db.threading_helpers
+                                      .co_cancellable(self.execute_actuation))
+            static_states = (self.plugin.electrode_states.copy()
+                             if app.realtime_mode else pd.Series())
+            self.executor.submit(self._active_actuation, static_states,
+                                 pd.Series())
+
+        if hasattr(self._active_actuation, 'future'):
+            self._active_actuation.future.add_done_callback(_disable_dynamic)
+        else:
+            _disable_dynamic(None)
+
     def on_step_complete(self, plugin_name, return_value):
         '''
         .. versionchanged:: X.X.X
