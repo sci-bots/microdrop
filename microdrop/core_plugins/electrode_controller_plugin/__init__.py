@@ -105,9 +105,14 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
 
     @electrode_states.setter
     def electrode_states(self, electrode_states):
+        '''
+        .. versionchanged:: X.X.X
+            Call :meth:`parent.set_step_values()` to signal changed options.
+        '''
         # Set the state of DMF device channels.
         step_options = self.parent.get_step_options()
         step_options['electrode_states'] = electrode_states
+        self.parent.set_step_values(step_options)
 
     def get_actuated_area(self, electrode_states):
         '''
