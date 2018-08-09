@@ -46,6 +46,10 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
     list
         Newly created plugins (plugins are not recreated if they were
         previously loaded.)
+
+
+    .. versionchanged:: X.X.X
+        Do not import hidden directories (i.e., name starts with ``.``).
     '''
     logger = _L()  # use logger with function context
     logger.info('plugins_dir=`%s`', plugins_dir)
@@ -71,6 +75,10 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
             # Plugin with the same name has already been imported.
             logger.info('Skip import of `%s` (plugin with same name has '
                         'already been imported).', package_i.name)
+            continue
+        elif package_i.name.startswith('.'):
+            logger.info('Skip import of hidden directory `%s`.',
+                        package_i.name)
             continue
 
         try:
