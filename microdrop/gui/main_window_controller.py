@@ -257,6 +257,11 @@ class MainWindowController(SingletonPlugin):
             Do not explicitly disable ZeroMQ hub.  Since the hub process is
             configured as daemonic, it will automatically exit when the main
             MicroDrop process exits.
+
+        .. versionchanged:: X.X.X
+            Explicitly stop ZeroMQ asyncio execution event loop (not to be
+            confused with the ZeroMQ hub process) __after__ all other plugins
+            have processed the `on_app_exit` signal.
         '''
         logger = _L()  # use logger with method context
 
@@ -265,6 +270,13 @@ class MainWindowController(SingletonPlugin):
             emit_signal("on_app_exit")
             logger.info('Quit GTK main loop')
             gtk.main_quit()
+            # XXX Other plugins may require the ZeroMQ execution event loop
+            # while processing the `on_app_exit` signal. Explicitly stop ZeroMQ
+            # execution event loop __after__ all other plugins have processed
+            # the `on_app_exit` signal.
+            service = get_service_instance_by_name('microdrop.zmq_hub_plugin',
+                                                   env='microdrop')
+            service.cleanup()
             raise SystemExit(return_code)
 
         if not self._shutting_down.is_set():
