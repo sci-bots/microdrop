@@ -206,10 +206,6 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
             application.
         """
         self.cleanup()
-        self.plugin = ElectrodeControllerZmqPlugin(self, self.name,
-                                                   get_hub_uri())
-        # Initialize sockets.
-        self.plugin.reset()
 
         def _check_command_socket(wait_duration_s):
             '''
@@ -217,6 +213,11 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController):
 
             Stop listening if :attr:`stopped` event is set.
             '''
+            self.plugin = ElectrodeControllerZmqPlugin(self, self.name,
+                                                       get_hub_uri())
+            # Initialize sockets.
+            self.plugin.reset()
+
             self.stopped.clear()
             while not self.stopped.wait(wait_duration_s):
                 try:
