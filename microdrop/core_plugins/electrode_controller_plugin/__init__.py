@@ -28,7 +28,7 @@ from ...interfaces import (IApplicationMode, IElectrodeActuator,
                            IElectrodeController, IElectrodeMutator,
                            IWaveformGenerator)
 from ...plugin_helpers import (StepOptionsController, AppDataController,
-                               hub_execute)
+                               hub_execute, hub_execute_async)
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements, emit_signal)
 
@@ -440,10 +440,14 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         self.cleanup()
 
     def on_step_swapped(self, old_step_number, step_number):
+        '''
+        .. versionchanged:: X.X.X
+            Use `hub_execute_async()` to send `get_channels_states()` request
+            to ZeroMQ plugin interface to ensure thread-safety.
+        '''
         if self.plugin is not None:
             _L().debug('Execute get_channel_states')
-            self.plugin.execute_async('microdrop.electrode_controller_plugin',
-                                      'get_channel_states')
+            hub_execute_async(self.name, 'get_channel_states')
         else:
             _L().debug('ZeroMQ plugin not ready.')
 
