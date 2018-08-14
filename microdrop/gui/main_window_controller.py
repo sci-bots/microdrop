@@ -593,6 +593,7 @@ class MainWindowController(SingletonPlugin):
             gobject.source_remove(self.step_timeout_id)
         gobject.idle_add(self.label_step_time.set_text, '-')
 
+    @gtk_threadsafe
     def on_mode_changed(self, old_mode, new_mode):
         '''
         .. versionadded:: X.X.X
@@ -600,6 +601,10 @@ class MainWindowController(SingletonPlugin):
         if new_mode & ~MODE_RUNNING_MASK:
             # Protocol is not running.  Clear step timer label.
             self.reset_step_timeout()
+            self.checkbutton_realtime_mode.props.sensitive = True
+        else:
+            # Disabled toggling of real-time mode when protocol is running.
+            self.checkbutton_realtime_mode.props.sensitive = False
 
 
 PluginGlobals.pop_env()
