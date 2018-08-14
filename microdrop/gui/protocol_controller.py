@@ -664,12 +664,18 @@ version of the software.'''.strip(), filename, why.future_version,
     def on_step_options_changed(self, plugin, step_number):
         '''
         Mark protocol as modified when step options have changed for a plugin.
+
+        .. versionchanged:: X.X.X
+            Emit `on_step_swapped` instead of calling `run_step()`.  Only emit
+            `on_step_swapped` if protocol is not running to avoid trying to run
+            the step when it is already running.
         '''
         self.modified = True
         emit_signal('on_protocol_changed')
         app = get_app()
-        if app.realtime_mode and not app.running:
-            self.run_step()
+        if not app.running:
+            step_number = app.protocol.current_step_number
+            emit_signal('on_step_swapped', [step_number, step_number])
 
     def on_step_created(self, step_number):
         '''
