@@ -723,7 +723,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             except Exception as exception:
                 _L().error('Error executing step actuations: %s', exception,
                            exc_info=True)
-                emit_signal('on_step_complete', [self.name, 'Fail'])
+                if app.running:
+                    emit_signal('on_step_complete', [self.name, 'Fail'])
             finally:
                 self._active_actuation = None
 
