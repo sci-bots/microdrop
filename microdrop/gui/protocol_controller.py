@@ -6,6 +6,7 @@ import shutil
 from microdrop_utility import FutureVersionError
 from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
                                    textentry_validate, text_entry_dialog)
+from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
 import gobject
@@ -619,7 +620,10 @@ version of the software.'''.strip(), filename, why.future_version,
     def on_step_complete(self, plugin_name, return_value=None):
         '''
         .. versionchanged:: X.X.X
-            Only wait for other plugins if protocol is running.
+            - Only wait for other plugins if protocol is running.
+            - Schedule execution of next action in future iteration of GTK main
+              loop to allow other plugins to execute `on_step_complete`
+              handlers first.
         '''
         app = get_app()
         logger = _L()  # use logger with method context
@@ -646,28 +650,35 @@ version of the software.'''.strip(), filename, why.future_version,
             logger.info('still waiting for %s', ', '.join(self.waiting_for))
         # If all plugins have completed the current step, go to the next step.
         elif app.running:
-            if self.repeat_step:
-                logger.info('repeating step %s',
-                            app.protocol.current_step_number)
-                app.protocol.current_step_attempt += 1
-                self.run_step()
-            else:
-                app.protocol.current_step_attempt = 0
-                if app.protocol.current_step_number < len(app.protocol) - 1:
-                    logger.info('Execute next step.')
-                    app.protocol.next_step()
-                elif app.protocol.current_repetition < (app.protocol.n_repeats
-                                                        - 1):
-                    logger.info('Repeat entire protocol again.')
-                    app.protocol.next_repetition()
-                else:  # we're on the last step
-                    logger.info('Protocol completed.  Stop execution.')
-                    self.pause_protocol()
+            logger.info('all plugins reported step %d completed.',
+                        app.protocol.current_step_number)
 
-                    def _threadsafe_protocol_finished(*args):
+            @gtk_threadsafe
+            def _next_action():
+                if self.repeat_step:
+                    logger.info('repeating step %s',
+                                app.protocol.current_step_number)
+                    app.protocol.current_step_attempt += 1
+                    self.run_step()
+                else:
+                    app.protocol.current_step_attempt = 0
+                    if app.protocol.current_step_number < len(app.protocol) - 1:
+                        logger.debug('Execute next step.')
+                        app.protocol.next_step()
+                    elif app.protocol.current_repetition < (app.protocol.n_repeats
+                                                            - 1):
+                        logger.debug('Repeat entire protocol again.')
+                        app.protocol.next_repetition()
+                    else:  # we're on the last step
+                        logger.info('Protocol completed.  Stop execution.')
+                        self.pause_protocol()
+
                         emit_signal('on_protocol_finished')
 
-                    gobject.idle_add(_threadsafe_protocol_finished)
+            # Schedule execution of next action in future iteration of GTK main
+            # loop to allow other plugins to execute `on_step_complete`
+            # handlers first.
+            _next_action()
 
     def _get_dmf_control_fields(self, step_number):
         step = get_app().protocol.get_step(step_number)
