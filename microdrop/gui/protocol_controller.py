@@ -592,6 +592,10 @@ version of the software.'''.strip(), filename, why.future_version,
         self.button_last_step.set_sensitive(sensitive)
 
     def run_step(self):
+        '''
+        .. versionchanged:: X.X.X
+            Only wait for other plugins if protocol is running.
+        '''
         app = get_app()
         if app.protocol and app.dmf_device and (app.realtime_mode or
                                                 app.running):
@@ -599,10 +603,13 @@ version of the software.'''.strip(), filename, why.future_version,
                 app.experiment_log.add_step(app.protocol.current_step_number,
                                             app.protocol.current_step_attempt)
 
-            self.waiting_for = get_observers("on_step_run", IPlugin).keys()
-            _L().info('step: %d, waiting for %s',
-                      app.protocol.current_step_number,
-                      ', '.join(self.waiting_for))
+            if app.running:
+                self.waiting_for = get_observers("on_step_run", IPlugin).keys()
+                _L().info('step: %d, waiting for %s',
+                          app.protocol.current_step_number,
+                          ', '.join(self.waiting_for))
+            else:
+                self.waiting_for = []
 
             def _threadsafe_emit_signal(*args):
                 emit_signal("on_step_run")
@@ -610,9 +617,19 @@ version of the software.'''.strip(), filename, why.future_version,
             gobject.idle_add(_threadsafe_emit_signal)
 
     def on_step_complete(self, plugin_name, return_value=None):
+        '''
+        .. versionchanged:: X.X.X
+            Only wait for other plugins if protocol is running.
+        '''
         app = get_app()
         logger = _L()  # use logger with method context
-        logger.info("%s finished", plugin_name)
+
+        if not app.running:
+            _L().info("reported by `%s` (protocol not running)", plugin_name)
+            return
+        else:
+            _L().info("%s finished", plugin_name)
+
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
 
