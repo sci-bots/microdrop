@@ -17,6 +17,7 @@ from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
 import gtk
 import pandas as pd
+import si_prefix as si
 import trollius as asyncio
 import zmq
 
@@ -537,7 +538,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 return RuntimeError('No waveform generators available to set '
                                     '%s to %s' % (key, value))
 
-        for key, value in (('frequency', frequency), ('voltage', voltage)):
+        for key, value, unit in (('frequency', frequency, 'Hz'),
+                                 ('voltage', voltage, 'V')):
             # Apply waveform in main (i.e., Gtk) thread.
             waveform_result = \
                 yield asyncio.From(gtk_sync(ft.partial(set_waveform, key,
@@ -545,6 +547,9 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
             if isinstance(waveform_result, Exception):
                 raise waveform_result
+            elif waveform_result:
+                _L().info('%s set to %s%s (plugins: `%s`)', key,
+                          si.si_format(value), unit, waveform_result.keys())
 
         app = get_app()
         if all([(app.mode & MODE_REAL_TIME_MASK),
@@ -602,8 +607,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 yield asyncio.From(task)
             else:
                 # Requested actuations were completed successfully.
-                _L().info('actuation completed (actuated '
-                          'electrodes:' '%s)', actuated_electrodes)
+                _L().info('actuation completed (actuated electrodes: %s)',
+                          actuated_electrodes)
 
             raise asyncio.Return({'start': start, 'end': end,
                                   'actuated_electrodes':
@@ -654,10 +659,13 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                 if v is not None}
 
             if actuation_requests:
-                for plugin_name_i, actuation_request_i in (actuation_requests
-                                                        .iteritems()):
-                    _L().info('plugin: %s, actuation_request=%s',
-                            plugin_name_i, actuation_request_i)
+                logger = _L()
+                if logger.getEffectiveLevel() >= logging.DEBUG:
+                    for plugin_name_i, actuation_request_i in \
+                            actuation_requests.iteritems():
+                        message = ('plugin: %s, actuation_request=%s' %
+                                   (plugin_name_i, actuation_request_i))
+                        map(logger.debug, message.splitlines())
 
                 return pd.concat([actuation_request_i[actuation_request_i > 0]
                                   for actuation_request_i in

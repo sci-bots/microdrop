@@ -629,10 +629,11 @@ version of the software.'''.strip(), filename, why.future_version,
         logger = _L()  # use logger with method context
 
         if not app.running:
-            _L().info("reported by `%s` (protocol not running)", plugin_name)
+            logger.debug("reported by `%s` (protocol not running)",
+                         plugin_name)
             return
         else:
-            _L().info("%s finished", plugin_name)
+            logger.debug("%s finished", plugin_name)
 
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
@@ -647,7 +648,7 @@ version of the software.'''.strip(), filename, why.future_version,
             self.repeat_step = False
 
         if len(self.waiting_for):
-            logger.info('still waiting for %s', ', '.join(self.waiting_for))
+            logger.debug('still waiting for %s', ', '.join(self.waiting_for))
         # If all plugins have completed the current step, go to the next step.
         elif app.running:
             logger.info('all plugins reported step %d completed.',

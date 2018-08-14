@@ -283,7 +283,10 @@ def hub_execute_async(*args, **kwargs):
         Execute ZeroMQ call through `zmq_hub_plugin` asyncio event loop
         (executing in a background thread; i.e., not in the main GTK thread).
     '''
-    _L(1).info('hub_execute_async(args=`%s`, kwargs=`%s`)', args, kwargs)
+    logger = _L(1)
+    if logger.getEffectiveLevel() <= logging.DEBUG:
+        message = 'hub_execute_async(args=`%s`, kwargs=`%s`)' % (args, kwargs)
+        map(logger.debug, message.splitlines())
     return _hub_method('execute_async', *args, **kwargs)
 
 
@@ -293,5 +296,8 @@ def hub_execute(*args, **kwargs):
         Execute ZeroMQ call through `zmq_hub_plugin` asyncio event loop
         (executing in a background thread; i.e., not in the main GTK thread).
     '''
-    _L(1).info('hub_execute(args=`%s`, kwargs=`%s`)', args, kwargs)
+    logger = _L(1)
+    if logger.getEffectiveLevel() <= logging.DEBUG:
+        message = 'hub_execute(args=`%s`, kwargs=`%s`)' % (args, kwargs)
+        map(logger.debug, message.splitlines())
     return _hub_method('execute', *args, **kwargs)

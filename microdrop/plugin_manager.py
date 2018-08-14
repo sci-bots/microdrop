@@ -405,7 +405,7 @@ def emit_signal(function, args=None, interface=IPlugin):
             args = [args]
 
         if not any((name in caller) for name in ('logger', 'emit_signal')):
-            logger.info('caller: %s -> %s', caller, function)
+            logger.debug('caller: %s -> %s', caller, function)
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 logger.debug('args: (%s)', ', '.join(map(repr, args)))
         for observer_name in schedule:
@@ -427,7 +427,7 @@ def emit_signal(function, args=None, interface=IPlugin):
                             (observer.name, function)
                     print >> message, 'Reason:', str(why)
                     logger.error(message.getvalue().strip())
-                logger.info(''.join(traceback.format_exc()))
+                map(logger.info, traceback.format_exc())
         return return_codes
     except Exception, why:
         logger.error(why, exc_info=True)
