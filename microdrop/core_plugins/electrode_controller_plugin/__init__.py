@@ -17,6 +17,7 @@ import base_node_rpc as bnr
 import base_node_rpc.async
 import dropbot as db
 import dropbot.threading_helpers
+import gtk
 import pandas as pd
 import trollius as asyncio
 import zmq
@@ -31,6 +32,47 @@ from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements, emit_signal)
 
 logger = logging.getLogger(__name__)
+
+
+def ignorable_warning(**kwargs):
+    '''
+    Display warning dialog with checkbox to ignore further warnings.
+
+    Returns
+    -------
+    dict
+        Response with fields:
+
+        - ``ignore``: ignore warning (`bool`).
+        - ``always``: treat all similar warnings the same way (`bool`).
+
+
+    .. versionadded:: X.X.X
+    '''
+    dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_YES_NO,
+                               type=gtk.MESSAGE_WARNING)
+
+    for k, v in kwargs.items():
+        setattr(dialog.props, k, v)
+
+    content_area = dialog.get_content_area()
+    vbox = content_area.get_children()[0].get_children()[-1]
+    check_button = gtk.CheckButton(label='Let me _decide for each warning',
+                                   use_underline=True)
+    vbox.pack_end(check_button)
+    check_button.show()
+
+    dialog.set_default_response(gtk.RESPONSE_YES)
+
+    dialog.props.secondary_use_markup = True
+    dialog.props.secondary_text = ('<b>Would you like to ignore and '
+                                   'continue?</b>')
+    try:
+        response = dialog.run()
+        return {'ignore': (response == gtk.RESPONSE_YES),
+                'always': not check_button.props.active}
+    finally:
+        dialog.destroy()
 
 
 def gtk_sync(f):
