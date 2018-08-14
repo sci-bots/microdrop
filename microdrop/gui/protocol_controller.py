@@ -250,10 +250,14 @@ version of the software.'''.strip(), filename, why.future_version,
         emit_signal("on_protocol_swapped", [old_protocol, p])
 
     def on_protocol_swapped(self, old_protocol, protocol):
+        '''
+        .. versionchanged:: X.X.X
+            Do not execute `run_step()` since it is already triggered by
+            swapping to first step in protocol.
+        '''
         protocol.plugin_fields = emit_signal('get_step_fields')
         _L().debug('plugin_fields=%s', protocol.plugin_fields)
         protocol.first_step()
-        self.run_step()
 
     def on_plugin_enable(self):
         app = get_app()
