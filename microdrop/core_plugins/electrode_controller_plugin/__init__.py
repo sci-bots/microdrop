@@ -6,6 +6,7 @@ import itertools as it
 import logging
 import pprint
 import threading
+import uuid
 
 from flatland import Float, Form
 from flatland.validation import ValueAtLeast
@@ -700,23 +701,28 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         self._active_actuation = (db.threading_helpers
                                   .co_cancellable(self.execute_actuations))
         # Run asyncio loop in background thread.
-        future = self.executor.submit(self._active_actuation, app.running)
-        # Wait until asyncio loop has been initialized.
-        self._active_actuation.started.wait()
-        self._active_actuation.future = future
+        self._active_actuation.future = \
+            self.executor.submit(self._active_actuation, app.running)
+        future = self._active_actuation.future
+        future.uuid1 = uuid.uuid1()
+        _L().info('apply step actuations (%s)', future.uuid1)
 
         # Wait for coroutine to finish.
         @gtk_threadsafe
         def on_finished(future):
             try:
                 result = future.result()
-                emit_signal('on_step_complete', [self.name, None])
-                _L().info('Step actuations completed: `%s`', result)
+                if app.running:
+                    emit_signal('on_step_complete', [self.name, None])
+                logger = _L()  # use logger with function context
+                logger.info('%d/%d step actuations completed (%s)',
+                            len(result), len(result), future.uuid1)
+                logger.debug('completed actuations: `%s`', result)
             except asyncio.CancelledError:
-                _L().info('Step was cancelled.')
+                _L().info('Step was cancelled (%s).', future.uuid1)
             except Exception as exception:
-                _L().error('Error executing step actuations: %s',
-                            exception, exc_info=True)
+                _L().error('Error executing step actuations: %s', exception,
+                           exc_info=True)
                 emit_signal('on_step_complete', [self.name, 'Fail'])
             finally:
                 self._active_actuation = None
