@@ -8,16 +8,13 @@ import pprint
 import threading
 import uuid
 
+from asyncio_helpers import cancellable, ensure_event_loop
 from flatland import Float, Form
 from flatland.validation import ValueAtLeast
 from logging_helpers import _L, caller_name
 from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
-import base_node_rpc as bnr
-import base_node_rpc.async
-import dropbot as db
-import dropbot.threading_helpers
 import gtk
 import pandas as pd
 import trollius as asyncio
@@ -89,7 +86,7 @@ def gtk_sync(f):
 
     .. versionadded:: X.X.X
     '''
-    loop = bnr.async.ensure_event_loop()
+    loop = ensure_event_loop()
     done = asyncio.Event()
 
     @gtk_threadsafe
@@ -698,8 +695,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         '''
         app = get_app()
         # Wrap coroutine to provide `cancel()` method.
-        self._active_actuation = (db.threading_helpers
-                                  .co_cancellable(self.execute_actuations))
+        self._active_actuation = cancellable(self.execute_actuations)
         # Run asyncio loop in background thread.
         self._active_actuation.future = \
             self.executor.submit(self._active_actuation, app.running)
@@ -746,8 +742,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         # Disable dynamic states.
         def _disable_dynamic(result):
             app = get_app()
-            self._active_actuation = (db.threading_helpers
-                                      .co_cancellable(self.execute_actuation))
+            self._active_actuation = cancellable(self.execute_actuation)
             static_states = (self.plugin.electrode_states.copy()
                              if app.realtime_mode else pd.Series())
             self.executor.submit(self._active_actuation, static_states,

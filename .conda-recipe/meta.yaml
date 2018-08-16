@@ -30,6 +30,8 @@ requirements:
   build:
     - application-repository
     - arrow
+    #: ..versionadded:: X.X.X
+    - asyncio-helpers
     - blinker
     - configobj
     #: ..versionadded:: 2.16
@@ -90,6 +92,8 @@ requirements:
   run:
     - application-repository
     - arrow
+    #: ..versionadded:: X.X.X
+    - asyncio-helpers
     - blinker
     - configobj
     #: ..versionadded:: 2.16

@@ -4,8 +4,8 @@ import logging
 import signal
 import threading
 
+from asyncio_helpers import cancellable
 from flatland import Form, String, Enum
-from dropbot.threading_helpers import co_cancellable
 from logging_helpers import _L
 from zmq_plugin.bin.hub import run_hub
 from zmq_plugin.hub import Hub
@@ -108,7 +108,7 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
             except asyncio.CancelledError:
                 _L().info('closing ZeroMQ execution event loop')
 
-        self.zmq_exec_task = co_cancellable(_exec_task)
+        self.zmq_exec_task = cancellable(_exec_task)
         self.exec_thread = threading.Thread(target=self.zmq_exec_task)
         self.exec_thread.deamon = True
         self.exec_thread.start()
