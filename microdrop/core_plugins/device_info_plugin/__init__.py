@@ -41,7 +41,7 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
         channels : list
             List of channel identifiers assigned to the electrode.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Emit ``on_dmf_device_changed`` in main GTK thread to ensure
             thread-safety.
         '''
@@ -70,7 +70,7 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
             - ``electrode_id``: electrode identifier (``str``).
               - e.g., ``"electrode028"``
 
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         data = decode_content_data(request)
         electrode_id = data['electrode_id']
@@ -144,7 +144,7 @@ class DeviceInfoPlugin(SingletonPlugin):
             This ensures that calls to
             :func:`microdrop.plugin_manager.hub_execute` continue to work as
             expected even after ``on_app_exit`` signal is emitted.
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Register ``"Edit electrode channels..."`` command with command
             plugin.
         """
@@ -197,7 +197,7 @@ class DeviceInfoPlugin(SingletonPlugin):
         '''
         Notify other plugins that device has been modified.
 
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         hub_execute(self.name, 'get_device')
 
@@ -214,7 +214,7 @@ class DeviceInfoPlugin(SingletonPlugin):
         for the function specified by function_name.
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Enable _after_ command plugin and zmq hub to ensure commands can be
             registered.
         """

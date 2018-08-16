@@ -252,7 +252,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_protocol_swapped(self, old_protocol, protocol):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Do not execute `run_step()` since it is already triggered by
             swapping to first step in protocol.
         '''
@@ -594,7 +594,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def run_step(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Only wait for other plugins if protocol is running.
         '''
         app = get_app()
@@ -619,7 +619,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_step_complete(self, plugin_name, return_value=None):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             - Only wait for other plugins if protocol is running.
             - Schedule execution of next action in future iteration of GTK main
               loop to allow other plugins to execute `on_step_complete`
@@ -694,7 +694,7 @@ version of the software.'''.strip(), filename, why.future_version,
         '''
         Mark protocol as modified when step options have changed for a plugin.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Emit `on_step_swapped` instead of calling `run_step()`.  Only emit
             `on_step_swapped` if protocol is not running to avoid trying to run
             the step when it is already running.

@@ -72,12 +72,12 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
     def __init__(self):
         self.name = self.plugin_name
         self.hub_process = None
-        #: ..versionadded:: X.X.X
+        #: ..versionadded:: 2.25
         self.exec_thread = None
 
     def on_plugin_enable(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Start asyncio event loop in background thread to process ZeroMQ hub
             execution requests.
         '''
@@ -119,7 +119,7 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
 
     def cleanup(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Stop asyncio event loop.
         '''
         if self.hub_process is not None:

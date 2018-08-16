@@ -252,7 +252,7 @@ def _hub_method(method_name, *args, **kwargs):
     background thread; i.e., not in the main GTK thread.
 
 
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.25
     '''
     plugin = get_service_instance_by_name('microdrop.zmq_hub_plugin',
                                           env='microdrop')
@@ -279,7 +279,7 @@ def _hub_method(method_name, *args, **kwargs):
 
 def hub_execute_async(*args, **kwargs):
     '''
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.25
         Execute ZeroMQ call through `zmq_hub_plugin` asyncio event loop
         (executing in a background thread; i.e., not in the main GTK thread).
     '''
@@ -292,7 +292,7 @@ def hub_execute_async(*args, **kwargs):
 
 def hub_execute(*args, **kwargs):
     '''
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.25
         Execute ZeroMQ call through `zmq_hub_plugin` asyncio event loop
         (executing in a background thread; i.e., not in the main GTK thread).
     '''

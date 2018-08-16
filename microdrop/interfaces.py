@@ -450,7 +450,7 @@ else:
         Interface for plugins for which behaviour depends on application mode.
 
 
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         def on_mode_changed(self):
             '''

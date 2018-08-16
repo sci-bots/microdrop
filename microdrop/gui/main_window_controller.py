@@ -260,7 +260,7 @@ class MainWindowController(SingletonPlugin):
             configured as daemonic, it will automatically exit when the main
             MicroDrop process exits.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Explicitly stop ZeroMQ asyncio execution event loop (not to be
             confused with the ZeroMQ hub process) __after__ all other plugins
             have processed the `on_app_exit` signal.
@@ -596,7 +596,7 @@ class MainWindowController(SingletonPlugin):
     @gtk_threadsafe
     def on_mode_changed(self, old_mode, new_mode):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         if new_mode & ~MODE_RUNNING_MASK:
             # Protocol is not running.  Clear step timer label.

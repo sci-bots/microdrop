@@ -48,7 +48,7 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
         previously loaded.)
 
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.25
         Do not import hidden directories (i.e., name starts with ``.``).
     '''
     logger = _L()  # use logger with function context

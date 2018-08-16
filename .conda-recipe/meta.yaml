@@ -30,7 +30,7 @@ requirements:
   build:
     - application-repository
     - arrow
-    #: ..versionadded:: X.X.X
+    #: ..versionadded:: 2.25
     - asyncio-helpers >=0.2
     - blinker
     - configobj
@@ -86,13 +86,13 @@ requirements:
     - task-scheduler
     - tornado
     - wheeler.pygtkhelpers >=0.16
-    #: .. versionchanged:: X.X.X
+    #: .. versionchanged:: 2.25
     - zmq-plugin >=0.3.3
 
   run:
     - application-repository
     - arrow
-    #: ..versionadded:: X.X.X
+    #: ..versionadded:: 2.25
     - asyncio-helpers >=0.2
     - blinker
     - configobj
@@ -146,7 +146,7 @@ requirements:
     - task-scheduler
     - tornado
     - wheeler.pygtkhelpers >=0.16
-    #: .. versionchanged:: X.X.X
+    #: .. versionchanged:: 2.25
     - zmq-plugin >=0.3.3
 
 about:

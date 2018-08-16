@@ -47,7 +47,7 @@ def ignorable_warning(**kwargs):
         - ``always``: treat all similar warnings the same way (`bool`).
 
 
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.25
     '''
     dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_YES_NO,
                                type=gtk.MESSAGE_WARNING)
@@ -114,7 +114,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
     @electrode_states.setter
     def electrode_states(self, electrode_states):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Call :meth:`parent.set_step_values()` to signal changed options.
             Also, only store states for electrodes that are actuated.
         '''
@@ -185,7 +185,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
 
     def set_channel_states(self, channel_states, save=True):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
 
         Set the state of multiple channels.
 
@@ -300,7 +300,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
     @property
     def AppFields(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         return Form.of(
             Float.named('default_duration').using(default=1., optional=True),
@@ -314,7 +314,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         Dynamically generate step fields to support dynamic default values.
 
 
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         """
         app_values = self.get_app_values()
         if not app_values:
@@ -353,7 +353,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             to ensure GTK/GDK are initialized properly for a threaded
             application.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Register ``"Clear _all electrode states"`` command with command
             plugin.
         """
@@ -418,7 +418,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
     def on_step_swapped(self, old_step_number, step_number):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Use `hub_execute_async()` to send `get_channels_states()` request
             to ZeroMQ plugin interface to ensure thread-safety.
         '''
@@ -431,7 +431,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
     @asyncio.coroutine
     def execute_actuation(self, static_states, dynamic_states):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
 
 
         XXX Coroutine XXX
@@ -460,7 +460,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         execute_actuations
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
             Still apply for specified duration even if _no electrodes_ are
             specified for actuation.
         '''
@@ -599,7 +599,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
     @asyncio.coroutine
     def execute_actuations(self, dynamic=False):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
 
 
         XXX Coroutine XXX
@@ -681,7 +681,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
     def on_step_run(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         app = get_app()
         # Wrap coroutine to provide `cancel()` method.
@@ -718,7 +718,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
     def cancel_actuation(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         if self._active_actuation is not None and\
                 (not hasattr(self._active_actuation, 'future') or
@@ -745,7 +745,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
     def on_step_complete(self, plugin_name, return_value):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
+            Cancel actuation coroutine if step did not complete as expected.
         '''
         if return_value is not None:
             # Step did not complete as expected.  Cancel actuation.
@@ -756,14 +757,14 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         Handler called when a protocol is paused.
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.25
         '''
         # Protocol was paused.  Stop executing current step.
         self.cancel_actuation()
 
     def on_mode_changed(self, old_mode, new_mode):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         _L().info('Mode changed: `%s` -> `%s`', old_mode, new_mode)
         if (all([(old_mode & ~MODE_REAL_TIME_MASK),
@@ -778,7 +779,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
     def get_schedule_requests(self, function_name):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
             Enable _after_ command plugin and zmq hub to ensure command can be
             registered.
         '''

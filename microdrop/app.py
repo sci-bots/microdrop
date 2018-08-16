@@ -158,14 +158,14 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     @property
     def realtime_mode(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         return self._realtime_mode
 
     @realtime_mode.setter
     def realtime_mode(self, value):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
 
         Emit ``on_mode_changed`` signal when changed.
         '''
@@ -179,14 +179,14 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     @property
     def running(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
         '''
         return self._running
 
     @running.setter
     def running(self, value):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.25
 
         Emit ``on_mode_changed`` signal when changed.
         '''
