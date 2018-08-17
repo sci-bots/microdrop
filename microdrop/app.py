@@ -66,13 +66,14 @@ INFO:  <Plugin MainWindowController 'microdrop.gui.main_window_controller'>
 INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
 INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     '''
-    core_plugins = ['microdrop.app', 'microdrop.gui.config_controller',
+    core_plugins = ['microdrop.app',
+                    'microdrop.gui.config_controller',
+                    'microdrop.zmq_hub_plugin',
                     'microdrop.gui.dmf_device_controller',
                     'microdrop.gui.experiment_log_controller',
                     'microdrop.gui.main_window_controller',
                     'microdrop.gui.protocol_controller',
                     'microdrop.gui.protocol_grid_controller',
-                    'microdrop.zmq_hub_plugin',
                     'microdrop.electrode_controller_plugin',
                     'microdrop.device_info_plugin']
 
