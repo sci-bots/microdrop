@@ -429,7 +429,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             _L().debug('ZeroMQ plugin not ready.')
 
     @asyncio.coroutine
-    def execute_actuation(self, static_states, dynamic_states):
+    def execute_actuation(self, static_states, dynamic_states, duration_s):
         '''
         .. versionadded:: 2.25
 
@@ -445,6 +445,9 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             `"electrode001"`).
         dynamic_states : pandas.Series
             Dynamic electrode actuation states, indexed by electrode ID.
+        duration_s : float
+            Actuation duration (in seconds).  If not specified, use value from
+            step options.
 
         Returns
         -------
@@ -533,13 +536,6 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             elif waveform_result:
                 _L().info('%s set to %s%s (plugins: `%s`)', key,
                           si.si_format(value), unit, waveform_result.keys())
-
-        app = get_app()
-        if all([(app.mode & MODE_REAL_TIME_MASK),
-                 (app.mode & ~MODE_RUNNING_MASK)]):
-            duration_s = 0
-        else:
-            duration_s = step_options.get('Duration (s)', 0)
 
         electrode_actuators = emit_signal('on_actuation_request',
                                           args=[s_electrodes_to_actuate,
@@ -631,6 +627,12 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         See Also
         --------
         execute_actuation
+
+
+        .. versionchanged:: 2.25.2
+            On steps with dynamic actuations, set duration to zero during final
+            loop duration to effectively disable previous dynamic actuations
+            before completing the step.
         '''
         def _get_dynamic_states():
             # Merge received actuation states from requests with
@@ -657,6 +659,9 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         actuations = []
 
+        app = get_app()
+        # Loop counter
+        i = 0
         while True:
             # Start with electrodes specified by this plugin.
             step_states = self.plugin.electrode_states.copy()
@@ -667,15 +672,25 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 # Request dynamic states from `IElectrodeMutator` plugins.
                 dynamic_electrode_states = _get_dynamic_states()
 
+            if any((all([dynamic, i >= 1,
+                         dynamic_electrode_states.shape[0] < 1]),
+                    app.mode & MODE_REAL_TIME_MASK & ~MODE_RUNNING_MASK)):
+                duration_s = 0
+            else:
+                step_options = self.get_step_options()
+                duration_s = step_options.get('Duration (s)', 0)
+
             # Execute **static** and **dynamic** electrode states actuation.
             actuation_task = self.execute_actuation(step_states,
-                                                    dynamic_electrode_states)
+                                                    dynamic_electrode_states,
+                                                    duration_s)
             actuated_electrodes = yield asyncio.From(actuation_task)
             actuations.append(actuated_electrodes)
 
             if dynamic_electrode_states.shape[0] < 1:
                 # There are no dynamic electrode actuations, so stop now.
                 break
+            i += 1
 
         raise asyncio.Return(actuations)
 
@@ -736,7 +751,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             static_states = (self.plugin.electrode_states.copy()
                              if app.realtime_mode else pd.Series())
             self.executor.submit(self._active_actuation, static_states,
-                                 pd.Series())
+                                 pd.Series(), duration_s=0)
 
         if hasattr(self._active_actuation, 'future'):
             self._active_actuation.future.add_done_callback(_disable_dynamic)
