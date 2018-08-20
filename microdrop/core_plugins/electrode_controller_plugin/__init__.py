@@ -29,7 +29,7 @@ from ...interfaces import (IApplicationMode, IElectrodeActuator,
 from ...plugin_helpers import (StepOptionsController, AppDataController,
                                hub_execute, hub_execute_async)
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
-                               implements, emit_signal)
+                               implements, emit_signal, ScheduleRequest)
 
 logger = logging.getLogger(__name__)
 
@@ -272,6 +272,9 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
     def on_execute__get_channel_states(self, request):
         return self.get_channel_states()
 
+    def on_execute__clear_electrode_states(self, request):
+        self.electrode_states = pd.Series()
+
 
 PluginGlobals.push_env('microdrop')
 
@@ -349,6 +352,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             Use :func:`gtk_threadsafe` decorator to wrap thread-related code
             to ensure GTK/GDK are initialized properly for a threaded
             application.
+
+        .. versionchanged:: X.X.X
+            Register ``"Clear _all electrode states"`` command with command
+            plugin.
         """
         self.cleanup()
 
@@ -386,6 +393,11 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             _L().debug('threads: %s' % threading.enumerate())
 
         _launch_socket_monitor_thread()
+
+        hub_execute('microdrop.command_plugin', 'register_command',
+                    command_name='clear_electrode_states',
+                    namespace='global', plugin_name=self.name,
+                    title='Clear _all electrode states')
 
     def cleanup(self):
         self.stopped.set()
@@ -763,5 +775,16 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             # protocol just started running.
             # Reset to not ignoring any warnings.
             self.warnings_ignoring.clear()
+
+    def get_schedule_requests(self, function_name):
+        '''
+        .. versionadded:: X.X.X
+            Enable _after_ command plugin and zmq hub to ensure command can be
+            registered.
+        '''
+        if function_name == 'on_plugin_enable':
+            return [ScheduleRequest('microdrop.zmq_hub_plugin', self.name),
+                    ScheduleRequest('microdrop.command_plugin', self.name)]
+        return []
 
 PluginGlobals.pop_env()
