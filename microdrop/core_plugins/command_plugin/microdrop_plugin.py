@@ -1,12 +1,13 @@
 import logging
 
+from logging_helpers import _L
 from pygtkhelpers.gthreads import gtk_threadsafe
 import threading
 import zmq
 
 from .plugin import CommandZmqPlugin
 from ...app_context import get_hub_uri
-from ...logging_helpers import _L  #: .. versionadded:: 2.20
+from ...plugin_helpers import hub_execute
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements)
 
@@ -49,9 +50,8 @@ class CommandPlugin(SingletonPlugin):
             application.
         """
         self.cleanup()
-        self.plugin = CommandZmqPlugin(self, self.name, get_hub_uri())
-        # Initialize sockets.
-        self.plugin.reset()
+
+        zmq_ready = threading.Event()
 
         def _check_command_socket(wait_duration_s):
             '''
@@ -60,6 +60,10 @@ class CommandPlugin(SingletonPlugin):
             Stop listening if :attr:`stopped` event is set.
             '''
             self.stopped.clear()
+            self.plugin = CommandZmqPlugin(self, self.name, get_hub_uri())
+            # Initialize sockets.
+            self.plugin.reset()
+            zmq_ready.set()
             while not self.stopped.wait(wait_duration_s):
                 try:
                     msg_frames = (self.plugin.command_socket
@@ -69,22 +73,22 @@ class CommandPlugin(SingletonPlugin):
                 else:
                     self.plugin.on_command_recv(msg_frames)
 
-        @gtk_threadsafe
-        def _launch_socket_monitor_thread():
-            '''
-            Launch background thread to monitor plugin ZeroMQ command socket.
-            '''
-            thread = threading.Thread(target=_check_command_socket,
-                                      args=(0.01, ))
-            thread.daemon = True
-            thread.start()
-
-        _launch_socket_monitor_thread()
+        thread = threading.Thread(target=_check_command_socket,
+                                    args=(0.01, ))
+        thread.daemon = True
+        thread.start()
+        zmq_ready.wait()
 
     def cleanup(self):
         self.stopped.set()
         if self.plugin is not None:
             self.plugin = None
+
+    def on_plugin_enabled(self, *args, **kwargs):
+        # A plugin was enabled.  Call `get_commands()` on self to trigger
+        # refresh of commands in case the enabled plugin registered a command.
+        hub_execute(self.name, 'get_commands')
+        _L().info('refreshed registered commands.')
 
     def on_plugin_disable(self):
         """

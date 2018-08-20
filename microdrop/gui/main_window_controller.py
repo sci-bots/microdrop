@@ -19,11 +19,12 @@ try:
 except ImportError:
     PUDB_AVAILABLE = False
 
+from ..interfaces import IApplicationMode
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, ILoggingPlugin,
                               emit_signal, get_service_instance_by_name)
-from ..app_context import get_app
-from ..logging_helpers import _L  #: .. versionadded:: 2.20
+from ..app_context import get_app, MODE_RUNNING_MASK
+from logging_helpers import _L  #: .. versionadded:: 2.20
 from .. import __version__
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ PluginGlobals.push_env('microdrop')
 class MainWindowController(SingletonPlugin):
     implements(IPlugin)
     implements(ILoggingPlugin)
+    implements(IApplicationMode)
 
     def __init__(self):
         '''
@@ -257,6 +259,11 @@ class MainWindowController(SingletonPlugin):
             Do not explicitly disable ZeroMQ hub.  Since the hub process is
             configured as daemonic, it will automatically exit when the main
             MicroDrop process exits.
+
+        .. versionchanged:: 2.25
+            Explicitly stop ZeroMQ asyncio execution event loop (not to be
+            confused with the ZeroMQ hub process) __after__ all other plugins
+            have processed the `on_app_exit` signal.
         '''
         logger = _L()  # use logger with method context
 
@@ -265,6 +272,13 @@ class MainWindowController(SingletonPlugin):
             emit_signal("on_app_exit")
             logger.info('Quit GTK main loop')
             gtk.main_quit()
+            # XXX Other plugins may require the ZeroMQ execution event loop
+            # while processing the `on_app_exit` signal. Explicitly stop ZeroMQ
+            # execution event loop __after__ all other plugins have processed
+            # the `on_app_exit` signal.
+            service = get_service_instance_by_name('microdrop.zmq_hub_plugin',
+                                                   env='microdrop')
+            service.cleanup()
             raise SystemExit(return_code)
 
         if not self._shutting_down.is_set():
@@ -556,11 +570,6 @@ class MainWindowController(SingletonPlugin):
         self.step_start_time = datetime.utcnow()
 
         def update_time_label():
-            app = get_app()
-            if not app.running:
-                # Protocol is no longer running.  Stop step timer.
-                self.reset_step_timeout()
-                return False
             elapsed_time = datetime.utcnow() - self.step_start_time
             gobject.idle_add(self.label_step_time.set_text,
                              str(elapsed_time).split('.')[0])
@@ -583,6 +592,19 @@ class MainWindowController(SingletonPlugin):
         if self.step_timeout_id is not None:
             gobject.source_remove(self.step_timeout_id)
         gobject.idle_add(self.label_step_time.set_text, '-')
+
+    @gtk_threadsafe
+    def on_mode_changed(self, old_mode, new_mode):
+        '''
+        .. versionadded:: 2.25
+        '''
+        if new_mode & ~MODE_RUNNING_MASK:
+            # Protocol is not running.  Clear step timer label.
+            self.reset_step_timeout()
+            self.checkbutton_realtime_mode.props.sensitive = True
+        else:
+            # Disabled toggling of real-time mode when protocol is running.
+            self.checkbutton_realtime_mode.props.sensitive = False
 
 
 PluginGlobals.pop_env()

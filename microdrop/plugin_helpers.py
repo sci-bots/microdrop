@@ -1,12 +1,14 @@
 from collections import namedtuple
+import functools as ft
 import logging
+import threading
 
 from microdrop_utility import Version
+from logging_helpers import _L
 import path_helpers as ph
 import yaml
 
 from .app_context import get_app
-from .logging_helpers import _L  #: .. versionadded:: 2.20
 from .plugin_manager import (IPlugin, ExtensionPoint, emit_signal,
                              get_service_instance_by_name)
 
@@ -242,23 +244,60 @@ class StepOptionsController(object):
         return options
 
 
+def _hub_method(method_name, *args, **kwargs):
+    '''
+    Execute ZeroMQ plugin call through `zmq_hub_plugin` asyncio event loop.
+
+    Note that the `zmq_hub_plugin` asyncio event loop is executing in a
+    background thread; i.e., not in the main GTK thread.
+
+
+    .. versionadded:: 2.25
+    '''
+    plugin = get_service_instance_by_name('microdrop.zmq_hub_plugin',
+                                          env='microdrop')
+
+    done = threading.Event()
+
+    def _execute(done, plugin, *args, **kwargs):
+        try:
+            done.result = getattr(plugin.zmq_plugin, method_name)(*args,
+                                                                  **kwargs)
+        except Exception as exception:
+            done.result = exception
+        finally:
+            done.set()
+
+    task = ft.partial(_execute, done, plugin, *args, **kwargs)
+
+    plugin.zmq_exec_task.started.loop.call_soon_threadsafe(task)
+    done.wait()
+    if isinstance(done.result, Exception):
+        raise done.result
+    return done.result
+
+
 def hub_execute_async(*args, **kwargs):
-    service = get_service_instance_by_name('microdrop.device_info_plugin',
-                                           env='microdrop')
-    return service.plugin.execute_async(*args, **kwargs)
+    '''
+    .. versionchanged:: 2.25
+        Execute ZeroMQ call through `zmq_hub_plugin` asyncio event loop
+        (executing in a background thread; i.e., not in the main GTK thread).
+    '''
+    logger = _L(1)
+    if logger.getEffectiveLevel() <= logging.DEBUG:
+        message = 'hub_execute_async(args=`%s`, kwargs=`%s`)' % (args, kwargs)
+        map(logger.debug, message.splitlines())
+    return _hub_method('execute_async', *args, **kwargs)
 
 
 def hub_execute(*args, **kwargs):
-    service = get_service_instance_by_name('microdrop.device_info_plugin',
-                                           env='microdrop')
-    try:
-        return service.plugin.execute(*args, **kwargs)
-    except RuntimeError, exception:
-        if '**MUST** be a plugin in the local registry' in str(exception):
-            # TODO Add `ZmqPlugin` command to refresh plugin registry.
-            # Try resetting the plugin sockets to refresh the plugin registry.
-            service.plugin.reset()
-            return service.plugin.execute(*args, **kwargs)
-    except:
-        _L().info('plugin registry: %s', service.plugin.plugin_registry.keys())
-        raise
+    '''
+    .. versionchanged:: 2.25
+        Execute ZeroMQ call through `zmq_hub_plugin` asyncio event loop
+        (executing in a background thread; i.e., not in the main GTK thread).
+    '''
+    logger = _L(1)
+    if logger.getEffectiveLevel() <= logging.DEBUG:
+        message = 'hub_execute(args=`%s`, kwargs=`%s`)' % (args, kwargs)
+        map(logger.debug, message.splitlines())
+    return _hub_method('execute', *args, **kwargs)

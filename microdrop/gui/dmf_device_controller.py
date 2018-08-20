@@ -19,7 +19,7 @@ import svg_model as sm
 
 from ..app_context import get_app
 from ..dmf_device import DmfDevice, ELECTRODES_XPATH
-from ..logging_helpers import _L  #: .. versionadded:: 2.20
+from logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
@@ -64,7 +64,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 if 'device_directory' in values:
                     self.apply_device_dir(values['device_directory'])
         except (Exception,):
-            _L().info(''.join(traceback.format_exc()))
+            map(_L().info, traceback.format_exc().splitlines())
             raise
 
     def apply_device_dir(self, device_directory):

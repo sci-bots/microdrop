@@ -20,7 +20,7 @@ from .. import __version__
 from ..app_context import get_app
 from ..dmf_device import DmfDevice
 from ..experiment_log import ExperimentLog
-from ..logging_helpers import _L  #: .. versionadded:: 2.20
+from logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, emit_signal, ScheduleRequest,
@@ -252,10 +252,8 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             self.save()
 
     def on_step_run(self):
-        app = get_app()
-        if app.running or app.realtime_mode:
-            emit_signal('on_step_complete', [self.name, None])
-            self.menu_new_experiment.set_sensitive(True)
+        emit_signal('on_step_complete', [self.name, None])
+        self.menu_new_experiment.set_sensitive(True)
 
     def on_treeview_protocol_button_press_event(self, widget, event):
         if event.button == 3:

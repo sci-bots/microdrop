@@ -14,7 +14,7 @@ import path_helpers as ph
 import task_scheduler
 
 from .interfaces import IPlugin, IWaveformGenerator, ILoggingPlugin
-from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
+from logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
 
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,10 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
     list
         Newly created plugins (plugins are not recreated if they were
         previously loaded.)
+
+
+    .. versionchanged:: 2.25
+        Do not import hidden directories (i.e., name starts with ``.``).
     '''
     logger = _L()  # use logger with function context
     logger.info('plugins_dir=`%s`', plugins_dir)
@@ -72,6 +76,10 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
             logger.info('Skip import of `%s` (plugin with same name has '
                         'already been imported).', package_i.name)
             continue
+        elif package_i.name.startswith('.'):
+            logger.info('Skip import of hidden directory `%s`.',
+                        package_i.name)
+            continue
 
         try:
             plugin_module = package_i.name
@@ -87,7 +95,7 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
                         package_i)
             imported_plugins.add(current_plugin)
         except Exception:
-            logger.info(''.join(traceback.format_exc()))
+            map(logger.info, traceback.format_exc().splitlines())
             logger.error('Error loading %s plugin.', package_i.name,
                          exc_info=True)
 
@@ -397,7 +405,7 @@ def emit_signal(function, args=None, interface=IPlugin):
             args = [args]
 
         if not any((name in caller) for name in ('logger', 'emit_signal')):
-            logger.info('caller: %s -> %s', caller, function)
+            logger.debug('caller: %s -> %s', caller, function)
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 logger.debug('args: (%s)', ', '.join(map(repr, args)))
         for observer_name in schedule:
@@ -419,7 +427,7 @@ def emit_signal(function, args=None, interface=IPlugin):
                             (observer.name, function)
                     print >> message, 'Reason:', str(why)
                     logger.error(message.getvalue().strip())
-                logger.info(''.join(traceback.format_exc()))
+                map(logger.info, traceback.format_exc().splitlines())
         return return_codes
     except Exception, why:
         logger.error(why, exc_info=True)
@@ -470,6 +478,53 @@ def disable(name, env='microdrop.managed'):
             service.on_plugin_disable()
         emit_signal('on_plugin_disabled', [env, service])
         logging.info('[PluginManager] Disabled plugin: %s' % name)
+
+
+def connect_pyutilib_signal(signals, signal, *args, **kwargs):
+    '''
+    Connect pyutilib callbacks to corresponding signal in blinker namespace.
+
+    Allows code to be written using blinker signals for easier testing outside
+    of MicroDrop, while maintaining compatibility with pyutilib.
+
+    Parameters
+    ----------
+    signals : blinker.Namespace
+    signal : str
+        Pyutilib signal name.
+    *args, **kwargs
+        Arguments passed to `pyutilib.component.core.ExtensionPoint()`
+
+    Example
+    -------
+
+    >>> from microdrop.interfaces import IPlugin
+    >>> import microdrop.app
+    >>>
+    >>> signals = blinker.Namespace()
+    >>> signal = 'get_schedule_requests'
+    >>> args = ('on_plugin_enable', )
+    >>> connect_pyutilib_signal(signals, signal, IPlugin)
+    >>> signals.signal(signal).send(*args)
+    [(<bound method DmfDeviceController.get_schedule_requests of <Plugin DmfDeviceController 'microdrop.gui.dmf_device_controller'>>, [ScheduleRequest(before='microdrop.gui.config_controller', after='microdrop.gui.dmf_device_controller'), ScheduleRequest(before='microdrop.gui.main_window_controller', after='microdrop.gui.dmf_device_controller')])]
+    '''
+    import functools as ft
+    import inspect
+
+    from microdrop.plugin_manager import ExtensionPoint
+
+    callbacks = [getattr(p, signal) for p in ExtensionPoint(*args, **kwargs) if hasattr(p, signal)]
+
+    for callback_i in callbacks:
+        if len(inspect.getargspec(callback_i)[0]) < 2:
+            # Blinker signals require _at least_ one argument (assumed to be sender).
+            # Wrap pyutilib signals without any arguments to make them work with blinker.
+            @ft.wraps(callback_i)
+            def _callback(*args, **kwargs):
+                return callback_i()
+        else:
+            _callback = callback_i
+        signals.signal(signal).connect(_callback, weak=False)
 
 
 PluginGlobals.pop_env()

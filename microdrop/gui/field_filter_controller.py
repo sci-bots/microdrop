@@ -8,7 +8,7 @@ import gtk
 import pkgutil
 
 from ..app_context import get_app
-from ..logging_helpers import _L  #: .. versionadded:: 2.20
+from logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import IPlugin, ExtensionPoint
 
 

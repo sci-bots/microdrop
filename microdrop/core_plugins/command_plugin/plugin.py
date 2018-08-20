@@ -6,7 +6,7 @@ from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
 import pandas as pd
 
-from ...logging_helpers import _L  #: .. versionadded:: 2.20
+from logging_helpers import _L  #: .. versionadded:: 2.20
 
 
 logger = logging.getLogger(__name__)

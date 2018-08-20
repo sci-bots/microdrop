@@ -11,6 +11,7 @@ import sys
 import threading
 
 from flatland import Integer, Form, String, Enum, Boolean
+from logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
 from pygtkhelpers.ui.extra_widgets import Filepath
 from pygtkhelpers.ui.form_view_dialog import FormViewDialog
 import gtk
@@ -18,17 +19,23 @@ import path_helpers as ph
 
 from . import base_path, MICRODROP_PARSER
 from . import plugin_manager, __version__
+from .app_context import (MODE_PROGRAMMING, MODE_REAL_TIME_PROGRAMMING,
+                          MODE_RUNNING, MODE_REAL_TIME_RUNNING)
 from .config import Config
 from .gui.dmf_device_controller import DEVICE_FILENAME
-from .logging_helpers import _L, caller_name  #: .. versionadded:: 2.20
+from .interfaces import IPlugin, IApplicationMode
 from .logger import CustomHandler
 from .plugin_helpers import AppDataController
-from .plugin_manager import (ExtensionPoint, IPlugin, SingletonPlugin,
+from .plugin_manager import (ExtensionPoint, SingletonPlugin,
                              implements, PluginGlobals)
 from .protocol import Step
 
 
 logger = logging.getLogger(__name__)
+
+# Suppress ZMQ plugin error logging messages.
+logging.getLogger('zmq_plugin.plugin.DeviceInfoZmqPlugin.on_command_recv->'
+                  '"microdrop.device_info_plugin"').setLevel(logging.CRITICAL)
 
 PluginGlobals.push_env('microdrop')
 
@@ -59,13 +66,14 @@ INFO:  <Plugin MainWindowController 'microdrop.gui.main_window_controller'>
 INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
 INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
     '''
-    core_plugins = ['microdrop.app', 'microdrop.gui.config_controller',
+    core_plugins = ['microdrop.app',
+                    'microdrop.gui.config_controller',
+                    'microdrop.zmq_hub_plugin',
                     'microdrop.gui.dmf_device_controller',
                     'microdrop.gui.experiment_log_controller',
                     'microdrop.gui.main_window_controller',
                     'microdrop.gui.protocol_controller',
                     'microdrop.gui.protocol_grid_controller',
-                    'microdrop.zmq_hub_plugin',
                     'microdrop.electrode_controller_plugin',
                     'microdrop.device_info_plugin']
 
@@ -109,8 +117,8 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
         #: .. versionadded:: 2.11.2
         self.gtk_thread = None
 
-        self.realtime_mode = False
-        self.running = False
+        self._realtime_mode = False
+        self._running = False
         self.builder = gtk.Builder()
         self.signals = {}
         self.plugin_data = {}
@@ -146,6 +154,59 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
 
         # protocol
         self.protocol = None
+
+    @property
+    def realtime_mode(self):
+        '''
+        .. versionadded:: 2.25
+        '''
+        return self._realtime_mode
+
+    @realtime_mode.setter
+    def realtime_mode(self, value):
+        '''
+        .. versionadded:: 2.25
+
+        Emit ``on_mode_changed`` signal when changed.
+        '''
+        if self._realtime_mode != value:
+            original_mode = self.mode
+            self._realtime_mode = value
+            plugin_manager.emit_signal('on_mode_changed', args=[original_mode,
+                                                                self.mode],
+                                       interface=IApplicationMode)
+
+    @property
+    def running(self):
+        '''
+        .. versionadded:: 2.25
+        '''
+        return self._running
+
+    @running.setter
+    def running(self, value):
+        '''
+        .. versionadded:: 2.25
+
+        Emit ``on_mode_changed`` signal when changed.
+        '''
+        if self._running != value:
+            original_mode = self.mode
+            self._running = value
+            plugin_manager.emit_signal('on_mode_changed', args=[original_mode,
+                                                                self.mode],
+                                       interface=IApplicationMode)
+
+    @property
+    def mode(self):
+        if self.running and self.realtime_mode:
+            return MODE_REAL_TIME_RUNNING
+        elif self.running:
+            return MODE_RUNNING
+        elif self.realtime_mode:
+            return MODE_REAL_TIME_PROGRAMMING
+        else:
+            return MODE_PROGRAMMING
 
     def get_data(self, plugin_name):
         data = self.plugin_data.get(plugin_name)

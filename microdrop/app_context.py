@@ -17,3 +17,18 @@ def get_hub_uri():
 
 # Application version used when querying update server for plugins, etc.
 APP_VERSION = {'major': 2, 'minor': 0, 'micro': 0}
+
+# Operating modes
+# ===============
+#: Programming mode
+MODE_PROGRAMMING           = 1 << 0
+#: Programming mode with real-time enabled
+MODE_REAL_TIME_PROGRAMMING = 1 << 1
+#: Protocol running
+MODE_RUNNING               = 1 << 2
+#: Protocol running with real-time enabled
+MODE_REAL_TIME_RUNNING     = 1 << 3
+
+MODE_REAL_TIME_MASK = MODE_REAL_TIME_PROGRAMMING | MODE_REAL_TIME_RUNNING
+MODE_RUNNING_MASK = MODE_RUNNING | MODE_REAL_TIME_RUNNING
+MODE_PROGRAMMING_MASK = MODE_PROGRAMMING | MODE_REAL_TIME_PROGRAMMING

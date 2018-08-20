@@ -6,6 +6,7 @@ import shutil
 from microdrop_utility import FutureVersionError
 from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
                                    textentry_validate, text_entry_dialog)
+from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
 import gobject
@@ -14,7 +15,7 @@ import path_helpers as ph
 import zmq
 
 from ..app_context import get_app, get_hub_uri
-from ..logging_helpers import _L  #: .. versionadded:: 2.20
+from logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_observers,
@@ -250,10 +251,14 @@ version of the software.'''.strip(), filename, why.future_version,
         emit_signal("on_protocol_swapped", [old_protocol, p])
 
     def on_protocol_swapped(self, old_protocol, protocol):
+        '''
+        .. versionchanged:: 2.25
+            Do not execute `run_step()` since it is already triggered by
+            swapping to first step in protocol.
+        '''
         protocol.plugin_fields = emit_signal('get_step_fields')
         _L().debug('plugin_fields=%s', protocol.plugin_fields)
         protocol.first_step()
-        self.run_step()
 
     def on_plugin_enable(self):
         app = get_app()
@@ -565,8 +570,8 @@ version of the software.'''.strip(), filename, why.future_version,
         '''
         app = get_app()
         app.running = True
-        self.button_run_protocol.set_image(self.builder.get_object(
-            "image_pause"))
+        self.button_run_protocol.set_image(self.builder
+                                           .get_object("image_pause"))
         app.protocol.current_step_attempt = 0
         emit_signal("on_protocol_run")
         self.set_sensitivity_of_protocol_navigation_buttons(False)
@@ -588,6 +593,10 @@ version of the software.'''.strip(), filename, why.future_version,
         self.button_last_step.set_sensitive(sensitive)
 
     def run_step(self):
+        '''
+        .. versionchanged:: 2.25
+            Only wait for other plugins if protocol is running.
+        '''
         app = get_app()
         if app.protocol and app.dmf_device and (app.realtime_mode or
                                                 app.running):
@@ -595,10 +604,13 @@ version of the software.'''.strip(), filename, why.future_version,
                 app.experiment_log.add_step(app.protocol.current_step_number,
                                             app.protocol.current_step_attempt)
 
-            self.waiting_for = get_observers("on_step_run", IPlugin).keys()
-            _L().info('step: %d, waiting for %s',
-                      app.protocol.current_step_number,
-                      ', '.join(self.waiting_for))
+            if app.running:
+                self.waiting_for = get_observers("on_step_run", IPlugin).keys()
+                _L().info('step: %d, waiting for %s',
+                          app.protocol.current_step_number,
+                          ', '.join(self.waiting_for))
+            else:
+                self.waiting_for = []
 
             def _threadsafe_emit_signal(*args):
                 emit_signal("on_step_run")
@@ -606,9 +618,23 @@ version of the software.'''.strip(), filename, why.future_version,
             gobject.idle_add(_threadsafe_emit_signal)
 
     def on_step_complete(self, plugin_name, return_value=None):
+        '''
+        .. versionchanged:: 2.25
+            - Only wait for other plugins if protocol is running.
+            - Schedule execution of next action in future iteration of GTK main
+              loop to allow other plugins to execute `on_step_complete`
+              handlers first.
+        '''
         app = get_app()
         logger = _L()  # use logger with method context
-        logger.info("%s finished", plugin_name)
+
+        if not app.running:
+            logger.debug("reported by `%s` (protocol not running)",
+                         plugin_name)
+            return
+        else:
+            logger.debug("%s finished", plugin_name)
+
         if plugin_name in self.waiting_for:
             self.waiting_for.remove(plugin_name)
 
@@ -622,31 +648,38 @@ version of the software.'''.strip(), filename, why.future_version,
             self.repeat_step = False
 
         if len(self.waiting_for):
-            logger.info('still waiting for %s', ', '.join(self.waiting_for))
+            logger.debug('still waiting for %s', ', '.join(self.waiting_for))
         # If all plugins have completed the current step, go to the next step.
         elif app.running:
-            if self.repeat_step:
-                logger.info('repeating step %s',
-                            app.protocol.current_step_number)
-                app.protocol.current_step_attempt += 1
-                self.run_step()
-            else:
-                app.protocol.current_step_attempt = 0
-                if app.protocol.current_step_number < len(app.protocol) - 1:
-                    logger.info('Execute next step.')
-                    app.protocol.next_step()
-                elif app.protocol.current_repetition < (app.protocol.n_repeats
-                                                        - 1):
-                    logger.info('Repeat entire protocol again.')
-                    app.protocol.next_repetition()
-                else:  # we're on the last step
-                    logger.info('Protocol completed.  Stop execution.')
-                    self.pause_protocol()
+            logger.info('all plugins reported step %d completed.',
+                        app.protocol.current_step_number)
 
-                    def _threadsafe_protocol_finished(*args):
+            @gtk_threadsafe
+            def _next_action():
+                if self.repeat_step:
+                    logger.info('repeating step %s',
+                                app.protocol.current_step_number)
+                    app.protocol.current_step_attempt += 1
+                    self.run_step()
+                else:
+                    app.protocol.current_step_attempt = 0
+                    if app.protocol.current_step_number < len(app.protocol) - 1:
+                        logger.debug('Execute next step.')
+                        app.protocol.next_step()
+                    elif app.protocol.current_repetition < (app.protocol.n_repeats
+                                                            - 1):
+                        logger.debug('Repeat entire protocol again.')
+                        app.protocol.next_repetition()
+                    else:  # we're on the last step
+                        logger.info('Protocol completed.  Stop execution.')
+                        self.pause_protocol()
+
                         emit_signal('on_protocol_finished')
 
-                    gobject.idle_add(_threadsafe_protocol_finished)
+            # Schedule execution of next action in future iteration of GTK main
+            # loop to allow other plugins to execute `on_step_complete`
+            # handlers first.
+            _next_action()
 
     def _get_dmf_control_fields(self, step_number):
         step = get_app().protocol.get_step(step_number)
@@ -660,12 +693,18 @@ version of the software.'''.strip(), filename, why.future_version,
     def on_step_options_changed(self, plugin, step_number):
         '''
         Mark protocol as modified when step options have changed for a plugin.
+
+        .. versionchanged:: 2.25
+            Emit `on_step_swapped` instead of calling `run_step()`.  Only emit
+            `on_step_swapped` if protocol is not running to avoid trying to run
+            the step when it is already running.
         '''
         self.modified = True
         emit_signal('on_protocol_changed')
         app = get_app()
-        if app.realtime_mode and not app.running:
-            self.run_step()
+        if not app.running:
+            step_number = app.protocol.current_step_number
+            emit_signal('on_step_swapped', [step_number, step_number])
 
     def on_step_created(self, step_number):
         '''
