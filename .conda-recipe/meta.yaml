@@ -85,7 +85,11 @@ requirements:
     - sympy
     - task-scheduler
     - tornado
-    - wheeler.pygtkhelpers >=0.16
+    #: .. versionchanged:: 2.25.1
+    #:     Ignore callback return value in `gtk_threadsafe()` decorator to
+    #:     avoid calling functions returning `True` repeatedly and
+    #:     indefinitely.
+    - wheeler.pygtkhelpers >=0.22
     #: .. versionchanged:: 2.25
     - zmq-plugin >=0.3.3
 
@@ -145,7 +149,11 @@ requirements:
     - sympy
     - task-scheduler
     - tornado
-    - wheeler.pygtkhelpers >=0.16
+    #: .. versionchanged:: 2.25.1
+    #:     Ignore callback return value in `gtk_threadsafe()` decorator to
+    #:     avoid calling functions returning `True` repeatedly and
+    #:     indefinitely.
+    - wheeler.pygtkhelpers >=0.22
     #: .. versionchanged:: 2.25
     - zmq-plugin >=0.3.3
 
