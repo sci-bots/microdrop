@@ -446,6 +446,11 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         See Also
         --------
         execute_actuations
+
+
+        .. versionchanged:: X.X.X
+            Still apply for specified duration even if _no electrodes_ are
+            specified for actuation.
         '''
         # Notify other ZMQ plugins that `dynamic_electrodes_states` have
         # changed.
@@ -519,8 +524,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         app = get_app()
         if all([(app.mode & MODE_REAL_TIME_MASK),
-                 (app.mode & ~MODE_RUNNING_MASK)]) or \
-                s_electrodes_to_actuate.shape[0] == 0:
+                 (app.mode & ~MODE_RUNNING_MASK)]):
             duration_s = 0
         else:
             duration_s = step_options.get('Duration (s)', 0)
