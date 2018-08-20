@@ -38,6 +38,10 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
             Electrode identifier.
         channels : list
             List of channel identifiers assigned to the electrode.
+
+        .. versionchanged:: X.X.X
+            Emit ``on_dmf_device_changed`` in main GTK thread to ensure
+            thread-safety.
         '''
         data = decode_content_data(request)
         app = get_app()
@@ -45,7 +49,8 @@ class DeviceInfoZmqPlugin(ZmqPlugin):
                     .set_electrode_channels(data['electrode_id'],
                                             data['channels']))
         if modified:
-            emit_signal("on_dmf_device_changed", [app.dmf_device])
+            gtk_threadsafe(emit_signal)("on_dmf_device_changed",
+                                        [app.dmf_device])
         return modified
 
     def on_execute__dumps(self, request):
