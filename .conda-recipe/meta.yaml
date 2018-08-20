@@ -31,7 +31,7 @@ requirements:
     - application-repository
     - arrow
     #: ..versionadded:: X.X.X
-    - asyncio-helpers
+    - asyncio-helpers >=0.2
     - blinker
     - configobj
     #: ..versionadded:: 2.16
@@ -93,7 +93,7 @@ requirements:
     - application-repository
     - arrow
     #: ..versionadded:: X.X.X
-    - asyncio-helpers
+    - asyncio-helpers >=0.2
     - blinker
     - configobj
     #: ..versionadded:: 2.16

@@ -8,7 +8,7 @@ import pprint
 import threading
 import uuid
 
-from asyncio_helpers import cancellable, ensure_event_loop
+from asyncio_helpers import cancellable, sync
 from flatland import Float, Form
 from flatland.validation import ValueAtLeast
 from logging_helpers import _L, caller_name
@@ -73,40 +73,6 @@ def ignorable_warning(**kwargs):
                 'always': not check_button.props.active}
     finally:
         dialog.destroy()
-
-
-def gtk_sync(f):
-    '''
-    Return coroutine which executes wrapped function in GTK thread.
-
-    Coroutine returns once wrapped function has finished executing.
-    This decorator is useful for synchronizing execution of GTK code while
-    ensuring the GTK code is run in the main GTK thread to maintain thread
-    safety.
-
-
-    .. versionadded:: X.X.X
-    '''
-    loop = ensure_event_loop()
-    done = asyncio.Event()
-
-    @gtk_threadsafe
-    def _wrapped(*args):
-        done.result = f(*args)
-        loop.call_soon_threadsafe(done.set)
-        return False
-
-    _wrapped.loop = loop
-    _wrapped.done = done
-
-    @asyncio.coroutine
-    def _synced(*args):
-        _wrapped(*args)
-        # Wait for waveform to be applied.
-        yield asyncio.From(_wrapped.done.wait())
-        raise asyncio.Return(_wrapped.done.result)
-
-    return _synced
 
 
 def drop_duplicates_by_index(series):
@@ -483,7 +449,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         '''
         # Notify other ZMQ plugins that `dynamic_electrodes_states` have
         # changed.
-        @gtk_sync
+        @sync(gtk_threadsafe)
         def notify_dynamic_states(dynamic_electrode_states):
             try:
                 return hub_execute(self.name, 'set_dynamic_electrode_states',
@@ -542,8 +508,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                  ('voltage', voltage, 'V')):
             # Apply waveform in main (i.e., Gtk) thread.
             waveform_result = \
-                yield asyncio.From(gtk_sync(ft.partial(set_waveform, key,
-                                                       value))())
+                yield asyncio.From(sync(gtk_threadsafe)
+                                   (ft.partial(set_waveform, key, value))())
 
             if isinstance(waveform_result, Exception):
                 raise waveform_result
@@ -566,7 +532,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         if not electrode_actuators:
             if not 'actuate' in self.warnings_ignoring:
-                @gtk_sync
+                @sync(gtk_threadsafe)
                 def _warning():
                     return ignorable_warning(title='Warning: failed to '
                                              'actuate all electrodes',
@@ -600,10 +566,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             actuated_electrodes = set(it.chain(*(d.result() for d in done)))
 
             if electrodes_to_actuate - actuated_electrodes:
-                task = gtk_sync(_L().error)('failed to actuate the following '
-                                            'electrodes: %s',
-                                            electrodes_to_actuate -
-                                            actuated_electrodes)
+                task = sync(gtk_threadsafe)\
+                    (_L().error)('failed to actuate the following '
+                                 'electrodes: %s', electrodes_to_actuate -
+                                 actuated_electrodes)
                 yield asyncio.From(task)
             else:
                 # Requested actuations were completed successfully.
