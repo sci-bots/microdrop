@@ -1,12 +1,13 @@
 import logging
 
+from logging_helpers import _L
 from pygtkhelpers.gthreads import gtk_threadsafe
 import threading
 import zmq
 
 from .plugin import CommandZmqPlugin
 from ...app_context import get_hub_uri
-from logging_helpers import _L  #: .. versionadded:: 2.20
+from ...plugin_helpers import hub_execute
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements)
 
@@ -82,6 +83,12 @@ class CommandPlugin(SingletonPlugin):
         self.stopped.set()
         if self.plugin is not None:
             self.plugin = None
+
+    def on_plugin_enabled(self, *args, **kwargs):
+        # A plugin was enabled.  Call `get_commands()` on self to trigger
+        # refresh of commands in case the enabled plugin registered a command.
+        hub_execute(self.name, 'get_commands')
+        _L().info('refreshed registered commands.')
 
     def on_plugin_disable(self):
         """
