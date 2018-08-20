@@ -49,9 +49,8 @@ class CommandPlugin(SingletonPlugin):
             application.
         """
         self.cleanup()
-        self.plugin = CommandZmqPlugin(self, self.name, get_hub_uri())
-        # Initialize sockets.
-        self.plugin.reset()
+
+        zmq_ready = threading.Event()
 
         def _check_command_socket(wait_duration_s):
             '''
@@ -60,6 +59,10 @@ class CommandPlugin(SingletonPlugin):
             Stop listening if :attr:`stopped` event is set.
             '''
             self.stopped.clear()
+            self.plugin = CommandZmqPlugin(self, self.name, get_hub_uri())
+            # Initialize sockets.
+            self.plugin.reset()
+            zmq_ready.set()
             while not self.stopped.wait(wait_duration_s):
                 try:
                     msg_frames = (self.plugin.command_socket
@@ -69,17 +72,11 @@ class CommandPlugin(SingletonPlugin):
                 else:
                     self.plugin.on_command_recv(msg_frames)
 
-        @gtk_threadsafe
-        def _launch_socket_monitor_thread():
-            '''
-            Launch background thread to monitor plugin ZeroMQ command socket.
-            '''
-            thread = threading.Thread(target=_check_command_socket,
-                                      args=(0.01, ))
-            thread.daemon = True
-            thread.start()
-
-        _launch_socket_monitor_thread()
+        thread = threading.Thread(target=_check_command_socket,
+                                    args=(0.01, ))
+        thread.daemon = True
+        thread.start()
+        zmq_ready.wait()
 
     def cleanup(self):
         self.stopped.set()
