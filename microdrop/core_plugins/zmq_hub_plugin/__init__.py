@@ -97,10 +97,13 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
         _L().info('ZeroMQ hub process (pid=%s, daemon=%s)',
                   self.hub_process.pid, self.hub_process.daemon)
 
+        zmq_ready = threading.Event()
+
         @asyncio.coroutine
         def _exec_task():
             self.zmq_plugin = ZmqPlugin('microdrop', get_hub_uri())
             self.zmq_plugin.reset()
+            zmq_ready.set()
 
             event = asyncio.Event()
             try:
@@ -112,6 +115,7 @@ class ZmqHubPlugin(SingletonPlugin, AppDataController):
         self.exec_thread = threading.Thread(target=self.zmq_exec_task)
         self.exec_thread.deamon = True
         self.exec_thread.start()
+        zmq_ready.wait()
 
     def cleanup(self):
         '''
