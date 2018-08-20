@@ -95,7 +95,7 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
                         package_i)
             imported_plugins.add(current_plugin)
         except Exception:
-            logger.info(''.join(traceback.format_exc()))
+            map(logger.info, traceback.format_exc().splitlines())
             logger.error('Error loading %s plugin.', package_i.name,
                          exc_info=True)
 
@@ -427,7 +427,7 @@ def emit_signal(function, args=None, interface=IPlugin):
                             (observer.name, function)
                     print >> message, 'Reason:', str(why)
                     logger.error(message.getvalue().strip())
-                map(logger.info, traceback.format_exc())
+                map(logger.info, traceback.format_exc().splitlines())
         return return_codes
     except Exception, why:
         logger.error(why, exc_info=True)

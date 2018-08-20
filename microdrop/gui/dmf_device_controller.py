@@ -64,7 +64,7 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
                 if 'device_directory' in values:
                     self.apply_device_dir(values['device_directory'])
         except (Exception,):
-            _L().info(''.join(traceback.format_exc()))
+            map(_L().info, traceback.format_exc().splitlines())
             raise
 
     def apply_device_dir(self, device_directory):
