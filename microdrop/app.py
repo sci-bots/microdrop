@@ -60,7 +60,8 @@ class App(SingletonPlugin, AppDataController):
     '''
     .. versionchanged:: X.X.X
         Set default window size and position according to **screen size** *and*
-        **window titlebar size**.
+        **window titlebar size**.  Also, force default window size if
+        ``MICRODROP_FIRST_RUN`` environment variable is set to non-empty value.
     '''
     implements(IPlugin)
     core_plugins = ['microdrop.app',
@@ -430,7 +431,12 @@ class App(SingletonPlugin, AppDataController):
                                             self.config['protocol']['name'])
                     self.protocol_controller.load_protocol(filename)
 
-        data = self.get_app_values()
+        if os.environ.get('MICRODROP_FIRST_RUN'):
+            # Use default options for window allocation.
+            data = self.get_default_app_options()
+        else:
+            data = self.get_app_values()
+
         self.main_window_controller.view.resize(data['width'], data['height'])
         self.main_window_controller.view.move(data['x'], data['y'])
         plugin_manager.emit_signal('on_gui_ready')
