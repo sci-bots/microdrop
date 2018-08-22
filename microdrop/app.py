@@ -20,7 +20,9 @@ import path_helpers as ph
 from . import base_path, MICRODROP_PARSER
 from . import plugin_manager, __version__
 from .app_context import (MODE_PROGRAMMING, MODE_REAL_TIME_PROGRAMMING,
-                          MODE_RUNNING, MODE_REAL_TIME_RUNNING)
+                          MODE_RUNNING, MODE_REAL_TIME_RUNNING, SCREEN_LEFT,
+                          SCREEN_TOP, SCREEN_WIDTH, SCREEN_HEIGHT,
+                          TITLEBAR_HEIGHT)
 from .config import Config
 from .gui.dmf_device_controller import DEVICE_FILENAME
 from .interfaces import IPlugin, IApplicationMode
@@ -55,17 +57,12 @@ def test(*args, **kwargs):
 
 
 class App(SingletonPlugin, AppDataController):
+    '''
+    .. versionchanged:: X.X.X
+        Set default window size and position according to **screen size** *and*
+        **window titlebar size**.
+    '''
     implements(IPlugin)
-    '''
-INFO:  <Plugin App 'microdrop.app'>
-INFO:  <Plugin ConfigController 'microdrop.gui.config_controller'>
-INFO:  <Plugin DmfDeviceController 'microdrop.gui.dmf_device_controller'>
-INFO:  <Plugin ExperimentLogController
-         'microdrop.gui.experiment_log_controller'>
-INFO:  <Plugin MainWindowController 'microdrop.gui.main_window_controller'>
-INFO:  <Plugin ProtocolController 'microdrop.gui.protocol_controller'>
-INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
-    '''
     core_plugins = ['microdrop.app',
                     'microdrop.gui.config_controller',
                     'microdrop.zmq_hub_plugin',
@@ -78,13 +75,15 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                     'microdrop.device_info_plugin']
 
     AppFields = Form.of(
-        Integer.named('x').using(default=None, optional=True,
+        Integer.named('x').using(default=SCREEN_LEFT, optional=True,
                                  properties={'show_in_gui': False}),
-        Integer.named('y').using(default=None, optional=True,
+        Integer.named('y').using(default=SCREEN_TOP, optional=True,
                                  properties={'show_in_gui': False}),
-        Integer.named('width').using(default=400, optional=True,
+        Integer.named('width').using(default=.5 * SCREEN_WIDTH,
+                                     optional=True,
                                      properties={'show_in_gui': False}),
-        Integer.named('height').using(default=500, optional=True,
+        Integer.named('height').using(default=SCREEN_HEIGHT - 1.5 *
+                                      TITLEBAR_HEIGHT, optional=True,
                                       properties={'show_in_gui': False}),
         String.named('server_url')
         .using(default='http://microfluidics.utoronto.ca/update',
@@ -431,14 +430,9 @@ INFO:  <Plugin ProtocolGridController 'microdrop.gui.protocol_grid_controller'>
                                             self.config['protocol']['name'])
                     self.protocol_controller.load_protocol(filename)
 
-        data = self.get_data("microdrop.app")
-        x = data.get('x', None)
-        y = data.get('y', None)
-        width = data.get('width', 400)
-        height = data.get('height', 600)
-        self.main_window_controller.view.resize(width, height)
-        if x is not None and y is not None:
-            self.main_window_controller.view.move(x, y)
+        data = self.get_app_values()
+        self.main_window_controller.view.resize(data['width'], data['height'])
+        self.main_window_controller.view.move(data['x'], data['y'])
         plugin_manager.emit_signal('on_gui_ready')
         self.main_window_controller.main()
 
