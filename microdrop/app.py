@@ -58,7 +58,7 @@ def test(*args, **kwargs):
 
 class App(SingletonPlugin, AppDataController):
     '''
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.26
         Set default window size and position according to **screen size** *and*
         **window titlebar size**.  Also, force default window size if
         ``MICRODROP_FIRST_RUN`` environment variable is set to non-empty value.

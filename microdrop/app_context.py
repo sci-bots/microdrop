@@ -1,5 +1,5 @@
 '''
-.. versionchanged:: X.X.X
+.. versionchanged:: 2.26
     Add screen geometry and window titlebar height constants.
 '''
 import os
