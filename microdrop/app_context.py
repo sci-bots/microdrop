@@ -1,3 +1,12 @@
+'''
+.. versionchanged:: 2.26
+    Add screen geometry and window titlebar height constants.
+'''
+import os
+
+import gtk
+
+
 def get_app():
     import plugin_manager
 
@@ -32,3 +41,9 @@ MODE_REAL_TIME_RUNNING     = 1 << 3
 MODE_REAL_TIME_MASK = MODE_REAL_TIME_PROGRAMMING | MODE_REAL_TIME_RUNNING
 MODE_RUNNING_MASK = MODE_RUNNING | MODE_REAL_TIME_RUNNING
 MODE_PROGRAMMING_MASK = MODE_PROGRAMMING | MODE_REAL_TIME_PROGRAMMING
+
+SCREEN_HEIGHT = int(os.environ.get('SCREEN_HEIGHT', gtk.gdk.screen_height()))
+SCREEN_WIDTH = int(os.environ.get('SCREEN_WIDTH', gtk.gdk.screen_width()))
+SCREEN_LEFT = int(os.environ.get('SCREEN_LEFT', 0))
+SCREEN_TOP = int(os.environ.get('SCREEN_TOP', 0))
+TITLEBAR_HEIGHT = int(os.environ.get('TITLEBAR_HEIGHT', 23))
