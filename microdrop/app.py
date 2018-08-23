@@ -314,6 +314,10 @@ class App(SingletonPlugin, AppDataController):
             Interpret ``MICRODROP_PLUGINS_PATH`` as a ``;``-separated list of
             extra directories to import plugins from (in addition to
             ``<prefix>/etc/microdrop/plugins/enabled``).
+
+        .. versionchanged:: X.X.X
+            Check for default device setting in ``MICRODROP_DEFAULT_DEVICE``
+            environment variable.
         '''
         logger = _L()  # use logger with method context
         self.gtk_thread = threading.current_thread()
@@ -398,15 +402,16 @@ class App(SingletonPlugin, AppDataController):
         # automatically overwritten when we load a new device
         protocol_name = self.config['protocol']['name']
 
-        # if there is no device specified in the config file, try choosing one
-        # from the device directory by default
         device_directory = ph.path(self.get_device_directory())
         if not self.config['dmf_device']['name']:
-            try:
-                self.config['dmf_device']['name'] = \
-                    device_directory.dirs()[0].name
-            except Exception:
-                pass
+            # No device specified in the config file.
+            # First check for default device setting in environment variable.
+            device_name = os.environ.get('MICRODROP_DEFAULT_DEVICE')
+            if device_name is None and device_directory.dirs():
+                # No default device set in environment variable.
+                # Select first available device in device directory.
+                device_name = device_directory.dirs()[0].name
+            self.config['dmf_device']['name'] = device_name
 
         # load the device from the config file
         if self.config['dmf_device']['name']:
