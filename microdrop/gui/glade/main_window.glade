@@ -489,7 +489,7 @@
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_online_help">
-                        <property name="label">Online _help</property>
+                        <property name="label">Online _help...</property>
                         <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
