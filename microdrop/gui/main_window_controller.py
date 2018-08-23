@@ -312,7 +312,7 @@ class MainWindowController(SingletonPlugin):
 
     def on_menu_online_help_activate(self, widget, data=None):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.27
             Set help URL from ``MICRODROP_HELP_URL`` environment variable (if
             set).
         '''

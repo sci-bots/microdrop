@@ -315,7 +315,7 @@ class App(SingletonPlugin, AppDataController):
             extra directories to import plugins from (in addition to
             ``<prefix>/etc/microdrop/plugins/enabled``).
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.27
             Check for default device setting in ``MICRODROP_DEFAULT_DEVICE``
             environment variable.
         '''
