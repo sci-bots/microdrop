@@ -1,6 +1,7 @@
 from contextlib import closing
 from datetime import datetime
 import logging
+import os
 import pdb
 import threading
 import webbrowser
@@ -310,7 +311,14 @@ class MainWindowController(SingletonPlugin):
         dialog.hide()
 
     def on_menu_online_help_activate(self, widget, data=None):
-        webbrowser.open_new_tab('https://github.com/wheeler-microfluidics/microdrop/wiki')
+        '''
+        .. versionchanged:: X.X.X
+            Set help URL from ``MICRODROP_HELP_URL`` environment variable (if
+            set).
+        '''
+        help_url = os.environ.get('MICRODROP_HELP_URL',
+                                  'https://github.com/wheeler-microfluidics/microdrop/wiki')
+        webbrowser.open_new_tab(help_url)
 
     def on_menu_manage_plugins_activate(self, widget, data=None):
         service = get_service_instance_by_name(
