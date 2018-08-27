@@ -271,7 +271,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
 
     def on_execute__set_electrode_direction_states(self, request):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.28
 
         Turn on static state of neighbour electrodes in specified direction;
         turning off existing corresponding electrode state.

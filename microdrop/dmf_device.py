@@ -99,7 +99,7 @@ class DmfDevice(object):
         self.df_shapes_indexed['id'] = map(str, self.shape_indexes
                                            [self.df_shapes['id']])
 
-        #: .. versionadded:: X.X.X
+        #: .. versionadded:: 2.28
         #:     Up, down, left, and right neighbours for each electrode.
         self.electrode_neighbours = electrode_neighbours(self)
 
@@ -435,7 +435,7 @@ def extract_channels(df_shapes):
 
 def electrode_neighbours(device):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.28
 
     Parameters
     ----------
