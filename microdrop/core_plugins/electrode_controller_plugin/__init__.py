@@ -269,6 +269,35 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
             gtk_threadsafe(ft.partial(logger.error, str(data),
                                       exc_info=True))()
 
+    def on_execute__set_electrode_direction_states(self, request):
+        '''
+        .. versionadded:: X.X.X
+
+        Turn on static state of neighbour electrodes in specified direction;
+        turning off existing corresponding electrode state.
+
+        If no neighbour exists in the specified direction for an electrode,
+        leave the current state unchanged.
+        '''
+        data = decode_content_data(request)
+        try:
+            direction = data['direction']
+            app = get_app()
+            electrode_states = self.electrode_states.copy()
+            neighbours = (app.dmf_device.electrode_neighbours
+                          .loc[electrode_states.index, direction].dropna())
+
+            # For electrodes with a neighbour in the specified direction:
+            #  - Turn off current electrode state.
+            electrode_states.loc[neighbours.index] = 0
+            #  - Turn on neighbour electrode state.
+            neighbour_states = pd.Series(1, index=neighbours.values)
+
+            self.electrode_states = electrode_states.append(neighbour_states)
+        except Exception:
+            gtk_threadsafe(ft.partial(logger.error, str(data),
+                                      exc_info=True))()
+
     def on_execute__get_channel_states(self, request):
         return self.get_channel_states()
 
