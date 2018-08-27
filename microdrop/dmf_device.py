@@ -98,6 +98,11 @@ class DmfDevice(object):
         self.df_shapes_indexed = self.df_shapes.copy()
         self.df_shapes_indexed['id'] = map(str, self.shape_indexes
                                            [self.df_shapes['id']])
+
+        #: .. versionadded:: 2.28
+        #:     Up, down, left, and right neighbours for each electrode.
+        self.electrode_neighbours = electrode_neighbours(self)
+
         # Modified state (`True` if electrode channels have been updated).
         self._dirty = False
 
@@ -426,3 +431,79 @@ def extract_channels(df_shapes):
         df_channels = pd.DataFrame(None, columns=['electrode_id', 'channel'])
     df_channels['channel'] = df_channels['channel'].astype(int)
     return df_channels
+
+
+def electrode_neighbours(device):
+    '''
+    .. versionadded:: 2.28
+
+    Parameters
+    ----------
+    device : microdrop.dmf_device.DmfDevice
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table indexed by electrode identifier (e.g., ``electrode001``) with
+        columns, each indicating the identifier of the neighbouring electrode
+        in the respective direction (``NaN`` if no neighbour in corresponding
+        direction):
+        - up
+        - down
+        - left
+        - right
+
+    Example
+    -------
+
+                                up          down          left         right
+        id
+        electrode000  electrode001           NaN  electrode043  electrode002
+        electrode001  electrode088  electrode000  electrode043  electrode006
+        electrode002  electrode006  electrode037  electrode000  electrode005
+        electrode003  electrode063  electrode042           NaN           NaN
+        electrode004  electrode066  electrode009  electrode068  electrode009
+        ...
+
+    '''
+    df_by_source = device.df_shape_connections.set_index('source')
+    df_by_target = (device.df_shape_connections.set_index('target')
+                    .rename(columns={'source': 'target'}))
+    df_neighbours = df_by_source.append(df_by_target)
+    df_neighbours.index.name = 'source'
+
+    # Add **source** x/y center coordinates
+    df_neighbours = df_neighbours.join(device.df_shape_centers
+                                       .loc[df_neighbours.index
+                                            .drop_duplicates()])
+
+    # Add **target** x/y center coordinates
+    df_target_centers = device.df_shape_centers.loc[df_neighbours.target]
+    df_neighbours['target_x_center'] = df_target_centers.x_center.values
+    df_neighbours['target_y_center'] = df_target_centers.y_center.values
+
+    df_neighbours['x_delta'] = (df_neighbours.target_x_center -
+                                df_neighbours.x_center)
+    df_neighbours['y_delta'] = (df_neighbours.target_y_center -
+                                df_neighbours.y_center)
+
+    # Index by target electrode identifier.
+    df_neighbours.reset_index(inplace=True)
+    df_neighbours.set_index('target', inplace=True)
+
+    # Find neighbour in each direction.
+    up = df_neighbours.loc[df_neighbours.y_delta <
+                           0].groupby('source')['y_delta'].idxmin()
+    down = df_neighbours.loc[df_neighbours.y_delta >
+                             0].groupby('source')['y_delta'].idxmax()
+    left = df_neighbours.loc[df_neighbours.x_delta <
+                             0].groupby('source')['x_delta'].idxmin()
+    right = df_neighbours.loc[df_neighbours.x_delta >
+                              0].groupby('source')['x_delta'].idxmax()
+
+    df_electrode_neighbours = pd.DataFrame(None, index=device.electrodes)
+    df_electrode_neighbours['up'] = up
+    df_electrode_neighbours['down'] = down
+    df_electrode_neighbours['left'] = left
+    df_electrode_neighbours['right'] = right
+    return df_electrode_neighbours
