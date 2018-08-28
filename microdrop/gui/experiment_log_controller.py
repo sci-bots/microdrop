@@ -108,7 +108,11 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
     ###########################################################################
     # Callback methods
     def on_app_exit(self):
-        self.save()
+        '''
+        .. versionchanged:: X.X.X
+            Do not create a new experiment after saving experiment log.
+        '''
+        self.save(create_new=False)
         _L().info('Killing Jupyter notebooks')
         if self.notebook_manager_view is not None:
             self.notebook_manager_view.stop()
@@ -344,7 +348,17 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         # widget to the notebooks directory.
         self.notebook_manager_view.template_dir = notebook_directory
 
-    def save(self):
+    def save(self, create_new=True):
+        '''
+        .. versionchanged:: X.X.X
+            Add :data:`create_new` parameter.
+
+
+        Parameters
+        ----------
+        create_new : bool, optional
+            Create new experiment log after saving current log.
+        '''
         app = get_app()
 
         # Only save the current log if it is not empty (i.e., it contains at
@@ -372,13 +386,14 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             with open(os.path.join(log_path, DEVICE_FILENAME), 'wb') as output:
                 output.write(svg_unicode)
 
-            # create a new log
-            experiment_log = ExperimentLog(app.experiment_log.directory)
-            emit_signal('on_experiment_log_changed', experiment_log)
+            if create_new:
+                # create a new log
+                experiment_log = ExperimentLog(app.experiment_log.directory)
+                emit_signal('on_experiment_log_changed', experiment_log)
 
-            # disable new experiment menu until a step has been run (i.e., until
-            # we have some data in the log)
-            self.menu_new_experiment.set_sensitive(False)
+                # disable new experiment menu until a step has been run (i.e., until
+                # we have some data in the log)
+                self.menu_new_experiment.set_sensitive(False)
 
     def update(self):
         app = get_app()
