@@ -611,14 +611,27 @@ class MainWindowController(SingletonPlugin):
     def on_mode_changed(self, old_mode, new_mode):
         '''
         .. versionadded:: 2.25
+
+        .. versionchanged:: X.X.X
+            Disable menu and window close button while protocol is running.
         '''
         if new_mode & ~MODE_RUNNING_MASK:
             # Protocol is not running.  Clear step timer label.
             self.reset_step_timeout()
-            self.checkbutton_realtime_mode.props.sensitive = True
-        else:
-            # Disabled toggling of real-time mode when protocol is running.
-            self.checkbutton_realtime_mode.props.sensitive = False
 
+            # Re-enable UI elements.
+            ui_state = True
+        else:
+            # Disable UI elements while running.
+            ui_state = False
+
+        self.checkbutton_realtime_mode.props.sensitive = ui_state
+
+        # Window close button.
+        self.view.props.deletable = ui_state
+
+        # Enable menu.
+        menubar = self.view.get_children()[0].get_children()[0]
+        menubar.props.sensitive = ui_state
 
 PluginGlobals.pop_env()
