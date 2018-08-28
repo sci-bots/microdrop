@@ -266,7 +266,7 @@ class MainWindowController(SingletonPlugin):
             confused with the ZeroMQ hub process) __after__ all other plugins
             have processed the `on_app_exit` signal.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.1
             Process outstanding GTK events before exiting.
         '''
         logger = _L()  # use logger with method context
@@ -612,7 +612,7 @@ class MainWindowController(SingletonPlugin):
         '''
         .. versionadded:: 2.25
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.1
             Disable menu and window close button while protocol is running.
         '''
         if new_mode & ~MODE_RUNNING_MASK:

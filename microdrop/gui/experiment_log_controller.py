@@ -109,7 +109,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
     # Callback methods
     def on_app_exit(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.1
             Do not create a new experiment after saving experiment log.
         '''
         self.save(create_new=False)
@@ -350,7 +350,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
 
     def save(self, create_new=True):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.1
             Add :data:`create_new` parameter.
 
 
