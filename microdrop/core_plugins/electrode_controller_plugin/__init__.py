@@ -344,23 +344,34 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
 
         .. versionadded:: 2.25
+
+        .. versionchanged:: X.X.X
+            Set explicit field titles to prevent case mangling for protocol
+            grid column titles.
         """
         app_values = self.get_app_values()
         if not app_values:
             app_values = self.get_default_app_options()
             self.set_app_values(app_values)
-        return Form.of(Float.named('Duration (s)')
-                       .using(default=app_values['default_duration'],
-                              optional=True,
-                              validators=[ValueAtLeast(minimum=0)]),
-                       Float.named('Voltage (V)')
-                       .using(default=app_values['default_voltage'],
-                              optional=True,
-                              validators=[ValueAtLeast(minimum=0)]),
-                       Float.named('Frequency (Hz)')
-                       .using(default=app_values['default_frequency'],
-                              optional=True,
-                              validators=[ValueAtLeast(minimum=0)]))
+
+        fields = Form.of(Float.named('Duration (s)')
+                         .using(default=app_values['default_duration'],
+                                optional=True,
+                                validators=[ValueAtLeast(minimum=0)]),
+                         Float.named('Voltage (V)')
+                         .using(default=app_values['default_voltage'],
+                                optional=True,
+                                validators=[ValueAtLeast(minimum=0)]),
+                         Float.named('Frequency (Hz)')
+                         .using(default=app_values['default_frequency'],
+                                optional=True,
+                                validators=[ValueAtLeast(minimum=0)]))
+
+        # Set explicit field title to prevent case mangling for protocol grid
+        # column titles.
+        for field in fields.field_schema:
+            field.properties['title'] = field.name
+        return fields
 
     def on_plugin_enable(self):
         """
