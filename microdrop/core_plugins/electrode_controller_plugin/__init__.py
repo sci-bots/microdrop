@@ -2,7 +2,6 @@ from __future__ import division, print_function, unicode_literals
 from concurrent.futures import ThreadPoolExecutor
 import datetime as dt
 import functools as ft
-import itertools as it
 import logging
 import pprint
 import threading
@@ -506,6 +505,9 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         .. versionchanged:: 2.25
             Still apply for specified duration even if _no electrodes_ are
             specified for actuation.
+
+        .. versionchanged:: X.X.X
+            Allow user to optionally ignore failed actuations.
         '''
         # Notify other ZMQ plugins that `dynamic_electrodes_states` have
         # changed.
@@ -583,7 +585,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                           interface=IElectrodeActuator)
 
         if not electrode_actuators:
-            if not 'actuate' in self.warnings_ignoring:
+            if not 'actuators' in self.warnings_ignoring:
                 @sync(gtk_threadsafe)
                 def _warning():
                     return ignorable_warning(title='Warning: failed to '
@@ -596,10 +598,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
                 response = yield asyncio.From(_warning())
                 if response['always']:
-                    self.warnings_ignoring['actuate'] = response['ignore']
+                    self.warnings_ignoring['actuators'] = response['ignore']
                 ignore = response['ignore']
             else:
-                ignore = self.warnings_ignoring['actuate']
+                ignore = self.warnings_ignoring['actuators']
 
             if not ignore:
                 raise RuntimeError('No electrode actuators registered to '
@@ -615,14 +617,63 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             start = dt.datetime.now()
             done, pending = yield asyncio.From(asyncio.wait(actuation_tasks))
             end = dt.datetime.now()
-            actuated_electrodes = set(it.chain(*(d.result() for d in done)))
 
-            if electrodes_to_actuate - actuated_electrodes:
-                task = sync(gtk_threadsafe)\
-                    (_L().error)('failed to actuate the following '
-                                 'electrodes: %s', electrodes_to_actuate -
-                                 actuated_electrodes)
-                yield asyncio.From(task)
+            actuated_electrodes = set()
+
+            exceptions = []
+
+            def _error_message(use_markup=True):
+                missing_electrodes = (electrodes_to_actuate -
+                                      actuated_electrodes)
+                messages = []
+                monospace_format = '<tt>%s</tt>' if use_markup else '%s'
+
+                if missing_electrodes:
+                    messages.append('Failed to actuate the following '
+                                    'electrodes: ' '%s' %
+                                    ', '.join(monospace_format % e
+                                              for e in missing_electrodes))
+                if len(exceptions) == 1:
+                    messages.append('Actuation error: ' + monospace_format %
+                                    exceptions[0])
+                elif exceptions:
+                    messages.append('Actuation errors:\n%s' % '\n'
+                                    .join(' - ' + monospace_format % e
+                                          for e in exceptions))
+                return '\n\n'.join(messages)
+
+            @sync(gtk_threadsafe)
+            def _warning():
+                return ignorable_warning(title='Warning: actuation error',
+                                         text=_error_message(),
+                                         use_markup=True)
+
+            for d in done:
+                try:
+                    actuated_electrodes.update(d.result())
+                except Exception as exception:
+                    # Actuation error occurred.  Save exception and check
+                    # remaining responses from actuators.
+                    exceptions.append(exception)
+
+            if (electrodes_to_actuate - actuated_electrodes) or exceptions:
+                if not 'actuate' in self.warnings_ignoring:
+                    response = yield asyncio.From(_warning())
+                    if response['always']:
+                        self.warnings_ignoring['actuate'] = \
+                            response['ignore']
+                    ignore = response['ignore']
+                else:
+                    ignore = self.warnings_ignoring['actuate']
+                if not ignore:
+                    raise RuntimeError(_error_message(use_markup=False))
+                else:
+                    _L().info('Ignored actuation error(s): `%s`', exceptions)
+                    # Simulate actuation by waiting for remaining duration.
+                    remaining_duration = (duration_s - (dt.datetime.now() -
+                                                        start).total_seconds())
+                    if remaining_duration > 0:
+                        yield asyncio.From(asyncio.sleep(remaining_duration))
             else:
                 # Requested actuations were completed successfully.
                 _L().info('actuation completed (actuated electrodes: %s)',
