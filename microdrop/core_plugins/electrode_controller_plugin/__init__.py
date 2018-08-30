@@ -344,7 +344,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         .. versionadded:: 2.25
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.2
             Set explicit field titles to prevent case mangling for protocol
             grid column titles.
         """
@@ -506,7 +506,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             Still apply for specified duration even if _no electrodes_ are
             specified for actuation.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.2
             Allow user to optionally ignore failed actuations.
         '''
         # Notify other ZMQ plugins that `dynamic_electrodes_states` have
