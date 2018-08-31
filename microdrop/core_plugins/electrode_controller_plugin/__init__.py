@@ -116,11 +116,15 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
         .. versionchanged:: 2.25
             Call :meth:`parent.set_step_values()` to signal changed options.
             Also, only store states for electrodes that are actuated.
+
+        .. versionchanged:: 2.28.3
+            Ensure each electrode has _at most_ one state represented in
+            :data:`electrode_states` (remove any duplicates).
         '''
         # Set the state of DMF device channels.
         step_options = self.parent.get_step_options()
-        step_options['electrode_states'] = electrode_states[electrode_states >
-                                                            0]
+        step_options['electrode_states'] = \
+            drop_duplicates_by_index(electrode_states[electrode_states > 0])
         gtk_threadsafe(self.parent.set_step_values)(step_options)
 
     def get_actuated_area(self, electrode_states):
@@ -260,13 +264,18 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
         return self.set_electrode_state(data['electrode_id'], data['state'])
 
     def on_execute__set_electrode_states(self, request):
+        '''
+        .. versionchanged:: 2.28.3
+            Log error traceback to debug level.
+        '''
         data = decode_content_data(request)
         try:
             return self.set_electrode_states(data['electrode_states'],
                                              save=data.get('save', True))
         except Exception:
-            gtk_threadsafe(ft.partial(logger.error, str(data),
-                                      exc_info=True))()
+            logger = _L()  # use logger with method context
+            logger.debug(str(data), exc_info=True)
+            gtk_threadsafe(ft.partial(logger.error, str(data)))()
 
     def on_execute__set_electrode_direction_states(self, request):
         '''
@@ -277,6 +286,10 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
 
         If no neighbour exists in the specified direction for an electrode,
         leave the current state unchanged.
+
+
+        .. versionchanged:: 2.28.3
+            Log error traceback to debug level.
         '''
         data = decode_content_data(request)
         try:
@@ -294,8 +307,9 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
 
             self.electrode_states = electrode_states.append(neighbour_states)
         except Exception:
-            gtk_threadsafe(ft.partial(logger.error, str(data),
-                                      exc_info=True))()
+            logger = _L()  # use logger with method context
+            logger.debug(str(data), exc_info=True)
+            gtk_threadsafe(ft.partial(logger.error, str(data)))()
 
     def on_execute__get_channel_states(self, request):
         return self.get_channel_states()
