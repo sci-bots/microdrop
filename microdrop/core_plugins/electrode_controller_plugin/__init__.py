@@ -117,7 +117,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
             Call :meth:`parent.set_step_values()` to signal changed options.
             Also, only store states for electrodes that are actuated.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.3
             Ensure each electrode has _at most_ one state represented in
             :data:`electrode_states` (remove any duplicates).
         '''
@@ -265,7 +265,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
 
     def on_execute__set_electrode_states(self, request):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.3
             Log error traceback to debug level.
         '''
         data = decode_content_data(request)
@@ -288,7 +288,7 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
         leave the current state unchanged.
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.28.3
             Log error traceback to debug level.
         '''
         data = decode_content_data(request)
