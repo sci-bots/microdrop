@@ -260,13 +260,18 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
         return self.set_electrode_state(data['electrode_id'], data['state'])
 
     def on_execute__set_electrode_states(self, request):
+        '''
+        .. versionchanged:: X.X.X
+            Log error traceback to debug level.
+        '''
         data = decode_content_data(request)
         try:
             return self.set_electrode_states(data['electrode_states'],
                                              save=data.get('save', True))
         except Exception:
-            gtk_threadsafe(ft.partial(logger.error, str(data),
-                                      exc_info=True))()
+            logger = _L()  # use logger with method context
+            logger.debug(str(data), exc_info=True)
+            gtk_threadsafe(ft.partial(logger.error, str(data)))()
 
     def on_execute__set_electrode_direction_states(self, request):
         '''
@@ -277,6 +282,10 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
 
         If no neighbour exists in the specified direction for an electrode,
         leave the current state unchanged.
+
+
+        .. versionchanged:: X.X.X
+            Log error traceback to debug level.
         '''
         data = decode_content_data(request)
         try:
@@ -294,8 +303,9 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
 
             self.electrode_states = electrode_states.append(neighbour_states)
         except Exception:
-            gtk_threadsafe(ft.partial(logger.error, str(data),
-                                      exc_info=True))()
+            logger = _L()  # use logger with method context
+            logger.debug(str(data), exc_info=True)
+            gtk_threadsafe(ft.partial(logger.error, str(data)))()
 
     def on_execute__get_channel_states(self, request):
         return self.get_channel_states()
