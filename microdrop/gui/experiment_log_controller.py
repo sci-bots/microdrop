@@ -10,11 +10,13 @@ from microdrop_utility.gui import (combobox_set_model_from_list,
                                    combobox_get_active_text)
 from path_helpers import path, resource_copytree
 from pygtkhelpers.delegates import SlaveView
+from pygtkhelpers.gthreads import gtk_threadsafe
 from pygtkhelpers.ui.extra_dialogs import yesno
 from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import NotebookManagerView
 import gtk
 import pkgutil
+import trollius as asyncio
 
 from .. import __version__
 from ..app_context import get_app
@@ -255,9 +257,13 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         if result == gtk.RESPONSE_YES:
             self.save()
 
+    @asyncio.coroutine
     def on_step_run(self):
-        emit_signal('on_step_complete', [self.name, None])
-        self.menu_new_experiment.set_sensitive(True)
+        '''
+        .. versionchanged:: 2.29
+            Convert to coroutine.
+        '''
+        gtk_threadsafe(self.menu_new_experiment.set_sensitive)(True)
 
     def on_treeview_protocol_button_press_event(self, widget, event):
         if event.button == 3:

@@ -799,88 +799,20 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         raise asyncio.Return(actuations)
 
+    @asyncio.coroutine
     def on_step_run(self):
         '''
         .. versionadded:: 2.25
+
+        .. versionchanged:: 2.29
+            Convert to coroutine.
         '''
         app = get_app()
-        # Wrap coroutine to provide `cancel()` method.
-        self._active_actuation = cancellable(self.execute_actuations)
-        # Run asyncio loop in background thread.
-        self._active_actuation.future = \
-            self.executor.submit(self._active_actuation, app.running)
-        future = self._active_actuation.future
-        future.uuid1 = uuid.uuid1()
-        _L().info('apply step actuations (%s)', future.uuid1)
-
-        # Wait for coroutine to finish.
-        @gtk_threadsafe
-        def on_finished(future):
-            try:
-                result = future.result()
-                if app.running:
-                    emit_signal('on_step_complete', [self.name, None])
-                logger = _L()  # use logger with function context
-                logger.info('%d/%d step actuations completed (%s)',
-                            len(result), len(result), future.uuid1)
-                logger.debug('completed actuations: `%s`', result)
-            except asyncio.CancelledError:
-                _L().info('Step was cancelled (%s).', future.uuid1)
-            except Exception as exception:
-                _L().error('Error executing step actuations: %s', exception,
-                           exc_info=True)
-                if app.running:
-                    emit_signal('on_step_complete', [self.name, 'Fail'])
-            finally:
-                self._active_actuation = None
-
-        future.add_done_callback(on_finished)
-
-    def cancel_actuation(self):
-        '''
-        .. versionadded:: 2.25
-        '''
-        if self._active_actuation is not None and\
-                (not hasattr(self._active_actuation, 'future') or
-                 not self._active_actuation.future.done()):
-            _L().debug('Cancel previous actuation.')
-            self._active_actuation.started.wait()
-            # Cancel all asyncio tasks.
-            self._active_actuation.cancel()
-            self._active_actuation = None
-
-        # Disable dynamic states.
-        def _disable_dynamic(result):
-            app = get_app()
-            self._active_actuation = cancellable(self.execute_actuation)
-            static_states = (self.plugin.electrode_states.copy()
-                             if app.realtime_mode else pd.Series())
-            self.executor.submit(self._active_actuation, static_states,
-                                 pd.Series(), duration_s=0)
-
-        if hasattr(self._active_actuation, 'future'):
-            self._active_actuation.future.add_done_callback(_disable_dynamic)
-        else:
-            _disable_dynamic(None)
-
-    def on_step_complete(self, plugin_name, return_value):
-        '''
-        .. versionchanged:: 2.25
-            Cancel actuation coroutine if step did not complete as expected.
-        '''
-        if return_value is not None:
-            # Step did not complete as expected.  Cancel actuation.
-            self.cancel_actuation()
-
-    def on_protocol_pause(self):
-        '''
-        Handler called when a protocol is paused.
-
-
-        .. versionchanged:: 2.25
-        '''
-        # Protocol was paused.  Stop executing current step.
-        self.cancel_actuation()
+        result = yield asyncio.From(self.execute_actuations(app.running))
+        logger = _L()  # use logger with function context
+        logger.info('%d/%d step actuations completed', len(result),
+                    len(result))
+        logger.debug('completed actuations: `%s`', result)
 
     def on_mode_changed(self, old_mode, new_mode):
         '''

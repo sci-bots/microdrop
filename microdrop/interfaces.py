@@ -67,6 +67,11 @@ if 'IPlugin' in PluginGlobals.interface_registry:
     IPlugin = PluginGlobals.interface_registry['IPlugin']
 else:
     class IPlugin(Interface):
+        '''
+        .. versionchanged:: 2.29
+            Deprecate `on_step_complete`.  Step completion is implied by each
+            plugin returning from the respective :meth:`on_step_run` coroutine.
+        '''
         def get_schedule_requests(self, function_name):
             """
 
@@ -312,35 +317,24 @@ else:
             """
             pass
 
+        @asyncio.coroutine
         def on_step_run(self):
             """
+            XXX Coroutine XXX
+
             Handler called whenever a step is executed. Note that this signal
             is only emitted in realtime mode or if a protocol is running.
-
-            Plugins that handle this signal must emit the
-            :meth:`on_step_complete` signal once they have completed the step.
             The protocol controller will wait until all plugins have completed
             the current step before proceeding.
 
             Returns
             -------
-            str or None
+            object
+                JSON serializable object.
 
-             - ``'Repeat'``: repeat the step
-             - ``'Fail'``: unrecoverable error (stop the protocol)
-            """
-            pass
 
-        def on_step_complete(self, plugin_name, return_value=None):
-            """
-            Handler called whenever a plugin completes a step.
-
-            Returns
-            -------
-            str or None
-
-             - ``'Repeat'``: repeat the step
-             - ``'Fail'``: unrecoverable error (stop the protocol)
+            .. versionchanged:: 2.29
+                Change to a coroutine.
             """
             pass
 

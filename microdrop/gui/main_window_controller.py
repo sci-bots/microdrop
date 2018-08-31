@@ -14,6 +14,7 @@ from microdrop_utility.gui import DEFAULTS
 import gobject
 import gtk
 import pkgutil
+import trollius as asyncio
 try:
     import pudb
     PUDB_AVAILABLE = True
@@ -573,6 +574,7 @@ class MainWindowController(SingletonPlugin):
         '''
         self.reset_step_timeout()
 
+    @asyncio.coroutine
     def on_step_run(self):
         '''
          - Store start time of step.
@@ -580,20 +582,24 @@ class MainWindowController(SingletonPlugin):
 
         .. versionchanged:: 2.11.2
             Schedule label update asynchronously to occur in the main GTK loop.
+
+        .. versionchanged:: 2.29
+            Convert to coroutine.
         '''
-        self.step_start_time = datetime.utcnow()
-
-        def update_time_label():
-            elapsed_time = datetime.utcnow() - self.step_start_time
-            gobject.idle_add(self.label_step_time.set_text,
-                             str(elapsed_time).split('.')[0])
-            return True
-
         # A new step is starting to run.  Reset step timer.
         self.reset_step_timeout()
-        # Update step time label once per second.
-        self.step_timeout_id = gtk.timeout_add(1000, update_time_label)
-        emit_signal('on_step_complete', [self.name, None])
+
+        app = get_app()
+        if app.running:
+            self.step_start_time = datetime.utcnow()
+
+            def update_time_label():
+                elapsed_time = datetime.utcnow() - self.step_start_time
+                self.label_step_time.set_text(str(elapsed_time).split('.')[0])
+                return True
+
+            # Update step time label once per second.
+            self.step_timeout_id = gtk.timeout_add(1000, update_time_label)
 
     def reset_step_timeout(self):
         '''
@@ -605,7 +611,8 @@ class MainWindowController(SingletonPlugin):
         '''
         if self.step_timeout_id is not None:
             gobject.source_remove(self.step_timeout_id)
-        gobject.idle_add(self.label_step_time.set_text, '-')
+            self.step_timeout_id = None
+        gtk_threadsafe(self.label_step_time.set_text)('-')
 
     @gtk_threadsafe
     def on_mode_changed(self, old_mode, new_mode):
