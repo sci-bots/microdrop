@@ -603,6 +603,10 @@ version of the software.'''.strip(), filename, why.future_version,
         .. versionchanged:: 2.29
             Refactor to run `on_step_run()` calls as `asyncio.coroutine`
             functions.
+
+        .. versionchanged:: 2.29.1
+            Pause protocol if any plugin encountered an exception during
+            ``on_step_run`` and display an error message.
         '''
         # Cancel any current step executions.
         while True:
@@ -645,8 +649,28 @@ version of the software.'''.strip(), filename, why.future_version,
                     raise RuntimeError('Some plugins did not finish `%s`.',
                                        pending)
 
+                exceptions = []
+
                 for d in done:
-                    d.result()
+                    try:
+                        d.result()
+                    except Exception as exception:
+                        exceptions.append(exception)
+
+                if exceptions:
+                    self.pause_protocol()
+
+                    use_markup = False
+                    monospace_format = '<tt>%s</tt>' if use_markup else '%s'
+
+                    if len(exceptions) == 1:
+                        message = (' ' + monospace_format % exceptions[0])
+                    elif exceptions:
+                        message = ('\n%s' % '\n'.join(' - ' + monospace_format
+                                                      % e for e in exceptions))
+
+                    gtk_threadsafe(_L().error)('Error executing step:%s',
+                                               message)
 
                 # All plugins have completed the current step, go to the next step.
                 _L().info('all plugins reported step %d completed.', step)

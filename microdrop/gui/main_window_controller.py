@@ -87,6 +87,10 @@ class MainWindowController(SingletonPlugin):
         .. versionchanged:: 2.21
             Read glade file using ``pkgutil`` to also support loading from
             ``.zip`` files (e.g., in app packaged with Py2Exe).
+
+        .. versionchanged:: 2.29.1
+            Add mnemonic accelerators to ``De_bug`` and ``_IPython`` advance UI
+            menu items.
         '''
         app = get_app()
         # Read glade file using `pkgutil` to also support loading from `.zip`
@@ -179,10 +183,11 @@ class MainWindowController(SingletonPlugin):
         if app.config.data.get('advanced_ui', False):
             import IPython
 
-            self.debug_menu_item = gtk.MenuItem('Debug...')
+            self.debug_menu_item = gtk.MenuItem('De_bug...')
             self.debug_menu_item.show()
-            self.ipython_menu_item = gtk.MenuItem('IPython...')
+            self.ipython_menu_item = gtk.MenuItem('_IPython...')
             self.ipython_menu_item.show()
+
 
             def activate_debugger(parent):
                 try:
