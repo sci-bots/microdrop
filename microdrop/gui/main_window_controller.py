@@ -88,7 +88,7 @@ class MainWindowController(SingletonPlugin):
             Read glade file using ``pkgutil`` to also support loading from
             ``.zip`` files (e.g., in app packaged with Py2Exe).
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.29.1
             Add mnemonic accelerators to ``De_bug`` and ``_IPython`` advance UI
             menu items.
         '''

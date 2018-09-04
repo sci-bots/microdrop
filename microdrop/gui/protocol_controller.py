@@ -604,7 +604,7 @@ version of the software.'''.strip(), filename, why.future_version,
             Refactor to run `on_step_run()` calls as `asyncio.coroutine`
             functions.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.29.1
             Pause protocol if any plugin encountered an exception during
             ``on_step_run`` and display an error message.
         '''
