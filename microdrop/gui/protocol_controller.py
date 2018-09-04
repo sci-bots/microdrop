@@ -1,5 +1,6 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+import copy
 import os
 import logging
 import shutil
@@ -620,6 +621,7 @@ version of the software.'''.strip(), filename, why.future_version,
                         pass
             except Queue.Empty:
                 break
+
         app = get_app()
         if app.protocol and app.dmf_device and (app.realtime_mode or
                                                 app.running):
@@ -627,15 +629,19 @@ version of the software.'''.strip(), filename, why.future_version,
                 app.experiment_log.add_step(app.protocol.current_step_number,
                                             app.protocol.current_step_attempt)
 
+            # Take snapshot of arguments for current step.
+            plugin_arguments = copy.deepcopy(app.protocol.current_step()
+                                             .plugin_data)
+
             # Get list of coroutine futures by emitting `on_step_run()`.
             # XXX Coroutines are actually executed in background thread
             # referenced by `future` below.
-            plugin_step_tasks = emit_signal("on_step_run")
+            plugin_step_tasks = emit_signal("on_step_run", plugin_arguments)
             step_task = cancellable(asyncio.wait)
             future = self.executor.submit(step_task,
                                           plugin_step_tasks.values())
             self.step_execution_queue.put((step_task, future))
-            step = app.protocol.current_step_number
+            step_number = app.protocol.current_step_number
 
             def _on_step_complete(future):
                 try:
@@ -673,7 +679,7 @@ version of the software.'''.strip(), filename, why.future_version,
                                                message)
 
                 # All plugins have completed the current step, go to the next step.
-                _L().info('all plugins reported step %d completed.', step)
+                _L().info('all plugins reported step %d completed.', step_number)
 
                 @gtk_threadsafe
                 def _next_action():

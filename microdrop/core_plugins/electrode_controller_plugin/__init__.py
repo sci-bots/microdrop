@@ -5,9 +5,8 @@ import functools as ft
 import logging
 import pprint
 import threading
-import uuid
 
-from asyncio_helpers import cancellable, sync
+from asyncio_helpers import sync
 from flatland import Float, Form
 from flatland.validation import ValueAtLeast
 from logging_helpers import _L, caller_name
@@ -482,7 +481,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             _L().debug('ZeroMQ plugin not ready.')
 
     @asyncio.coroutine
-    def execute_actuation(self, static_states, dynamic_states, duration_s):
+    def execute_actuation(self, static_states, dynamic_states, voltage,
+                          frequency, duration_s):
         '''
         .. versionadded:: 2.25
 
@@ -498,6 +498,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             `"electrode001"`).
         dynamic_states : pandas.Series
             Dynamic electrode actuation states, indexed by electrode ID.
+        voltage : float
+            Actuation amplitude as RMS AC voltage (in volts).
+        frequency : float
+            Actuation frequency (in Hz).
         duration_s : float
             Actuation duration (in seconds).  If not specified, use value from
             step options.
@@ -522,6 +526,9 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         .. versionchanged:: 2.28.2
             Allow user to optionally ignore failed actuations.
+
+        .. versionchanged:: X.X.X
+            Add `voltage` and `frequency` parameters.
         '''
         # Notify other ZMQ plugins that `dynamic_electrodes_states` have
         # changed.
@@ -550,10 +557,6 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         # electrodes to actuate.
         s_electrodes_to_actuate = \
             pd.Series(True, index=sorted(electrodes_to_actuate))
-
-        step_options = self.get_step_options()
-        voltage = step_options['Voltage (V)']
-        frequency = step_options['Frequency (Hz)']
 
         def set_waveform(key, value):
             try:
@@ -698,7 +701,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                   sorted(actuated_electrodes)})
 
     @asyncio.coroutine
-    def execute_actuations(self, dynamic=False):
+    def execute_actuations(self, voltage, frequency, duration_s=0,
+                           dynamic=False):
         '''
         .. versionadded:: 2.25
 
@@ -715,6 +719,18 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         Parameters
         ----------
+        voltage : float
+            Actuation amplitude as RMS AC voltage (in volts).
+
+            .. versionadded:: X.X.X
+        frequency : float
+            Actuation frequency (in Hz).
+
+            .. versionadded:: X.X.X
+        duration_s : float, optional
+            Actuation duration (in seconds).
+
+            .. versionadded:: X.X.X
         dynamic : bool, optional
             If ``True``, query `IElectrodeMutator` plugins for **dynamic**
             actuation states.  Otherwise, only apply local **static** electrode
@@ -738,6 +754,12 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             On steps with dynamic actuations, set duration to zero during final
             loop duration to effectively disable previous dynamic actuations
             before completing the step.
+
+        .. versionchanged:: X.X.X
+            Refactor to decouple from ``StepOptionsController`` by using
+            :data:`plugin_kwargs` instead of reading parameters using
+            :meth:`get_step_options()`.  Add `voltage`, `frequency`, and
+            `duration_s` parameters.
         '''
         def _get_dynamic_states():
             # Merge received actuation states from requests with
@@ -781,13 +803,11 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                          dynamic_electrode_states.shape[0] < 1]),
                     app.mode & MODE_REAL_TIME_MASK & ~MODE_RUNNING_MASK)):
                 duration_s = 0
-            else:
-                step_options = self.get_step_options()
-                duration_s = step_options.get('Duration (s)', 0)
 
             # Execute **static** and **dynamic** electrode states actuation.
             actuation_task = self.execute_actuation(step_states,
                                                     dynamic_electrode_states,
+                                                    voltage, frequency,
                                                     duration_s)
             actuated_electrodes = yield asyncio.From(actuation_task)
             actuations.append(actuated_electrodes)
@@ -800,15 +820,27 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         raise asyncio.Return(actuations)
 
     @asyncio.coroutine
-    def on_step_run(self):
+    def on_step_run(self, plugin_kwargs):
         '''
         .. versionadded:: 2.25
 
         .. versionchanged:: 2.29
             Convert to coroutine.
+
+        .. versionchanged:: X.X.X
+            Refactor to decouple from ``StepOptionsController`` by using
+            :data:`plugin_kwargs` instead of reading parameters using
+            :meth:`get_step_options()`.
         '''
         app = get_app()
-        result = yield asyncio.From(self.execute_actuations(app.running))
+        kwargs = plugin_kwargs[self.name]
+        voltage = kwargs['Voltage (V)']
+        frequency = kwargs['Frequency (Hz)']
+        duration_s = kwargs['Duration (s)']
+        result = yield asyncio.From(self.execute_actuations(voltage, frequency,
+                                                            duration_s,
+                                                            dynamic=app
+                                                            .running))
         logger = _L()  # use logger with function context
         logger.info('%d/%d step actuations completed', len(result),
                     len(result))

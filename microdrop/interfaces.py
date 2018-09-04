@@ -318,7 +318,7 @@ else:
             pass
 
         @asyncio.coroutine
-        def on_step_run(self):
+        def on_step_run(self, plugin_kwargs):
             """
             XXX Coroutine XXX
 
@@ -326,6 +326,11 @@ else:
             is only emitted in realtime mode or if a protocol is running.
             The protocol controller will wait until all plugins have completed
             the current step before proceeding.
+
+            Parameters
+            ----------
+            plugin_kwargs : dict
+                Plugin settings as JSON serializable dictionary.
 
             Returns
             -------
@@ -335,6 +340,11 @@ else:
 
             .. versionchanged:: 2.29
                 Change to a coroutine.
+
+            .. versionchanged:: X.X.X
+                Refactor to decouple from ``StepOptionsController`` by using
+                :data:`plugin_kwargs` instead of reading parameters using
+                :meth:`get_step_options()`.
             """
             pass
 
