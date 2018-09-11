@@ -21,8 +21,8 @@ import zmq
 
 from ...app_context import (get_app, get_hub_uri, MODE_RUNNING_MASK,
                             MODE_REAL_TIME_MASK)
-from ...interfaces import (IApplicationMode, IElectrodeActuator,
-                           IElectrodeController, IElectrodeMutator)
+from ...interfaces import (IApplicationMode, IElectrodeController,
+                           IElectrodeMutator)
 from ...plugin_helpers import (StepOptionsController, AppDataController,
                                hub_execute, hub_execute_async)
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
@@ -537,6 +537,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         .. versionchanged:: X.X.X
             Add `signals`, `voltage` and `frequency` parameters.  Refactor the
             to set waveform parameters using ``signals`` namespace instead.
+
+        .. versionchanged:: X.X.X
+            Refactor electrode actuation requests to use :data:`signals`
+            interface instead of using pyutilib :func:`emit_signal()`.
         '''
         # Notify other ZMQ plugins that `dynamic_electrodes_states` have
         # changed.
@@ -614,10 +618,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 _L().info('%s set to %s%s (receivers: `%s`)', key,
                           si.si_format(value), unit, zip(*waveform_result)[0])
 
-        electrode_actuators = emit_signal('on_actuation_request',
-                                          args=[s_electrodes_to_actuate,
-                                                duration_s],
-                                          interface=IElectrodeActuator)
+        electrode_actuators = signals.signal('on-actuation-request')\
+            .send(s_electrodes_to_actuate, duration_s=duration_s)
 
         if not electrode_actuators:
             if not 'actuators' in self.warnings_ignoring:
@@ -646,7 +648,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 # Simulate actuation by waiting for specified duration.
                 yield asyncio.From(asyncio.sleep(duration_s))
         else:
-            actuation_tasks = electrode_actuators.values()
+            actuation_tasks = zip(*electrode_actuators)[1]
 
             # Wait for actuations to complete.
             start = dt.datetime.now()
