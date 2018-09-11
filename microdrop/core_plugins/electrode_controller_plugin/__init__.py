@@ -21,12 +21,11 @@ import zmq
 
 from ...app_context import (get_app, get_hub_uri, MODE_RUNNING_MASK,
                             MODE_REAL_TIME_MASK)
-from ...interfaces import (IApplicationMode, IElectrodeController,
-                           IElectrodeMutator)
+from ...interfaces import (IApplicationMode, IElectrodeController)
 from ...plugin_helpers import (StepOptionsController, AppDataController,
                                hub_execute, hub_execute_async)
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
-                               implements, emit_signal, ScheduleRequest)
+                               implements, ScheduleRequest)
 
 logger = logging.getLogger(__name__)
 
@@ -784,29 +783,35 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             :data:`plugin_kwargs` instead of reading parameters using
             :meth:`get_step_options()`.  Add `signals`, `voltage`, `frequency`,
             and `duration_s` parameters.
+
+        .. versionchanged:: X.X.X
+            Refactor to request dynamic electrode states through
+            :data:`signals` interface instead of using pyutilib
+            :func:`emit_signal()`.
         '''
+        @asyncio.coroutine
         def _get_dynamic_states():
             # Merge received actuation states from requests with
             # explicit states stored by this plugin.
-            responses = emit_signal('get_electrode_states_request',
-                                    interface=IElectrodeMutator)
-            actuation_requests = {k: v for k, v in responses.items()
-                                if v is not None}
+            requests = []
 
-            if actuation_requests:
-                logger = _L()
-                if logger.getEffectiveLevel() >= logging.DEBUG:
-                    for plugin_name_i, actuation_request_i in \
-                            actuation_requests.iteritems():
-                        message = ('plugin: %s, actuation_request=%s' %
-                                   (plugin_name_i, actuation_request_i))
-                        map(logger.debug, message.splitlines())
+            responses = signals.signal('get-electrode-states-request').send()
 
-                return pd.concat([actuation_request_i[actuation_request_i > 0]
-                                  for actuation_request_i in
-                                  actuation_requests.itervalues()])
+            for receiver_i, co_callback_i in responses:
+                request_i = yield asyncio.From(co_callback_i)
+                if request_i is not None:
+                    requests.append(request_i)
+                    logger = _L()
+                    if logger.getEffectiveLevel() >= logging.DEBUG:
+                            message = ('receiver: %s, actuation_request=%s'
+                                        % (receiver_i, request_i))
+                            map(logger.debug, message.splitlines())
+
+            if requests:
+                combined_states = pd.concat([r[r > 0] for r in requests])
             else:
-                return pd.Series()
+                combined_states = pd.Series()
+            raise asyncio.Return(combined_states)
 
         actuations = []
 
@@ -821,7 +826,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 dynamic_electrode_states = pd.Series()
             else:
                 # Request dynamic states from `IElectrodeMutator` plugins.
-                dynamic_electrode_states = _get_dynamic_states()
+                dynamic_electrode_states =\
+                    yield asyncio.From(_get_dynamic_states())
 
             if any((all([dynamic, i >= 1,
                          dynamic_electrode_states.shape[0] < 1]),
