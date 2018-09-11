@@ -22,8 +22,7 @@ import zmq
 from ...app_context import (get_app, get_hub_uri, MODE_RUNNING_MASK,
                             MODE_REAL_TIME_MASK)
 from ...interfaces import (IApplicationMode, IElectrodeActuator,
-                           IElectrodeController, IElectrodeMutator,
-                           IWaveformGenerator)
+                           IElectrodeController, IElectrodeMutator)
 from ...plugin_helpers import (StepOptionsController, AppDataController,
                                hub_execute, hub_execute_async)
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
@@ -481,8 +480,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             _L().debug('ZeroMQ plugin not ready.')
 
     @asyncio.coroutine
-    def execute_actuation(self, static_states, dynamic_states, voltage,
-                          frequency, duration_s):
+    def execute_actuation(self, signals, static_states, dynamic_states,
+                          voltage, frequency, duration_s):
         '''
         .. versionadded:: 2.25
 
@@ -493,6 +492,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         Parameters
         ----------
+        signals : blinker.Namespace
+            Signals namespace.
+
+            .. versionadded:: X.X.X
         static_states : pandas.Series
             Static electrode actuation states, indexed by electrode ID, (e.g.,
             `"electrode001"`).
@@ -500,8 +503,12 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             Dynamic electrode actuation states, indexed by electrode ID.
         voltage : float
             Actuation amplitude as RMS AC voltage (in volts).
+
+            .. versionadded:: X.X.X
         frequency : float
             Actuation frequency (in Hz).
+
+            .. versionadded:: X.X.X
         duration_s : float
             Actuation duration (in seconds).  If not specified, use value from
             step options.
@@ -528,7 +535,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             Allow user to optionally ignore failed actuations.
 
         .. versionchanged:: X.X.X
-            Add `voltage` and `frequency` parameters.
+            Add `signals`, `voltage` and `frequency` parameters.  Refactor the
+            to set waveform parameters using ``signals`` namespace instead.
         '''
         # Notify other ZMQ plugins that `dynamic_electrodes_states` have
         # changed.
@@ -558,21 +566,33 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         s_electrodes_to_actuate = \
             pd.Series(True, index=sorted(electrodes_to_actuate))
 
+        @asyncio.coroutine
         def set_waveform(key, value):
-            try:
-                result = emit_signal("set_%s" % key, value,
-                                     interface=IWaveformGenerator)
-                if result:
-                    return result
-            except Exception as exception:
-                result = exception
+            exception = None
+            result = signals.signal('set-%s' % key).send(value)
+            if result:
+                try:
+                    receivers, co_callbacks = zip(*result)
+                    if receivers:
+                        results = yield asyncio.From(asyncio
+                                                     .gather(*co_callbacks))
+                except Exception as exception:
+                    pass
+                else:
+                    if receivers:
+                        raise asyncio.Return(zip(receivers, results))
 
             if not key in self.warnings_ignoring:
-                response = ignorable_warning(title='Warning: failed to set '
-                                             '%s' % key, text='No waveform '
-                                             'generators available to set '
-                                             '<b>%s</b>.' % key,
-                                             use_markup=True)
+                if exception is not None:
+                    message = ('Error setting <b>%s</b>: <tt>%s</tt>' %
+                               (key, exception))
+                else:
+                    message = ('No waveform generators available to set '
+                               '<b>%s</b>.' % key)
+                response = yield asyncio.From(sync(gtk_threadsafe)
+                    (ft.partial(ignorable_warning, title='Warning: failed to '
+                                'set %s' % key, text=message,
+                                use_markup=True))())
                 if response['always']:
                     self.warnings_ignoring[key] = response['ignore']
                 ignore = response['ignore']
@@ -580,21 +600,19 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 ignore = self.warnings_ignoring[key]
 
             if not ignore:
-                return RuntimeError('No waveform generators available to set '
-                                    '%s to %s' % (key, value))
+                raise asyncio.Return(RuntimeError('No waveform generators '
+                                                  'available to set %s to %s' %
+                                                  (key, value)))
 
         for key, value, unit in (('frequency', frequency, 'Hz'),
                                  ('voltage', voltage, 'V')):
-            # Apply waveform in main (i.e., Gtk) thread.
-            waveform_result = \
-                yield asyncio.From(sync(gtk_threadsafe)
-                                   (ft.partial(set_waveform, key, value))())
+            waveform_result = yield asyncio.From(set_waveform(key, value))
 
             if isinstance(waveform_result, Exception):
                 raise waveform_result
             elif waveform_result:
-                _L().info('%s set to %s%s (plugins: `%s`)', key,
-                          si.si_format(value), unit, waveform_result.keys())
+                _L().info('%s set to %s%s (receivers: `%s`)', key,
+                          si.si_format(value), unit, zip(*waveform_result)[0])
 
         electrode_actuators = emit_signal('on_actuation_request',
                                           args=[s_electrodes_to_actuate,
@@ -701,7 +719,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                   sorted(actuated_electrodes)})
 
     @asyncio.coroutine
-    def execute_actuations(self, voltage, frequency, duration_s=0,
+    def execute_actuations(self, signals, voltage, frequency, duration_s=0,
                            dynamic=False):
         '''
         .. versionadded:: 2.25
@@ -719,6 +737,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
 
         Parameters
         ----------
+        signals : blinker.Namespace
+            Signals namespace.
+
+            .. versionadded:: X.X.X
         voltage : float
             Actuation amplitude as RMS AC voltage (in volts).
 
@@ -758,8 +780,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         .. versionchanged:: X.X.X
             Refactor to decouple from ``StepOptionsController`` by using
             :data:`plugin_kwargs` instead of reading parameters using
-            :meth:`get_step_options()`.  Add `voltage`, `frequency`, and
-            `duration_s` parameters.
+            :meth:`get_step_options()`.  Add `signals`, `voltage`, `frequency`,
+            and `duration_s` parameters.
         '''
         def _get_dynamic_states():
             # Merge received actuation states from requests with
@@ -805,7 +827,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 duration_s = 0
 
             # Execute **static** and **dynamic** electrode states actuation.
-            actuation_task = self.execute_actuation(step_states,
+            actuation_task = self.execute_actuation(signals, step_states,
                                                     dynamic_electrode_states,
                                                     voltage, frequency,
                                                     duration_s)
@@ -830,7 +852,15 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         .. versionchanged:: X.X.X
             Refactor to decouple from ``StepOptionsController`` by using
             :data:`plugin_kwargs` instead of reading parameters using
-            :meth:`get_step_options()`.
+            :meth:`get_step_options()`.  Accept :data:`signals` blinker signals
+            namespace parameter.
+
+        Parameters
+        ----------
+        plugin_kwargs : dict
+            Plugin settings as JSON serializable dictionary.
+        signals : blinker.Namespace
+            Signals namespace.
         '''
         # Wait for plugins to connect to signals as necessary.
         event = asyncio.Event()
@@ -846,7 +876,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         voltage = kwargs['Voltage (V)']
         frequency = kwargs['Frequency (Hz)']
         duration_s = kwargs['Duration (s)']
-        result = yield asyncio.From(self.execute_actuations(voltage, frequency,
+        result = yield asyncio.From(self.execute_actuations(signals, voltage,
+                                                            frequency,
                                                             duration_s,
                                                             dynamic=app
                                                             .running))
