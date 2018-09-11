@@ -318,7 +318,7 @@ else:
             pass
 
         @asyncio.coroutine
-        def on_step_run(self, plugin_kwargs):
+        def on_step_run(self, plugin_kwargs, signals):
             """
             XXX Coroutine XXX
 
@@ -331,6 +331,17 @@ else:
             ----------
             plugin_kwargs : dict
                 Plugin settings as JSON serializable dictionary.
+            signals : blinker.Namespace
+                Signals namespace.
+                .. warning::
+                    Plugins **MUST**::
+                    - connect blinker :data:`signals` callbacks before any
+                      yielding call (e.g., ``yield asyncio.From(...)``) in the
+                      ``on_step_run()`` coroutine; **_and_**
+                    - wait for the ``'signals-connected'`` blinker signal to be
+                      sent before sending any signal to ensure all other
+                      plugins have had a chance to connect any relevant
+                      callbacks.
 
             Returns
             -------
@@ -344,7 +355,8 @@ else:
             .. versionchanged:: X.X.X
                 Refactor to decouple from ``StepOptionsController`` by using
                 :data:`plugin_kwargs` instead of reading parameters using
-                :meth:`get_step_options()`.
+                :meth:`get_step_options()`.  Add :data:`signals` parameter as a
+                signals namespace for plugins during step execution.
             """
             pass
 

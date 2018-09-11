@@ -13,6 +13,7 @@ from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
 from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
+import blinker
 import gobject
 import gtk
 import path_helpers as ph
@@ -608,6 +609,23 @@ version of the software.'''.strip(), filename, why.future_version,
         .. versionchanged:: 2.29.1
             Pause protocol if any plugin encountered an exception during
             ``on_step_run`` and display an error message.
+
+        .. versionchanged:: X.X.X
+            Refactor pass plugin step options as :data:`plugin_kwargs` argument
+            to ``on_step_run()`` signal instead of each plugin reading
+            parameters using :meth:`get_step_options()`.to decouple from
+            ``StepOptionsController``.  Send :data:`signals` parameter to
+            ``on_step_run()`` signal as well, as a signals namespace for
+            plugins during step execution.
+
+            .. warning::
+                Plugins **MUST**::
+                - connect blinker :data:`signals` callbacks before any
+                  yielding call (e.g., ``yield asyncio.From(...)``) in the
+                  ``on_step_run()`` coroutine; **_and_**
+                - wait for the ``'signals-connected'`` blinker signal to be
+                  sent before sending any signal to ensure all other plugins
+                  have had a chance to connect any relevant callbacks.
         '''
         # Cancel any current step executions.
         while True:
@@ -633,14 +651,31 @@ version of the software.'''.strip(), filename, why.future_version,
             plugin_arguments = copy.deepcopy(app.protocol.current_step()
                                              .plugin_data)
 
-            # Get list of coroutine futures by emitting `on_step_run()`.
-            # XXX Coroutines are actually executed in background thread
-            # referenced by `future` below.
-            plugin_step_tasks = emit_signal("on_step_run", plugin_arguments)
-            step_task = cancellable(asyncio.wait)
-            future = self.executor.submit(step_task,
-                                          plugin_step_tasks.values())
-            self.step_execution_queue.put((step_task, future))
+            @cancellable
+            @asyncio.coroutine
+            def _step_task():
+                signals = blinker.Namespace()
+
+                @asyncio.coroutine
+                def notify_signals_connected():
+                    yield asyncio.From(asyncio.sleep(0))
+                    signals.signal('signals-connected').send(None)
+
+                loop = asyncio.get_event_loop()
+                # Get list of coroutine futures by emitting `on_step_run()`.
+                plugin_step_tasks = emit_signal("on_step_run",
+                                                args=[plugin_arguments,
+                                                      signals])
+                future = asyncio.wait(plugin_step_tasks.values())
+                #
+                loop.create_task(notify_signals_connected())
+                result = yield asyncio.From(future)
+                raise asyncio.Return(result)
+
+            # XXX Execute `on_step_run` coroutines in background thread
+            # event-loop.
+            future = self.executor.submit(_step_task)
+            self.step_execution_queue.put((_step_task, future))
             step_number = app.protocol.current_step_number
 
             def _on_step_complete(future):

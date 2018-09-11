@@ -820,7 +820,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         raise asyncio.Return(actuations)
 
     @asyncio.coroutine
-    def on_step_run(self, plugin_kwargs):
+    def on_step_run(self, plugin_kwargs, signals):
         '''
         .. versionadded:: 2.25
 
@@ -832,6 +832,15 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             :data:`plugin_kwargs` instead of reading parameters using
             :meth:`get_step_options()`.
         '''
+        # Wait for plugins to connect to signals as necessary.
+        event = asyncio.Event()
+
+        def _on_connected(*args):
+            event.set()
+
+        signals.signal('signals-connected').connect(_on_connected, weak=False)
+        yield asyncio.From(event.wait())
+
         app = get_app()
         kwargs = plugin_kwargs[self.name]
         voltage = kwargs['Voltage (V)']
