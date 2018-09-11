@@ -611,6 +611,9 @@ version of the software.'''.strip(), filename, why.future_version,
             ``on_step_run`` and display an error message.
 
         .. versionchanged:: X.X.X
+            Fix protocol repeats.
+
+        .. versionchanged:: X.X.X
             Refactor pass plugin step options as :data:`plugin_kwargs` argument
             to ``on_step_run()`` signal instead of each plugin reading
             parameters using :meth:`get_step_options()`.to decouple from
@@ -718,10 +721,15 @@ version of the software.'''.strip(), filename, why.future_version,
 
                 @gtk_threadsafe
                 def _next_action():
-                    app.protocol.current_step_attempt = 0
-                    if app.protocol.current_step_number < len(app.protocol) - 1:
+                    protocol = app.protocol
+                    protocol.current_step_attempt = 0
+                    if protocol.current_step_number < len(protocol) - 1:
                         logger.debug('Execute next step.')
-                        app.protocol.next_step()
+                        protocol.next_step()
+                    elif protocol.current_repetition < (protocol.n_repeats -
+                                                        1):
+                        logger.debug('Repeat entire protocol again.')
+                        protocol.next_repetition()
                     else:  # we're on the last step
                         logger.info('Protocol completed.  Stop execution.')
                         self.pause_protocol()
