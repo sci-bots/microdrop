@@ -568,7 +568,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 result = exception
 
             if not key in self.warnings_ignoring:
-                response = ignorable_warning(title='Warning: failed to  set '
+                response = ignorable_warning(title='Warning: failed to set '
                                              '%s' % key, text='No waveform '
                                              'generators available to set '
                                              '<b>%s</b>.' % key,
