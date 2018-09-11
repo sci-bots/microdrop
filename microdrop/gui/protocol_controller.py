@@ -583,6 +583,11 @@ version of the software.'''.strip(), filename, why.future_version,
         self.goto_step(app.protocol.current_step_number)
 
     def pause_protocol(self):
+        '''
+        .. versionchanged:: X.X.X
+            Cancel any currently executing steps.
+        '''
+        self.cancel_steps()
         app = get_app()
         app.running = False
         app.protocol.current_step_attempt = 0
@@ -596,6 +601,24 @@ version of the software.'''.strip(), filename, why.future_version,
         self.button_prev_step.set_sensitive(sensitive)
         self.button_next_step.set_sensitive(sensitive)
         self.button_last_step.set_sensitive(sensitive)
+
+    def cancel_steps(self):
+        '''
+        .. versionadded:: X.X.X
+
+        Cancel any current step executions.
+        '''
+        while True:
+            try:
+                step_task, future = self.step_execution_queue.get_nowait()
+                if not future.done():
+                    _L().info('Cancel running step.')
+                    try:
+                        step_task.cancel()
+                    except RuntimeError:
+                        pass
+            except Queue.Empty:
+                break
 
     def run_step(self):
         '''
@@ -630,19 +653,7 @@ version of the software.'''.strip(), filename, why.future_version,
                   sent before sending any signal to ensure all other plugins
                   have had a chance to connect any relevant callbacks.
         '''
-        # Cancel any current step executions.
-        while True:
-            try:
-                step_task, future = self.step_execution_queue.get_nowait()
-                if not future.done():
-                    _L().info('Cancel running step.')
-                    try:
-                        step_task.cancel()
-                    except RuntimeError:
-                        pass
-            except Queue.Empty:
-                break
-
+        self.cancel_steps()
         app = get_app()
         if app.protocol and app.dmf_device and (app.realtime_mode or
                                                 app.running):
