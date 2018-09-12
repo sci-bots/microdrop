@@ -318,7 +318,6 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         self.stopped = threading.Event()
         self._active_actuation = None
         self.executor = ThreadPoolExecutor(max_workers=1)
-        self.warnings_ignoring = dict()
 
     @property
     def AppFields(self):
@@ -843,16 +842,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         '''
         .. versionadded:: 2.25
         '''
-        _L().info('Mode changed: `%s` -> `%s`', old_mode, new_mode)
-        if (all([(old_mode & ~MODE_REAL_TIME_MASK),
-                 (new_mode & MODE_REAL_TIME_MASK),
-                 (new_mode & ~MODE_RUNNING_MASK)]) or
-            all([(old_mode & ~MODE_RUNNING_MASK),
-                 (new_mode & MODE_RUNNING_MASK)])):
-            # Either real-time mode was enabled when it wasn't before or
-            # protocol just started running.
-            # Reset to not ignoring any warnings.
-            self.warnings_ignoring.clear()
+        pass
 
     def get_schedule_requests(self, function_name):
         '''
