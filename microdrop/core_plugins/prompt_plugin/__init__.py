@@ -17,7 +17,8 @@ import gtk
 import jsonschema
 import trollius as asyncio
 
-from ...app_context import get_app
+from ...app_context import get_app, MODE_RUNNING_MASK, MODE_REAL_TIME_MASK
+from ...interfaces import IApplicationMode
 from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
                                implements)
 
@@ -278,6 +279,7 @@ class PromptPlugin(SingletonPlugin):
     Plugin to query for input through prompt GUI dialogs.
     '''
     implements(IPlugin)
+    implements(IApplicationMode)
     plugin_name = 'microdrop.prompt_plugin'
 
     def __init__(self):
@@ -321,5 +323,17 @@ class PromptPlugin(SingletonPlugin):
         signals.signal('acknowledge').connect(acknowledge)
         signals.signal('input').connect(schema_input)
         signals.signal('warning').connect(_on_warning, weak=False)
+
+    def on_mode_changed(self, old_mode, new_mode):
+        if (all([(old_mode & ~MODE_REAL_TIME_MASK),
+                 (new_mode & MODE_REAL_TIME_MASK),
+                 (new_mode & ~MODE_RUNNING_MASK)]) or
+            all([(old_mode & ~MODE_RUNNING_MASK),
+                 (new_mode & MODE_RUNNING_MASK)])):
+            # Either real-time mode was enabled when it wasn't before or
+            # protocol just started running.
+            # Reset to not ignoring any warnings.
+            self.ignore_warnings.clear()
+
 
 PluginGlobals.pop_env()
