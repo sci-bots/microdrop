@@ -308,6 +308,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
     This class is automatically registered with the PluginManager.
     """
     implements(IPlugin)
+    implements(IApplicationMode)
     implements(IElectrodeController)
     implements(IApplicationMode)
     plugin_name = 'microdrop.electrode_controller_plugin'
@@ -833,6 +834,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                                             duration_s,
                                                             dynamic=app
                                                             .running))
+
         logger = _L()  # use logger with function context
         logger.info('%d/%d step actuations completed', len(result),
                     len(result))
@@ -841,8 +843,20 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
     def on_mode_changed(self, old_mode, new_mode):
         '''
         .. versionadded:: 2.25
+
+        .. versionchanged:: X.X.X
+            Clear dynamic electrode states when protocol is stopped or
+            real-time mode is disabled.
         '''
-        pass
+        if (all([(old_mode & MODE_REAL_TIME_MASK),
+                 (new_mode & ~MODE_REAL_TIME_MASK),
+                 (new_mode & ~MODE_RUNNING_MASK)]) or
+            all([(old_mode & MODE_RUNNING_MASK),
+                 (new_mode & ~MODE_RUNNING_MASK)])):
+            # Either real-time mode was disabled when it was enabled or
+            # protocol just stopped running.
+            hub_execute_async(self.name, 'set_dynamic_electrode_states',
+                              electrode_states=pd.Series())
 
     def get_schedule_requests(self, function_name):
         '''
