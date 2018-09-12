@@ -41,6 +41,7 @@ def initialize_core_plugins():
     from .core_plugins import command_plugin
     from .core_plugins import device_info_plugin
     from .core_plugins import electrode_controller_plugin
+    from .core_plugins import prompt_plugin
     from .gui import experiment_log_controller
     from .gui import config_controller
     from .gui import main_window_controller
