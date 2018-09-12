@@ -6,7 +6,6 @@ import logging
 import pprint
 import threading
 
-from asyncio_helpers import sync
 from flatland import Float, Form
 from flatland.validation import ValueAtLeast
 from logging_helpers import _L, caller_name
@@ -527,16 +526,12 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         '''
         # Notify other ZMQ plugins that `dynamic_electrodes_states` have
         # changed.
-        @sync(gtk_threadsafe)
-        def notify_dynamic_states(dynamic_electrode_states):
-            try:
-                return hub_execute(self.name, 'set_dynamic_electrode_states',
-                                   electrode_states=dynamic_electrode_states)
-            except Exception as exception:
-                _L().warning(str(exception), exc_info=True)
-                return None
 
-        yield asyncio.From(notify_dynamic_states(dynamic_states))
+        try:
+            hub_execute_async(self.name, 'set_dynamic_electrode_states',
+                              electrode_states=dynamic_states)
+        except Exception as exception:
+            _L().debug(str(exception), exc_info=True)
 
         static_electrodes_to_actuate = set(static_states[static_states >
                                                          0].index)
