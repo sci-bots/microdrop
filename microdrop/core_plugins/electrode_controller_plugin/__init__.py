@@ -578,7 +578,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 _L().warning(str(exception), exc_info=True)
                 return None
 
-        response = yield asyncio.From(notify_dynamic_states(dynamic_states))
+        yield asyncio.From(notify_dynamic_states(dynamic_states))
 
         static_electrodes_to_actuate = set(static_states[static_states >
                                                          0].index)
@@ -633,31 +633,15 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             .send(s_electrodes_to_actuate, duration_s=duration_s)
 
         if not electrode_actuators:
-            if not 'actuators' in self.warnings_ignoring:
-                @sync(gtk_threadsafe)
-                def _warning():
-                    return ignorable_warning(title='Warning: failed to '
-                                             'actuate all electrodes',
-                                             text='No electrode actuators '
-                                             'registered to '
-                                             '<b>actuate</b>: <tt>%s</tt>'
-                                             % list(electrodes_to_actuate),
-                                             use_markup=True)
+            title = 'Warning: failed to actuate all electrodes'
+            message = ('No electrode actuators registered to **actuate**: `%s`'
+                       % list(electrodes_to_actuate))
 
-                response = yield asyncio.From(_warning())
-                if response['always']:
-                    self.warnings_ignoring['actuators'] = response['ignore']
-                ignore = response['ignore']
-            else:
-                ignore = self.warnings_ignoring['actuators']
+            yield asyncio.From(_warning(signals.signal('warning'), message,
+                                        title=title, key='no-actuators'))
 
-            if not ignore:
-                raise RuntimeError('No electrode actuators registered to '
-                                   'actuate: `%s`' %
-                                   list(electrodes_to_actuate))
-            else:
-                # Simulate actuation by waiting for specified duration.
-                yield asyncio.From(asyncio.sleep(duration_s))
+            # Simulate actuation by waiting for specified duration.
+            yield asyncio.From(asyncio.sleep(duration_s))
         else:
             actuation_tasks = zip(*electrode_actuators)[1]
 
