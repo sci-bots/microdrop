@@ -711,6 +711,7 @@ version of the software.'''.strip(), filename, why.future_version,
                         d.result()
                     except Exception as exception:
                         exceptions.append(exception)
+                        _L().debug('Error: %s', exception, exc_info=True)
 
                 if exceptions:
                     self.pause_protocol()
@@ -723,7 +724,6 @@ version of the software.'''.strip(), filename, why.future_version,
                     elif exceptions:
                         message = ('\n%s' % '\n'.join(' - ' + monospace_format
                                                       % e for e in exceptions))
-
                     gtk_threadsafe(_L().error)('Error executing step:%s',
                                                message)
 
