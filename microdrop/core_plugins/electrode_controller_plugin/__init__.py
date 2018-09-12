@@ -863,6 +863,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             :meth:`get_step_options()`.  Accept :data:`signals` blinker signals
             namespace parameter.
 
+        .. versionchanged:: X.X.X
+            Use default options if plugin parameters not found in
+            :data:`plugin_kwargs`.
+
         Parameters
         ----------
         plugin_kwargs : dict
@@ -880,7 +884,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         yield asyncio.From(event.wait())
 
         app = get_app()
-        kwargs = plugin_kwargs[self.name]
+        kwargs = plugin_kwargs.get(self.name, self.get_default_step_options())
+
         voltage = kwargs['Voltage (V)']
         frequency = kwargs['Frequency (Hz)']
         duration_s = kwargs['Duration (s)']
