@@ -611,35 +611,21 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                     if receivers:
                         raise asyncio.Return(zip(receivers, results))
 
-            if not key in self.warnings_ignoring:
-                if exception is not None:
-                    message = ('Error setting <b>%s</b>: <tt>%s</tt>' %
-                               (key, exception))
-                else:
-                    message = ('No waveform generators available to set '
-                               '<b>%s</b>.' % key)
-                response = yield asyncio.From(sync(gtk_threadsafe)
-                    (ft.partial(ignorable_warning, title='Warning: failed to '
-                                'set %s' % key, text=message,
-                                use_markup=True))())
-                if response['always']:
-                    self.warnings_ignoring[key] = response['ignore']
-                ignore = response['ignore']
+            if exception is not None:
+                message = ('Error setting **%s**: `%s`' % (key, exception))
             else:
-                ignore = self.warnings_ignoring[key]
+                message = ('No waveform generators available to set **%s**.' %
+                           key)
 
-            if not ignore:
-                raise asyncio.Return(RuntimeError('No waveform generators '
-                                                  'available to set %s to %s' %
-                                                  (key, value)))
+            yield asyncio.From(_warning(signals.signal('warning'), message,
+                                        title='Warning: failed to set %s' %
+                                        key, key='waveform-%s' % key))
 
         for key, value, unit in (('frequency', frequency, 'Hz'),
                                  ('voltage', voltage, 'V')):
             waveform_result = yield asyncio.From(set_waveform(key, value))
 
-            if isinstance(waveform_result, Exception):
-                raise waveform_result
-            elif waveform_result:
+            if waveform_result:
                 _L().info('%s set to %s%s (receivers: `%s`)', key,
                           si.si_format(value), unit, zip(*waveform_result)[0])
 
