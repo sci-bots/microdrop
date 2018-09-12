@@ -30,6 +30,32 @@ from ...plugin_manager import (PluginGlobals, SingletonPlugin, IPlugin,
 logger = logging.getLogger(__name__)
 
 
+@asyncio.coroutine
+def _warning(signal, message, **kwargs):
+    '''
+    .. versionadded:: X.X.X
+
+    Send warning signal and gather response from receivers.
+
+    If no receivers are available or any receiver raises an exception, raise
+    the specified warning message as a `RuntimeError`.
+
+    Raises
+    ------
+    RuntimeError
+        If no receivers are available or any receiver raises an exception.
+    '''
+    responses = signal.send(message, **kwargs)
+
+    try:
+        receivers, co_callbacks = zip(*responses)
+        results = yield asyncio.From(asyncio.gather(*co_callbacks))
+    except Exception:
+        raise RuntimeError(message)
+    else:
+        raise asyncio.Return(zip(receivers, results))
+
+
 def ignorable_warning(**kwargs):
     '''
     Display warning dialog with checkbox to ignore further warnings.
