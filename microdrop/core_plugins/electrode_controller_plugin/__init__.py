@@ -235,10 +235,6 @@ class ElectrodeControllerZmqPlugin(ZmqPlugin, StepOptionsController):
             map(logger.debug, pprint.pformat(result).splitlines())
         return result
 
-    def on_execute__set_dynamic_electrode_states(self, request):
-        data = decode_content_data(request)
-        return data['electrode_states']
-
     def on_execute__set_electrode_state(self, request):
         data = decode_content_data(request)
         return self.set_electrode_state(data['electrode_id'], data['state'])
@@ -524,14 +520,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             Refactor electrode actuation requests to use :data:`signals`
             interface instead of using pyutilib :func:`emit_signal()`.
         '''
-        # Notify other ZMQ plugins that `dynamic_electrodes_states` have
-        # changed.
-
-        try:
-            hub_execute_async(self.name, 'set_dynamic_electrode_states',
-                              electrode_states=dynamic_states)
-        except Exception as exception:
-            _L().debug(str(exception), exc_info=True)
+        # Notify other plugins that dynamic electrodes states have changed.
+        responses = (signals.signal('dynamic-electrode-states-changed')
+                     .send(self.name, electrode_states=dynamic_states))
+        yield asyncio.From(asyncio.gather(*(r[1] for r in responses)))
 
         static_electrodes_to_actuate = set(static_states[static_states >
                                                          0].index)
@@ -847,24 +839,6 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         logger.info('%d/%d step actuations completed', len(result),
                     len(result))
         logger.debug('completed actuations: `%s`', result)
-
-    def on_mode_changed(self, old_mode, new_mode):
-        '''
-        .. versionadded:: 2.25
-
-        .. versionchanged:: X.X.X
-            Clear dynamic electrode states when protocol is stopped or
-            real-time mode is disabled.
-        '''
-        if (all([(old_mode & MODE_REAL_TIME_MASK),
-                 (new_mode & ~MODE_REAL_TIME_MASK),
-                 (new_mode & ~MODE_RUNNING_MASK)]) or
-            all([(old_mode & MODE_RUNNING_MASK),
-                 (new_mode & ~MODE_RUNNING_MASK)])):
-            # Either real-time mode was disabled when it was enabled or
-            # protocol just stopped running.
-            hub_execute_async(self.name, 'set_dynamic_electrode_states',
-                              electrode_states=pd.Series())
 
     def get_schedule_requests(self, function_name):
         '''
