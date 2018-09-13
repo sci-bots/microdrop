@@ -655,8 +655,8 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                                   sorted(actuated_electrodes)})
 
     @asyncio.coroutine
-    def execute_actuations(self, signals, voltage, frequency, duration_s=0,
-                           dynamic=False):
+    def execute_actuations(self, signals, static_states, voltage, frequency,
+                           duration_s=0, dynamic=False):
         '''
         .. versionadded:: 2.25
 
@@ -675,6 +675,11 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         ----------
         signals : blinker.Namespace
             Signals namespace.
+
+            .. versionadded:: X.X.X
+        static_states : pandas.Series
+            Static electrode actuation states, indexed by electrode ID, (e.g.,
+            `"electrode001"`).
 
             .. versionadded:: X.X.X
         voltage : float
@@ -723,6 +728,15 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
             Refactor to request dynamic electrode states through
             :data:`signals` interface instead of using pyutilib
             :func:`emit_signal()`.
+
+        .. versionchanged:: X.X.X
+            Add `static_states` parameter.
+
+        .. warning::
+            As of X.X.X, any changes to static electrode states will **_not_**
+            apply during the execution of a step.  Instead, the changes will
+            **only** take effect on _subsequent_ executions of the modified
+            step.
         '''
         @asyncio.coroutine
         def _get_dynamic_states():
@@ -754,9 +768,6 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         # Loop counter
         i = 0
         while True:
-            # Start with electrodes specified by this plugin.
-            step_states = self.plugin.electrode_states.copy()
-
             if not dynamic:
                 dynamic_electrode_states = pd.Series()
             else:
@@ -770,7 +781,7 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
                 duration_s = 0
 
             # Execute **static** and **dynamic** electrode states actuation.
-            actuation_task = self.execute_actuation(signals, step_states,
+            actuation_task = self.execute_actuation(signals, static_states,
                                                     dynamic_electrode_states,
                                                     voltage, frequency,
                                                     duration_s)
@@ -824,8 +835,10 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         voltage = kwargs['Voltage (V)']
         frequency = kwargs['Frequency (Hz)']
         duration_s = kwargs['Duration (s)']
-        result = yield asyncio.From(self.execute_actuations(signals, voltage,
-                                                            frequency,
+        static_states = kwargs['electrode_states']
+        result = yield asyncio.From(self.execute_actuations(signals,
+                                                            static_states,
+                                                            voltage, frequency,
                                                             duration_s,
                                                             dynamic=app
                                                             .running))
