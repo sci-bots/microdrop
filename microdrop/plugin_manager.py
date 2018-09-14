@@ -50,6 +50,9 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
 
     .. versionchanged:: 2.25
         Do not import hidden directories (i.e., name starts with ``.``).
+
+    .. versionchanged:: X.X.X
+        Import from `pyutilib` submodule in plugin instead, if it exists.
     '''
     logger = _L()  # use logger with function context
     logger.info('plugins_dir=`%s`', plugins_dir)
@@ -71,7 +74,8 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
             logger.info('Skip import of `%s` (broken link to `%s`).',
                         package_i.name, package_i.readlink())
             continue
-        elif package_i.name in (p.__module__ for p in initial_plugins):
+        elif package_i.name in (p.__module__.split('.')[0]
+                                for p in initial_plugins):
             # Plugin with the same name has already been imported.
             logger.info('Skip import of `%s` (plugin with same name has '
                         'already been imported).', package_i.name)
@@ -83,6 +87,8 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
 
         try:
             plugin_module = package_i.name
+            if package_i.joinpath('pyutilib.py').isfile():
+                plugin_module = '.'.join([plugin_module, 'pyutilib'])
             if import_from_parent:
                 plugin_module = '.'.join([plugins_dir.name, plugin_module])
             import_statement = 'import {}'.format(plugin_module)
@@ -222,7 +228,8 @@ def get_service_instance_by_package_name(name, env='microdrop.managed'):
     '''
     e = PluginGlobals.env(env)
     plugins = [p for i, p in enumerate(e.services)
-               if name == get_plugin_package_name(p.__class__.__module__)]
+               if name ==
+               get_plugin_package_name(p.__class__.__module__.split('.')[0])]
     if plugins:
         return plugins[0]
     else:
