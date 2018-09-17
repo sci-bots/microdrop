@@ -580,7 +580,7 @@ class MainWindowController(SingletonPlugin):
         self.reset_step_timeout()
 
     @asyncio.coroutine
-    def on_step_run(self):
+    def on_step_run(self, *args, **kwargs):
         '''
          - Store start time of step.
          - Start periodic timer to update the step time label.
@@ -590,6 +590,9 @@ class MainWindowController(SingletonPlugin):
 
         .. versionchanged:: 2.29
             Convert to coroutine.
+
+        .. versionchanged:: 2.30
+            Refactor to match new `IPlugin` interface.
         '''
         # A new step is starting to run.  Reset step timer.
         self.reset_step_timeout()

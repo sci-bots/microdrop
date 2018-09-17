@@ -258,10 +258,13 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
             self.save()
 
     @asyncio.coroutine
-    def on_step_run(self):
+    def on_step_run(self, *args, **kwargs):
         '''
         .. versionchanged:: 2.29
             Convert to coroutine.
+
+        .. versionchanged:: 2.30
+            Refactor to match new `IPlugin` interface.
         '''
         gtk_threadsafe(self.menu_new_experiment.set_sensitive)(True)
 

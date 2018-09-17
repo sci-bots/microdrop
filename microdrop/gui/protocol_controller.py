@@ -1,5 +1,6 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+import copy
 import os
 import logging
 import shutil
@@ -12,6 +13,7 @@ from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
 from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
+import blinker
 import gobject
 import gtk
 import path_helpers as ph
@@ -581,6 +583,11 @@ version of the software.'''.strip(), filename, why.future_version,
         self.goto_step(app.protocol.current_step_number)
 
     def pause_protocol(self):
+        '''
+        .. versionchanged:: 2.30
+            Cancel any currently executing steps.
+        '''
+        self.cancel_steps()
         app = get_app()
         app.running = False
         app.protocol.current_step_attempt = 0
@@ -595,6 +602,24 @@ version of the software.'''.strip(), filename, why.future_version,
         self.button_next_step.set_sensitive(sensitive)
         self.button_last_step.set_sensitive(sensitive)
 
+    def cancel_steps(self):
+        '''
+        .. versionadded:: 2.30
+
+        Cancel any current step executions.
+        '''
+        while True:
+            try:
+                step_task, future = self.step_execution_queue.get_nowait()
+                if not future.done():
+                    _L().info('Cancel running step.')
+                    try:
+                        step_task.cancel()
+                    except RuntimeError:
+                        pass
+            except Queue.Empty:
+                break
+
     def run_step(self):
         '''
         .. versionchanged:: 2.25
@@ -607,19 +632,28 @@ version of the software.'''.strip(), filename, why.future_version,
         .. versionchanged:: 2.29.1
             Pause protocol if any plugin encountered an exception during
             ``on_step_run`` and display an error message.
+
+        .. versionchanged:: 2.30
+            Fix protocol repeats.
+
+        .. versionchanged:: 2.30
+            Refactor pass plugin step options as :data:`plugin_kwargs` argument
+            to ``on_step_run()`` signal instead of each plugin reading
+            parameters using :meth:`get_step_options()`.to decouple from
+            ``StepOptionsController``.  Send :data:`signals` parameter to
+            ``on_step_run()`` signal as well, as a signals namespace for
+            plugins during step execution.
+
+            .. warning::
+                Plugins **MUST**::
+                - connect blinker :data:`signals` callbacks before any
+                  yielding call (e.g., ``yield asyncio.From(...)``) in the
+                  ``on_step_run()`` coroutine; **_and_**
+                - wait for the ``'signals-connected'`` blinker signal to be
+                  sent before sending any signal to ensure all other plugins
+                  have had a chance to connect any relevant callbacks.
         '''
-        # Cancel any current step executions.
-        while True:
-            try:
-                step_task, future = self.step_execution_queue.get_nowait()
-                if not future.done():
-                    _L().info('Cancel running step.')
-                    try:
-                        step_task.cancel()
-                    except RuntimeError:
-                        pass
-            except Queue.Empty:
-                break
+        self.cancel_steps()
         app = get_app()
         if app.protocol and app.dmf_device and (app.realtime_mode or
                                                 app.running):
@@ -627,15 +661,36 @@ version of the software.'''.strip(), filename, why.future_version,
                 app.experiment_log.add_step(app.protocol.current_step_number,
                                             app.protocol.current_step_attempt)
 
-            # Get list of coroutine futures by emitting `on_step_run()`.
-            # XXX Coroutines are actually executed in background thread
-            # referenced by `future` below.
-            plugin_step_tasks = emit_signal("on_step_run")
-            step_task = cancellable(asyncio.wait)
-            future = self.executor.submit(step_task,
-                                          plugin_step_tasks.values())
-            self.step_execution_queue.put((step_task, future))
-            step = app.protocol.current_step_number
+            # Take snapshot of arguments for current step.
+            plugin_arguments = copy.deepcopy(app.protocol.current_step()
+                                             .plugin_data)
+
+            @cancellable
+            @asyncio.coroutine
+            def _step_task():
+                signals = blinker.Namespace()
+
+                @asyncio.coroutine
+                def notify_signals_connected():
+                    yield asyncio.From(asyncio.sleep(0))
+                    signals.signal('signals-connected').send(None)
+
+                loop = asyncio.get_event_loop()
+                # Get list of coroutine futures by emitting `on_step_run()`.
+                plugin_step_tasks = emit_signal("on_step_run",
+                                                args=[plugin_arguments,
+                                                      signals])
+                future = asyncio.wait(plugin_step_tasks.values())
+                #
+                loop.create_task(notify_signals_connected())
+                result = yield asyncio.From(future)
+                raise asyncio.Return(result)
+
+            # XXX Execute `on_step_run` coroutines in background thread
+            # event-loop.
+            future = self.executor.submit(_step_task)
+            self.step_execution_queue.put((_step_task, future))
+            step_number = app.protocol.current_step_number
 
             def _on_step_complete(future):
                 try:
@@ -656,6 +711,7 @@ version of the software.'''.strip(), filename, why.future_version,
                         d.result()
                     except Exception as exception:
                         exceptions.append(exception)
+                        _L().debug('Error: %s', exception, exc_info=True)
 
                 if exceptions:
                     self.pause_protocol()
@@ -668,19 +724,23 @@ version of the software.'''.strip(), filename, why.future_version,
                     elif exceptions:
                         message = ('\n%s' % '\n'.join(' - ' + monospace_format
                                                       % e for e in exceptions))
-
                     gtk_threadsafe(_L().error)('Error executing step:%s',
                                                message)
 
                 # All plugins have completed the current step, go to the next step.
-                _L().info('all plugins reported step %d completed.', step)
+                _L().info('all plugins reported step %d completed.', step_number)
 
                 @gtk_threadsafe
                 def _next_action():
-                    app.protocol.current_step_attempt = 0
-                    if app.protocol.current_step_number < len(app.protocol) - 1:
+                    protocol = app.protocol
+                    protocol.current_step_attempt = 0
+                    if protocol.current_step_number < len(protocol) - 1:
                         logger.debug('Execute next step.')
-                        app.protocol.next_step()
+                        protocol.next_step()
+                    elif protocol.current_repetition < (protocol.n_repeats -
+                                                        1):
+                        logger.debug('Repeat entire protocol again.')
+                        protocol.next_repetition()
                     else:  # we're on the last step
                         logger.info('Protocol completed.  Stop execution.')
                         self.pause_protocol()
