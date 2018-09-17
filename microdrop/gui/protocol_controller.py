@@ -584,7 +584,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def pause_protocol(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.30
             Cancel any currently executing steps.
         '''
         self.cancel_steps()
@@ -604,7 +604,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def cancel_steps(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.30
 
         Cancel any current step executions.
         '''
@@ -633,10 +633,10 @@ version of the software.'''.strip(), filename, why.future_version,
             Pause protocol if any plugin encountered an exception during
             ``on_step_run`` and display an error message.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.30
             Fix protocol repeats.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.30
             Refactor pass plugin step options as :data:`plugin_kwargs` argument
             to ``on_step_run()`` signal instead of each plugin reading
             parameters using :meth:`get_step_options()`.to decouple from

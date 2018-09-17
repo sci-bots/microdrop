@@ -51,7 +51,7 @@ def load_plugins(plugins_dir='plugins', import_from_parent=True):
     .. versionchanged:: 2.25
         Do not import hidden directories (i.e., name starts with ``.``).
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.30
         Import from `pyutilib` submodule in plugin instead, if it exists.
     '''
     logger = _L()  # use logger with function context

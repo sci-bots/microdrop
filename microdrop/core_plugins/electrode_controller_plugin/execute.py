@@ -1,5 +1,5 @@
 '''
-.. versionadded:: X.X.X
+.. versionadded:: 2.30
 '''
 import datetime as dt
 import logging
@@ -84,11 +84,11 @@ def execute_actuation(signals, static_states, dynamic_states,
     .. versionchanged:: 2.28.2
         Allow user to optionally ignore failed actuations.
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.30
         Add `signals`, `voltage` and `frequency` parameters.  Refactor the
         to set waveform parameters using ``signals`` namespace instead.
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.30
         Refactor electrode actuation requests to use :data:`signals`
         interface instead of using pyutilib :func:`emit_signal()`.
     '''
@@ -269,22 +269,22 @@ def execute_actuations(signals, static_states, voltage, frequency,
         loop duration to effectively disable previous dynamic actuations
         before completing the step.
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.30
         Refactor to decouple from ``StepOptionsController`` by using
         :data:`plugin_kwargs` instead of reading parameters using
         :meth:`get_step_options()`.  Add `signals`, `voltage`, `frequency`,
         and `duration_s` parameters.
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.30
         Refactor to request dynamic electrode states through
         :data:`signals` interface instead of using pyutilib
         :func:`emit_signal()`.
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.30
         Add `static_states` parameter.
 
     .. warning::
-        As of X.X.X, any changes to static electrode states will **_not_**
+        As of 2.30, any changes to static electrode states will **_not_**
         apply during the execution of a step.  Instead, the changes will
         **only** take effect on _subsequent_ executions of the modified
         step.

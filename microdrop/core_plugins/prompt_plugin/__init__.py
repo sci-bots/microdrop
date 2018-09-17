@@ -1,5 +1,5 @@
 '''
-.. versionadded:: X.X.X
+.. versionadded:: 2.30
 '''
 from collections import OrderedDict
 import functools as ft
@@ -169,7 +169,7 @@ def ignorable_warning(**kwargs):
         - ``always``: treat all similar warnings the same way (`bool`).
 
 
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.30
     '''
     dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_YES_NO,
                                type=gtk.MESSAGE_WARNING)
@@ -290,7 +290,7 @@ class PromptPlugin(SingletonPlugin):
     @asyncio.coroutine
     def on_step_run(self, plugin_kwargs, signals):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.30
 
         Handler called whenever a step is executed.
 

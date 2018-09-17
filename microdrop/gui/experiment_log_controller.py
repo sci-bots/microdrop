@@ -263,7 +263,7 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         .. versionchanged:: 2.29
             Convert to coroutine.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.30
             Refactor to match new `IPlugin` interface.
         '''
         gtk_threadsafe(self.menu_new_experiment.set_sensitive)(True)

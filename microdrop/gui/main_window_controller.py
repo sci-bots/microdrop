@@ -591,7 +591,7 @@ class MainWindowController(SingletonPlugin):
         .. versionchanged:: 2.29
             Convert to coroutine.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.30
             Refactor to match new `IPlugin` interface.
         '''
         # A new step is starting to run.  Reset step timer.

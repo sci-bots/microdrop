@@ -1,5 +1,5 @@
 '''
-.. versionadded:: X.X.X
+.. versionadded:: 2.30
 
 MicroDrop Pyutilib electrode controller plugin.
 '''
@@ -443,13 +443,13 @@ class ElectrodeControllerPlugin(SingletonPlugin, StepOptionsController,
         .. versionchanged:: 2.29
             Convert to coroutine.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.30
             Refactor to decouple from ``StepOptionsController`` by using
             :data:`plugin_kwargs` instead of reading parameters using
             :meth:`get_step_options()`.  Accept :data:`signals` blinker signals
             namespace parameter.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.30
             Use default options if plugin parameters not found in
             :data:`plugin_kwargs`.
 

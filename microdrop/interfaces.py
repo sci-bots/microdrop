@@ -352,7 +352,7 @@ else:
             .. versionchanged:: 2.29
                 Change to a coroutine.
 
-            .. versionchanged:: X.X.X
+            .. versionchanged:: 2.30
                 Refactor to decouple from ``StepOptionsController`` by using
                 :data:`plugin_kwargs` instead of reading parameters using
                 :meth:`get_step_options()`.  Add :data:`signals` parameter as a
