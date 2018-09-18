@@ -1,6 +1,7 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 import copy
+import functools as ft
 import os
 import logging
 import shutil
@@ -28,6 +29,121 @@ from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
 from ..protocol import Protocol, SerializationError
 
 logger = logging.getLogger(__name__)
+
+
+@asyncio.coroutine
+def execute_step(plugin_kwargs):
+    '''
+    .. versionadded:: 2.32
+
+    XXX Coroutine XXX
+
+    Execute a single protocol step.
+
+    Parameters
+    ----------
+    plugin_kwargs : dict
+        Plugin keyword arguments, indexed by plugin name.
+
+    Returns
+    -------
+    list
+        Return values from plugin ``on_step_run()`` coroutines.
+    '''
+    # Take snapshot of arguments for current step.
+    plugin_kwargs = copy.deepcopy(plugin_kwargs)
+
+    signals = blinker.Namespace()
+
+    @asyncio.coroutine
+    def notify_signals_connected():
+        yield asyncio.From(asyncio.sleep(0))
+        signals.signal('signals-connected').send(None)
+
+    loop = asyncio.get_event_loop()
+    # Get list of coroutine futures by emitting `on_step_run()`.
+    plugin_step_tasks = emit_signal("on_step_run", args=[plugin_kwargs,
+                                                         signals])
+    future = asyncio.wait(plugin_step_tasks.values())
+
+    loop.create_task(notify_signals_connected())
+    result = yield asyncio.From(future)
+    raise asyncio.Return(result)
+
+
+@asyncio.coroutine
+def execute_steps(steps, signals=None):
+    '''
+    .. versionadded:: 2.32
+
+    Parameters
+    ----------
+    steps : list[dict]
+        List of plugin keyword argument dictionaries.
+    signals : blinker.Namespace, optional
+        Signals namespace where signals are sent through.
+
+    Signals
+    -------
+    step-started
+        Parameters::
+        - ``i``: step index
+        - ``plugin_kwargs``: plugin keyword arguments
+        - ``steps_count``: total number of steps
+    step-completed
+        Parameters::
+        - ``i``: step index
+        - ``plugin_kwargs``: plugin keyword arguments
+        - ``steps_count``: total number of steps
+        - ``result``: list of plugin step return values
+    '''
+    if signals is None:
+        signals = blinker.Namespace()
+
+    for i, step_i in enumerate(steps):
+        # Send notification that step has completed.
+        responses = signals.signal('step-started')\
+            .send('execute_steps', i=i, plugin_kwargs=step_i,
+                  steps_count=len(steps))
+        yield asyncio.From(asyncio.gather(*(r[1] for r in responses)))
+        # XXX Execute `on_step_run` coroutines in background thread
+        # event-loop.
+        try:
+            done, pending = yield asyncio.From(execute_step(step_i))
+
+            exceptions = []
+
+            for d in done:
+                try:
+                    d.result()
+                except Exception as exception:
+                    exceptions.append(exception)
+                    _L().debug('Error: %s', exception, exc_info=True)
+
+            if exceptions:
+                use_markup = False
+                monospace_format = '<tt>%s</tt>' if use_markup else '%s'
+
+                if len(exceptions) == 1:
+                    message = (' ' + monospace_format % exceptions[0])
+                elif exceptions:
+                    message = ('\n%s' % '\n'.join(' - ' + monospace_format
+                                                    % e for e in exceptions))
+                raise RuntimeError('Error executing step:%s' % message)
+        except asyncio.CancelledError:
+            _L().debug('Cancelling protocol.', exc_info=True)
+            raise
+        except Exception as exception:
+            _L().debug('Error executing step: `%s`', exception, exc_info=True)
+            raise
+        else:
+            # All plugins have completed the step.
+            # Send notification that step has completed.
+            responses = signals.signal('step-completed')\
+                .send('execute_steps', i=i, plugin_kwargs=step_i,
+                      result=[r.result() for r in done],
+                      steps_count=len(steps))
+            yield asyncio.From(asyncio.gather(*(r[1] for r in responses)))
 
 
 class ProtocolControllerZmqPlugin(ZmqPlugin):
@@ -572,15 +688,74 @@ version of the software.'''.strip(), filename, why.future_version,
             instead of calling :meth:`run_step` directly.  This ensures
             consistent behaviour across all steps since all subsequent steps
             are executed by calling :meth:`goto_step`.
+
+        .. versionchanged:: 2.32
+            Refactor to manage step execution using the :func:`execute_steps()`
+            coroutine.
+            .. note:: As of version 2.32, step execution while running a
+            protocol is no longer triggered by `on_step_swapped()`.
+
+        See also
+        --------
+        `run_step()`
         '''
         app = get_app()
         app.running = True
         self.button_run_protocol.set_image(self.builder
                                            .get_object("image_pause"))
-        app.protocol.current_step_attempt = 0
         emit_signal("on_protocol_run")
         self.set_sensitivity_of_protocol_navigation_buttons(False)
-        self.goto_step(app.protocol.current_step_number)
+
+        signals = blinker.Namespace()
+        start_i = app.protocol.current_step_number
+        first_pass_complete = []
+
+        @asyncio.coroutine
+        def on_step_started(sender, **kwargs):
+            _L().debug('%s: `%s`', sender, kwargs)
+            step_number = kwargs['i']
+            if not first_pass_complete:
+                # On first run through protocol, execution starts on currently
+                # selected step.
+                step_number += start_i
+            # Trigger `goto_step()` to update protocol grid selection, etc.
+            gtk_threadsafe(app.protocol.goto_step)(step_number)
+
+        @asyncio.coroutine
+        def on_step_completed(sender, **kwargs):
+            _L().debug('%s: `%s`', sender, kwargs)
+
+        signals.signal('step-started').connect(on_step_started, weak=False)
+        signals.signal('step-completed').connect(on_step_completed, weak=False)
+
+        @asyncio.coroutine
+        def repeat_steps():
+            all_steps = app.protocol.to_dict()['steps']
+
+            for i in xrange(app.protocol.n_repeats):
+                steps = all_steps[start_i:] if i == 0 else all_steps
+                app.protocol.current_repetition = i
+                yield asyncio.From(execute_steps(steps, signals=signals))
+                first_pass_complete.append(True)
+            gtk_threadsafe(emit_signal)('on_protocol_finished')
+
+        task = cancellable(repeat_steps)
+        future = self.executor.submit(task)
+        self.step_execution_queue.put((task, future))
+
+        def on_done(future):
+            try:
+                future.result()
+            except asyncio.CancelledError:
+                # Protocol was paused/cancelled.
+                pass
+            except Exception as exception:
+                _L().info('`%s`', exception, exc_info=True)
+                gtk_threadsafe(_L().error)('`%s`', exception)
+            finally:
+                gtk_threadsafe(self.pause_protocol)()
+
+        future.add_done_callback(on_done)
 
     def pause_protocol(self):
         '''
@@ -590,9 +765,8 @@ version of the software.'''.strip(), filename, why.future_version,
         self.cancel_steps()
         app = get_app()
         app.running = False
-        app.protocol.current_step_attempt = 0
-        self.button_run_protocol.set_image(self.builder.get_object(
-            "image_play"))
+        self.button_run_protocol.set_image(self.builder
+                                           .get_object("image_play"))
         emit_signal("on_protocol_pause")
         self.set_sensitivity_of_protocol_navigation_buttons(True)
 
@@ -622,6 +796,8 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def run_step(self):
         '''
+        Execute currently selected step.
+
         .. versionchanged:: 2.25
             Only wait for other plugins if protocol is running.
 
@@ -652,108 +828,26 @@ version of the software.'''.strip(), filename, why.future_version,
                 - wait for the ``'signals-connected'`` blinker signal to be
                   sent before sending any signal to ensure all other plugins
                   have had a chance to connect any relevant callbacks.
+
+        .. versionchanged:: 2.32
+            Refactor to manage single step execution using the
+            :func:`execute_step()` coroutine.
+            .. note:: As of version 2.32, this method is _only _ used for
+            execute of a _single step_ (without executing the whole protocol).
+
+        See also
+        --------
+        `run_protocol()`
         '''
-        self.cancel_steps()
         app = get_app()
-        if app.protocol and app.dmf_device and (app.realtime_mode or
-                                                app.running):
-            if app.experiment_log:
-                app.experiment_log.add_step(app.protocol.current_step_number,
-                                            app.protocol.current_step_attempt)
-
+        if app.protocol and app.dmf_device:
+            self.cancel_steps()
+            task = cancellable(execute_step)
             # Take snapshot of arguments for current step.
-            plugin_arguments = copy.deepcopy(app.protocol.current_step()
-                                             .plugin_data)
-
-            @cancellable
-            @asyncio.coroutine
-            def _step_task():
-                signals = blinker.Namespace()
-
-                @asyncio.coroutine
-                def notify_signals_connected():
-                    yield asyncio.From(asyncio.sleep(0))
-                    signals.signal('signals-connected').send(None)
-
-                loop = asyncio.get_event_loop()
-                # Get list of coroutine futures by emitting `on_step_run()`.
-                plugin_step_tasks = emit_signal("on_step_run",
-                                                args=[plugin_arguments,
-                                                      signals])
-                future = asyncio.wait(plugin_step_tasks.values())
-                #
-                loop.create_task(notify_signals_connected())
-                result = yield asyncio.From(future)
-                raise asyncio.Return(result)
-
-            # XXX Execute `on_step_run` coroutines in background thread
-            # event-loop.
-            future = self.executor.submit(_step_task)
-            self.step_execution_queue.put((_step_task, future))
-            step_number = app.protocol.current_step_number
-
-            def _on_step_complete(future):
-                try:
-                    done, pending = future.result()
-                except asyncio.CancelledError:
-                    # Step was cancelled.
-                    return
-
-                if pending:
-                    # Some plugins did not finish.
-                    raise RuntimeError('Some plugins did not finish `%s`.',
-                                       pending)
-
-                exceptions = []
-
-                for d in done:
-                    try:
-                        d.result()
-                    except Exception as exception:
-                        exceptions.append(exception)
-                        _L().debug('Error: %s', exception, exc_info=True)
-
-                if exceptions:
-                    self.pause_protocol()
-
-                    use_markup = False
-                    monospace_format = '<tt>%s</tt>' if use_markup else '%s'
-
-                    if len(exceptions) == 1:
-                        message = (' ' + monospace_format % exceptions[0])
-                    elif exceptions:
-                        message = ('\n%s' % '\n'.join(' - ' + monospace_format
-                                                      % e for e in exceptions))
-                    gtk_threadsafe(_L().error)('Error executing step:%s',
-                                               message)
-
-                # All plugins have completed the current step, go to the next step.
-                _L().info('all plugins reported step %d completed.', step_number)
-
-                @gtk_threadsafe
-                def _next_action():
-                    protocol = app.protocol
-                    protocol.current_step_attempt = 0
-                    if protocol.current_step_number < len(protocol) - 1:
-                        logger.debug('Execute next step.')
-                        protocol.next_step()
-                    elif protocol.current_repetition < (protocol.n_repeats -
-                                                        1):
-                        logger.debug('Repeat entire protocol again.')
-                        protocol.next_repetition()
-                    else:  # we're on the last step
-                        logger.info('Protocol completed.  Stop execution.')
-                        self.pause_protocol()
-
-                        emit_signal('on_protocol_finished')
-
-                if app.running:
-                    # Schedule execution of next action in future iteration of
-                    # GTK main loop to allow other plugins to execute
-                    # `on_step_complete` handlers first.
-                    _next_action()
-
-            future.add_done_callback(_on_step_complete)
+            plugin_kwargs = copy.deepcopy(app.protocol.current_step()
+                                          .plugin_data)
+            future = self.executor.submit(task, plugin_kwargs)
+            self.step_execution_queue.put((task, future))
 
     def _get_dmf_control_fields(self, step_number):
         step = get_app().protocol.get_step(step_number)
@@ -788,9 +882,17 @@ version of the software.'''.strip(), filename, why.future_version,
         emit_signal('on_protocol_changed')
 
     def on_step_swapped(self, original_step_number, step_number):
+        '''
+        .. versionchanged:: 2.32
+            Only call :meth:`run_step()` if in real-time mode while protocol is
+            not running.  Otherwise, step execution is handled completely by
+            :meth:`run_protocol()`.
+        '''
         _L().debug('%s -> %s', original_step_number, step_number)
         self._update_labels()
-        self.run_step()
+        app = get_app()
+        if app.realtime_mode and not app.running:
+            self.run_step()
 
     def _update_labels(self):
         app = get_app()
