@@ -44,12 +44,16 @@ class MainWindowController(SingletonPlugin):
         .. versionchanged:: 2.21
             Read glade file using ``pkgutil`` to also support loading from
             ``.zip`` files (e.g., in app packaged with Py2Exe).
+
+        .. versionchanged:: 2.31
+            Remove control board status label; pack status labels in
+            :class:`gtk.HBox` to allow other plugins to pack widgets
+            horizontally adjacent.
         '''
         self._shutting_down = threading.Event()
         self.name = "microdrop.gui.main_window_controller"
         self.builder = None
         self.view = None
-        self.label_control_board_status = None
         self.label_experiment_id = None
         self.label_device_name = None
         self.label_protocol_name = None
@@ -129,10 +133,10 @@ class MainWindowController(SingletonPlugin):
         DEFAULTS.parent_widget = self.view
 
         for widget_name in ('box_step', 'checkbutton_realtime_mode',
-                            'label_control_board_status', 'label_device_name',
-                            'label_experiment_id', 'label_protocol_name',
-                            'label_protocol_name', 'label_step_time',
-                            'menu_experiment_logs', 'menu_tools', 'menu_view',
+                            'label_device_name', 'label_experiment_id',
+                            'label_protocol_name', 'label_protocol_name',
+                            'label_step_time', 'menu_experiment_logs',
+                            'menu_tools', 'menu_view',
                             'button_open_log_directory',
                             'button_open_log_notes'):
             setattr(self, widget_name, app.builder.get_object(widget_name))
