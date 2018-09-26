@@ -91,6 +91,10 @@ def execute_actuation(signals, static_states, dynamic_states,
     .. versionchanged:: 2.30
         Refactor electrode actuation requests to use :data:`signals`
         interface instead of using pyutilib :func:`emit_signal()`.
+
+    .. versionchanged:: 2.31.1
+        Prevent error dialog prompt if coroutine is cancelled while calling
+        ``set_waveform()`` callbacks.
     '''
     # Notify other plugins that dynamic electrodes states have changed.
     responses = (signals.signal('dynamic-electrode-states-changed')
@@ -121,6 +125,8 @@ def execute_actuation(signals, static_states, dynamic_states,
                 if receivers:
                     results = yield asyncio.From(asyncio
                                                  .gather(*co_callbacks))
+            except asyncio.CancelledError:
+                raise
             except Exception as exception:
                 pass
             else:
