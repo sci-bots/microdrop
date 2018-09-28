@@ -46,7 +46,7 @@ def initialize_core_plugins():
     from .gui import config_controller
     from .gui import main_window_controller
     from .gui import dmf_device_controller
-    from .gui import protocol_controller
+    from .core_plugins import protocol_controller
     from .gui import protocol_grid_controller
     from .gui import plugin_manager_controller
     from .gui import app_options_controller

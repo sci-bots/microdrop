@@ -654,9 +654,6 @@ class Protocol():
 
         # Protocol execution state
         self.n_repeats = 1
-        self.current_step_attempt = 0
-        self.current_step_number = 0
-        self.current_repetition = 0
 
     ###########################################################################
     # Load/save methods
@@ -1020,7 +1017,6 @@ class Protocol():
                 self.version = str(Version(0, 1))
                 logger.debug('upgrade to version %s', self.version)
             if version < Version(0, 2):
-                self.current_step_attempt = 0
                 self.version = str(Version(0, 2))
                 logger.debug('upgrade to version %s', self.version)
         # else the versions are equal and don't need to be upgraded
@@ -1060,17 +1056,6 @@ class Protocol():
     def __getitem__(self, i):
         return self.steps[i]
 
-    def get_step_number(self, default):
-        if default is None:
-            return self.current_step_number
-        return default
-
-    def get_step(self, step_number=None):
-        step_number = self.get_step_number(step_number)
-        return self.steps[step_number]
-
-    def current_step(self):
-        return self.steps[self.current_step_number]
 
     def insert_steps(self, step_number=None, count=None, values=None):
         if values is None and count is None:
@@ -1083,29 +1068,37 @@ class Protocol():
                                                     len(values)))
 
     def insert_step(self, step_number=None, value=None, notify=True):
+        from .app_context import get_app
+
+        app = get_app()
         if step_number is None:
-            step_number = self.current_step_number
+            step_number = app.protocol_controller.protocol_state['step_number']
         if value is None:
             value = Step()
         self.steps.insert(step_number, value)
-        emit_signal('on_step_created', args=[self.current_step_number])
+        emit_signal('on_step_created', args=[step_number])
         if notify:
-            emit_signal('on_step_inserted', args=[self.current_step_number])
+            emit_signal('on_step_inserted', args=[step_number])
 
     def delete_step(self, step_number):
+        from .app_context import get_app
+
+        app = get_app()
         step_to_remove = self.steps[step_number]
         del self.steps[step_number]
         emit_signal('on_step_removed', args=[step_number, step_to_remove])
 
+        active_step_number = (app.protocol_controller
+                              .protocol_state['step_number'])
         if len(self.steps) == 0:
             # If we deleted the last remaining step, we need to insert a new
             # default Step
             self.insert_step(0, Step())
             self.goto_step(0)
-        elif self.current_step_number == len(self.steps):
+        elif len(self.steps) == active_step_number:
             self.goto_step(step_number - 1)
         else:
-            self.goto_step(self.current_step_number)
+            self.goto_step(active_step_number)
 
     def delete_steps(self, step_ids):
         sorted_ids = sorted(step_ids)
@@ -1116,35 +1109,50 @@ class Protocol():
             self.delete_step(id)
 
     def next_step(self):
-        if self.current_step_number == len(self.steps) - 1:
-            self.insert_step(step_number=self.current_step_number,
-                             value=self.current_step().copy(), notify=False)
-            self.next_step()
-            emit_signal('on_step_inserted', args=[self.current_step_number])
-        else:
-            self.goto_step(self.current_step_number + 1)
+        from .app_context import get_app
 
-    def next_repetition(self):
-        if self.current_repetition < self.n_repeats - 1:
-            self.current_repetition += 1
-            self.goto_step(0)
+        app = get_app()
+        active_step_number = (app.protocol_controller
+                              .protocol_state['step_number'])
+        if active_step_number == len(self.steps) - 1:
+            current_step = self.steps[active_step_number]
+            # Last step is currently selected.  Append new step to end.
+            self.insert_step(step_number=active_step_number,
+                             value=current_step.copy(), notify=False)
+            self.next_step()
+            emit_signal('on_step_inserted', args=[active_step_number + 1])
+        else:
+            # Activate/select next step.
+            self.goto_step(active_step_number + 1)
 
     def prev_step(self):
-        if self.current_step_number > 0:
-            self.goto_step(self.current_step_number - 1)
+        from .app_context import get_app
+
+        app = get_app()
+        active_step_number = (app.protocol_controller
+                              .protocol_state['step_number'])
+        if active_step_number > 0:
+            self.goto_step(active_step_number - 1)
 
     def first_step(self):
-        self.current_repetition = 0
+        from .app_context import get_app
+
+        app = get_app()
+        app.protocol_controller.protocol_state['loop'] = 0
         self.goto_step(0)
 
     def last_step(self):
         self.goto_step(len(self.steps) - 1)
 
     def goto_step(self, step_number):
+        from .app_context import get_app
+
         caller = caller_name()
         _L().debug('caller: %s -> step: %s', caller, step_number)
-        original_step_number = self.current_step_number
-        self.current_step_number = step_number
+        app = get_app()
+        original_step_number = (app.protocol_controller
+                                .protocol_state['step_number'])
+        app.protocol_controller.protocol_state['step_number'] = step_number
         emit_signal('on_step_swapped', [original_step_number, step_number])
 
 

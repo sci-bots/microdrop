@@ -1,13 +1,13 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 import copy
-import functools as ft
 import os
 import logging
 import shutil
 import Queue
 
-from asyncio_helpers import cancellable, sync
+from asyncio_helpers import cancellable
+from logging_helpers import _L
 from microdrop_utility import FutureVersionError
 from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
                                    textentry_validate, text_entry_dialog)
@@ -21,129 +21,14 @@ import path_helpers as ph
 import trollius as asyncio
 import zmq
 
-from ..app_context import get_app, get_hub_uri
-from logging_helpers import _L  #: .. versionadded:: 2.20
-from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
+from ...app_context import get_app, get_hub_uri
+from ...plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_service_names)
-from ..protocol import Protocol, SerializationError
+from ...protocol import Protocol, SerializationError
+from .execute import execute_step, execute_steps
 
 logger = logging.getLogger(__name__)
-
-
-@asyncio.coroutine
-def execute_step(plugin_kwargs):
-    '''
-    .. versionadded:: 2.32
-
-    XXX Coroutine XXX
-
-    Execute a single protocol step.
-
-    Parameters
-    ----------
-    plugin_kwargs : dict
-        Plugin keyword arguments, indexed by plugin name.
-
-    Returns
-    -------
-    list
-        Return values from plugin ``on_step_run()`` coroutines.
-    '''
-    # Take snapshot of arguments for current step.
-    plugin_kwargs = copy.deepcopy(plugin_kwargs)
-
-    signals = blinker.Namespace()
-
-    @asyncio.coroutine
-    def notify_signals_connected():
-        yield asyncio.From(asyncio.sleep(0))
-        signals.signal('signals-connected').send(None)
-
-    loop = asyncio.get_event_loop()
-    # Get list of coroutine futures by emitting `on_step_run()`.
-    plugin_step_tasks = emit_signal("on_step_run", args=[plugin_kwargs,
-                                                         signals])
-    future = asyncio.wait(plugin_step_tasks.values())
-
-    loop.create_task(notify_signals_connected())
-    result = yield asyncio.From(future)
-    raise asyncio.Return(result)
-
-
-@asyncio.coroutine
-def execute_steps(steps, signals=None):
-    '''
-    .. versionadded:: 2.32
-
-    Parameters
-    ----------
-    steps : list[dict]
-        List of plugin keyword argument dictionaries.
-    signals : blinker.Namespace, optional
-        Signals namespace where signals are sent through.
-
-    Signals
-    -------
-    step-started
-        Parameters::
-        - ``i``: step index
-        - ``plugin_kwargs``: plugin keyword arguments
-        - ``steps_count``: total number of steps
-    step-completed
-        Parameters::
-        - ``i``: step index
-        - ``plugin_kwargs``: plugin keyword arguments
-        - ``steps_count``: total number of steps
-        - ``result``: list of plugin step return values
-    '''
-    if signals is None:
-        signals = blinker.Namespace()
-
-    for i, step_i in enumerate(steps):
-        # Send notification that step has completed.
-        responses = signals.signal('step-started')\
-            .send('execute_steps', i=i, plugin_kwargs=step_i,
-                  steps_count=len(steps))
-        yield asyncio.From(asyncio.gather(*(r[1] for r in responses)))
-        # XXX Execute `on_step_run` coroutines in background thread
-        # event-loop.
-        try:
-            done, pending = yield asyncio.From(execute_step(step_i))
-
-            exceptions = []
-
-            for d in done:
-                try:
-                    d.result()
-                except Exception as exception:
-                    exceptions.append(exception)
-                    _L().debug('Error: %s', exception, exc_info=True)
-
-            if exceptions:
-                use_markup = False
-                monospace_format = '<tt>%s</tt>' if use_markup else '%s'
-
-                if len(exceptions) == 1:
-                    message = (' ' + monospace_format % exceptions[0])
-                elif exceptions:
-                    message = ('\n%s' % '\n'.join(' - ' + monospace_format
-                                                    % e for e in exceptions))
-                raise RuntimeError('Error executing step:%s' % message)
-        except asyncio.CancelledError:
-            _L().debug('Cancelling protocol.', exc_info=True)
-            raise
-        except Exception as exception:
-            _L().debug('Error executing step: `%s`', exception, exc_info=True)
-            raise
-        else:
-            # All plugins have completed the step.
-            # Send notification that step has completed.
-            responses = signals.signal('step-completed')\
-                .send('execute_steps', i=i, plugin_kwargs=step_i,
-                      result=[r.result() for r in done],
-                      steps_count=len(steps))
-            yield asyncio.From(asyncio.gather(*(r[1] for r in responses)))
 
 
 class ProtocolControllerZmqPlugin(ZmqPlugin):
@@ -258,6 +143,9 @@ class ProtocolController(SingletonPlugin):
         self.plugin = None
         self.plugin_timeout_id = None
         self.step_execution_queue = Queue.Queue()
+
+        # Protocol execution state
+        self.protocol_state = {'loop': 0, 'step_number': 0}
 
     ###########################################################################
     # # Properties #
@@ -383,6 +271,8 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_plugin_enable(self):
         app = get_app()
+        app.protocol_controller = self
+
         self.builder = app.builder
 
         self.label_step_number = self.builder.get_object("label_step_number")
@@ -712,7 +602,7 @@ version of the software.'''.strip(), filename, why.future_version,
         self.set_sensitivity_of_protocol_navigation_buttons(False)
 
         signals = blinker.Namespace()
-        start_i = app.protocol.current_step_number
+        start_i = self.protocol_state['step_number']
         first_pass_complete = []
 
         @asyncio.coroutine
@@ -739,7 +629,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
             for i in xrange(app.protocol.n_repeats):
                 steps = all_steps[start_i:] if i == 0 else all_steps
-                app.protocol.current_repetition = i
+                self.protocol_state['loop'] = i
                 yield asyncio.From(execute_steps(steps, signals=signals))
                 first_pass_complete.append(True)
             gtk_threadsafe(emit_signal)('on_protocol_finished')
@@ -849,19 +739,10 @@ version of the software.'''.strip(), filename, why.future_version,
             self.cancel_steps()
             task = cancellable(execute_step)
             # Take snapshot of arguments for current step.
-            plugin_kwargs = copy.deepcopy(app.protocol.current_step()
-                                          .plugin_data)
+            step = app.protocol[self.protocol_state['step_number']]
+            plugin_kwargs = copy.deepcopy(step.plugin_data)
             future = self.executor.submit(task, plugin_kwargs)
             self.step_execution_queue.put((task, future))
-
-    def _get_dmf_control_fields(self, step_number):
-        step = get_app().protocol.get_step(step_number)
-        dmf_plugin_name = step.plugin_name_lookup(
-            r'wheelerlab.dmf_control_board_', re_pattern=True)
-        service = get_service_instance_by_name(dmf_plugin_name)
-        if service:
-            return service.get_step_values(step_number)
-        return None
 
     def on_step_options_changed(self, plugin, step_number):
         '''
@@ -876,7 +757,7 @@ version of the software.'''.strip(), filename, why.future_version,
         emit_signal('on_protocol_changed')
         app = get_app()
         if not app.running:
-            step_number = app.protocol.current_step_number
+            step_number = self.protocol_state['step_number']
             emit_signal('on_step_swapped', [step_number, step_number])
 
     def on_step_created(self, step_number):
@@ -902,9 +783,9 @@ version of the software.'''.strip(), filename, why.future_version,
     def _update_labels(self):
         app = get_app()
         self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" %
-                                        (app.protocol.current_step_number + 1,
+                                        (self.protocol_state['step_number'] + 1,
                                          len(app.protocol.steps),
-                                         app.protocol.current_repetition + 1,
+                                         self.protocol_state['loop'] + 1,
                                          app.protocol.n_repeats))
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
 

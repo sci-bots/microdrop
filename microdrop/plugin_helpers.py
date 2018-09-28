@@ -179,7 +179,10 @@ class StepOptionsController(object):
         return self.get_step_options(step_number)
 
     def get_step_value(self, name, step_number=None):
-        step = self.get_step(step_number)
+        app = get_app()
+        if step_number is None:
+            step_number = app.protocol_controller.protocol_state['step_number']
+        step = app.protocol.steps[step_number]
 
         options = step.get_data(self.name)
         if options:
@@ -205,7 +208,11 @@ class StepOptionsController(object):
         This should maintain backwards compatibility while simplifying the
         addition of arbitrary Python data types as step options.
         '''
-        step_number = self.get_step_number(step_number)
+        protocol_controller =\
+            get_service_instance_by_name('microdrop.gui.protocol_controller',
+                                         env='microdrop')
+        if step_number is None:
+            step_number = protocol_controller.protocol_state['step_number']
         _L().debug('set_step[%d]: values_dict=%s', step_number, values_dict)
         validate_dict = dict([(k, v) for k, v in values_dict.iteritems()
                               if k in self.StepFields.field_schema_mapping])
@@ -225,17 +232,11 @@ class StepOptionsController(object):
             emit_signal('on_step_options_changed', [self.name, step_number],
                         interface=IPlugin)
 
-    def get_step(self, step_number):
-        step_number = self.get_step_number(step_number)
-        return get_app().protocol.steps[step_number]
-
-    def get_step_number(self, default):
-        if default is None:
-            return get_app().protocol.current_step_number
-        return default
-
     def get_step_options(self, step_number=None):
-        step = self.get_step(step_number)
+        app = get_app()
+        if step_number is None:
+            step_number = app.protocol_controller.protocol_state['step_number']
+        step = app.protocol.steps[step_number]
         options = step.get_data(self.name)
         if options is None:
             # No data is registered for this plugin (for this step).
