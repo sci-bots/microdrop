@@ -89,11 +89,13 @@ class ProtocolGridView(CombinedFields):
 
     def paste_rows_before(self, *args, **kwargs):
         app = get_app()
-        app.paste_steps(app.protocol.current_step_number)
+        step_number = app.protocol_controller.protocol_state['step_number']
+        app.paste_steps(step_number)
 
     def paste_rows_after(self, *args, **kwargs):
         app = get_app()
-        app.paste_steps()
+        step_number = app.protocol_controller.protocol_state['step_number']
+        app.paste_steps(step_number + 1)
 
     def copy_rows(self, *args, **kwargs):
         app = get_app()
@@ -138,11 +140,12 @@ class ProtocolGridView(CombinedFields):
 
     def on_selection_changed(self, grid_view):
         if self.selected_ids:
-            _L().debug('selected_ids=%s', self.selected_ids)
+            logger = _L()
             app = get_app()
-            _L().debug('current_step_number=%d',
-                           app.protocol.current_step_number)
-            if app.protocol.current_step_number not in self.selected_ids:
+            step_number = app.protocol_controller.protocol_state['step_number']
+            logger.debug('selected_ids=%s', self.selected_ids)
+            logger.debug('step number=%d', step_number)
+            if step_number not in self.selected_ids:
                 app.protocol.goto_step(self.selected_ids[0])
 
 
@@ -206,7 +209,8 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
     def set_fields_filter(self, combined_fields, enabled_fields_by_plugin):
         app = get_app()
         self.enabled_fields = enabled_fields_by_plugin
-        self.widget.select_row(app.protocol.current_step_number)
+        step_number = app.protocol_controller.protocol_state['step_number']
+        self.widget.select_row(step_number)
         _L().debug('%s', self.enabled_fields)
 
     def update_grid(self, protocol=None):
@@ -289,7 +293,8 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
         app = get_app()
         if self.widget:
             self.widget.show_all()
-            self.widget.select_row(app.protocol.current_step_number)
+            step_number = app.protocol_controller.protocol_state['step_number']
+            self.widget.select_row(step_number)
             self.window.add(self.widget)
             self.accel_group = self._create_accel_group(app
                                                         .main_window_controller
@@ -362,7 +367,9 @@ class ProtocolGridController(SingletonPlugin, AppDataController):
     def on_step_swapped(self, original_step_number, step_number):
         _L().debug('%d -> %d', original_step_number, step_number)
         if self.widget:
-            self.widget.select_row(get_app().protocol.current_step_number)
+            app = get_app()
+            step_number = app.protocol_controller.protocol_state['step_number']
+            self.widget.select_row(step_number)
 
     def on_step_removed(self, step_number, step):
         _L().debug('%d', step_number)
