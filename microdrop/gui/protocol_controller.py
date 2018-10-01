@@ -631,11 +631,16 @@ version of the software.'''.strip(), filename, why.future_version,
             self.on_protocol_repeats_changed()
 
     def on_protocol_repeats_changed(self):
+        '''
+        .. versionchanged:: X.X.X
+            Mark protocol as modified.
+        '''
         app = get_app()
         if app.protocol:
             app.protocol.n_repeats = \
                 textentry_validate(self.textentry_protocol_repeats,
                                    app.protocol.n_repeats, int)
+            self.modified = True
 
     def save_check(self):
         app = get_app()
