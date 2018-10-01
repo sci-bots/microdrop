@@ -7,7 +7,7 @@ import shutil
 import Queue
 
 from asyncio_helpers import cancellable
-from logging_helpers import _L
+from logging_helpers import _L, caller_name
 from microdrop_utility import FutureVersionError
 from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
                                    textentry_validate, text_entry_dialog)
@@ -267,7 +267,7 @@ version of the software.'''.strip(), filename, why.future_version,
         '''
         protocol.plugin_fields = emit_signal('get_step_fields')
         _L().debug('plugin_fields=%s', protocol.plugin_fields)
-        protocol.first_step()
+        gtk_threadsafe(self.first_step)()
 
     def on_plugin_enable(self):
         app = get_app()
@@ -310,7 +310,6 @@ version of the software.'''.strip(), filename, why.future_version,
             self.on_textentry_protocol_repeats_focus_out
         app.signals["on_textentry_protocol_repeats_key_press_event"] = \
             self.on_textentry_protocol_repeats_key_press
-        app.protocol_controller = self
         self._register_shortcuts()
 
         self.menu_protocol.set_sensitive(False)
@@ -345,15 +344,11 @@ version of the software.'''.strip(), filename, why.future_version,
         """
         self.cleanup_plugin()
 
-    def goto_step(self, step_number):
-        app = get_app()
-        app.protocol.goto_step(step_number)
-
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         if not app.running and (widget is None or
                                 contains_pointer(widget, data.get_coords())):
-            app.protocol.first_step()
+            self.first_step()
             return True
         return False
 
@@ -361,7 +356,7 @@ version of the software.'''.strip(), filename, why.future_version,
         app = get_app()
         if not app.running and (widget is None or
                                 contains_pointer(widget, data.get_coords())):
-            app.protocol.prev_step()
+            self.prev_step()
             return True
         return False
 
@@ -369,7 +364,7 @@ version of the software.'''.strip(), filename, why.future_version,
         app = get_app()
         if not app.running and (widget is None or
                                 contains_pointer(widget, data.get_coords())):
-            app.protocol.next_step()
+            self.next_step()
             return True
         return False
 
@@ -377,7 +372,7 @@ version of the software.'''.strip(), filename, why.future_version,
         app = get_app()
         if not app.running and (widget is None or
                                 contains_pointer(widget, data.get_coords())):
-            app.protocol.last_step()
+            self.last_step()
             return True
         return False
 
@@ -614,7 +609,7 @@ version of the software.'''.strip(), filename, why.future_version,
                 # selected step.
                 step_number += start_i
             # Trigger `goto_step()` to update protocol grid selection, etc.
-            gtk_threadsafe(app.protocol.goto_step)(step_number)
+            gtk_threadsafe(self.goto_step)(step_number)
 
         @asyncio.coroutine
         def on_step_completed(sender, **kwargs):
@@ -812,9 +807,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_experiment_log_changed(self, experiment_log):
         # go to the first step when a new experiment starts
-        protocol = get_app().protocol
-        if protocol:
-            protocol.first_step()
+        self.first_step()
 
     def get_schedule_requests(self, function_name):
         """
@@ -833,6 +826,58 @@ version of the software.'''.strip(), filename, why.future_version,
             # process the on_protocol_swapped signal
             return [ScheduleRequest('microdrop.app', self.name)]
         return []
+
+    def next_step(self):
+        '''
+        .. versionadded:: X.X.X
+        '''
+        app = get_app()
+        active_step_number = self.protocol_state['step_number']
+        if active_step_number == len(app.protocol.steps) - 1:
+            current_step = app.protocol.steps[active_step_number]
+            # Last step is currently selected.  Append new step to end.
+            app.protocol.insert_step(step_number=active_step_number,
+                                     value=current_step.copy(), notify=False)
+            self.next_step()
+            emit_signal('on_step_inserted', args=[active_step_number + 1])
+        else:
+            # Activate/select next step.
+            self.goto_step(active_step_number + 1)
+
+    def prev_step(self):
+        '''
+        .. versionadded:: X.X.X
+        '''
+        active_step_number = self.protocol_state['step_number']
+        if active_step_number > 0:
+            self.goto_step(active_step_number - 1)
+
+    def first_step(self):
+        '''
+        .. versionadded:: X.X.X
+        '''
+        self.protocol_state['loop'] = 0
+        self.goto_step(0)
+
+    def last_step(self):
+        '''
+        .. versionadded:: X.X.X
+        '''
+        self.goto_step(len(get_app().protocol.steps) - 1)
+
+    def goto_step(self, step_number):
+        '''
+        .. versionadded:: X.X.X
+        '''
+        caller = caller_name()
+        _L().debug('caller: %s -> step: %s', caller, step_number)
+        app = get_app()
+        if app.protocol is None:
+            # No protocol is loaded.
+            return
+        original_step_number = self.protocol_state['step_number']
+        self.protocol_state['step_number'] = step_number
+        emit_signal('on_step_swapped', [original_step_number, step_number])
 
 
 PluginGlobals.pop_env()

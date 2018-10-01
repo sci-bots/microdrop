@@ -146,7 +146,7 @@ class ProtocolGridView(CombinedFields):
             logger.debug('selected_ids=%s', self.selected_ids)
             logger.debug('step number=%d', step_number)
             if step_number not in self.selected_ids:
-                app.protocol.goto_step(self.selected_ids[0])
+                app.protocol_controller.goto_step(self.selected_ids[0])
 
 
 PluginGlobals.push_env('microdrop')

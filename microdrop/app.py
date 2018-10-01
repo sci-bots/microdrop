@@ -241,7 +241,7 @@ class App(SingletonPlugin, AppDataController):
                     if self.protocol is not None:
                         step_number = (self.protocol_controller
                                        .protocol_state['step_number'])
-                        self.protocol.goto_step(step_number)
+                        self.protocol_controller.goto_step(step_number)
             if 'log_file' in data and 'log_enabled' in data:
                 self.apply_log_file_config(data['log_file'],
                                            data['log_enabled'])
