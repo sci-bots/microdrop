@@ -1094,11 +1094,11 @@ class Protocol():
             # If we deleted the last remaining step, we need to insert a new
             # default Step
             self.insert_step(0, Step())
-            self.goto_step(0)
+            app.protocol_controller.goto_step(0)
         elif len(self.steps) == active_step_number:
-            self.goto_step(step_number - 1)
+            app.protocol_controller.goto_step(step_number - 1)
         else:
-            self.goto_step(active_step_number)
+            app.protocol_controller.goto_step(active_step_number)
 
     def delete_steps(self, step_ids):
         sorted_ids = sorted(step_ids)
@@ -1107,53 +1107,6 @@ class Protocol():
         sorted_ids.reverse()
         for id in sorted_ids:
             self.delete_step(id)
-
-    def next_step(self):
-        from .app_context import get_app
-
-        app = get_app()
-        active_step_number = (app.protocol_controller
-                              .protocol_state['step_number'])
-        if active_step_number == len(self.steps) - 1:
-            current_step = self.steps[active_step_number]
-            # Last step is currently selected.  Append new step to end.
-            self.insert_step(step_number=active_step_number,
-                             value=current_step.copy(), notify=False)
-            self.next_step()
-            emit_signal('on_step_inserted', args=[active_step_number + 1])
-        else:
-            # Activate/select next step.
-            self.goto_step(active_step_number + 1)
-
-    def prev_step(self):
-        from .app_context import get_app
-
-        app = get_app()
-        active_step_number = (app.protocol_controller
-                              .protocol_state['step_number'])
-        if active_step_number > 0:
-            self.goto_step(active_step_number - 1)
-
-    def first_step(self):
-        from .app_context import get_app
-
-        app = get_app()
-        app.protocol_controller.protocol_state['loop'] = 0
-        self.goto_step(0)
-
-    def last_step(self):
-        self.goto_step(len(self.steps) - 1)
-
-    def goto_step(self, step_number):
-        from .app_context import get_app
-
-        caller = caller_name()
-        _L().debug('caller: %s -> step: %s', caller, step_number)
-        app = get_app()
-        original_step_number = (app.protocol_controller
-                                .protocol_state['step_number'])
-        app.protocol_controller.protocol_state['step_number'] = step_number
-        emit_signal('on_step_swapped', [original_step_number, step_number])
 
 
 class Step(object):
