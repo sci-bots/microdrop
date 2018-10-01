@@ -39,6 +39,10 @@ class DmfDevice(object):
             TypeError: file is not a DmfDevice.
             FutureVersionError: file was written by a future version of the
                 software.
+
+
+        .. versionchanged:: X.X.X
+            Fix loading of devices with no electrode connections.
         """
         return cls(svg_filepath, **kwargs)
 
@@ -101,7 +105,14 @@ class DmfDevice(object):
 
         #: .. versionadded:: 2.28
         #:     Up, down, left, and right neighbours for each electrode.
-        self.electrode_neighbours = electrode_neighbours(self)
+        if not self.df_shape_connections.shape[0]:
+            # No connections defined between electrodes, so no neighbours.
+            self.electrode_neighbours = pd.DataFrame(None, columns=['up',
+                                                                    'down',
+                                                                    'left',
+                                                                    'right'])
+        else:
+            self.electrode_neighbours = electrode_neighbours(self)
 
         # Modified state (`True` if electrode channels have been updated).
         self._dirty = False
