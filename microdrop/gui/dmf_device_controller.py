@@ -34,6 +34,104 @@ OLD_DEVICE_FILENAME = 'device'
 DEVICE_FILENAME = 'device.svg'
 
 
+def normalize_device_path(device_path):
+    '''
+    .. versionadded:: X.X.X
+    '''
+    app = get_app()
+    device_path = ph.path(device_path)
+
+    if device_path.isabs():
+        return device_path
+
+    device_directory = ph.path(app.get_device_directory())
+    return device_directory.joinpath(device_path)
+
+
+def select_device_output_path(default_path=None, **kwargs):
+    '''
+    .. versionadded:: X.X.X
+
+    Returns
+    -------
+    path_helpers.path
+        Path to selected DMF device file output path.
+
+    Raises
+    ------
+    IOError
+        If dialog was closed without selecting an output path.
+    '''
+    dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                   buttons=(gtk.STOCK_SAVE, gtk.RESPONSE_OK,
+                                            gtk.STOCK_CANCEL,
+                                            gtk.RESPONSE_CANCEL), **kwargs)
+    dialog.props.do_overwrite_confirmation = True
+
+    if default_path is None:
+        default_path = 'device.svg'
+    default_path = ph.path(default_path).realpath()
+    if default_path.parent:
+        dialog.set_current_folder(default_path.parent.abspath())
+    dialog.set_current_name(default_path.name)
+
+    file_filter = gtk.FileFilter()
+    file_filter.set_name('DMF device layout files (*.svg)')
+    file_filter.add_pattern('*.svg')
+    file_filter.add_pattern('*.SVG')
+
+    dialog.add_filter(file_filter)
+
+    try:
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            return dialog.get_filename()
+        else:
+            raise IOError('No filename selected.')
+    finally:
+        dialog.destroy()
+
+
+def select_device_path(default_path=None, **kwargs):
+    '''
+    .. versionadded:: X.X.X
+
+    Returns
+    -------
+    path_helpers.path
+        Path to selected existing DMF device file.
+
+    Raises
+    ------
+    IOError
+        If dialog was closed without selecting a device file.
+    '''
+    dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                   buttons=(gtk.STOCK_OPEN, gtk.RESPONSE_OK,
+                                            gtk.STOCK_CANCEL,
+                                            gtk.RESPONSE_CANCEL), **kwargs)
+    if default_path is not None:
+        default_path = ph.path(default_path).realpath()
+        if default_path.isfile():
+            dialog.select_filename(default_path)
+
+    file_filter = gtk.FileFilter()
+    file_filter.set_name('DMF device layout files (*.svg)')
+    file_filter.add_pattern('*.svg')
+    file_filter.add_pattern('*.SVG')
+
+    dialog.add_filter(file_filter)
+
+    try:
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            return ph.path(dialog.get_filename())
+        else:
+            raise IOError('No filename selected.')
+    finally:
+        dialog.destroy()
+
+
 class DmfDeviceController(SingletonPlugin, AppDataController):
     implements(IPlugin)
 
@@ -51,9 +149,12 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
 
     @modified.setter
     def modified(self, value):
+        '''
+        .. versionchanged:: X.X.X
+            Do not change sensitivity of deprecated _device rename_ menu item.
+        '''
         self._modified = value
-        if getattr(self, 'menu_rename_dmf_device', None):
-            self.menu_rename_dmf_device.set_sensitive(not value)
+        if getattr(self, 'menu_save_dmf_device', None):
             self.menu_save_dmf_device.set_sensitive(value)
 
     @gtk_threadsafe
@@ -118,6 +219,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         .. versionchanged:: 2.11.2
             Use :func:`gtk_threadsafe` decorator to wrap GTK code blocks,
             ensuring the code runs in the main GTK thread.
+
+        .. versionchanged:: X.X.X
+            Remove references to deprecated _device rename_ menu item.
         '''
         app = get_app()
 
@@ -136,8 +240,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
             app.builder.get_object('menu_import_dmf_device')
         self.menu_load_dmf_device = \
             app.builder.get_object('menu_load_dmf_device')
-        self.menu_rename_dmf_device = \
-            app.builder.get_object('menu_rename_dmf_device')
         self.menu_save_dmf_device = \
             app.builder.get_object('menu_save_dmf_device')
         self.menu_save_dmf_device_as = \
@@ -149,8 +251,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
             self.on_import_dmf_device
         app.signals["on_menu_load_dmf_device_activate"] = \
             self.on_load_dmf_device
-        app.signals["on_menu_rename_dmf_device_activate"] = \
-            self.on_rename_dmf_device
         app.signals["on_menu_save_dmf_device_activate"] = \
             self.on_save_dmf_device
         app.signals["on_menu_save_dmf_device_as_activate"] = \
@@ -160,7 +260,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         def _init_ui():
             # disable menu items until a device is loaded
             self.menu_detect_connections.set_sensitive(False)
-            self.menu_rename_dmf_device.set_sensitive(False)
             self.menu_save_dmf_device.set_sensitive(False)
             self.menu_save_dmf_device_as.set_sensitive(False)
 
@@ -181,68 +280,34 @@ directory)?''' % (device_directory, self.previous_device_dir))
         file_path : str
             A MicroDrop device `.svg` file or a (deprecated) MicroDrop 1.0
             device.
+
+
+        .. versionchanged:: X.X.X
+            Save path to loaded SVG device file in config file (rather than
+            just the device name).
         '''
         logger = _L()  # use logger with method context
         app = get_app()
         self.modified = False
         device = app.dmf_device
         file_path = ph.path(file_path)
-
-        if not file_path.isfile():
-            old_version_file_path = (file_path.parent
-                                     .joinpath(OLD_DEVICE_FILENAME))
-            if old_version_file_path:
-                # SVG device file does not exist, but old-style (i.e., v0.3.0)
-                # device file found.
-                try:
-                    # Try to import old-style device to new SVG format.
-                    self.import_device(old_version_file_path)
-                    logger.warning('Auto-converted old-style device to new SVG'
-                                   ' device format.  Open in Inkscape to '
-                                   'verify scale and adjacent electrode '
-                                   'connections.')
-                except Exception, e:
-                    logger.error('Error importing device. %s', e,
-                                 exc_info=True)
-                return
-            else:
-                logger.error('Error opening device.  Please ensure file '
-                             'exists and is readable.', exc_info=True)
-                return
-
-        # SVG device file exists.  Load the device.
         try:
-            logger.info('[DmfDeviceController].load_device: %s' % file_path)
-            if app.get_device_directory().realpath() == (file_path.realpath()
-                                                         .parent.parent):
-                # Selected device file is in MicroDrop devices directory.
-                new_device = False
-            else:
-                # Selected device file is not in MicroDrop devices directory.
-
-                # Copy file to devices directory under subdirectory with same
-                # name as file.
-                new_device_directory = (app.get_device_directory().realpath()
-                                        .joinpath(file_path.namebase)
-                                        .noconflict())
-                new_device_directory.makedirs_p()
-                new_file_path = new_device_directory.joinpath('device.svg')
-                file_path.copy(new_file_path)
-                file_path = new_file_path
-                new_device = True
+            logger.info('load_device: %s' % file_path)
 
             # Load device from SVG file.
-            device = DmfDevice.load(file_path, name=file_path.parent.name,
+            device = DmfDevice.load(file_path, name=file_path.namebase,
                                     **kwargs)
-            if new_device:
-                # Inform user that device was copied from original location
-                # into MicroDrop devices directory.
-                pgh.ui.dialogs.info('Device imported successfully',
-                                    long='New device copied into MicroDrop '
-                                    'devices directory:\n{}'.format(file_path),
-                                    parent=app.main_window_controller.view)
-                logger.info('[DmfDeviceController].load_device: Copied new '
-                            'device to: %s', file_path)
+            device_directory = ph.path(app.get_device_directory())
+            if device_directory.relpathto(file_path).splitall()[0] == '..':
+                # Device is not in default devices directory. Store absolute
+                # filepath.
+                app.config['dmf_device']['filepath'] = str(file_path.abspath())
+            else:
+                # Device is within default devices directory.  Store filepath
+                # relative to device directory.
+                app.config['dmf_device']['filepath'] = \
+                    str(device_directory.relpathto(file_path))
+            app.config.save()
             emit_signal("on_dmf_device_swapped", [app.dmf_device, device])
         except Exception:
             logger.error('Error loading device.', exc_info=True)
@@ -255,70 +320,54 @@ directory)?''' % (device_directory, self.previous_device_dir))
             if result == gtk.RESPONSE_YES:
                 self.save_dmf_device()
 
-    def save_dmf_device(self, save_as=False, rename=False):
+    def save_dmf_device(self, save_as=False):
         '''
         Save device configuration.
 
         If `save_as=True`, we are saving a copy of the current device with a
         new name.
 
-        If `rename=True`, we are saving the current device with a new name _(no
-        new copy is created)_.
+
+        .. versionchanged:: X.X.X
+            Deprecate ``rename`` keyword argument.  Use standard file chooser
+            dialog to select device output path.
         '''
         app = get_app()
+        default_path = app.config['dmf_device'].get('filepath')
 
-        name = app.dmf_device.name
-        # If the device has no name, try to get one.
-        if save_as or rename or name is None:
-            if name is None:
-                name = ""
-            name = text_entry_dialog('Device name', name, 'Save device')
-            if name is None:
-                name = ""
-        if name:
-            device_directory = ph.path(app.get_device_directory()).realpath()
-            # Construct the directory name for the current device.
-            if app.dmf_device.name:
-                src = device_directory.joinpath(app.dmf_device.name)
-            # Construct the directory name for the new device _(which is the
-            # same as the current device, if we are not renaming or "saving
-            # as")_.
-            dest = device_directory.joinpath(name)
+        if save_as or default_path is None:
+            if default_path is None:
+                default_path = \
+                    ph.path(app.get_device_directory()).joinpath('device.svg')
+            try:
+                output_path = \
+                    select_device_output_path(title='Please select location to'
+                                              ' save device',
+                                              default_path=default_path)
+            except IOError:
+                _L().debug('No output path was selected.')
+                return
+        else:
+            output_path = default_path
 
-            # If we're renaming, move the old directory.
-            if rename and src.isdir():
-                if src == dest:
-                    return
-                if dest.isdir():
-                    _L().error("A device with that name already exists.")
-                    return
-                shutil.move(src, dest)
+        output_path = ph.path(output_path)
 
-            # Create the directory for the new device name, if it doesn't
-            # exist.
-            dest.makedirs_p()
+        # Convert device to SVG string.
+        svg_unicode = app.dmf_device.to_svg()
 
-            # Convert device to SVG string.
-            svg_unicode = app.dmf_device.to_svg()
+        # Save the device to the new target directory.
+        with output_path.open('wb') as output:
+            output.write(svg_unicode)
 
-            output_path = dest.joinpath(DEVICE_FILENAME)
+        # Reset modified status, since save acts as a checkpoint.
+        self.modified = False
 
-            # Save the device to the new target directory.
-            with output_path.open('wb') as output:
-                output.write(svg_unicode)
+        # Notify plugins that device has been saved.
+        emit_signal('on_dmf_device_saved', [app.dmf_device,
+                                            str(output_path)])
 
-            # Reset modified status, since save acts as a checkpoint.
-            self.modified = False
-
-            # Notify plugins that device has been saved.
-            emit_signal('on_dmf_device_saved', [app.dmf_device,
-                                                str(output_path)])
-
-            # If the device name has changed, update the application device
-            # state.
-            if name != app.dmf_device.name:
-                self.load_device(output_path)
-            return output_path
+        self.load_device(output_path)
+        return output_path
 
     def get_schedule_requests(self, function_name):
         """
@@ -338,25 +387,23 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
     # GUI callbacks
     def on_load_dmf_device(self, widget, data=None):
+        '''
+        .. versionchanged:: X.X.X
+            Use `select_device_path()` function to select device SVG file.
+        '''
         self.save_check()
         app = get_app()
-        directory = app.get_device_directory()
-        dialog = gtk.FileChooserDialog(title="Load device",
-                                       action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                                       buttons=(gtk.STOCK_CANCEL,
-                                                gtk.RESPONSE_CANCEL,
-                                                gtk.STOCK_OPEN,
-                                                gtk.RESPONSE_OK))
-        dialog.set_default_response(gtk.RESPONSE_OK)
-        if directory:
-            dialog.set_current_folder(directory)
-        add_filters(dialog, [{'name': 'DMF device (*.svg)',
-                              'pattern': '*.svg'}])
-        response = dialog.run()
-        if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-            self.load_device(filename)
-        dialog.destroy()
+        default_path = app.config['dmf_device'].get('filepath')
+        try:
+            if default_path is not None:
+                default_path = normalize_device_path(default_path)
+            device_path = select_device_path(title='Please select MicroDrop '
+                                             'device to open',
+                                             default_path=default_path)
+            self.load_device(device_path)
+        except IOError:
+            # No device was selected to load.
+            pass
 
     @gtk_threadsafe
     def on_import_dmf_device(self, widget, data=None):
@@ -381,19 +428,26 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 _L().error('Error importing device. %s', e, exc_info=True)
 
     def import_device(self, input_device_path):
+        '''
+        .. versionchanged:: X.X.X
+            Display file chooser dialog to select output path for imported
+            device file.
+        '''
         input_device_path = ph.path(input_device_path).realpath()
-        output_device_path = (input_device_path.parent
-                              .joinpath(input_device_path.namebase + '.svg'))
-        overwrite = False
-        if output_device_path.isfile():
-            result = yesno('Output file exists.  Overwrite?')
-            if not result == gtk.RESPONSE_YES:
-                return
-            overwrite = True
-        convert_device_to_svg(input_device_path, output_device_path,
-                              use_svg_path=True, detect_connections=True,
-                              extend_mm=.5, overwrite=overwrite)
-        self.load_device(output_device_path)
+        default_path = (input_device_path.parent
+                        .joinpath(input_device_path.namebase + '.svg'))
+        try:
+            output_path = \
+                select_device_output_path(title='Please select output path for'
+                                          ' imported device',
+                                          default_path=default_path)
+        except IOError:
+            _L().debug('No output path was selected.')
+        else:
+            convert_device_to_svg(input_device_path, output_path,
+                                  use_svg_path=True, detect_connections=True,
+                                  extend_mm=.5, overwrite=True)
+            self.load_device(output_path)
 
     def on_detect_connections(self, widget, data=None):
         '''
@@ -436,15 +490,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
 
         with svg_source.open('w') as output:
             output.write(output_svg.getvalue())
-
-    @gtk_threadsafe
-    def on_rename_dmf_device(self, widget, data=None):
-        '''
-        .. versionchanged:: 2.11.2
-            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
-            in the main GTK thread.
-        '''
-        self.save_dmf_device(rename=True)
 
     @gtk_threadsafe
     def on_save_dmf_device(self, widget, data=None):

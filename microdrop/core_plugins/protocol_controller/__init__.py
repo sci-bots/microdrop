@@ -3,14 +3,13 @@ from concurrent.futures import ThreadPoolExecutor
 import copy
 import os
 import logging
-import shutil
 import Queue
 
 from asyncio_helpers import cancellable
 from logging_helpers import _L, caller_name
 from microdrop_utility import FutureVersionError
 from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
-                                   textentry_validate, text_entry_dialog)
+                                   textentry_validate)
 from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
@@ -29,6 +28,106 @@ from ...protocol import Protocol, SerializationError
 from .execute import execute_step, execute_steps
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_protocol_path(protocol_path):
+    '''
+    .. versionadded:: X.X.X
+    '''
+    app = get_app()
+    protocol_path = ph.path(protocol_path)
+
+    if protocol_path.isabs():
+        return protocol_path
+
+    protocol_directory = ph.path(app.get_protocol_directory())
+    return protocol_directory.joinpath(protocol_path)
+
+
+def select_protocol_output_path(default_path=None, **kwargs):
+    '''
+    .. versionadded:: X.X.X
+
+    Returns
+    -------
+    path_helpers.path
+        Path to selected DMF device file output path.
+
+    Raises
+    ------
+    IOError
+        If dialog was closed without selecting an output path.
+    '''
+    dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                   buttons=(gtk.STOCK_SAVE, gtk.RESPONSE_OK,
+                                            gtk.STOCK_CANCEL,
+                                            gtk.RESPONSE_CANCEL), **kwargs)
+    dialog.props.do_overwrite_confirmation = True
+
+    if default_path is None:
+        default_path = 'New protocol'
+    default_path = ph.path(default_path).realpath()
+    if default_path.parent:
+        dialog.set_current_folder(default_path.parent.abspath())
+    dialog.set_current_name(default_path.name)
+
+    file_filter = gtk.FileFilter()
+    file_filter.set_name('Protocol file (*, *.json)')
+    file_filter.add_pattern('*')
+    file_filter.add_pattern('*.json')
+    file_filter.add_pattern('*.JSON')
+
+    dialog.add_filter(file_filter)
+
+    try:
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            return dialog.get_filename()
+        else:
+            raise IOError('No filename selected.')
+    finally:
+        dialog.destroy()
+
+
+def select_protocol_path(default_path=None, **kwargs):
+    '''
+    .. versionadded:: X.X.X
+
+    Returns
+    -------
+    path_helpers.path
+        Path to selected existing protocol file.
+
+    Raises
+    ------
+    IOError
+        If dialog was closed without selecting a protocol file.
+    '''
+    dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                   buttons=(gtk.STOCK_OPEN, gtk.RESPONSE_OK,
+                                            gtk.STOCK_CANCEL,
+                                            gtk.RESPONSE_CANCEL), **kwargs)
+    if default_path is not None:
+        default_path = ph.path(default_path).realpath()
+        if default_path.isfile():
+            dialog.select_filename(default_path)
+
+    file_filter = gtk.FileFilter()
+    file_filter.set_name('Protocol file (*, *.json)')
+    file_filter.add_pattern('*')
+    file_filter.add_pattern('*.json')
+    file_filter.add_pattern('*.JSON')
+
+    dialog.add_filter(file_filter)
+
+    try:
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            return ph.path(dialog.get_filename())
+        else:
+            raise IOError('No filename selected.')
+    finally:
+        dialog.destroy()
 
 
 class ProtocolControllerZmqPlugin(ZmqPlugin):
@@ -191,11 +290,28 @@ class ProtocolController(SingletonPlugin):
         ----------
         filename : str
             Path to MicroDrop protocol file.
+
+
+        .. versionchanged:: X.X.X
+            Save loaded protocol path to config file (as relative path if
+            within default protocols directory).
         '''
         filename = ph.path(filename)
 
         try:
+            app = get_app()
             protocol = Protocol.load(filename)
+            protocol_directory = app.get_protocol_directory()
+            if protocol_directory.relpathto(filename).splitall()[0] == '..':
+                # Protocol is not in default protocols directory. Store
+                # absolute filepath.
+                app.config['protocol']['filepath'] = str(filename.abspath())
+            else:
+                # Protocol is within default protocols directory.  Store
+                # filepath relative to protocol directory.
+                app.config['protocol']['filepath'] = \
+                    str(protocol_directory.relpathto(filename))
+            app.config.save()
         except FutureVersionError, why:
             _L().error('''
 Could not open protocol: %s
@@ -254,9 +370,17 @@ version of the software.'''.strip(), filename, why.future_version,
         emit_signal("on_protocol_swapped", [app.protocol, protocol])
 
     def create_protocol(self):
+        '''
+        .. versionchanged:: X.X.X
+            Give new protocol default name of `'New Protocol'`.
+        '''
         old_protocol = get_app().protocol
         self.modified = True
-        p = Protocol()
+        p = Protocol(name='New Protocol')
+        app = get_app()
+        if 'filepath' in app.config['protocol']:
+            # Current protocol is now anonymous.
+            del app.config['protocol']['filepath']
         emit_signal("on_protocol_swapped", [old_protocol, p])
 
     def on_protocol_swapped(self, old_protocol, protocol):
@@ -283,8 +407,7 @@ version of the software.'''.strip(), filename, why.future_version,
                        "button_run_protocol", 'button_next_step',
                        'button_last_step', 'menu_protocol',
                        'menu_new_protocol', 'menu_load_protocol',
-                       'menu_rename_protocol', 'menu_save_protocol',
-                       'menu_save_protocol_as'):
+                       'menu_save_protocol', 'menu_save_protocol_as'):
             setattr(self, name_i, app.builder.get_object(name_i))
 
         app.signals["on_button_first_step_button_release_event"] =\
@@ -299,8 +422,6 @@ version of the software.'''.strip(), filename, why.future_version,
             self.on_run_protocol
         app.signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         app.signals["on_menu_load_protocol_activate"] = self.on_load_protocol
-        app.signals["on_menu_rename_protocol_activate"] =\
-            self.on_rename_protocol
         app.signals["on_menu_save_protocol_activate"] = self.on_save_protocol
         app.signals["on_menu_save_protocol_as_activate"] =\
             self.on_save_protocol_as
@@ -498,9 +619,6 @@ version of the software.'''.strip(), filename, why.future_version,
             self.load_protocol(filename)
         dialog.destroy()
 
-    def on_rename_protocol(self, widget=None, data=None):
-        self.save_protocol(rename=True)
-
     def on_save_protocol(self, widget=None, data=None):
         self.save_protocol()
 
@@ -535,41 +653,44 @@ version of the software.'''.strip(), filename, why.future_version,
             if result == gtk.RESPONSE_YES:
                 self.save_protocol()
 
-    def save_protocol(self, save_as=False, rename=False):
+    def save_protocol(self, save_as=False):
+        '''
+        Save protocol.
+
+        If `save_as=True`, specify output location.
+
+
+        .. versionchanged:: X.X.X
+            Deprecate ``rename`` keyword argument.  Use standard file chooser
+            dialog to select protocol output path.
+        '''
         app = get_app()
-        name = app.protocol.name
-        if app.dmf_device.name:
-            if save_as or rename or app.protocol.name is None:
-                # if the dialog is cancelled, name = ""
-                if name is None:
-                    name = ''
-                name = text_entry_dialog('Protocol name', name, 'Save protocol')
-                if name is None:
-                    name = ''
+        default_path = app.config['protocol'].get('filepath')
 
-            if name:
-                path = os.path.join(app.get_device_directory(),
-                                    app.dmf_device.name,
-                                    "protocols")
-                if not os.path.isdir(path):
-                    os.mkdir(path)
+        if save_as or default_path is None:
+            if default_path is None:
+                protocol_directory = ph.path(app.get_protocol_directory())
+                default_path = protocol_directory.joinpath('New Protocol')
+            try:
+                output_path = \
+                    select_protocol_output_path(title='Please select location '
+                                                'to save protocol',
+                                                default_path=default_path)
+            except IOError:
+                _L().debug('No output path was selected.')
+                return
+            new_protocol = True
+        else:
+            output_path = default_path
+            new_protocol = False
 
-                # current file name
-                if app.protocol.name:
-                    src = os.path.join(path, app.protocol.name)
-                dest = os.path.join(path, name)
-
-                # if the protocol name has changed
-                if name != app.protocol.name:
-                    app.protocol.name = name
-
-                # if we're renaming
-                if rename and os.path.isfile(src):
-                    shutil.move(src, dest)
-                else:  # save the file
-                    app.protocol.save(dest)
-                self.modified = False
-                emit_signal("on_protocol_changed")
+        app.protocol.save(output_path)
+        # Reset modified status, since save acts as a checkpoint.
+        self.modified = False
+        emit_signal("on_protocol_changed")
+        if new_protocol:
+            self.load_protocol(output_path)
+        return output_path
 
     def run_protocol(self):
         '''

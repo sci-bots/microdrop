@@ -257,16 +257,6 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkMenuItem" id="menu_rename_protocol">
-                                <property name="use_action_appearance">False</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">_Rename</property>
-                                <property name="use_underline">True</property>
-                                <signal name="activate" handler="on_menu_rename_protocol_activate" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
                               <object class="GtkImageMenuItem" id="menu_save_protocol">
                                 <property name="label">gtk-save</property>
                                 <property name="use_action_appearance">False</property>
@@ -340,20 +330,8 @@
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <child>
-                              <object class="GtkImageMenuItem" id="menu_import_dmf_device">
-                                <property name="label" translatable="yes">_Import</property>
-                                <property name="use_action_appearance">False</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="use_underline">True</property>
-                                <property name="image">image1</property>
-                                <property name="use_stock">False</property>
-                                <signal name="activate" handler="on_menu_import_dmf_device_activate" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
                               <object class="GtkImageMenuItem" id="menu_load_dmf_device">
-                                <property name="label" translatable="yes">_Load</property>
+                                <property name="label" translatable="yes">_Load...</property>
                                 <property name="use_action_appearance">False</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -361,25 +339,6 @@
                                 <property name="image">image_load_device</property>
                                 <property name="use_stock">False</property>
                                 <signal name="activate" handler="on_menu_load_dmf_device_activate" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkMenuItem" id="menu_rename_dmf_device">
-                                <property name="use_action_appearance">False</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">_Rename</property>
-                                <property name="use_underline">True</property>
-                                <signal name="activate" handler="on_menu_rename_dmf_device_activate" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkMenuItem" id="menu_detect_connections">
-                                <property name="use_action_appearance">False</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Detect connections...</property>
-                                <signal name="activate" handler="on_menu_detect_connections_activate" swapped="no"/>
                               </object>
                             </child>
                             <child>
@@ -402,6 +361,40 @@
                                 <property name="use_underline">True</property>
                                 <property name="use_stock">True</property>
                                 <signal name="activate" handler="on_menu_save_dmf_device_as_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSeparatorMenuItem" id="file_device_separator1">
+                                <property name="use_action_appearance">False</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem" id="menu_detect_connections">
+                                <property name="use_action_appearance">False</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip_markup">&lt;b&gt;Attempt to detect connections between neighbouring electrodes.&lt;/b&gt;
+
+&lt;i&gt;&lt;b&gt;Note:&lt;/b&gt; modifies device SVG file directly.&lt;/i&gt;
+
+</property>
+                                <property name="label" translatable="yes">Detect connections...</property>
+                                <signal name="activate" handler="on_menu_detect_connections_activate" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImageMenuItem" id="menu_import_dmf_device">
+                                <property name="label" translatable="yes">_Import...</property>
+                                <property name="use_action_appearance">False</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip_markup">Import &lt;i&gt;legacy&lt;/i&gt; device file from &lt;b&gt;MicroDrop v1&lt;/b&gt;.</property>
+                                <property name="use_underline">True</property>
+                                <property name="image">image1</property>
+                                <property name="use_stock">False</property>
+                                <signal name="activate" handler="on_menu_import_dmf_device_activate" swapped="no"/>
                               </object>
                             </child>
                           </object>
