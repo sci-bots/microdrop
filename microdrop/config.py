@@ -35,7 +35,7 @@ class Config(object):
 
         [plugins]
         # directory containing microdrop plugins
-        directory = string(default=None)
+        directory = string(default='')
 
         # list of enabled plugins
         enabled = string_list(default=list())
@@ -125,7 +125,7 @@ class Config(object):
                           self['data_dir'])
 
     def _init_plugins_dir(self):
-        if self.data['plugins']['directory'] is None:
+        if not self.data['plugins']['directory']:
             self.data['plugins']['directory'] = (path(self['data_dir'])
                                                  .joinpath('plugins'))
         plugins_directory = path(self.data['plugins']['directory'])
