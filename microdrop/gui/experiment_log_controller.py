@@ -362,6 +362,8 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         .. versionchanged:: 2.28.1
             Add :data:`create_new` parameter.
 
+        .. versionchanged:: X.X.X
+            Save log directory if directory is not empty.
 
         Parameters
         ----------
@@ -370,10 +372,10 @@ class ExperimentLogController(SingletonPlugin, AppDataController):
         '''
         app = get_app()
 
-        # Only save the current log if it is not empty (i.e., it contains at
-        # least one step).
+        # Only save the current log if it is not empty (i.e., directory is not
+        # empty).
         if (hasattr(app, 'experiment_log') and app.experiment_log and
-                [x for x in app.experiment_log.get('step') if x is not None]):
+                app.experiment_log.get_log_path().listdir()):
             data = {'software version': __version__}
             data['device name'] = app.dmf_device.name
             data['protocol name'] = app.protocol.name
