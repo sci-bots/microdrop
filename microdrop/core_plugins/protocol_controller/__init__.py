@@ -915,7 +915,6 @@ version of the software.'''.strip(), filename, why.future_version,
             self.button_run_protocol.set_sensitive(True)
             self.button_next_step.set_sensitive(True)
             self.button_last_step.set_sensitive(True)
-            self.create_protocol()
 
     def on_app_exit(self):
         self.cleanup_plugin()

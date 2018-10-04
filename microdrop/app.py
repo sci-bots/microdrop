@@ -462,6 +462,9 @@ class App(SingletonPlugin, AppDataController):
 
             # load the protocol.
             self.protocol_controller.load_protocol(protocol_path)
+        else:
+            # Create new protocol.
+            self.protocol_controller.create_protocol()
 
         if os.environ.get('MICRODROP_FIRST_RUN'):
             # Use default options for window allocation.
