@@ -31,6 +31,7 @@ from .plugin_helpers import AppDataController
 from .plugin_manager import (ExtensionPoint, SingletonPlugin,
                              implements, PluginGlobals)
 from .protocol import Step
+from .default_paths import PROTOCOLS_DIR
 
 
 logger = logging.getLogger(__name__)
@@ -440,7 +441,6 @@ class App(SingletonPlugin, AppDataController):
         # load the device.
         self.dmf_device_controller.load_device(device_path)
 
-        protocol_directory = self.get_protocol_directory()
         if 'name' in self.config['protocol']:
             if self.config['protocol']['name'] is not None:
                 # Old-style config file where protocol was specified as
@@ -458,8 +458,7 @@ class App(SingletonPlugin, AppDataController):
             protocol_path = ph.path(protocol_path)
             if not protocol_path.isabs():
                 # Assume protocol path is relative to protocols directory.
-                protocol_path = protocol_directory.joinpath(protocol_path)
-
+                protocol_path = PROTOCOLS_DIR.joinpath(protocol_path)
             # load the protocol.
             self.protocol_controller.load_protocol(protocol_path)
         else:
@@ -562,20 +561,6 @@ class App(SingletonPlugin, AppDataController):
             if directory.isdir():
                 return directory
         return None
-
-    def get_protocol_directory(self):
-        '''
-        .. versionadded:: X.X.X
-
-        Returns
-        -------
-        str
-            Default parent directory for protocols.
-        '''
-        device_directory = self.get_device_directory()
-        if device_directory is None:
-            return None
-        return device_directory.parent.joinpath('protocols')
 
     def paste_steps(self, step_number):
         clipboard = gtk.clipboard_get()

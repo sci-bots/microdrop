@@ -1,7 +1,6 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 import copy
-import os
 import logging
 import Queue
 
@@ -25,23 +24,10 @@ from ...plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_service_names)
 from ...protocol import Protocol, SerializationError
+from ...default_paths import PROTOCOLS_DIR
 from .execute import execute_step, execute_steps
 
 logger = logging.getLogger(__name__)
-
-
-def normalize_protocol_path(protocol_path):
-    '''
-    .. versionadded:: X.X.X
-    '''
-    app = get_app()
-    protocol_path = ph.path(protocol_path)
-
-    if protocol_path.isabs():
-        return protocol_path
-
-    protocol_directory = ph.path(app.get_protocol_directory())
-    return protocol_directory.joinpath(protocol_path)
 
 
 def select_protocol_output_path(default_path=None, **kwargs):
@@ -111,6 +97,8 @@ def select_protocol_path(default_path=None, **kwargs):
         default_path = ph.path(default_path).realpath()
         if default_path.isfile():
             dialog.select_filename(default_path)
+        elif default_path.isdir():
+            dialog.set_current_folder(default_path)
 
     file_filter = gtk.FileFilter()
     file_filter.set_name('Protocol file (*, *.json)')
@@ -301,16 +289,15 @@ class ProtocolController(SingletonPlugin):
         try:
             app = get_app()
             protocol = Protocol.load(filename)
-            protocol_directory = app.get_protocol_directory()
-            if protocol_directory.relpathto(filename).splitall()[0] == '..':
+            if PROTOCOLS_DIR.relpathto(filename).splitall()[0] == '..':
                 # Protocol is not in default protocols directory. Store
                 # absolute filepath.
                 app.config['protocol']['filepath'] = str(filename.abspath())
             else:
                 # Protocol is within default protocols directory.  Store
                 # filepath relative to protocol directory.
-                app.config['protocol']['filepath'] = \
-                    str(protocol_directory.relpathto(filename))
+                app.config['protocol']['filepath'] = str(PROTOCOLS_DIR
+                                                         .relpathto(filename))
             app.config.save()
         except FutureVersionError, why:
             _L().error('''
@@ -512,7 +499,6 @@ version of the software.'''.strip(), filename, why.future_version,
         return False
 
     def on_import_protocol(self, widget=None, data=None):
-        app = get_app()
         self.save_check()
 
         filter_ = gtk.FileFilter()
@@ -527,9 +513,7 @@ version of the software.'''.strip(), filename, why.future_version,
                                                 gtk.RESPONSE_OK))
         dialog.add_filter(filter_)
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(os.path.join(app.get_device_directory(),
-                                               app.dmf_device.name,
-                                               "protocols"))
+        dialog.set_current_folder(PROTOCOLS_DIR)
         response = dialog.run()
         try:
             if response == gtk.RESPONSE_OK:
@@ -556,9 +540,7 @@ version of the software.'''.strip(), filename, why.future_version,
         dialog.add_filter(filter_)
         dialog.set_default_response(gtk.RESPONSE_OK)
         dialog.set_current_name(app.protocol.name)
-        dialog.set_current_folder(os.path.join(app.get_device_directory(),
-                                               app.dmf_device.name,
-                                               "protocols"))
+        dialog.set_current_folder(PROTOCOLS_DIR)
         response = dialog.run()
         try:
             if response == gtk.RESPONSE_OK:
@@ -601,23 +583,14 @@ version of the software.'''.strip(), filename, why.future_version,
             dialog.destroy()
 
     def on_load_protocol(self, widget=None, data=None):
-        app = get_app()
         self.save_check()
-        dialog = gtk.FileChooserDialog(title="Load protocol",
-                                       action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                                       buttons=(gtk.STOCK_CANCEL,
-                                                gtk.RESPONSE_CANCEL,
-                                                gtk.STOCK_OPEN,
-                                                gtk.RESPONSE_OK))
-        dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(os.path.join(app.get_device_directory(),
-                                               app.dmf_device.name,
-                                               "protocols"))
-        response = dialog.run()
-        if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-            self.load_protocol(filename)
-        dialog.destroy()
+        try:
+            protocol_path = select_protocol_path(default_path=PROTOCOLS_DIR,
+                                                 title='Load protocol')
+            self.load_protocol(protocol_path)
+        except IOError:
+            # No file protocol file selected.
+            pass
 
     def on_save_protocol(self, widget=None, data=None):
         self.save_protocol()
@@ -669,8 +642,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
         if save_as or default_path is None:
             if default_path is None:
-                protocol_directory = ph.path(app.get_protocol_directory())
-                default_path = protocol_directory.joinpath('New Protocol')
+                default_path = PROTOCOLS_DIR.joinpath('New Protocol')
             try:
                 output_path = \
                     select_protocol_output_path(title='Please select location '
