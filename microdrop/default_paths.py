@@ -15,8 +15,9 @@ USER_DATA_DIR = (ph.path('~/MicroDrop').expand() if platform.system() != 'Window
              else ph.path('~/Documents/MicroDrop').expand())
 DEVICES_DIR = USER_DATA_DIR.joinpath('devices')
 PROTOCOLS_DIR = USER_DATA_DIR.joinpath('protocols')
+EXPERIMENT_LOG_DIR = USER_DATA_DIR.joinpath('experiment-log')
 
-for dir_i in (DEVICES_DIR, PROTOCOLS_DIR):
+for dir_i in (DEVICES_DIR, PROTOCOLS_DIR, EXPERIMENT_LOG_DIR):
     if not dir_i.isdir():
         _L().debug('Create default directory `%s` since it does not exist.',
                    dir_i)

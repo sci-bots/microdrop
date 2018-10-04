@@ -177,8 +177,6 @@ class MainWindowController(SingletonPlugin):
         self.protocol_list_view = None
 
         self.checkbutton_realtime_mode.set_sensitive(False)
-        self.button_open_log_directory.set_sensitive(False)
-        self.button_open_log_notes.set_sensitive(False)
 
         if app.config.data.get('advanced_ui', False):
             import IPython
@@ -343,14 +341,15 @@ class MainWindowController(SingletonPlugin):
         Open selected experiment log directory in system file browser.
         '''
         app = get_app()
-        app.experiment_log.get_log_path().launch()
+        app.experiment_log_controller.experiment_ctrl.working_dir.launch()
 
     def on_button_open_log_notes(self, widget, data=None):
         '''
         Open selected experiment log notes.
         '''
         app = get_app()
-        notes_path = app.experiment_log.get_log_path() / 'notes.txt'
+        notes_path = (app.experiment_log_controller.experiment_ctrl.working_dir
+                      .joinpath('notes.txt'))
         if not notes_path.isfile():
             notes_path.touch()
         notes_path.launch()
@@ -510,21 +509,6 @@ class MainWindowController(SingletonPlugin):
         app = get_app()
         self.update_protocol_name_label(modified=app.protocol_controller
                                         .modified)
-
-    @gtk_threadsafe
-    def on_experiment_log_changed(self, experiment_log):
-        '''
-        .. versionchanged:: 2.11.2
-            Wrap with :func:`gtk_threadsafe` decorator to ensure the code runs
-            in the main GTK thread.
-        '''
-        self.button_open_log_directory.set_sensitive(True)
-        self.button_open_log_notes.set_sensitive(True)
-        if experiment_log:
-            self.label_experiment_id.set_text("Experiment: %s (%s)" %
-                                              (str(experiment_log
-                                                   .experiment_id),
-                                               experiment_log.uuid))
 
     def get_device_string(self, device=None):
         if device is None:
