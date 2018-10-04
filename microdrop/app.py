@@ -24,6 +24,7 @@ from .app_context import (MODE_PROGRAMMING, MODE_REAL_TIME_PROGRAMMING,
                           SCREEN_TOP, SCREEN_WIDTH, SCREEN_HEIGHT,
                           TITLEBAR_HEIGHT)
 from .config import Config
+from .default_paths import DEVICES_DIR
 from .gui.dmf_device_controller import DEVICE_FILENAME
 from .interfaces import IPlugin, IApplicationMode
 from .logger import CustomHandler
@@ -358,7 +359,7 @@ class App(SingletonPlugin, AppDataController):
 
         logger.info('User data directory: %s', self.config['data_dir'])
         logger.info('Plugins directories: %s', plugins_dirs)
-        logger.info('Devices directory: %s', self.get_device_directory())
+        logger.info('Devices directory: %s', DEVICES_DIR)
 
         FormViewDialog.default_parent = self.main_window_controller.view
         self.builder.connect_signals(self.signals)
@@ -400,15 +401,13 @@ class App(SingletonPlugin, AppDataController):
 
         self.experiment_log = None
 
-        device_directory = ph.path(self.get_device_directory())
-
         if 'name' in self.config['dmf_device']:
             # Old-style config file where DMF device specified by _name_.
-            device_path = device_directory\
+            device_path = DEVICES_DIR\
                 .joinpath(self.config['dmf_device']['name'], DEVICE_FILENAME)
             if device_path.isfile():
                 self.config['dmf_device']['filepath'] = \
-                    device_directory.relpathto(device_path)
+                    DEVICES_DIR.relpathto(device_path)
                 del self.config['dmf_device']['name']
                 self.config.save()
 
@@ -423,20 +422,20 @@ class App(SingletonPlugin, AppDataController):
             elif device_name.ext.lower() == '.svg':
                 # Assume relative path to device file from devices directory.
                 self.config['dmf_device']['filepath'] = \
-                    str(device_directory.relpathto(device_name))
+                    str(DEVICES_DIR.relpathto(device_name))
             else:
                 # No default device set in environment variable.
                 # Select first available device in device directory.
-                device_path = sorted(list(device_directory
+                device_path = sorted(list(DEVICES_DIR
                                           .walkfiles('*.svg')))[0]
                 self.config['dmf_device']['filepath'] = \
-                    str(device_directory.relpathto(device_path))
+                    str(DEVICES_DIR.relpathto(device_path))
             self.config.save()
 
         device_path = ph.path(self.config['dmf_device']['filepath'])
         if not device_path.isabs():
             # Assume device path is relative to devices directory.
-            device_path = device_directory.joinpath(device_path)
+            device_path = DEVICES_DIR.joinpath(device_path)
 
         # load the device.
         self.dmf_device_controller.load_device(device_path)
@@ -550,17 +549,6 @@ class App(SingletonPlugin, AppDataController):
 
     def on_experiment_log_changed(self, experiment_log):
         self.experiment_log = experiment_log
-
-    def get_device_directory(self):
-        observers = ExtensionPoint(IPlugin)
-        plugin_name = 'microdrop.gui.dmf_device_controller'
-        service = observers.service(plugin_name)
-        values = service.get_app_values()
-        if values and 'device_directory' in values:
-            directory = ph.path(values['device_directory'])
-            if directory.isdir():
-                return directory
-        return None
 
     def paste_steps(self, step_number):
         clipboard = gtk.clipboard_get()

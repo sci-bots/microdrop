@@ -1,6 +1,5 @@
-import traceback
-import shutil
 import logging
+import traceback
 
 from flatland import Form
 from lxml import etree
@@ -8,7 +7,6 @@ from microdrop_device_converter import convert_device_to_svg
 from microdrop_utility import copytree
 from microdrop_utility.gui import yesno
 from pygtkhelpers.gthreads import gtk_threadsafe
-from pygtkhelpers.ui.extra_dialogs import text_entry_dialog
 from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import add_filters
 import gtk
@@ -18,6 +16,7 @@ import pygtkhelpers.ui.dialogs
 import svg_model as sm
 
 from ..app_context import get_app
+from ..default_paths import DEVICES_DIR
 from ..dmf_device import DmfDevice, ELECTRODES_XPATH
 from logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
@@ -32,20 +31,6 @@ PluginGlobals.push_env('microdrop')
 # directory when device is loaded.
 OLD_DEVICE_FILENAME = 'device'
 DEVICE_FILENAME = 'device.svg'
-
-
-def normalize_device_path(device_path):
-    '''
-    .. versionadded:: X.X.X
-    '''
-    app = get_app()
-    device_path = ph.path(device_path)
-
-    if device_path.isabs():
-        return device_path
-
-    device_directory = ph.path(app.get_device_directory())
-    return device_directory.joinpath(device_path)
 
 
 def select_device_output_path(default_path=None, **kwargs):
@@ -114,6 +99,8 @@ def select_device_path(default_path=None, **kwargs):
         default_path = ph.path(default_path).realpath()
         if default_path.isfile():
             dialog.select_filename(default_path)
+        elif default_path.isdir():
+            dialog.set_current_folder(default_path)
 
     file_filter = gtk.FileFilter()
     file_filter.set_name('DMF device layout files (*.svg)')
@@ -297,8 +284,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
             # Load device from SVG file.
             device = DmfDevice.load(file_path, name=file_path.namebase,
                                     **kwargs)
-            device_directory = ph.path(app.get_device_directory())
-            if device_directory.relpathto(file_path).splitall()[0] == '..':
+            if DEVICES_DIR.relpathto(file_path).splitall()[0] == '..':
                 # Device is not in default devices directory. Store absolute
                 # filepath.
                 app.config['dmf_device']['filepath'] = str(file_path.abspath())
@@ -306,7 +292,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                 # Device is within default devices directory.  Store filepath
                 # relative to device directory.
                 app.config['dmf_device']['filepath'] = \
-                    str(device_directory.relpathto(file_path))
+                    str(DEVICES_DIR.relpathto(file_path))
             app.config.save()
             emit_signal("on_dmf_device_swapped", [app.dmf_device, device])
         except Exception:
@@ -392,14 +378,10 @@ directory)?''' % (device_directory, self.previous_device_dir))
             Use `select_device_path()` function to select device SVG file.
         '''
         self.save_check()
-        app = get_app()
-        default_path = app.config['dmf_device'].get('filepath')
         try:
-            if default_path is not None:
-                default_path = normalize_device_path(default_path)
             device_path = select_device_path(title='Please select MicroDrop '
                                              'device to open',
-                                             default_path=default_path)
+                                             default_path=DEVICES_DIR)
             self.load_device(device_path)
         except IOError:
             # No device was selected to load.
