@@ -16,7 +16,7 @@ import pygtkhelpers.ui.dialogs
 import svg_model as sm
 
 from ..app_context import get_app
-from ..default_paths import DEVICES_DIR
+from ..default_paths import DEVICES_DIR, update_recent
 from ..dmf_device import DmfDevice, ELECTRODES_XPATH
 from logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
@@ -295,6 +295,7 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     str(DEVICES_DIR.relpathto(file_path))
             app.config.save()
             emit_signal("on_dmf_device_swapped", [app.dmf_device, device])
+            update_recent('dmf_device', app.config, file_path)
         except Exception:
             logger.error('Error loading device.', exc_info=True)
 
@@ -344,6 +345,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
         # Save the device to the new target directory.
         with output_path.open('wb') as output:
             output.write(svg_unicode)
+
+        update_recent('dmf_device', app.config, output_path)
 
         # Reset modified status, since save acts as a checkpoint.
         self.modified = False
