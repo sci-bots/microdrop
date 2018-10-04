@@ -24,7 +24,7 @@ from ...plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_service_names)
 from ...protocol import Protocol, SerializationError
-from ...default_paths import PROTOCOLS_DIR
+from ...default_paths import PROTOCOLS_DIR, update_recent
 from .execute import execute_step, execute_steps
 
 logger = logging.getLogger(__name__)
@@ -298,6 +298,7 @@ class ProtocolController(SingletonPlugin):
                 # filepath relative to protocol directory.
                 app.config['protocol']['filepath'] = str(PROTOCOLS_DIR
                                                          .relpathto(filename))
+            update_recent('protocol', app.config, filename)
             app.config.save()
         except FutureVersionError, why:
             _L().error('''
@@ -660,6 +661,7 @@ version of the software.'''.strip(), filename, why.future_version,
         # Reset modified status, since save acts as a checkpoint.
         self.modified = False
         emit_signal("on_protocol_changed")
+        update_recent('protocol', app.config, output_path)
         if new_protocol:
             self.load_protocol(output_path)
         return output_path
