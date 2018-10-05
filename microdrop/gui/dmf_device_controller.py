@@ -1,13 +1,11 @@
 import logging
-import traceback
+import pkg_resources
+import pkgutil
 
-from flatland import Form
 from lxml import etree
 from microdrop_device_converter import convert_device_to_svg
-from microdrop_utility import copytree
 from microdrop_utility.gui import yesno
 from pygtkhelpers.gthreads import gtk_threadsafe
-from pygtkhelpers.ui.extra_widgets import Directory
 from pygtkhelpers.ui.notebook import add_filters
 import gtk
 import path_helpers as ph
@@ -19,7 +17,6 @@ from ..app_context import get_app
 from ..default_paths import DEVICES_DIR, update_recent, update_recent_menu
 from ..dmf_device import DmfDevice, ELECTRODES_XPATH
 from logging_helpers import _L  #: .. versionadded:: 2.20
-from ..plugin_helpers import AppDataController
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal)
 
@@ -149,9 +146,34 @@ class DmfDeviceController(SingletonPlugin):
 
         .. versionchanged:: X.X.X
             Remove references to deprecated _device rename_ menu item.
-        '''
-        app = get_app()
 
+        .. versionchanged:: X.X.X
+            Copy stock devices to user default devices directory.
+        '''
+        logger = _L()
+        # Copy stock devices to user default devices directory.
+        for resource_name in pkg_resources.resource_listdir('microdrop',
+                                                            'devices'):
+            resource_path = 'devices/%s' % resource_name
+            output_path = DEVICES_DIR.joinpath(resource_name)
+            if output_path.exists():
+                logger.debug('Output path `%s` already exists.' % output_path)
+            elif pkg_resources.resource_isdir('microdrop', resource_path):
+                try:
+                    ph.resource_copytree('microdrop', resource_path,
+                                         output_path)
+                    logger.info('Copied stock device `%s` to `%s`',
+                                resource_path, output_path)
+                except Exception:
+                    logger.debug('Error copying stock device `%s` to `%s`.',
+                                 resource_path, output_path, exc_info=True)
+            else:
+                with output_path.open('wb') as output:
+                    output.write(pkgutil.get_data('microdrop', resource_path))
+                logger.info('Copied stock device `%s` to `%s`', resource_path,
+                            output_path)
+
+        app = get_app()
         app.dmf_device_controller = self
 
         self.menu_detect_connections = \
