@@ -1,10 +1,13 @@
 '''
 .. versionadded:: X.X.X
 '''
+import functools as ft
 import json
 import platform
 
 from logging_helpers import _L
+from pygtkhelpers.gthreads import gtk_threadsafe
+import gtk
 import path_helpers as ph
 
 
@@ -47,3 +50,40 @@ def update_recent(key, config, filename, n=5):
     config[key]['recent'] = json.dumps(recent_locations)
     config.save()
     return recent_locations
+
+
+@gtk_threadsafe
+def update_recent_menu(file_locations, menu_head, callback):
+    '''
+    Update recent files submenu.
+
+    Parameters
+    ----------
+    file_locations : list[str]
+        List of recent file locations.
+    menu_head : gtk.MenuItem
+        Menu item to which recent files submenu should be attached.
+    callback : function
+        Menu activation callback, with the following signature:
+        ``callback(file_location, menu_item)``.
+    '''
+    menu_head.remove_submenu()
+    recent_items = []
+
+    i = 0
+    for path_i in file_locations:
+        path_i = ph.path(path_i)
+        if path_i.isfile():
+            item_i = gtk.MenuItem('_%d. %s' % (i + 1, path_i.name))
+            item_i.set_tooltip_text(path_i)
+            item_i.connect('activate', ft.partial(callback, path_i))
+            recent_items.append(item_i)
+            i += 1
+
+    if recent_items:
+        menu = gtk.Menu()
+
+        for item in recent_items:
+            menu.append(item)
+        menu_head.set_submenu(menu)
+        menu_head.show_all()
