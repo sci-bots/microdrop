@@ -16,7 +16,7 @@ import pygtkhelpers.ui.dialogs
 import svg_model as sm
 
 from ..app_context import get_app
-from ..default_paths import DEVICES_DIR, update_recent
+from ..default_paths import DEVICES_DIR, update_recent, update_recent_menu
 from ..dmf_device import DmfDevice, ELECTRODES_XPATH
 from logging_helpers import _L  #: .. versionadded:: 2.20
 from ..plugin_helpers import AppDataController
@@ -258,6 +258,31 @@ directory)?''' % (device_directory, self.previous_device_dir))
     def on_app_exit(self):
         self.save_check()
 
+    def _update_recent(self, recent_path):
+        '''
+        Update the recent devices list in the config and recent menu.
+
+        Parameters
+        ----------
+        recent_path : str
+            Path to device file to add to recent list.
+
+        Returns
+        -------
+        list[str]
+            List of recent device paths.
+        '''
+        app = get_app()
+        recent_devices = update_recent('dmf_device', app.config, recent_path)
+
+        @gtk_threadsafe
+        def _on_menu_activate(device_path, *args):
+            self.load_device(device_path)
+
+        menu_head = app.builder.get_object('menu_recent_dmf_devices')
+        update_recent_menu(recent_devices, menu_head, _on_menu_activate)
+        return recent_devices
+
     def load_device(self, file_path, **kwargs):
         '''
         Load device file.
@@ -295,7 +320,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
                     str(DEVICES_DIR.relpathto(file_path))
             app.config.save()
             emit_signal("on_dmf_device_swapped", [app.dmf_device, device])
-            update_recent('dmf_device', app.config, file_path)
+            # Set loaded device as first position in recent devices menu.
+            self._update_recent(file_path)
         except Exception:
             logger.error('Error loading device.', exc_info=True)
 
@@ -323,9 +349,9 @@ directory)?''' % (device_directory, self.previous_device_dir))
         default_path = app.config['dmf_device'].get('filepath')
 
         if save_as or default_path is None:
-            if default_path is None:
-                default_path = \
-                    ph.path(app.get_device_directory()).joinpath('device.svg')
+            default_path = (DEVICES_DIR.joinpath(ph.path(default_path).name)
+                            if default_path
+                            else DEVICES_DIR.joinpath('New device.svg'))
             try:
                 output_path = \
                     select_device_output_path(title='Please select location to'
@@ -346,7 +372,8 @@ directory)?''' % (device_directory, self.previous_device_dir))
         with output_path.open('wb') as output:
             output.write(svg_unicode)
 
-        update_recent('dmf_device', app.config, output_path)
+        # Set saved device as first position in recent devices menu.
+        self._update_recent(output_path)
 
         # Reset modified status, since save acts as a checkpoint.
         self.modified = False
