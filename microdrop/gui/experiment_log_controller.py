@@ -1,5 +1,5 @@
 '''
-.. versionchanged:: X.X.X
+.. versionchanged:: 2.32.1
     Remove experiment log window.
 '''
 import os
@@ -41,7 +41,7 @@ class ExperimentLogController(SingletonPlugin):
         .. versionchanged:: 2.28.1
             Add :data:`create_new` parameter.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.32.1
             Save log directory if directory is not empty.
 
         Parameters
