@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 def experiment_info():
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.34
 
     Returns
     -------
@@ -57,7 +57,7 @@ PluginGlobals.push_env('microdrop')
 
 def archive_dialog(**kwargs):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.34
 
     Returns
     -------
@@ -83,7 +83,7 @@ def archive_dialog(**kwargs):
 
 def select_output_archive(default_path=None, **kwargs):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.34
 
     Returns
     -------
@@ -121,7 +121,7 @@ def select_output_archive(default_path=None, **kwargs):
 
 def save_experiment(log_dir, output_path):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.34
         Save experiment log directory to output archive.
 
     Parameters
@@ -156,7 +156,7 @@ def save_experiment(log_dir, output_path):
 
 class CancelledError(Exception):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.34
 
     Exception indicating user has cancelled/closed dialog.
     '''
@@ -165,7 +165,7 @@ class CancelledError(Exception):
 
 class ExperimentController(object):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.34
     '''
     def __init__(self, working_dir):
         # Directory to store current experiment files.
@@ -274,10 +274,10 @@ class ExperimentLogController(SingletonPlugin):
         Read glade file using ``pkgutil`` to also support loading from ``.zip``
         files (e.g., in app packaged with Py2Exe).
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.34
         Deprecate experiment log viewer.
 
-    .. versionchanged:: X.X.X
+    .. versionchanged:: 2.34
         Use a single experiment log directory, but offer to save modified
         contents to archive upon request to create new experiment.
     '''
@@ -303,7 +303,7 @@ class ExperimentLogController(SingletonPlugin):
 
     def on_protocol_finished(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.34
 
         Offer to create a new experiment if experiment data exists after
         protocol has completed.
