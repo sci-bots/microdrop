@@ -289,15 +289,8 @@ class ProtocolController(SingletonPlugin):
         try:
             app = get_app()
             protocol = Protocol.load(filename)
-            if PROTOCOLS_DIR.relpathto(filename).splitall()[0] == '..':
-                # Protocol is not in default protocols directory. Store
-                # absolute filepath.
-                app.config['protocol']['filepath'] = str(filename.abspath())
-            else:
-                # Protocol is within default protocols directory.  Store
-                # filepath relative to protocol directory.
-                app.config['protocol']['filepath'] = str(PROTOCOLS_DIR
-                                                         .relpathto(filename))
+            # Store absolute path to protocol file.
+            app.config['protocol']['filepath'] = str(filename.abspath())
             # Set loaded protocol as first position in recent protocols menu.
             self._update_recent(filename)
             app.config.save()
