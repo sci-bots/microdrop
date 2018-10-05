@@ -257,6 +257,14 @@
                               </object>
                             </child>
                             <child>
+                              <object class="GtkMenuItem" id="menu_recent_protocols">
+                                <property name="use_action_appearance">False</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Load _recent</property>
+                                <property name="use_underline">True</property>
+                              </object>
+                            </child>
+                            <child>
                               <object class="GtkImageMenuItem" id="menu_save_protocol">
                                 <property name="label">gtk-save</property>
                                 <property name="use_action_appearance">False</property>

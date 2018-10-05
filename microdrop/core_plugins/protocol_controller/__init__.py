@@ -24,7 +24,7 @@ from ...plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_service_names)
 from ...protocol import Protocol, SerializationError
-from ...default_paths import PROTOCOLS_DIR, update_recent
+from ...default_paths import PROTOCOLS_DIR, update_recent, update_recent_menu
 from .execute import execute_step, execute_steps
 
 logger = logging.getLogger(__name__)
@@ -298,7 +298,8 @@ class ProtocolController(SingletonPlugin):
                 # filepath relative to protocol directory.
                 app.config['protocol']['filepath'] = str(PROTOCOLS_DIR
                                                          .relpathto(filename))
-            update_recent('protocol', app.config, filename)
+            # Set loaded protocol as first position in recent protocols menu.
+            self._update_recent(filename)
             app.config.save()
         except FutureVersionError, why:
             _L().error('''
@@ -661,10 +662,39 @@ version of the software.'''.strip(), filename, why.future_version,
         # Reset modified status, since save acts as a checkpoint.
         self.modified = False
         emit_signal("on_protocol_changed")
-        update_recent('protocol', app.config, output_path)
+        # Update recent protocols menu with saved protocol in first position.
+        self._update_recent(output_path)
+
         if new_protocol:
             self.load_protocol(output_path)
         return output_path
+
+    def _update_recent(self, recent_path):
+        '''
+        .. versionadded:: X.X.X
+
+        Update the recent protocols list in the config and recent menu.
+
+        Parameters
+        ----------
+        recent_path : str
+            Path to protocol file to add to recent list.
+
+        Returns
+        -------
+        list[str]
+            List of recent protocol paths.
+        '''
+        app = get_app()
+        recent_protocols = update_recent('protocol', app.config, recent_path)
+
+        @gtk_threadsafe
+        def _on_menu_activate(protocol_path, *args):
+            self.load_protocol(protocol_path)
+
+        menu_head = app.builder.get_object('menu_recent_protocols')
+        update_recent_menu(recent_protocols, menu_head, _on_menu_activate)
+        return recent_protocols
 
     def run_protocol(self):
         '''
