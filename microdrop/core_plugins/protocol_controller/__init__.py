@@ -230,6 +230,7 @@ class ProtocolController(SingletonPlugin):
         self.plugin = None
         self.plugin_timeout_id = None
         self.step_execution_queue = Queue.Queue()
+        self.active_protocol_path = None
 
         # Protocol execution state
         self.protocol_state = {'loop': 0, 'step_number': 0}
@@ -293,6 +294,7 @@ class ProtocolController(SingletonPlugin):
             app.config['protocol']['filepath'] = str(filename.abspath())
             # Set loaded protocol as first position in recent protocols menu.
             self._update_recent(filename)
+            self.active_protocol_path = app.config['protocol']['filepath']
             app.config.save()
         except FutureVersionError, why:
             _L().error('''
@@ -357,6 +359,7 @@ version of the software.'''.strip(), filename, why.future_version,
             Give new protocol default name of `'New Protocol'`.
         '''
         old_protocol = get_app().protocol
+        self.active_protocol_path = None
         self.modified = True
         p = Protocol(name='New Protocol')
         app = get_app()
@@ -633,11 +636,11 @@ version of the software.'''.strip(), filename, why.future_version,
             dialog to select protocol output path.
         '''
         app = get_app()
-        default_path = app.config['protocol'].get('filepath')
 
-        if save_as or default_path is None:
-            if default_path is None:
-                default_path = PROTOCOLS_DIR.joinpath('New Protocol')
+        if save_as or self.active_protocol_path is None:
+            default_path = (PROTOCOLS_DIR.joinpath('New Protocol')
+                            if self.active_protocol_path is None
+                            else self.active_protocol_path)
             try:
                 output_path = \
                     select_protocol_output_path(title='Please select location '
@@ -646,10 +649,8 @@ version of the software.'''.strip(), filename, why.future_version,
             except IOError:
                 _L().debug('No output path was selected.')
                 return
-            new_protocol = True
         else:
-            output_path = default_path
-            new_protocol = False
+            output_path = self.active_protocol_path
 
         app.protocol.save(output_path)
         # Reset modified status, since save acts as a checkpoint.
@@ -658,7 +659,8 @@ version of the software.'''.strip(), filename, why.future_version,
         # Update recent protocols menu with saved protocol in first position.
         self._update_recent(output_path)
 
-        if new_protocol:
+        if self.active_protocol_path is None:
+            # A new in-memory protocol was saved to a file.  Load from file.
             self.load_protocol(output_path)
         return output_path
 
