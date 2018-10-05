@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 def select_protocol_output_path(default_path=None, **kwargs):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.33
 
     Returns
     -------
@@ -77,7 +77,7 @@ def select_protocol_output_path(default_path=None, **kwargs):
 
 def select_protocol_path(default_path=None, **kwargs):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.33
 
     Returns
     -------
@@ -281,7 +281,7 @@ class ProtocolController(SingletonPlugin):
             Path to MicroDrop protocol file.
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Save loaded protocol path to config file (as relative path if
             within default protocols directory).
         '''
@@ -355,7 +355,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def create_protocol(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Give new protocol default name of `'New Protocol'`.
         '''
         old_protocol = get_app().protocol
@@ -606,7 +606,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_protocol_repeats_changed(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Mark protocol as modified.
         '''
         app = get_app()
@@ -631,7 +631,7 @@ version of the software.'''.strip(), filename, why.future_version,
         If `save_as=True`, specify output location.
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Deprecate ``rename`` keyword argument.  Use standard file chooser
             dialog to select protocol output path.
         '''
@@ -666,7 +666,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def _update_recent(self, recent_path):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.33
 
         Update the recent protocols list in the config and recent menu.
 
@@ -948,7 +948,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def next_step(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.33
         '''
         app = get_app()
         active_step_number = self.protocol_state['step_number']
@@ -965,7 +965,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def prev_step(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.33
         '''
         active_step_number = self.protocol_state['step_number']
         if active_step_number > 0:
@@ -973,20 +973,20 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def first_step(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.33
         '''
         self.protocol_state['loop'] = 0
         self.goto_step(0)
 
     def last_step(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.33
         '''
         self.goto_step(len(get_app().protocol.steps) - 1)
 
     def goto_step(self, step_number):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.33
         '''
         caller = caller_name()
         _L().debug('caller: %s -> step: %s', caller, step_number)

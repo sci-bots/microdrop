@@ -33,7 +33,7 @@ DEVICE_FILENAME = 'device.svg'
 
 def select_device_output_path(default_path=None, **kwargs):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.33
 
     Returns
     -------
@@ -77,7 +77,7 @@ def select_device_output_path(default_path=None, **kwargs):
 
 def select_device_path(default_path=None, **kwargs):
     '''
-    .. versionadded:: X.X.X
+    .. versionadded:: 2.33
 
     Returns
     -------
@@ -121,6 +121,11 @@ class DmfDeviceController(SingletonPlugin):
     implements(IPlugin)
 
     def __init__(self):
+        '''
+        .. versionchanged:: 2.33
+            Deprecate app options.  Copy stock devices to user default devices
+            directory on plugin enable (skip copying existing device by name).
+        '''
         self.name = "microdrop.gui.dmf_device_controller"
         self.previous_device_dir = None
         self._modified = False
@@ -132,7 +137,7 @@ class DmfDeviceController(SingletonPlugin):
     @modified.setter
     def modified(self, value):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Do not change sensitivity of deprecated _device rename_ menu item.
         '''
         self._modified = value
@@ -145,7 +150,7 @@ class DmfDeviceController(SingletonPlugin):
             Use :func:`gtk_threadsafe` decorator to wrap GTK code blocks,
             ensuring the code runs in the main GTK thread.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Remove references to deprecated _device rename_ menu item.
 
         .. versionchanged:: X.X.X
@@ -250,7 +255,7 @@ class DmfDeviceController(SingletonPlugin):
             device.
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Save path to loaded SVG device file in config file (rather than
             just the device name).
         '''
@@ -297,7 +302,7 @@ class DmfDeviceController(SingletonPlugin):
         new name.
 
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Deprecate ``rename`` keyword argument.  Use standard file chooser
             dialog to select device output path.
         '''
@@ -360,7 +365,7 @@ class DmfDeviceController(SingletonPlugin):
     # GUI callbacks
     def on_load_dmf_device(self, widget, data=None):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Use `select_device_path()` function to select device SVG file.
         '''
         self.save_check()
@@ -397,7 +402,7 @@ class DmfDeviceController(SingletonPlugin):
 
     def import_device(self, input_device_path):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Display file chooser dialog to select output path for imported
             device file.
         '''
