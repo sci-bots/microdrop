@@ -10,7 +10,6 @@ from pygtkhelpers.ui.notebook import add_filters
 import gtk
 import path_helpers as ph
 import pygtkhelpers as pgh
-import pygtkhelpers.ui.dialogs
 import svg_model as sm
 
 from ..app_context import get_app
