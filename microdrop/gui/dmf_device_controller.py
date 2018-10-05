@@ -119,11 +119,8 @@ def select_device_path(default_path=None, **kwargs):
         dialog.destroy()
 
 
-class DmfDeviceController(SingletonPlugin, AppDataController):
+class DmfDeviceController(SingletonPlugin):
     implements(IPlugin)
-
-    AppFields = Form.of(Directory.named('device_directory')
-                        .using(default='', optional=True))
 
     def __init__(self):
         self.name = "microdrop.gui.dmf_device_controller"
@@ -144,63 +141,6 @@ class DmfDeviceController(SingletonPlugin, AppDataController):
         if getattr(self, 'menu_save_dmf_device', None):
             self.menu_save_dmf_device.set_sensitive(value)
 
-    @gtk_threadsafe
-    def on_app_options_changed(self, plugin_name):
-        try:
-            if plugin_name == self.name:
-                values = self.get_app_values()
-                if 'device_directory' in values:
-                    self.apply_device_dir(values['device_directory'])
-        except (Exception,):
-            map(_L().info, traceback.format_exc().splitlines())
-            raise
-
-    def apply_device_dir(self, device_directory):
-        '''
-        .. versionchanged:: 2.21
-            Use :func:`path_helpers.resource_copytree` to support when copying
-            from a module stored in a ``.zip`` archive or ``.egg`` file.
-        '''
-        app = get_app()
-
-        # if the device directory is empty or None, set a default
-        if not device_directory:
-            device_directory = (ph.path(app.config.data['data_dir'])
-                                .joinpath('devices'))
-            self.set_app_values({'device_directory': device_directory})
-
-        if self.previous_device_dir and (device_directory ==
-                                         self.previous_device_dir):
-            # If the data directory hasn't changed, we do nothing
-            return False
-
-        device_directory = ph.path(device_directory)
-        if self.previous_device_dir:
-            device_directory.makedirs_p()
-            if device_directory.listdir():
-                result = yesno('Merge?', '''\
-Target directory [%s] is not empty.  Merge contents with
-current devices [%s] (overwriting common paths in the target
-directory)?''' % (device_directory, self.previous_device_dir))
-                if not result == gtk.RESPONSE_YES:
-                    return False
-
-            original_directory = ph.path(self.previous_device_dir)
-            for d in original_directory.dirs():
-                copytree(d, device_directory.joinpath(d.name))
-            for f in original_directory.files():
-                f.copyfile(device_directory.joinpath(f.name))
-            original_directory.rmtree()
-        elif not device_directory.isdir():
-            # if the device directory doesn't exist, copy the skeleton dir
-            if device_directory.parent:
-                device_directory.parent.makedirs_p()
-            # XXX Use `path_helpers.resource_copytree` to support when copying
-            # from a module stored in a `.zip` archive or `.egg` file.
-            ph.resource_copytree('microdrop', 'devices', device_directory)
-        self.previous_device_dir = device_directory
-        return True
-
     def on_plugin_enable(self):
         '''
         .. versionchanged:: 2.11.2
@@ -213,13 +153,6 @@ directory)?''' % (device_directory, self.previous_device_dir))
         app = get_app()
 
         app.dmf_device_controller = self
-        defaults = self.get_default_app_options()
-        data = app.get_data(self.name)
-        for k, v in defaults.items():
-            if k not in data:
-                data[k] = v
-        app.set_data(self.name, data)
-        emit_signal('on_app_options_changed', [self.name])
 
         self.menu_detect_connections = \
             app.builder.get_object('menu_detect_connections')
