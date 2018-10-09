@@ -1,15 +1,17 @@
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import pkg_resources
 import pkgutil
+import threading
+import time
 
-from lxml import etree
+from markdown2pango import markdown2pango
 from microdrop_device_converter import convert_device_to_svg
 from microdrop_utility.gui import yesno
 from pygtkhelpers.gthreads import gtk_threadsafe
 from pygtkhelpers.ui.notebook import add_filters
 import gtk
 import path_helpers as ph
-import pygtkhelpers as pgh
 import svg_model as sm
 
 from ..app_context import get_app
@@ -415,47 +417,88 @@ class DmfDeviceController(SingletonPlugin):
                                   extend_mm=.5, overwrite=True)
             self.load_device(output_path)
 
+    @gtk_threadsafe
     def on_detect_connections(self, widget, data=None):
         '''
-        Auto-detect adjacent electrodes in device and save updated SVG to
-        device file path.
+        Auto-detect adjacent electrodes in device; prompt to save updated SVG.
+
+        .. versionchanged:: X.X.X
+            Prompt for output file location instead of forcefully overwriting
+            source device SVG file.
         '''
         app = get_app()
         svg_source = ph.path(app.dmf_device.svg_filepath)
 
-        # Check for existing `Connections` layer.
-        xml_root = etree.parse(svg_source)
-        connections_xpath = '//svg:g[@inkscape:label="Connections"]'
-        connections_groups = xml_root.xpath(connections_xpath,
-                                            namespaces=sm.INKSCAPE_NSMAP)
+        # Reference to parent window for dialogs.
+        parent_window = app.main_window_controller.view
 
-        if connections_groups:
-            # Existing "Connections" layer found in source SVG.
-            # Prompt user to overwrite.
-            response = pgh.ui.dialogs.yesno('"Connections" layer already '
-                                            'exists in device file.\n\n'
-                                            'Overwrite?',
-                                            parent=app.main_window_controller
-                                            .view)
-            if response == gtk.RESPONSE_NO:
-                return
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_MODAL |
+                                   gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   parent=parent_window)
+        dialog.set_title('Detecting connections between electrodes')
+        dialog.props.text = markdown2pango('Detecting connections between electrodes '
+                                        'in `%s`...' % svg_source).strip()
+        dialog.props.use_markup = True
+        dialog.props.destroy_with_parent = True
+        dialog.props.window_position = gtk.WIN_POS_MOUSE
+        # Disable `X` window close button.
+        dialog.props.deletable = False
+        content_area = dialog.get_content_area()
+        progress = gtk.ProgressBar()
+        content_area.pack_start(progress, fill=True, expand=True, padding=5)
+        content_area.show_all()
+        progress.props.can_focus = True
+        progress.props.has_focus = True
 
-        # Auto-detect adjacent electrodes from SVG paths and polygons from
-        # `Device` layer.
-        connections_svg = \
-            sm.detect_connections\
-            .auto_detect_adjacent_shapes(svg_source,
-                                         shapes_xpath=ELECTRODES_XPATH)
+        @gtk_threadsafe
+        def on_finished(future):
+            # Retrieve auto-detected connection results from background task.
+            connections_svg = future.result()
 
-        # Remove existing "Connections" layer and merge new "Connections" layer
-        # with original SVG.
-        output_svg = (sm.merge
-                      .merge_svg_layers([sm.remove_layer(svg_source,
-                                                         'Connections'),
-                                         connections_svg]))
+            # Remove existing "Connections" layer and merge new "Connections"
+            # layer with original SVG.
+            output_svg =\
+                sm.merge.merge_svg_layers([sm.remove_layer(svg_source,
+                                                           'Connections'),
+                                           connections_svg])
 
-        with svg_source.open('w') as output:
-            output.write(output_svg.getvalue())
+            try:
+                default_path = DEVICES_DIR.joinpath(svg_source.name)
+                output_path = \
+                    select_device_output_path(title='Please select location to'
+                                              ' save device',
+                                              default_path=default_path,
+                                              parent=parent_window)
+            except IOError:
+                _L().debug('No output path was selected.')
+            else:
+                with open(output_path, 'w') as output:
+                    output.write(output_svg.getvalue())
+                # Load new device.
+                self.load_device(output_path)
+
+        with ThreadPoolExecutor() as executor:
+            # Use background thread to auto-detect adjacent electrodes from SVG
+            # paths and polygons from `Device` layer.
+            future = executor.submit(sm.detect_connections
+                                     .auto_detect_adjacent_shapes, svg_source,
+                                     shapes_xpath=ELECTRODES_XPATH)
+
+            def update_progress():
+                while not future.done():
+                    gtk_threadsafe(progress.pulse)()
+                    time.sleep(.25)
+                gtk_threadsafe(dialog.destroy)()
+
+            # Launch dialog with pulsing progress indicator.
+            threads = [threading.Thread(target=f)
+                       for f in (update_progress, )]
+            for t in threads:
+                t.daemon = True
+                t.start()
+
+            future.add_done_callback(on_finished)
+            dialog.run()
 
     @gtk_threadsafe
     def on_save_dmf_device(self, widget, data=None):
