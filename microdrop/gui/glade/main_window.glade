@@ -396,7 +396,8 @@
 &lt;i&gt;&lt;b&gt;Note:&lt;/b&gt; modifies device SVG file directly.&lt;/i&gt;
 
 </property>
-                                <property name="label" translatable="yes">Detect connections...</property>
+                                <property name="label" translatable="yes">Detect _connections...</property>
+                                <property name="use_underline">True</property>
                                 <signal name="activate" handler="on_menu_detect_connections_activate" swapped="no"/>
                               </object>
                             </child>
