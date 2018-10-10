@@ -36,6 +36,9 @@ requirements:
     - configobj
     #: ..versionadded:: 2.16
     - debounce
+    #: .. versionadded:: 2.34
+    #:     Required for checking for modified experiment log directory.
+    - deepdiff
     - droplet-planning
     #: .. versionadded:: 2.15.2
     - flatland-fork >=0.5
@@ -102,6 +105,9 @@ requirements:
     - configobj
     #: ..versionadded:: 2.16
     - debounce
+    #: .. versionadded:: 2.34
+    #:     Required for checking for modified experiment log directory.
+    - deepdiff
     - droplet-planning
     #: .. versionadded:: 2.15.2
     - flatland-fork >=0.5
