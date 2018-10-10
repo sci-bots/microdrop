@@ -477,31 +477,6 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menu_vie">
-                <property name="use_action_appearance">False</property>
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_View</property>
-                <property name="use_underline">True</property>
-                <child type="submenu">
-                  <object class="GtkMenu" id="menu_view">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkMenuItem" id="menu_experiment_logs">
-                        <property name="use_action_appearance">False</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">_Experiment logs</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_menu_experiment_logs_activate" swapped="no"/>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
               <object class="GtkMenuItem" id="menu_hel">
                 <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>

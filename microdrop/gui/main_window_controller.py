@@ -135,8 +135,7 @@ class MainWindowController(SingletonPlugin):
         for widget_name in ('box_step', 'checkbutton_realtime_mode',
                             'label_device_name', 'label_experiment_id',
                             'label_protocol_name', 'label_protocol_name',
-                            'label_step_time', 'menu_experiment_logs',
-                            'menu_tools', 'menu_view',
+                            'label_step_time', 'menu_tools', 'menu_view',
                             'button_open_log_directory',
                             'button_open_log_notes'):
             setattr(self, widget_name, app.builder.get_object(widget_name))
@@ -145,8 +144,6 @@ class MainWindowController(SingletonPlugin):
         app.signals["on_menu_about_activate"] = self.on_about
         app.signals["on_menu_online_help_activate"] = \
             self.on_menu_online_help_activate
-        app.signals["on_menu_experiment_logs_activate"] = \
-            self.on_menu_experiment_logs_activate
 
         debounced_save_layout = Debounce(self._save_layout, wait=500)
 
@@ -182,7 +179,6 @@ class MainWindowController(SingletonPlugin):
         self.checkbutton_realtime_mode.set_sensitive(False)
         self.button_open_log_directory.set_sensitive(False)
         self.button_open_log_notes.set_sensitive(False)
-        self.menu_experiment_logs.set_sensitive(False)
 
         if app.config.data.get('advanced_ui', False):
             import IPython
@@ -341,10 +337,6 @@ class MainWindowController(SingletonPlugin):
                     'microdrop.gui.plugin_manager_controller', env='microdrop')
         service.dialog.window.set_transient_for(self.view)
         service.dialog.run()
-
-    def on_menu_experiment_logs_activate(self, widget, data=None):
-        app = get_app()
-        app.experiment_log_controller.on_window_show(widget, data)
 
     def on_button_open_log_directory(self, widget, data=None):
         '''
@@ -554,7 +546,6 @@ class MainWindowController(SingletonPlugin):
             in the main GTK thread.
         '''
         self.checkbutton_realtime_mode.set_sensitive(True)
-        self.menu_experiment_logs.set_sensitive(True)
         self.update_device_name_label(dmf_device,
                                       modified=get_app().dmf_device_controller
                                       .modified)
