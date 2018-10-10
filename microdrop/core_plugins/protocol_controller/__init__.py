@@ -1,16 +1,14 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 import copy
-import functools as ft
-import os
 import logging
-import shutil
 import Queue
 
-from asyncio_helpers import cancellable, sync
+from asyncio_helpers import cancellable
+from logging_helpers import _L, caller_name
 from microdrop_utility import FutureVersionError
 from microdrop_utility.gui import (yesno, contains_pointer, register_shortcuts,
-                                   textentry_validate, text_entry_dialog)
+                                   textentry_validate)
 from pygtkhelpers.gthreads import gtk_threadsafe
 from zmq_plugin.plugin import Plugin as ZmqPlugin
 from zmq_plugin.schema import decode_content_data
@@ -21,129 +19,103 @@ import path_helpers as ph
 import trollius as asyncio
 import zmq
 
-from ..app_context import get_app, get_hub_uri
-from logging_helpers import _L  #: .. versionadded:: 2.20
-from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
+from ...app_context import get_app, get_hub_uri
+from ...plugin_manager import (IPlugin, SingletonPlugin, implements,
                               PluginGlobals, ScheduleRequest, emit_signal,
                               get_service_instance_by_name, get_service_names)
-from ..protocol import Protocol, SerializationError
+from ...protocol import Protocol, SerializationError
+from ...default_paths import PROTOCOLS_DIR, update_recent, update_recent_menu
+from .execute import execute_step, execute_steps
 
 logger = logging.getLogger(__name__)
 
 
-@asyncio.coroutine
-def execute_step(plugin_kwargs):
+def select_protocol_output_path(default_path=None, **kwargs):
     '''
-    .. versionadded:: 2.32
-
-    XXX Coroutine XXX
-
-    Execute a single protocol step.
-
-    Parameters
-    ----------
-    plugin_kwargs : dict
-        Plugin keyword arguments, indexed by plugin name.
+    .. versionadded:: 2.33
 
     Returns
     -------
-    list
-        Return values from plugin ``on_step_run()`` coroutines.
+    path_helpers.path
+        Path to selected DMF device file output path.
+
+    Raises
+    ------
+    IOError
+        If dialog was closed without selecting an output path.
     '''
-    # Take snapshot of arguments for current step.
-    plugin_kwargs = copy.deepcopy(plugin_kwargs)
+    dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                   buttons=(gtk.STOCK_SAVE, gtk.RESPONSE_OK,
+                                            gtk.STOCK_CANCEL,
+                                            gtk.RESPONSE_CANCEL), **kwargs)
+    dialog.props.do_overwrite_confirmation = True
 
-    signals = blinker.Namespace()
+    if default_path is None:
+        default_path = 'New protocol'
+    default_path = ph.path(default_path).realpath()
+    if default_path.parent:
+        dialog.set_current_folder(default_path.parent.abspath())
+    dialog.set_current_name(default_path.name)
 
-    @asyncio.coroutine
-    def notify_signals_connected():
-        yield asyncio.From(asyncio.sleep(0))
-        signals.signal('signals-connected').send(None)
+    file_filter = gtk.FileFilter()
+    file_filter.set_name('Protocol file (*, *.json)')
+    file_filter.add_pattern('*')
+    file_filter.add_pattern('*.json')
+    file_filter.add_pattern('*.JSON')
 
-    loop = asyncio.get_event_loop()
-    # Get list of coroutine futures by emitting `on_step_run()`.
-    plugin_step_tasks = emit_signal("on_step_run", args=[plugin_kwargs,
-                                                         signals])
-    future = asyncio.wait(plugin_step_tasks.values())
+    dialog.add_filter(file_filter)
 
-    loop.create_task(notify_signals_connected())
-    result = yield asyncio.From(future)
-    raise asyncio.Return(result)
-
-
-@asyncio.coroutine
-def execute_steps(steps, signals=None):
-    '''
-    .. versionadded:: 2.32
-
-    Parameters
-    ----------
-    steps : list[dict]
-        List of plugin keyword argument dictionaries.
-    signals : blinker.Namespace, optional
-        Signals namespace where signals are sent through.
-
-    Signals
-    -------
-    step-started
-        Parameters::
-        - ``i``: step index
-        - ``plugin_kwargs``: plugin keyword arguments
-        - ``steps_count``: total number of steps
-    step-completed
-        Parameters::
-        - ``i``: step index
-        - ``plugin_kwargs``: plugin keyword arguments
-        - ``steps_count``: total number of steps
-        - ``result``: list of plugin step return values
-    '''
-    if signals is None:
-        signals = blinker.Namespace()
-
-    for i, step_i in enumerate(steps):
-        # Send notification that step has completed.
-        responses = signals.signal('step-started')\
-            .send('execute_steps', i=i, plugin_kwargs=step_i,
-                  steps_count=len(steps))
-        yield asyncio.From(asyncio.gather(*(r[1] for r in responses)))
-        # XXX Execute `on_step_run` coroutines in background thread
-        # event-loop.
-        try:
-            done, pending = yield asyncio.From(execute_step(step_i))
-
-            exceptions = []
-
-            for d in done:
-                try:
-                    d.result()
-                except Exception as exception:
-                    exceptions.append(exception)
-                    _L().debug('Error: %s', exception, exc_info=True)
-
-            if exceptions:
-                use_markup = False
-                monospace_format = '<tt>%s</tt>' if use_markup else '%s'
-
-                if len(exceptions) == 1:
-                    message = (' ' + monospace_format % exceptions[0])
-                elif exceptions:
-                    message = ('\n%s' % '\n'.join(' - ' + monospace_format
-                                                    % e for e in exceptions))
-                raise RuntimeError('Error executing step:%s' % message)
-        except asyncio.CancelledError:
-            _L().debug('Cancelling protocol.', exc_info=True)
-            raise
-        except Exception as exception:
-            _L().debug('Error executing step: `%s`', exception, exc_info=True)
-            raise
+    try:
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            return dialog.get_filename()
         else:
-            # All plugins have completed the step.
-            # Send notification that step has completed.
-            responses = signals.signal('step-completed')\
-                .send('execute_steps', i=i, plugin_kwargs=step_i,
-                      result=[r.result() for r in done],
-                      steps_count=len(steps))
-            yield asyncio.From(asyncio.gather(*(r[1] for r in responses)))
+            raise IOError('No filename selected.')
+    finally:
+        dialog.destroy()
+
+
+def select_protocol_path(default_path=None, **kwargs):
+    '''
+    .. versionadded:: 2.33
+
+    Returns
+    -------
+    path_helpers.path
+        Path to selected existing protocol file.
+
+    Raises
+    ------
+    IOError
+        If dialog was closed without selecting a protocol file.
+    '''
+    dialog = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                   buttons=(gtk.STOCK_OPEN, gtk.RESPONSE_OK,
+                                            gtk.STOCK_CANCEL,
+                                            gtk.RESPONSE_CANCEL), **kwargs)
+    if default_path is not None:
+        default_path = ph.path(default_path).realpath()
+        if default_path.isfile():
+            dialog.select_filename(default_path)
+        elif default_path.isdir():
+            dialog.set_current_folder(default_path)
+
+    file_filter = gtk.FileFilter()
+    file_filter.set_name('Protocol file (*, *.json)')
+    file_filter.add_pattern('*')
+    file_filter.add_pattern('*.json')
+    file_filter.add_pattern('*.JSON')
+
+    dialog.add_filter(file_filter)
+
+    try:
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            return ph.path(dialog.get_filename())
+        else:
+            raise IOError('No filename selected.')
+    finally:
+        dialog.destroy()
 
 
 class ProtocolControllerZmqPlugin(ZmqPlugin):
@@ -258,6 +230,10 @@ class ProtocolController(SingletonPlugin):
         self.plugin = None
         self.plugin_timeout_id = None
         self.step_execution_queue = Queue.Queue()
+        self.active_protocol_path = None
+
+        # Protocol execution state
+        self.protocol_state = {'loop': 0, 'step_number': 0}
 
     ###########################################################################
     # # Properties #
@@ -303,11 +279,23 @@ class ProtocolController(SingletonPlugin):
         ----------
         filename : str
             Path to MicroDrop protocol file.
+
+
+        .. versionchanged:: 2.33
+            Save loaded protocol path to config file (as relative path if
+            within default protocols directory).
         '''
         filename = ph.path(filename)
 
         try:
+            app = get_app()
             protocol = Protocol.load(filename)
+            # Store absolute path to protocol file.
+            app.config['protocol']['filepath'] = str(filename.abspath())
+            # Set loaded protocol as first position in recent protocols menu.
+            self._update_recent(filename)
+            self.active_protocol_path = app.config['protocol']['filepath']
+            app.config.save()
         except FutureVersionError, why:
             _L().error('''
 Could not open protocol: %s
@@ -366,9 +354,18 @@ version of the software.'''.strip(), filename, why.future_version,
         emit_signal("on_protocol_swapped", [app.protocol, protocol])
 
     def create_protocol(self):
+        '''
+        .. versionchanged:: 2.33
+            Give new protocol default name of `'New Protocol'`.
+        '''
         old_protocol = get_app().protocol
+        self.active_protocol_path = None
         self.modified = True
-        p = Protocol()
+        p = Protocol(name='New Protocol')
+        app = get_app()
+        if 'filepath' in app.config['protocol']:
+            # Current protocol is now anonymous.
+            del app.config['protocol']['filepath']
         emit_signal("on_protocol_swapped", [old_protocol, p])
 
     def on_protocol_swapped(self, old_protocol, protocol):
@@ -379,10 +376,12 @@ version of the software.'''.strip(), filename, why.future_version,
         '''
         protocol.plugin_fields = emit_signal('get_step_fields')
         _L().debug('plugin_fields=%s', protocol.plugin_fields)
-        protocol.first_step()
+        gtk_threadsafe(self.first_step)()
 
     def on_plugin_enable(self):
         app = get_app()
+        app.protocol_controller = self
+
         self.builder = app.builder
 
         self.label_step_number = self.builder.get_object("label_step_number")
@@ -393,8 +392,7 @@ version of the software.'''.strip(), filename, why.future_version,
                        "button_run_protocol", 'button_next_step',
                        'button_last_step', 'menu_protocol',
                        'menu_new_protocol', 'menu_load_protocol',
-                       'menu_rename_protocol', 'menu_save_protocol',
-                       'menu_save_protocol_as'):
+                       'menu_save_protocol', 'menu_save_protocol_as'):
             setattr(self, name_i, app.builder.get_object(name_i))
 
         app.signals["on_button_first_step_button_release_event"] =\
@@ -409,8 +407,6 @@ version of the software.'''.strip(), filename, why.future_version,
             self.on_run_protocol
         app.signals["on_menu_new_protocol_activate"] = self.on_new_protocol
         app.signals["on_menu_load_protocol_activate"] = self.on_load_protocol
-        app.signals["on_menu_rename_protocol_activate"] =\
-            self.on_rename_protocol
         app.signals["on_menu_save_protocol_activate"] = self.on_save_protocol
         app.signals["on_menu_save_protocol_as_activate"] =\
             self.on_save_protocol_as
@@ -420,7 +416,6 @@ version of the software.'''.strip(), filename, why.future_version,
             self.on_textentry_protocol_repeats_focus_out
         app.signals["on_textentry_protocol_repeats_key_press_event"] = \
             self.on_textentry_protocol_repeats_key_press
-        app.protocol_controller = self
         self._register_shortcuts()
 
         self.menu_protocol.set_sensitive(False)
@@ -455,15 +450,11 @@ version of the software.'''.strip(), filename, why.future_version,
         """
         self.cleanup_plugin()
 
-    def goto_step(self, step_number):
-        app = get_app()
-        app.protocol.goto_step(step_number)
-
     def on_first_step(self, widget=None, data=None):
         app = get_app()
         if not app.running and (widget is None or
                                 contains_pointer(widget, data.get_coords())):
-            app.protocol.first_step()
+            self.first_step()
             return True
         return False
 
@@ -471,7 +462,7 @@ version of the software.'''.strip(), filename, why.future_version,
         app = get_app()
         if not app.running and (widget is None or
                                 contains_pointer(widget, data.get_coords())):
-            app.protocol.prev_step()
+            self.prev_step()
             return True
         return False
 
@@ -479,7 +470,7 @@ version of the software.'''.strip(), filename, why.future_version,
         app = get_app()
         if not app.running and (widget is None or
                                 contains_pointer(widget, data.get_coords())):
-            app.protocol.next_step()
+            self.next_step()
             return True
         return False
 
@@ -487,7 +478,7 @@ version of the software.'''.strip(), filename, why.future_version,
         app = get_app()
         if not app.running and (widget is None or
                                 contains_pointer(widget, data.get_coords())):
-            app.protocol.last_step()
+            self.last_step()
             return True
         return False
 
@@ -506,7 +497,6 @@ version of the software.'''.strip(), filename, why.future_version,
         return False
 
     def on_import_protocol(self, widget=None, data=None):
-        app = get_app()
         self.save_check()
 
         filter_ = gtk.FileFilter()
@@ -521,9 +511,7 @@ version of the software.'''.strip(), filename, why.future_version,
                                                 gtk.RESPONSE_OK))
         dialog.add_filter(filter_)
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(os.path.join(app.get_device_directory(),
-                                               app.dmf_device.name,
-                                               "protocols"))
+        dialog.set_current_folder(PROTOCOLS_DIR)
         response = dialog.run()
         try:
             if response == gtk.RESPONSE_OK:
@@ -550,9 +538,7 @@ version of the software.'''.strip(), filename, why.future_version,
         dialog.add_filter(filter_)
         dialog.set_default_response(gtk.RESPONSE_OK)
         dialog.set_current_name(app.protocol.name)
-        dialog.set_current_folder(os.path.join(app.get_device_directory(),
-                                               app.dmf_device.name,
-                                               "protocols"))
+        dialog.set_current_folder(PROTOCOLS_DIR)
         response = dialog.run()
         try:
             if response == gtk.RESPONSE_OK:
@@ -595,26 +581,14 @@ version of the software.'''.strip(), filename, why.future_version,
             dialog.destroy()
 
     def on_load_protocol(self, widget=None, data=None):
-        app = get_app()
         self.save_check()
-        dialog = gtk.FileChooserDialog(title="Load protocol",
-                                       action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                                       buttons=(gtk.STOCK_CANCEL,
-                                                gtk.RESPONSE_CANCEL,
-                                                gtk.STOCK_OPEN,
-                                                gtk.RESPONSE_OK))
-        dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(os.path.join(app.get_device_directory(),
-                                               app.dmf_device.name,
-                                               "protocols"))
-        response = dialog.run()
-        if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-            self.load_protocol(filename)
-        dialog.destroy()
-
-    def on_rename_protocol(self, widget=None, data=None):
-        self.save_protocol(rename=True)
+        try:
+            protocol_path = select_protocol_path(default_path=PROTOCOLS_DIR,
+                                                 title='Load protocol')
+            self.load_protocol(protocol_path)
+        except IOError:
+            # No file protocol file selected.
+            pass
 
     def on_save_protocol(self, widget=None, data=None):
         self.save_protocol()
@@ -632,7 +606,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_protocol_repeats_changed(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.33
             Mark protocol as modified.
         '''
         app = get_app()
@@ -650,41 +624,72 @@ version of the software.'''.strip(), filename, why.future_version,
             if result == gtk.RESPONSE_YES:
                 self.save_protocol()
 
-    def save_protocol(self, save_as=False, rename=False):
+    def save_protocol(self, save_as=False):
+        '''
+        Save protocol.
+
+        If `save_as=True`, specify output location.
+
+
+        .. versionchanged:: 2.33
+            Deprecate ``rename`` keyword argument.  Use standard file chooser
+            dialog to select protocol output path.
+        '''
         app = get_app()
-        name = app.protocol.name
-        if app.dmf_device.name:
-            if save_as or rename or app.protocol.name is None:
-                # if the dialog is cancelled, name = ""
-                if name is None:
-                    name = ''
-                name = text_entry_dialog('Protocol name', name, 'Save protocol')
-                if name is None:
-                    name = ''
 
-            if name:
-                path = os.path.join(app.get_device_directory(),
-                                    app.dmf_device.name,
-                                    "protocols")
-                if not os.path.isdir(path):
-                    os.mkdir(path)
+        if save_as or self.active_protocol_path is None:
+            default_path = (PROTOCOLS_DIR.joinpath('New Protocol')
+                            if self.active_protocol_path is None
+                            else self.active_protocol_path)
+            try:
+                output_path = \
+                    select_protocol_output_path(title='Please select location '
+                                                'to save protocol',
+                                                default_path=default_path)
+            except IOError:
+                _L().debug('No output path was selected.')
+                return
+        else:
+            output_path = self.active_protocol_path
 
-                # current file name
-                if app.protocol.name:
-                    src = os.path.join(path, app.protocol.name)
-                dest = os.path.join(path, name)
+        app.protocol.save(output_path)
+        # Reset modified status, since save acts as a checkpoint.
+        self.modified = False
+        emit_signal("on_protocol_changed")
+        # Update recent protocols menu with saved protocol in first position.
+        self._update_recent(output_path)
 
-                # if the protocol name has changed
-                if name != app.protocol.name:
-                    app.protocol.name = name
+        if self.active_protocol_path is None:
+            # A new in-memory protocol was saved to a file.  Load from file.
+            self.load_protocol(output_path)
+        return output_path
 
-                # if we're renaming
-                if rename and os.path.isfile(src):
-                    shutil.move(src, dest)
-                else:  # save the file
-                    app.protocol.save(dest)
-                self.modified = False
-                emit_signal("on_protocol_changed")
+    def _update_recent(self, recent_path):
+        '''
+        .. versionadded:: 2.33
+
+        Update the recent protocols list in the config and recent menu.
+
+        Parameters
+        ----------
+        recent_path : str
+            Path to protocol file to add to recent list.
+
+        Returns
+        -------
+        list[str]
+            List of recent protocol paths.
+        '''
+        app = get_app()
+        recent_protocols = update_recent('protocol', app.config, recent_path)
+
+        @gtk_threadsafe
+        def _on_menu_activate(protocol_path, *args):
+            self.load_protocol(protocol_path)
+
+        menu_head = app.builder.get_object('menu_recent_protocols')
+        update_recent_menu(recent_protocols, menu_head, _on_menu_activate)
+        return recent_protocols
 
     def run_protocol(self):
         '''
@@ -712,7 +717,7 @@ version of the software.'''.strip(), filename, why.future_version,
         self.set_sensitivity_of_protocol_navigation_buttons(False)
 
         signals = blinker.Namespace()
-        start_i = app.protocol.current_step_number
+        start_i = self.protocol_state['step_number']
         first_pass_complete = []
 
         @asyncio.coroutine
@@ -724,7 +729,7 @@ version of the software.'''.strip(), filename, why.future_version,
                 # selected step.
                 step_number += start_i
             # Trigger `goto_step()` to update protocol grid selection, etc.
-            gtk_threadsafe(app.protocol.goto_step)(step_number)
+            gtk_threadsafe(self.goto_step)(step_number)
 
         @asyncio.coroutine
         def on_step_completed(sender, **kwargs):
@@ -739,7 +744,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
             for i in xrange(app.protocol.n_repeats):
                 steps = all_steps[start_i:] if i == 0 else all_steps
-                app.protocol.current_repetition = i
+                self.protocol_state['loop'] = i
                 yield asyncio.From(execute_steps(steps, signals=signals))
                 first_pass_complete.append(True)
             gtk_threadsafe(emit_signal)('on_protocol_finished')
@@ -849,19 +854,10 @@ version of the software.'''.strip(), filename, why.future_version,
             self.cancel_steps()
             task = cancellable(execute_step)
             # Take snapshot of arguments for current step.
-            plugin_kwargs = copy.deepcopy(app.protocol.current_step()
-                                          .plugin_data)
+            step = app.protocol[self.protocol_state['step_number']]
+            plugin_kwargs = copy.deepcopy(step.plugin_data)
             future = self.executor.submit(task, plugin_kwargs)
             self.step_execution_queue.put((task, future))
-
-    def _get_dmf_control_fields(self, step_number):
-        step = get_app().protocol.get_step(step_number)
-        dmf_plugin_name = step.plugin_name_lookup(
-            r'wheelerlab.dmf_control_board_', re_pattern=True)
-        service = get_service_instance_by_name(dmf_plugin_name)
-        if service:
-            return service.get_step_values(step_number)
-        return None
 
     def on_step_options_changed(self, plugin, step_number):
         '''
@@ -876,7 +872,7 @@ version of the software.'''.strip(), filename, why.future_version,
         emit_signal('on_protocol_changed')
         app = get_app()
         if not app.running:
-            step_number = app.protocol.current_step_number
+            step_number = self.protocol_state['step_number']
             emit_signal('on_step_swapped', [step_number, step_number])
 
     def on_step_created(self, step_number):
@@ -902,9 +898,9 @@ version of the software.'''.strip(), filename, why.future_version,
     def _update_labels(self):
         app = get_app()
         self.label_step_number.set_text("Step: %d/%d\tRepetition: %d/%d" %
-                                        (app.protocol.current_step_number + 1,
+                                        (self.protocol_state['step_number'] + 1,
                                          len(app.protocol.steps),
-                                         app.protocol.current_repetition + 1,
+                                         self.protocol_state['loop'] + 1,
                                          app.protocol.n_repeats))
         self.textentry_protocol_repeats.set_text(str(app.protocol.n_repeats))
 
@@ -918,7 +914,6 @@ version of the software.'''.strip(), filename, why.future_version,
             self.button_run_protocol.set_sensitive(True)
             self.button_next_step.set_sensitive(True)
             self.button_last_step.set_sensitive(True)
-            self.create_protocol()
 
     def on_app_exit(self):
         self.cleanup_plugin()
@@ -931,9 +926,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_experiment_log_changed(self, experiment_log):
         # go to the first step when a new experiment starts
-        protocol = get_app().protocol
-        if protocol:
-            protocol.first_step()
+        self.first_step()
 
     def get_schedule_requests(self, function_name):
         """
@@ -952,6 +945,58 @@ version of the software.'''.strip(), filename, why.future_version,
             # process the on_protocol_swapped signal
             return [ScheduleRequest('microdrop.app', self.name)]
         return []
+
+    def next_step(self):
+        '''
+        .. versionadded:: 2.33
+        '''
+        app = get_app()
+        active_step_number = self.protocol_state['step_number']
+        if active_step_number == len(app.protocol.steps) - 1:
+            current_step = app.protocol.steps[active_step_number]
+            # Last step is currently selected.  Append new step to end.
+            app.protocol.insert_step(step_number=active_step_number,
+                                     value=current_step.copy(), notify=False)
+            self.next_step()
+            emit_signal('on_step_inserted', args=[active_step_number + 1])
+        else:
+            # Activate/select next step.
+            self.goto_step(active_step_number + 1)
+
+    def prev_step(self):
+        '''
+        .. versionadded:: 2.33
+        '''
+        active_step_number = self.protocol_state['step_number']
+        if active_step_number > 0:
+            self.goto_step(active_step_number - 1)
+
+    def first_step(self):
+        '''
+        .. versionadded:: 2.33
+        '''
+        self.protocol_state['loop'] = 0
+        self.goto_step(0)
+
+    def last_step(self):
+        '''
+        .. versionadded:: 2.33
+        '''
+        self.goto_step(len(get_app().protocol.steps) - 1)
+
+    def goto_step(self, step_number):
+        '''
+        .. versionadded:: 2.33
+        '''
+        caller = caller_name()
+        _L().debug('caller: %s -> step: %s', caller, step_number)
+        app = get_app()
+        if app.protocol is None:
+            # No protocol is loaded.
+            return
+        original_step_number = self.protocol_state['step_number']
+        self.protocol_state['step_number'] = step_number
+        emit_signal('on_step_swapped', [original_step_number, step_number])
 
 
 PluginGlobals.pop_env()

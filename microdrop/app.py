@@ -24,6 +24,7 @@ from .app_context import (MODE_PROGRAMMING, MODE_REAL_TIME_PROGRAMMING,
                           SCREEN_TOP, SCREEN_WIDTH, SCREEN_HEIGHT,
                           TITLEBAR_HEIGHT)
 from .config import Config
+from .default_paths import DEVICES_DIR
 from .gui.dmf_device_controller import DEVICE_FILENAME
 from .interfaces import IPlugin, IApplicationMode
 from .logger import CustomHandler
@@ -31,6 +32,7 @@ from .plugin_helpers import AppDataController
 from .plugin_manager import (ExtensionPoint, SingletonPlugin,
                              implements, PluginGlobals)
 from .protocol import Step
+from .default_paths import PROTOCOLS_DIR
 
 
 logger = logging.getLogger(__name__)
@@ -239,8 +241,9 @@ class App(SingletonPlugin, AppDataController):
                 if self.realtime_mode != data['realtime_mode']:
                     self.realtime_mode = data['realtime_mode']
                     if self.protocol is not None:
-                        self.protocol.goto_step(self.protocol
-                                                .current_step_number)
+                        step_number = (self.protocol_controller
+                                       .protocol_state['step_number'])
+                        self.protocol_controller.goto_step(step_number)
             if 'log_file' in data and 'log_enabled' in data:
                 self.apply_log_file_config(data['log_file'],
                                            data['log_enabled'])
@@ -356,7 +359,7 @@ class App(SingletonPlugin, AppDataController):
 
         logger.info('User data directory: %s', self.config['data_dir'])
         logger.info('Plugins directories: %s', plugins_dirs)
-        logger.info('Devices directory: %s', self.get_device_directory())
+        logger.info('Devices directory: %s', DEVICES_DIR)
 
         FormViewDialog.default_parent = self.main_window_controller.view
         self.builder.connect_signals(self.signals)
@@ -398,43 +401,68 @@ class App(SingletonPlugin, AppDataController):
 
         self.experiment_log = None
 
-        # save the protocol name from the config file because it is
-        # automatically overwritten when we load a new device
-        protocol_name = self.config['protocol']['name']
+        if 'name' in self.config['dmf_device']:
+            # Old-style config file where DMF device specified by _name_.
+            device_path = DEVICES_DIR\
+                .joinpath(self.config['dmf_device']['name'], DEVICE_FILENAME)
+            if device_path.isfile():
+                self.config['dmf_device']['filepath'] = \
+                    DEVICES_DIR.relpathto(device_path)
+                del self.config['dmf_device']['name']
+                self.config.save()
 
-        device_directory = ph.path(self.get_device_directory())
-        if not self.config['dmf_device']['name']:
+        if not self.config['dmf_device']['filepath']:
             # No device specified in the config file.
             # First check for default device setting in environment variable.
-            device_name = os.environ.get('MICRODROP_DEFAULT_DEVICE')
-            if device_name is None and device_directory.dirs():
+            device_name = ph.path(os.environ.get('MICRODROP_DEFAULT_DEVICE',
+                                                 ''))
+            if device_name.isabs():
+                # Assume absolute path to device file.
+                self.config['dmf_device']['filepath'] = str(device_name)
+            elif device_name.ext.lower() == '.svg':
+                # Assume relative path to device file from devices directory.
+                self.config['dmf_device']['filepath'] = \
+                    str(DEVICES_DIR.relpathto(device_name))
+            else:
                 # No default device set in environment variable.
                 # Select first available device in device directory.
-                device_name = device_directory.dirs()[0].name
-            self.config['dmf_device']['name'] = device_name
+                device_path = sorted(list(DEVICES_DIR
+                                          .walkfiles('*.svg')))[0]
+                self.config['dmf_device']['filepath'] = \
+                    str(DEVICES_DIR.relpathto(device_path))
+            self.config.save()
 
-        # load the device from the config file
-        if self.config['dmf_device']['name']:
-            if device_directory:
-                device_path = os.path.join(device_directory,
-                                           self.config['dmf_device']['name'],
-                                           DEVICE_FILENAME)
-                self.dmf_device_controller.load_device(device_path)
+        device_path = ph.path(self.config['dmf_device']['filepath'])
+        if not device_path.isabs():
+            # Assume device path is relative to devices directory.
+            device_path = DEVICES_DIR.joinpath(device_path)
 
-        # if we successfully loaded a device
-        if self.dmf_device:
-            # reapply the protocol name to the config file
-            self.config['protocol']['name'] = protocol_name
+        # load the device.
+        self.dmf_device_controller.load_device(device_path)
 
-            # load the protocol
-            if self.config['protocol']['name']:
-                directory = self.get_device_directory()
-                if directory:
-                    filename = os.path.join(directory,
-                                            self.config['dmf_device']['name'],
-                                            "protocols",
-                                            self.config['protocol']['name'])
-                    self.protocol_controller.load_protocol(filename)
+        if 'name' in self.config['protocol']:
+            if self.config['protocol']['name'] is not None:
+                # Old-style config file where protocol was specified as
+                # directory name within device directory.
+                # Look up path to protocol based on device filepath.
+                protocol_path = (device_path.parent
+                                 .joinpath('protocols',
+                                           self.config['protocol']['name']))
+                self.config['protocol']['filepath'] = protocol_path.abspath()
+            del self.config['protocol']['name']
+            self.config.save()
+
+        protocol_path = self.config['protocol'].get('filepath')
+        if protocol_path:
+            protocol_path = ph.path(protocol_path)
+            if not protocol_path.isabs():
+                # Assume protocol path is relative to protocols directory.
+                protocol_path = PROTOCOLS_DIR.joinpath(protocol_path)
+            # load the protocol.
+            self.protocol_controller.load_protocol(protocol_path)
+        else:
+            # Create new protocol.
+            self.protocol_controller.create_protocol()
 
         if os.environ.get('MICRODROP_FIRST_RUN'):
             # Use default options for window allocation.
@@ -522,21 +550,7 @@ class App(SingletonPlugin, AppDataController):
     def on_experiment_log_changed(self, experiment_log):
         self.experiment_log = experiment_log
 
-    def get_device_directory(self):
-        observers = ExtensionPoint(IPlugin)
-        plugin_name = 'microdrop.gui.dmf_device_controller'
-        service = observers.service(plugin_name)
-        values = service.get_app_values()
-        if values and 'device_directory' in values:
-            directory = ph.path(values['device_directory'])
-            if directory.isdir():
-                return directory
-        return None
-
-    def paste_steps(self, step_number=None):
-        if step_number is None:
-            # Default to pasting after the current step
-            step_number = self.protocol.current_step_number + 1
+    def paste_steps(self, step_number):
         clipboard = gtk.clipboard_get()
         try:
             new_steps = pickle.loads(clipboard.wait_for_text())

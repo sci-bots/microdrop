@@ -36,25 +36,6 @@ class ConfigController(SingletonPlugin):
     def on_app_exit(self):
         self.app.config.save()
 
-    def on_dmf_device_changed(self, dmf_device):
-        device_name = None
-        if dmf_device:
-            device_name = dmf_device.name
-        if self.app.config['dmf_device']['name'] != device_name:
-            self.app.config['dmf_device']['name'] = device_name
-            self.app.config.save()
-
-    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
-        self.on_dmf_device_changed(dmf_device)
-
-    def on_protocol_changed(self):
-        if self.app.protocol.name != self.app.config['protocol']['name']:
-            self.app.config['protocol']['name'] = self.app.protocol.name
-            self.app.config.save()
-
-    def on_protocol_swapped(self, old_protocol, protocol):
-        self.on_protocol_changed()
-
     def on_app_options_changed(self, plugin_name):
         if self.app is None:
             return
@@ -79,12 +60,6 @@ class ConfigController(SingletonPlugin):
         if function_name == 'on_plugin_enable':
             return [ScheduleRequest("microdrop.gui.main_window_controller",
                                     self.name)]
-        elif function_name == 'on_protocol_swapped':
-            # make sure that the app's protocol reference is valid
-            return [ScheduleRequest("microdrop.app", self.name)]
-        elif function_name == 'on_dmf_device_swapped':
-            # make sure that the app's dmf device reference is valid
-            return [ScheduleRequest("microdrop.app", self.name)]
         return []
 
 

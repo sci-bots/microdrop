@@ -26,12 +26,12 @@ class Config(object):
 
     spec = """
         [dmf_device]
-        # name of the most recently used DMF device
-        name = string(default=None)
+        # Path to most recently used DMF device
+        filepath = string(default='')
 
         [protocol]
         # name of the most recently used protocol
-        name = string(default=None)
+        filepath = string(default='')
 
         [plugins]
         # directory containing microdrop plugins
