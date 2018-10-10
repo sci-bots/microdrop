@@ -301,6 +301,43 @@ class ExperimentLogController(SingletonPlugin):
 
         app.signals["on_menu_new_experiment_activate"] = _on_new_menu_clicked
 
+    def on_protocol_finished(self):
+        '''
+        .. versionadded:: X.X.X
+
+        Offer to create a new experiment if experiment data exists after
+        protocol has completed.
+        '''
+        if self.experiment_ctrl.modified:
+            app = get_app()
+            dialog = gtk.Dialog(parent=app.main_window_controller.view,
+                                title='Create new experiment?',
+                                buttons=('_Continue', gtk.RESPONSE_NO, '_New',
+                                         gtk.RESPONSE_YES))
+            content_area = dialog.get_content_area()
+            message = ('Protocol has completed successfully.\n\n'
+                       'Would you like to **continue** the current experiment '
+                       '_or_ **create a new one**?')
+            align = gtk.Alignment()
+            align.set_padding(padding_top=0, padding_bottom=0, padding_left=20,
+                              padding_right=20)
+            label = gtk.Label(markdown2pango(message))
+            label.props.use_markup = True
+            align.add(label)
+            content_area.pack_start(align)
+            content_area.show_all()
+            try:
+                response = dialog.run()
+            finally:
+                dialog.destroy()
+
+            if response == gtk.RESPONSE_YES:
+                try:
+                    self.experiment_ctrl.new()
+                except CancelledError:
+                    # User cancelled creation of new experiment.
+                    pass
+
     ###########################################################################
     # Accessor methods
     def get_schedule_requests(self, function_name):
