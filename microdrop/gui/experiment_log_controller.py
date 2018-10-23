@@ -18,8 +18,8 @@ from .. import __version__
 from ..app_context import get_app
 from ..default_paths import EXPERIMENT_LOG_DIR
 from ..plugin_manager import (IPlugin, SingletonPlugin, implements,
-                              PluginGlobals, ScheduleRequest,
-                              get_service_names, get_service_instance_by_name)
+                              PluginGlobals, get_service_names,
+                              get_service_instance_by_name)
 from .dmf_device_controller import DEVICE_FILENAME
 
 logger = logging.getLogger(__name__)
@@ -337,17 +337,5 @@ class ExperimentLogController(SingletonPlugin):
                 except CancelledError:
                     # User cancelled creation of new experiment.
                     pass
-
-    ###########################################################################
-    # Accessor methods
-    def get_schedule_requests(self, function_name):
-        """
-        Returns a list of scheduling requests (i.e., ScheduleRequest
-        instances) for the function specified by function_name.
-        """
-        if function_name == 'on_experiment_log_changed':
-            # ensure that the app's reference to the new experiment log gets set
-            return [ScheduleRequest('microdrop.app', self.name)]
-        return []
 
 PluginGlobals.pop_env()

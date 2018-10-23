@@ -481,11 +481,18 @@ class MainWindowController(SingletonPlugin):
         webbrowser.open_new_tab(data)
 
     def get_protocol_string(self, protocol=None):
+        '''
+        .. versionchanged:: 2.34.1
+            Use file name for name of device (instead of the saved ``name``
+            attribute).
+        '''
         if protocol is None:
             protocol = get_app().protocol
         if protocol is None:
             return 'Protocol: None'
-        return 'Protocol: %s' % protocol.name
+        # Use filename if it is set.
+        name = getattr(protocol, 'filename', protocol).name
+        return 'Protocol: %s' % name
 
     def update_label(self, label, obj=None, modified=False, get_string=str):
         '''
