@@ -36,6 +36,22 @@ class ExperimentLogController(SingletonPlugin):
         '''
         self.save(create_new=False)
 
+    def on_dmf_device_swapped(self, old_dmf_device, dmf_device):
+        '''
+        .. versionchanged:: 2.32.2
+            Removed method.
+
+        .. versionchanged:: X.X.X
+            Restored method since it is necessary to initialize an experiment
+            log directory.
+        '''
+        app = get_app()
+        if dmf_device and dmf_device.name:
+            device_path = os.path.join(app.get_device_directory(),
+                                       dmf_device.name, "logs")
+            experiment_log = ExperimentLog(device_path)
+            emit_signal("on_experiment_log_changed", experiment_log)
+
     def save(self, create_new=True):
         '''
         .. versionchanged:: 2.28.1
