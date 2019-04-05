@@ -34,6 +34,9 @@ def require_experiment_log(log_level='info'):
     -------
     function
         Decorator to require experiment log.
+
+
+    .. versionadded:: 2.32.3
     '''
     def _require_experiment_log(func):
         @wraps(func)
@@ -73,13 +76,23 @@ class ExperimentLogController(SingletonPlugin):
 
     @require_experiment_log()
     def on_new_experiment(self, widget=None, data=None):
-        'Save current experiment info and create new experiment.'
+        '''Save current experiment info and create new experiment.
+
+
+        .. versionchanged:: 2.32.3
+            Use :meth:`create()` method to create new log directory.
+        '''
         _L().debug('New experiment clicked')
         self.save()
         app = get_app()
         self.create(app.experiment_log.directory)
 
     def on_plugin_enable(self):
+        '''Register ``File > New Experiment`` callback; disable on app start.
+
+
+        .. versionadded:: 2.32.3
+        '''
         app = get_app()
         app.experiment_log_controller = self
         self.menu_new_experiment = app.builder.get_object('menu_new_experiment')
@@ -91,7 +104,7 @@ class ExperimentLogController(SingletonPlugin):
         .. versionchanged:: 2.32.2
             Removed method.
 
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.32.3
             Restored method since it is necessary to initialize an experiment
             log directory.  Save experiment info (if available) before creating
             new experiment log.
@@ -105,7 +118,12 @@ class ExperimentLogController(SingletonPlugin):
 
     @require_experiment_log()
     def on_protocol_finished(self):
-        'Save experiment info to log directory; optionally create new log.'
+        '''Save experiment info to log directory; optionally create new log.
+
+
+        .. versionchanged:: 2.32.3
+            Use :meth:`create()` method to create new log directory.
+        '''
         self.save()
 
         @gtk_threadsafe
@@ -179,17 +197,23 @@ class ExperimentLogController(SingletonPlugin):
             output.write(svg_unicode)
 
     def create(self, directory):
-        # create a new log
+        '''Create a new experiment log with corresponding log directory.
+
+        .. versionadded:: 2.32.3
+        '''
         experiment_log = ExperimentLog(directory)
         emit_signal('on_experiment_log_changed', experiment_log)
 
     ###########################################################################
     # Accessor methods
     def get_schedule_requests(self, function_name):
-        """
-        Returns a list of scheduling requests (i.e., ScheduleRequest
-        instances) for the function specified by function_name.
-        """
+        '''Request scheduling of certain signals relative to other plugins.
+
+
+        .. versionchanged:: 2.32.3
+            Request scheduling of ``on_plugin_enable`` handling after main
+            window controller to ensure GTK builder reference is ready.
+        '''
         if function_name == 'on_experiment_log_changed':
             # Ensure that the app's reference to the new experiment log gets
             # set.

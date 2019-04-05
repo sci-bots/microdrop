@@ -305,6 +305,16 @@ class ExperimentLog():
 
     @property
     def empty(self):
+        '''
+        Returns
+        -------
+        bool
+            `True` if experiment log contains data or experiment log directory
+            contains one or more files/directories.
+
+
+        .. versionadded:: 2.32.3
+        '''
         if self.get_log_path().listdir():
             # Experiment log contains files and/or directories.
             return False
