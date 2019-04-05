@@ -302,3 +302,15 @@ class ExperimentLog():
                 compatible types.
         '''
         return log_data_to_frame(self)
+
+    @property
+    def empty(self):
+        if self.get_log_path().listdir():
+            # Experiment log contains files and/or directories.
+            return False
+        elif [x for x in self.get('step') if x is not None]:
+            # Experiment log contains in-memory data.
+            return False
+        else:
+            # Experiment log is empty.
+            return True
