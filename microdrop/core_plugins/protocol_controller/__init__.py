@@ -517,7 +517,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def on_protocol_repeats_changed(self):
         '''
-        .. versionchanged:: X.X.X
+        .. versionchanged:: 2.35.0
             Mark protocol as modified.
         '''
         app = get_app()
@@ -829,7 +829,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def next_step(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.35.0
         '''
         app = get_app()
         active_step_number = self.protocol_state['step_number']
@@ -846,7 +846,7 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def prev_step(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.35.0
         '''
         active_step_number = self.protocol_state['step_number']
         if active_step_number > 0:
@@ -854,20 +854,20 @@ version of the software.'''.strip(), filename, why.future_version,
 
     def first_step(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.35.0
         '''
         self.protocol_state['loop'] = 0
         self.goto_step(0)
 
     def last_step(self):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.35.0
         '''
         self.goto_step(len(get_app().protocol.steps) - 1)
 
     def goto_step(self, step_number):
         '''
-        .. versionadded:: X.X.X
+        .. versionadded:: 2.35.0
         '''
         caller = caller_name()
         _L().debug('caller: %s -> step: %s', caller, step_number)
