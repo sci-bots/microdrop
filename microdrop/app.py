@@ -239,8 +239,9 @@ class App(SingletonPlugin, AppDataController):
                 if self.realtime_mode != data['realtime_mode']:
                     self.realtime_mode = data['realtime_mode']
                     if self.protocol is not None:
-                        self.protocol.goto_step(self.protocol
-                                                .current_step_number)
+                        step_number = (self.protocol_controller
+                                       .protocol_state['step_number'])
+                        self.protocol_controller.goto_step(step_number)
             if 'log_file' in data and 'log_enabled' in data:
                 self.apply_log_file_config(data['log_file'],
                                            data['log_enabled'])
@@ -533,10 +534,7 @@ class App(SingletonPlugin, AppDataController):
                 return directory
         return None
 
-    def paste_steps(self, step_number=None):
-        if step_number is None:
-            # Default to pasting after the current step
-            step_number = self.protocol.current_step_number + 1
+    def paste_steps(self, step_number):
         clipboard = gtk.clipboard_get()
         try:
             new_steps = pickle.loads(clipboard.wait_for_text())
