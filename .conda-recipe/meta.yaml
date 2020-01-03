@@ -17,81 +17,18 @@ build:
     - microdrop = microdrop.microdrop:main
     # .. versionadded:: 2.13
     - microdrop-config = microdrop.bin.config:main
-
-  # If this is a new build for the same version, increment the build
-  # number. If you do not include this key, it defaults to 0.
+  skip: True  # [py>27 or not win]
   number: 0
   script:
     # Generate `setup.py` from `pavement.py` definition.
     - python -m paver generate_setup
-    - python -B setup.py install --single-version-externally-managed --record record.txt
+    - python -m pip install --no-deps --ignore-installed -vv .
 
 requirements:
   build:
-    - application-repository
-    - arrow
-    #: ..versionadded:: 2.25
-    - asyncio-helpers >=0.2
-    - blinker
-    - configobj
-    #: ..versionadded:: 2.16
-    - debounce
-    - droplet-planning
-    #: .. versionadded:: 2.15.2
-    - flatland-fork >=0.5
-    - functools32
-    - geo_util
-    - git_helpers
-    - gitpython
-    - ipython
-    - jupyter-helpers
-    - jinja2
-    - logging-helpers >=0.2
-    - lxml
-    - matplotlib
-    - microdrop-device-converter >=0.1.post5
-    #: .. versionchanged:: 2.15.3
-    #: .. versionchanged:: 2.16.1
-    - microdrop-plugin-manager >=0.25.1
-    #: .. versionadded:: 2.15.1
-    - microdrop-plugin-template >=1.3
-    - networkx
-    - openpyxl
-    - pandas
-    #: .. versionchanged:: 2.21
-    - path_helpers >=0.8
-    - paver
-    - pint
-    - pip-helpers
-    - pycairo-gtk2
-    #: .. versionadded:: 2.13
-    - pydash
-    - pygtk-textbuffer-with-undo
-    - pymunk >=4.0,<5.0
-    - pyparsing
-    - pyserial
-    - pytables
     - python
-    - pyutilib.component.loader
-    - pywin32
-    - pyyaml
-    - pyzmq
-    - run-exe
-    - scipy
-    - setuptools
-    - si-prefix
-    - svg-model
-    - svgwrite
-    - sympy
-    - task-scheduler
-    - tornado
-    #: .. versionchanged:: 2.25.1
-    #:     Ignore callback return value in `gtk_threadsafe()` decorator to
-    #:     avoid calling functions returning `True` repeatedly and
-    #:     indefinitely.
-    - wheeler.pygtkhelpers >=0.22
-    #: .. versionchanged:: 2.25
-    - zmq-plugin >=0.3.3
+    - pip
+    - paver
 
   run:
     - application-repository
