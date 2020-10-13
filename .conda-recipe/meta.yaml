@@ -33,6 +33,8 @@ requirements:
   run:
     - application-repository
     - arrow
+    #: ..versionadded:: 2.30
+    - markdown2pango
     #: ..versionadded:: 2.25
     - asyncio-helpers >=0.2
     - blinker
